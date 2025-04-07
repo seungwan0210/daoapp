@@ -1,0 +1,2 @@
+C:/Users/A/dartschat/android/app/.cxx/RelWithDebInfo/1cl63844/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/A/dartschat/android/app/.cxx/RelWithDebInfo/1cl63844/armeabi-v7a/CMakeFiles/rebuild_cache.dir
