@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "283714687956",
+    "project_id": "daoapp-c0527",
+    "storage_bucket": "daoapp-c0527.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:283714687956:android:33fbfa9151b9d9c2043c41",
+        "android_client_info": {
+          "package_name": "com.example.daoapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "283714687956-r2b9fad4as8kc4edfb8b4r9gfek7jogv.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.daoapp",
+            "certificate_hash": "ed9a3bd48512d3c23abb8d0c8b53cfde4ed5db5a"
+          }
+        },
+        {
+          "client_id": "283714687956-7ikgq104hcc09df7h32adohcec4uq3of.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAH5WrErbEZ70QbjJF--laMp9MLFYWU1b4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "283714687956-7ikgq104hcc09df7h32adohcec4uq3of.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "283714687956-g6taj5dkisf785p46521612s0am4mdgc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.daoapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
