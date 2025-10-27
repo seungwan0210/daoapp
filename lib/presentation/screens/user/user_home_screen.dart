@@ -5,7 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
 import 'package:daoapp/presentation/providers/user_home_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 이거 추가!
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserHomeScreen extends StatelessWidget {
   const UserHomeScreen({super.key});
@@ -43,7 +43,7 @@ class UserHomeScreen extends StatelessWidget {
     );
   }
 
-  // 1. 공지 배너 (실시간)
+  // 1. 공지 배너
   Widget _buildNoticeBanner() {
     return Consumer(builder: (context, ref, child) {
       final notices = ref.watch(noticeBannerProvider);
@@ -59,7 +59,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 2. 다음 경기 (실시간)
+  // 2. 다음 경기
   Widget _buildNextEventCard(BuildContext context) {
     return Consumer(builder: (context, ref, child) {
       final event = ref.watch(nextEventProvider);
@@ -79,7 +79,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 3. TOP3 랭킹 (실시간)
+  // 3. TOP3 랭킹
   Widget _buildTop3Ranking(BuildContext context) {
     return Consumer(builder: (context, ref, child) {
       final top3 = ref.watch(top3Provider);
@@ -136,7 +136,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 4. 뉴스 (실시간)
+  // 4. 뉴스
   Widget _buildNewsSection() {
     return Consumer(builder: (context, ref, child) {
       final news = ref.watch(newsProvider);
@@ -169,7 +169,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 5. 스폰서 배너 (실시간)
+  // 5. 스폰서 배너
   Widget _buildSponsorBanner() {
     return Consumer(builder: (context, ref, child) {
       final sponsors = ref.watch(sponsorBannerProvider);
@@ -192,7 +192,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 보조 함수들
+  // 보조 함수
   String _getWeekday(int weekday) {
     const days = ['일', '월', '화', '수', '목', '금', '토'];
     return days[weekday - 1];

@@ -43,26 +43,23 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdminAsync = ref.watch(isAdminProvider);
-
-    isAdminAsync.whenData((isAdmin) {
-      if (isAdmin && !_isAdminLoaded) {
-        setState(() {
-          _pages = List.from(_basePages)..add(const AdminDashboardScreen());
-          _items = List.from(_baseItems)..add(const BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings),
-            label: '관리자',
-          ));
-          _isAdminLoaded = true;
-          // 인덱스 보정
-          if (_currentIndex >= _pages.length) {
-            _currentIndex = 0;
-          }
-        });
-      }
+    // 실시간으로 isAdminProvider 감시
+    ref.listen(isAdminProvider, (previous, next) {
+      next.whenData((isAdmin) {
+        print('isAdminProvider 변경 감지: $isAdmin'); // 디버그
+        if (isAdmin && !_isAdminLoaded) {
+          setState(() {
+            _pages = List.from(_basePages)..add(const AdminDashboardScreen());
+            _items = List.from(_baseItems)..add(const BottomNavigationBarItem(
+              icon: Icon(Icons.admin_panel_settings),
+              label: '관리자',
+            ));
+            _isAdminLoaded = true;
+          });
+        }
+      });
     });
 
-    // 안전한 인덱스
     final safeIndex = _currentIndex < _pages.length ? _currentIndex : 0;
 
     return Scaffold(

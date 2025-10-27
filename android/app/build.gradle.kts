@@ -8,7 +8,6 @@ android {
     namespace = "com.example.daoapp"
     compileSdk = flutter.compileSdkVersion
 
-    // Firebase Core가 요구하는 NDK 버전
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -20,18 +19,30 @@ android {
         jvmTarget = "11"
     }
 
+    // 디버그 키 고정 (이름: customDebug)
+    signingConfigs {
+        create("customDebug") {  // 'debug' 대신 'customDebug'
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.daoapp"
-        // minSdk = flutter.minSdkVersion  // 이 줄 삭제 or 주석 처리
-        minSdk = 23  // 여기서 직접 23으로 고정!
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
-        release {
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("customDebug")  // 여기 수정!
+        }
+        getByName("release") {
+            // 릴리즈는 나중에
         }
     }
 }

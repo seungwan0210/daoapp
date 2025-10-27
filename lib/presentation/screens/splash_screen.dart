@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart'; // 추가!
+import 'package:daoapp/presentation/screens/main_screen.dart';
 
 /// 앱 시작 시 2초 동안 보여주는 로딩 화면
 class SplashScreen extends ConsumerStatefulWidget {
@@ -17,7 +17,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    // 2초 후에 로그인 상태 확인
     Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
       checkLoginStatus();
     });
   }
@@ -25,14 +27,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void checkLoginStatus() {
     final authState = ref.read(authStateProvider);
 
+    // 로그인 상태 확인
     if (authState.value == null) {
-      _goToLogin();
+      _goToLogin(); // 로그인 안 됨 → 로그인 화면
     } else {
-      _goToMain(); // 무조건 MainScreen으로!
+      _goToMain(); // 로그인 됨 → 메인 화면
     }
   }
 
   void _goToLogin() {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -40,6 +44,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   void _goToMain() {
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const MainScreen()),
@@ -58,10 +63,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             const SizedBox(height: 30),
             const Text(
               '스틸리그 포인트',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 50),
-            const CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+            const CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
+            ),
           ],
         ),
       ),
