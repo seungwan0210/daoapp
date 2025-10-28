@@ -1,4 +1,5 @@
 // lib/presentation/providers/user_home_provider.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,19 +24,19 @@ final nextEventProvider = StreamProvider.autoDispose((ref) {
       .snapshots();
 });
 
-// 공지 배너
+// 공지 배너 - 컬렉션 이름 수정 + 정렬 추가
 final noticeBannerProvider = StreamProvider.autoDispose((ref) {
   return firestore
-      .collection('banners_notices')
-      .where('active', isEqualTo: true)
-      .snapshots(); // orderBy 제거!
+      .collection('notices')                    // banners_notices → notices
+      .orderBy('createdAt', descending: true)   // 최신순
+      .snapshots();
 });
 
 // 뉴스
 final newsProvider = StreamProvider.autoDispose((ref) {
   return firestore
       .collection('news')
-      .orderBy('date', descending: true)
+      .orderBy('createdAt', descending: true)   // date → createdAt (정확한 필드)
       .limit(5)
       .snapshots();
 });
@@ -45,5 +46,6 @@ final sponsorBannerProvider = StreamProvider.autoDispose((ref) {
   return firestore
       .collection('banners_sponsors')
       .where('active', isEqualTo: true)
+      .orderBy('createdAt', descending: true)    // 정렬 추가
       .snapshots();
 });

@@ -1,18 +1,23 @@
 // lib/data/repositories/auth_repository_impl.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:daoapp/data/repositories/auth_repository.dart';
+import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
-  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+
+  AuthRepositoryImpl({
+    required FirebaseAuth firebaseAuth,
+    required GoogleSignIn googleSignIn,
+  })  : _auth = firebaseAuth,
+        _googleSignIn = googleSignIn;
 
   @override
-  User? get currentUser => _firebaseAuth.currentUser;
+  User? get currentUser => _auth.currentUser;
 
   @override
-  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   @override
   Future<User?> signInWithGoogle() async {
@@ -26,33 +31,33 @@ class AuthRepositoryImpl implements AuthRepository {
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await _firebaseAuth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
       return userCredential.user;
     } catch (e) {
-      rethrow;
+      print('Google Sign-In Error: $e');
+      return null;
     }
   }
 
   @override
   Future<void> signOut() async {
     await Future.wait([
-      _firebaseAuth.signOut(),
+      _auth.signOut(),
       _googleSignIn.signOut(),
     ]);
   }
 
-  // Custom Claims 기반 (보안 최고)
   @override
   Future<bool> isAdmin() async {
-    final user = _firebaseAuth.currentUser;
+    final user = _auth.currentUser;
     if (user == null) return false;
 
+    // 토큰 강제 새로고침!
     final idTokenResult = await user.getIdTokenResult(true);
-    final claims = idTokenResult.claims;
-    final isAdmin = claims != null && claims['admin'] == true;
+    final isAdmin = idTokenResult.claims?['admin'] == true || idTokenResult.claims?['super_admin'] == true;
 
-    // 디버그용 로그
-    print('Custom Claims isAdmin: $isAdmin (claims: $claims)');
+    print('isAdmin(): $isAdmin, claims: ${idTokenResult.claims}'); // 디버그
+
     return isAdmin;
   }
 }

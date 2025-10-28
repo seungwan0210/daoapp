@@ -1,28 +1,24 @@
 // lib/presentation/providers/app_providers.dart
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:daoapp/data/repositories/auth_repository_impl.dart';
-import 'package:daoapp/data/repositories/auth_repository.dart';  // 경로 수정 (domain → data)
-
-final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
-final firestoreProvider = Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:daoapp/data/repositories/auth_repository.dart';
+import 'package:daoapp/di/service_locator.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepositoryImpl();
+  return sl<AuthRepository>();
 });
 
 final authStateProvider = StreamProvider<User?>((ref) {
-  return FirebaseAuth.instance.authStateChanges();
+  return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
-final isAdminProvider = StreamProvider<bool>((ref) {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return Stream.value(false);
+// Custom Claims 기반 (즉시 반영 위해 FutureProvider)
+final isAdminProvider = FutureProvider<bool>((ref) async {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return false;
 
-  return FirebaseFirestore.instance
-      .collection('allowed_users')
-      .doc(user.email)  // 이메일로 문서 ID
-      .snapshots()
-      .map((snapshot) => snapshot.exists && snapshot.data()?['isAdmin'] == true);
+  final idTokenResult = await user.getIdTokenResult(true);
+  final isAdmin = idTokenResult.claims?['admin'] == true || idTokenResult.claims?['super_admin'] == true;
+  print('isAdminProvider: $isAdmin');
+  return isAdmin;
 });

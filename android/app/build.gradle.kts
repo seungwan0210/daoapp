@@ -19,13 +19,18 @@ android {
         jvmTarget = "11"
     }
 
-    // 디버그 키 고정 (이름: customDebug)
     signingConfigs {
-        create("customDebug") {  // 'debug' 대신 'customDebug'
+        create("customDebug") {
             storeFile = file("debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("customDebug")
         }
     }
 
@@ -39,7 +44,7 @@ android {
 
     buildTypes {
         getByName("debug") {
-            signingConfig = signingConfigs.getByName("customDebug")  // 여기 수정!
+            signingConfig = signingConfigs.getByName("customDebug")
         }
         getByName("release") {
             // 릴리즈는 나중에

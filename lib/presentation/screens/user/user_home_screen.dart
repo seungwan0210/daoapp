@@ -1,7 +1,9 @@
 // lib/presentation/screens/user/user_home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
 import 'package:daoapp/presentation/providers/user_home_provider.dart';
@@ -16,10 +18,7 @@ class UserHomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('스틸리그 포인트'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
         ],
       ),
       body: SingleChildScrollView(
@@ -27,13 +26,13 @@ class UserHomeScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildNoticeBanner(),
+            _buildNoticeSection(),
             const SizedBox(height: 24),
             _buildNextEventCard(context),
             const SizedBox(height: 24),
             _buildTop3Ranking(context),
             const SizedBox(height: 24),
-            _buildNewsSection(),
+            _buildNewsPosterSlider(),
             const SizedBox(height: 24),
             _buildSponsorBanner(),
             const SizedBox(height: 40),
@@ -43,30 +42,156 @@ class UserHomeScreen extends StatelessWidget {
     );
   }
 
-  // 1. 공지 배너
-  Widget _buildNoticeBanner() {
+  Widget _buildNoticeSection() {
     return Consumer(builder: (context, ref, child) {
       final notices = ref.watch(noticeBannerProvider);
       return notices.when(
         data: (snapshot) {
-          final texts = snapshot.docs.map((doc) => doc['text'] as String).toList();
-          if (texts.isEmpty) return _buildEmptyBanner('공지 없음');
-          return _buildTextCarousel(texts);
+          if (snapshot.docs.isEmpty) return _buildEmptyBanner('공지 없음');
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('공지사항', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 50,
+                child: CarouselSlider(
+                  options: CarouselOptions(
+                    height: 50,
+                    autoPlay: true,
+                    viewportFraction: 1.0,
+                    autoPlayInterval: const Duration(seconds: 4),
+                  ),
+                  items: snapshot.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final title = data['title'] as String? ?? '';
+
+                    return Material( // Material 추가!
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => _handleNoticeTap(context, data),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00D4FF).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            title,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          );
         },
         loading: () => _buildShimmerBanner(),
-        error: (_, __) => _buildErrorBanner(),
+        error: (_, __) => const Text('오류'),
       );
     });
   }
 
-  // 2. 다음 경기
+  // 뉴스 포스터 슬라이드 + 클릭 이동
+  Widget _buildNewsPosterSlider() {
+    return Consumer(builder: (context, ref, child) {
+      final news = ref.watch(newsProvider);
+      return news.when(
+        data: (snapshot) {
+          if (snapshot.docs.isEmpty) return const Text('뉴스 없음', style: TextStyle(color: Colors.grey));
+          final items = snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return {
+              'imageUrl': data['imageUrl'] as String?,
+              'title': data['title'] as String? ?? '',
+              'actionType': data['actionType'] ?? 'none',
+              'actionUrl': data['actionUrl'] as String?,
+              'actionRoute': data['actionRoute'] as String?,
+            };
+          }).toList();
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('최신 뉴스', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              CarouselSlider(
+                options: CarouselOptions(
+                  height: 300,
+                  autoPlay: true,
+                  enlargeCenterPage: true,
+                  viewportFraction: 0.85,
+                ),
+                items: items.map((item) {
+                  return GestureDetector(
+                    onTap: () => _handleNewsTap(context, item),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (item['imageUrl'] != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.network(
+                              item['imageUrl']!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(color: Colors.grey[300], child: const Icon(Icons.broken_image)),
+                            ),
+                          )
+                        else
+                          Container(color: Colors.grey[300], child: const Icon(Icons.image, size: 60)),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.bottomCenter,
+                                end: Alignment.topCenter,
+                                colors: [Colors.black54, Colors.transparent],
+                              ),
+                              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                            ),
+                            child: Text(
+                              item['title']!,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          );
+        },
+        loading: () => _buildShimmerBanner(height: 300),
+        error: (_, __) => const Text('오류'),
+      );
+    });
+  }
+
+  // 다음 경기
   Widget _buildNextEventCard(BuildContext context) {
     return Consumer(builder: (context, ref, child) {
       final event = ref.watch(nextEventProvider);
       return event.when(
         data: (snapshot) {
           if (snapshot.docs.isEmpty) return _buildEmptyCard('예정된 경기 없음');
-          final data = snapshot.docs.first.data();
+          final data = snapshot.docs.first.data() as Map<String, dynamic>;
           final shop = data['shopName'] ?? '미정';
           final timestamp = data['date'] as Timestamp;
           final date = timestamp.toDate();
@@ -79,7 +204,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 3. TOP3 랭킹
+  // TOP3 랭킹
   Widget _buildTop3Ranking(BuildContext context) {
     return Consumer(builder: (context, ref, child) {
       final top3 = ref.watch(top3Provider);
@@ -136,40 +261,7 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 4. 뉴스
-  Widget _buildNewsSection() {
-    return Consumer(builder: (context, ref, child) {
-      final news = ref.watch(newsProvider);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('최신 뉴스', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          news.when(
-            data: (snapshot) {
-              if (snapshot.docs.isEmpty) return const Text('뉴스 없음');
-              return Column(
-                children: snapshot.docs.map((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
-                  return Card(
-                    child: ListTile(
-                      title: Text(data['title'] ?? ''),
-                      trailing: Text(data['date'] ?? '', style: const TextStyle(color: Colors.grey)),
-                      onTap: () {},
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-            loading: () => _buildShimmerCard(),
-            error: (_, __) => const Text('오류'),
-          ),
-        ],
-      );
-    });
-  }
-
-  // 5. 스폰서 배너
+  // 스폰서 배너
   Widget _buildSponsorBanner() {
     return Consumer(builder: (context, ref, child) {
       final sponsors = ref.watch(sponsorBannerProvider);
@@ -180,7 +272,14 @@ class UserHomeScreen extends StatelessWidget {
           const SizedBox(height: 12),
           sponsors.when(
             data: (snapshot) {
-              final urls = snapshot.docs.map((doc) => doc['imageUrl'] as String).toList();
+              final urls = snapshot.docs
+                  .map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return data['imageUrl'] as String? ?? '';
+              })
+                  .where((url) => url.isNotEmpty)
+                  .toList();
+
               if (urls.isEmpty) return const Text('스폰서 없음');
               return _buildImageCarousel(urls);
             },
@@ -192,31 +291,34 @@ class UserHomeScreen extends StatelessWidget {
     });
   }
 
-  // 보조 함수
-  String _getWeekday(int weekday) {
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
-    return days[weekday - 1];
+  // 클릭 핸들러
+  void _handleNoticeTap(BuildContext context, Map<String, dynamic> data) {
+    final type = data['actionType'];
+    if (type == 'link' && data['actionUrl'] != null) {
+      launchUrl(Uri.parse(data['actionUrl']), mode: LaunchMode.externalApplication);
+    } else if (type == 'internal' && data['actionRoute'] != null) {
+      Navigator.pushNamed(context, data['actionRoute']);
+    }
   }
 
-  Widget _buildTextCarousel(List<String> texts) {
-    return CarouselSlider(
-      options: CarouselOptions(height: 50, autoPlay: true, viewportFraction: 1.0),
-      items: texts.map((t) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(color: const Color(0xFF00D4FF).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-        child: Center(child: Text(t, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600))),
-      )).toList(),
-    );
+  void _handleNewsTap(BuildContext context, Map<String, dynamic> item) {
+    final type = item['actionType'];
+    if (type == 'link' && item['actionUrl'] != null) {
+      launchUrl(Uri.parse(item['actionUrl']), mode: LaunchMode.externalApplication);
+    } else if (type == 'internal' && item['actionRoute'] != null) {
+      Navigator.pushNamed(context, item['actionRoute']);
+    }
   }
 
-  Widget _buildImageCarousel(List<String> urls) {
-    return CarouselSlider(
-      options: CarouselOptions(height: 100, autoPlay: true, enlargeCenterPage: true),
-      items: urls.map((url) => ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image))),
-      )).toList(),
+  // 보조 메서드들
+  String _getWeekday(int weekday) => ['일', '월', '화', '수', '목', '금', '토'][weekday - 1];
+
+  Widget _buildEmptyCard(String msg) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(msg, style: const TextStyle(color: Colors.grey)),
+      ),
     );
   }
 
@@ -229,25 +331,83 @@ class UserHomeScreen extends StatelessWidget {
           children: [
             const Text('다음 경기 일정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Row(children: [const Icon(Icons.location_on, size: 16), const SizedBox(width: 4), Text(shop), const Spacer(), Text(date)]),
+            Row(
+              children: [
+                const Icon(Icons.location_on, size: 16),
+                const SizedBox(width: 4),
+                Text(shop),
+                const Spacer(),
+                Text(date),
+              ],
+            ),
             const SizedBox(height: 12),
-            ElevatedButton(onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen())), child: const Text('일정 보기')),
+            ElevatedButton(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarScreen())),
+              child: const Text('일정 보기'),
+            ),
           ],
         ),
       ),
     );
   }
 
+  Widget _buildImageCarousel(List<String> urls) {
+    return CarouselSlider(
+      options: CarouselOptions(height: 100, autoPlay: true, enlargeCenterPage: true),
+      items: urls.map((url) => ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image)),
+        ),
+      )).toList(),
+    );
+  }
+
   Widget _buildDelta(String delta) {
     if (delta == '–') return const Text('–', style: TextStyle(color: Colors.grey));
     final isUp = delta.startsWith('+');
-    return Text(delta, style: TextStyle(color: isUp ? Colors.green : Colors.red, fontWeight: FontWeight.bold));
+    return Text(
+      delta,
+      style: TextStyle(color: isUp ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
+    );
   }
 
-  Widget _buildEmptyBanner(String msg) => Container(height: 50, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)), child: Center(child: Text(msg, style: const TextStyle(color: Colors.grey))));
-  Widget _buildEmptyCard(String msg) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(msg, style: const TextStyle(color: Colors.grey))));
-  Widget _buildShimmerBanner() => Container(height: 50, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)));
-  Widget _buildShimmerCard() => Card(child: Padding(padding: const EdgeInsets.all(16), child: Container(height: 20, color: Colors.grey[200])));
-  Widget _buildErrorBanner() => Container(height: 50, decoration: BoxDecoration(color: Colors.red[100], borderRadius: BorderRadius.circular(12)), child: const Center(child: Text('오류', style: TextStyle(color: Colors.red))));
-  Widget _buildErrorCard() => Card(child: Padding(padding: const EdgeInsets.all(16), child: const Text('오류', style: TextStyle(color: Colors.red))));
+  Widget _buildErrorCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: const Text('오류', style: TextStyle(color: Colors.red)),
+      ),
+    );
+  }
+
+  Widget _buildShimmerCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Container(height: 60, color: Colors.grey[200]),
+      ),
+    );
+  }
+
+  Widget _buildShimmerBanner({double height = 50}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+    );
+  }
+}
+Widget _buildEmptyBanner(String msg) {
+  return Container(
+    height: 50,
+    decoration: BoxDecoration(
+      color: Colors.grey[100],
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Center(
+      child: Text(msg, style: const TextStyle(color: Colors.grey)),
+    ),
+  );
 }

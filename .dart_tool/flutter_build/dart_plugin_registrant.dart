@@ -8,15 +8,20 @@
 import 'dart:io'; // flutter_ignore: dart_io_import.
 import 'package:google_sign_in_android/google_sign_in_android.dart';
 import 'package:image_picker_android/image_picker_android.dart';
+import 'package:url_launcher_android/url_launcher_android.dart';
 import 'package:google_sign_in_ios/google_sign_in_ios.dart';
 import 'package:image_picker_ios/image_picker_ios.dart';
+import 'package:url_launcher_ios/url_launcher_ios.dart';
 import 'package:file_selector_linux/file_selector_linux.dart';
 import 'package:image_picker_linux/image_picker_linux.dart';
+import 'package:url_launcher_linux/url_launcher_linux.dart';
 import 'package:file_selector_macos/file_selector_macos.dart';
 import 'package:google_sign_in_ios/google_sign_in_ios.dart';
 import 'package:image_picker_macos/image_picker_macos.dart';
+import 'package:url_launcher_macos/url_launcher_macos.dart';
 import 'package:file_selector_windows/file_selector_windows.dart';
 import 'package:image_picker_windows/image_picker_windows.dart';
+import 'package:url_launcher_windows/url_launcher_windows.dart';
 
 @pragma('vm:entry-point')
 class _PluginRegistrant {
@@ -42,6 +47,15 @@ class _PluginRegistrant {
         );
       }
 
+      try {
+        UrlLauncherAndroid.registerWith();
+      } catch (err) {
+        print(
+          '`url_launcher_android` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
     } else if (Platform.isIOS) {
       try {
         GoogleSignInIOS.registerWith();
@@ -61,6 +75,15 @@ class _PluginRegistrant {
         );
       }
 
+      try {
+        UrlLauncherIOS.registerWith();
+      } catch (err) {
+        print(
+          '`url_launcher_ios` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
     } else if (Platform.isLinux) {
       try {
         FileSelectorLinux.registerWith();
@@ -76,6 +99,15 @@ class _PluginRegistrant {
       } catch (err) {
         print(
           '`image_picker_linux` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
+        UrlLauncherLinux.registerWith();
+      } catch (err) {
+        print(
+          '`url_launcher_linux` threw an error: $err. '
           'The app may not function as expected until you remove this plugin from pubspec.yaml'
         );
       }
@@ -108,6 +140,15 @@ class _PluginRegistrant {
         );
       }
 
+      try {
+        UrlLauncherMacOS.registerWith();
+      } catch (err) {
+        print(
+          '`url_launcher_macos` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
     } else if (Platform.isWindows) {
       try {
         FileSelectorWindows.registerWith();
@@ -123,6 +164,15 @@ class _PluginRegistrant {
       } catch (err) {
         print(
           '`image_picker_windows` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
+      try {
+        UrlLauncherWindows.registerWith();
+      } catch (err) {
+        print(
+          '`url_launcher_windows` threw an error: $err. '
           'The app may not function as expected until you remove this plugin from pubspec.yaml'
         );
       }
