@@ -1,14 +1,13 @@
 // lib/presentation/screens/admin/forms/notice_form_screen.dart
 
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class NoticeFormScreen extends StatefulWidget {
   const NoticeFormScreen({super.key});
 
   @override
-  _NoticeFormScreenState createState() => _NoticeFormScreenState();
+  State<NoticeFormScreen> createState() => _NoticeFormScreenState();
 }
 
 class _NoticeFormScreenState extends State<NoticeFormScreen> {
@@ -17,9 +16,8 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
   final _actionUrlController = TextEditingController();
   final _actionRouteController = TextEditingController();
 
-  String _actionType = 'none'; // none, link, internal
+  String _actionType = 'none';
   bool _isLoading = false;
-
   final _firestore = FirebaseFirestore.instance;
 
   @override
@@ -29,63 +27,75 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
       body: Column(
         children: [
           _buildInputForm(),
-          const Divider(),
+          const Divider(height: 1),
           Expanded(child: _buildNoticeList()),
         ],
       ),
     );
   }
 
-  // 입력 폼
+  /* ────────────────────────── 입력 폼 ────────────────────────── */
   Widget _buildInputForm() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // 제목
-          TextField(
-            controller: _titleController,
-            decoration: const InputDecoration(labelText: "제목"),
-            maxLines: 2,
-            style: const TextStyle(fontSize: 16),
-          ),
-          const SizedBox(height: 12),
-
-          // 내용 - Expanded로 감싸서 스크롤 가능
-          Expanded(
-            child: TextField(
-              controller: _contentController,
-              decoration: const InputDecoration(labelText: "내용"),
-              maxLines: null,
-              keyboardType: TextInputType.multiline,
-              textAlignVertical: TextAlignVertical.top,
+    return Expanded(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 제목
+            TextField(
+              controller: _titleController,
+              decoration: const InputDecoration(
+                labelText: "제목",
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
             ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 12),
 
-          // 액션 섹션
-          _buildActionSection(),
-          const SizedBox(height: 16),
+            // 내용
+            SizedBox(
+              height: 120,
+              child: TextField(
+                controller: _contentController,
+                decoration: const InputDecoration(
+                  labelText: "내용",
+                  border: OutlineInputBorder(),
+                  alignLabelWithHint: true,
+                ),
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
+                textAlignVertical: TextAlignVertical.top,
+              ),
+            ),
+            const SizedBox(height: 12),
 
-          // 등록 버튼
-          _isLoading
-              ? const CircularProgressIndicator()
-              : ElevatedButton(
-            onPressed: _addNotice,
-            child: const Text("공지 등록"),
-          ),
-        ],
+            // 액션 섹션
+            _buildActionSection(),
+            const SizedBox(height: 16),
+
+            // 등록 버튼
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+              onPressed: _addNotice,
+              child: const Text("공지 등록"),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // 액션 타입 선택
   Widget _buildActionSection() {
     return Column(
       children: [
         DropdownButtonFormField<String>(
           value: _actionType,
-          decoration: const InputDecoration(labelText: '액션 타입'),
+          decoration: const InputDecoration(
+            labelText: '액션 타입',
+            border: OutlineInputBorder(),
+          ),
           items: const [
             DropdownMenuItem(value: 'none', child: Text('텍스트만')),
             DropdownMenuItem(value: 'link', child: Text('외부 링크')),
@@ -93,48 +103,51 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
           ],
           onChanged: (v) => setState(() => _actionType = v!),
         ),
-        if (_actionType == 'link') ...[
-          const SizedBox(height: 8),
+        const SizedBox(height: 8),
+        if (_actionType == 'link')
           TextField(
             controller: _actionUrlController,
-            decoration: const InputDecoration(labelText: '링크 URL', hintText: 'https://example.com'),
+            decoration: const InputDecoration(
+              labelText: '링크 URL',
+              hintText: 'https://example.com',
+              border: OutlineInputBorder(),
+            ),
             keyboardType: TextInputType.url,
           ),
-        ],
-        if (_actionType == 'internal') ...[
-          const SizedBox(height: 8),
+        if (_actionType == 'internal')
           TextField(
             controller: _actionRouteController,
-            decoration: const InputDecoration(labelText: '라우트 경로', hintText: '/event, /ranking 등'),
+            decoration: const InputDecoration(
+              labelText: '라우트 경로',
+              hintText: '/event, /ranking 등',
+              border: OutlineInputBorder(),
+            ),
           ),
-        ],
       ],
     );
   }
 
-  // 공지 등록
+  /* ────────────────────────── 등록 ────────────────────────── */
   Future<void> _addNotice() async {
-    if (_titleController.text.trim().isEmpty) {
-      _showSnackBar("제목을 입력하세요", Colors.red);
-      return;
-    }
+    final title = _titleController.text.trim();
+    if (title.isEmpty) return _showSnackBar("제목을 입력하세요", Colors.red);
+
     if (_actionType == 'link' && _actionUrlController.text.trim().isEmpty) {
-      _showSnackBar("링크 URL을 입력하세요", Colors.red);
-      return;
+      return _showSnackBar("링크 URL을 입력하세요", Colors.red);
     }
     if (_actionType == 'internal' && _actionRouteController.text.trim().isEmpty) {
-      _showSnackBar("라우트 경로를 입력하세요", Colors.red);
-      return;
+      return _showSnackBar("라우트 경로를 입력하세요", Colors.red);
     }
 
     setState(() => _isLoading = true);
     try {
       await _firestore.collection('notices').add({
-        'title': _titleController.text.trim(),
+        'title': title,
         'content': _contentController.text.trim(),
         'actionType': _actionType,
         'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
         'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
+        'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -143,7 +156,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
     } catch (e) {
       _showSnackBar("등록 실패: $e", Colors.red);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -155,34 +168,42 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
     setState(() => _actionType = 'none');
   }
 
-  void _showSnackBar(String msg, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
-  }
-
-  // 공지 목록
+  /* ────────────────────────── 목록 ────────────────────────── */
   Widget _buildNoticeList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: _firestore.collection('notices').orderBy('createdAt', descending: true).snapshots(),
+      stream: _firestore
+          .collection('notices')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-        final docs = snapshot.data!.docs;
-        if (docs.isEmpty) return const Center(child: Text("등록된 공지가 없습니다."));
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("등록된 공지가 없습니다."));
+        }
 
         return ListView.builder(
-          itemCount: docs.length,
+          padding: const EdgeInsets.all(8),
+          itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
-            final docId = docs[index].id;
-            final type = data['actionType'] ?? 'none';
+            final doc = snapshot.data!.docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final docId = doc.id;
+            final isActive = data['isActive'] as bool? ?? true;
 
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              color: isActive ? null : Colors.grey[100],
+              margin: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
                 title: Text(
                   data['title'] ?? '',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isActive ? null : Colors.grey[600],
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                  ),
                 ),
                 subtitle: Text(
                   data['content'] ?? '',
@@ -192,9 +213,26 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (type != 'none') const Icon(Icons.touch_app, size: 16, color: Colors.blue),
-                    IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => _editNotice(docId, data)),
-                    IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _deleteNotice(docId)),
+                    // 활성화 토글
+                    Switch(
+                      value: isActive,
+                      onChanged: (value) async {
+                        await _firestore.collection('notices').doc(docId).update({
+                          'isActive': value,
+                        });
+                      },
+                      activeColor: const Color(0xFF00D4FF),
+                    ),
+                    // 수정
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => _editNotice(docId, data),
+                    ),
+                    // 삭제
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () => _deleteNotice(docId),
+                    ),
                   ],
                 ),
               ),
@@ -205,7 +243,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
     );
   }
 
-  // 수정
+  /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
   void _editNotice(String docId, Map<String, dynamic> data) {
     _titleController.text = data['title'] ?? '';
     _contentController.text = data['content'] ?? '';
@@ -217,39 +255,66 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("공지 수정"),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(labelText: "제목"),
-              maxLines: 2,
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: "제목",
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 120,
+                  child: TextField(
+                    controller: _contentController,
+                    decoration: const InputDecoration(
+                      labelText: "내용",
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildActionSection(),
+              ],
             ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 120,
-              child: TextField(
-                controller: _contentController,
-                decoration: const InputDecoration(labelText: "내용"),
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildActionSection(),
-          ]),
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("취소"),
+          ),
           ElevatedButton(
             onPressed: () async {
-              await _firestore.collection('notices').doc(docId).update({
-                'title': _titleController.text.trim(),
-                'content': _contentController.text.trim(),
-                'actionType': _actionType,
-                'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
-                'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
-              });
-              Navigator.pop(ctx);
+              final title = _titleController.text.trim();
+              if (title.isEmpty) {
+                _showSnackBar("제목을 입력하세요", Colors.red);
+                return;
+              }
+
+              try {
+                await _firestore.collection('notices').doc(docId).update({
+                  'title': title,
+                  'content': _contentController.text.trim(),
+                  'actionType': _actionType,
+                  'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
+                  'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
+                  'isActive': true,
+                });
+                if (mounted) _showSnackBar("수정되었습니다.", Colors.green);
+                Navigator.pop(ctx);
+              } catch (e) {
+                _showSnackBar("수정 실패: $e", Colors.red);
+              }
             },
             child: const Text("저장"),
           ),
@@ -258,22 +323,39 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
     );
   }
 
-  // 삭제
+  /* ────────────────────────── 삭제 ────────────────────────── */
   Future<void> _deleteNotice(String docId) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("삭제하시겠습니까?"),
+        content: const Text("이 작업은 되돌릴 수 없습니다."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("삭제", style: TextStyle(color: Colors.red)),
+          ),
         ],
       ),
     );
+
     if (confirm == true) {
-      await _firestore.collection('notices').doc(docId).delete();
-      if (mounted) _showSnackBar("공지가 삭제되었습니다.", Colors.red);
+      try {
+        await _firestore.collection('notices').doc(docId).delete();
+        if (mounted) _showSnackBar("공지가 삭제되었습니다.", Colors.red);
+      } catch (e) {
+        _showSnackBar("삭제 실패: $e", Colors.red);
+      }
     }
+  }
+
+  /* ────────────────────────── 유틸 ────────────────────────── */
+  void _showSnackBar(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: color),
+    );
   }
 
   @override

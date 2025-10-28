@@ -1,6 +1,0 @@
-# C/C++ build system timings
-generate_cxx_metadata
-  create-invalidation-state 429ms
-  [gap of 288ms]
-generate_cxx_metadata completed in 722ms
-

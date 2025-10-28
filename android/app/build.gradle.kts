@@ -19,20 +19,9 @@ android {
         jvmTarget = "11"
     }
 
-    signingConfigs {
-        create("customDebug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-
-    buildTypes {
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("customDebug")
-        }
-    }
+    // 이 부분 전부 삭제!!!
+    // signingConfigs { ... }
+    // buildTypes { getByName("debug") { signingConfig = ... } }
 
     defaultConfig {
         applicationId = "com.example.daoapp"
@@ -43,11 +32,8 @@ android {
     }
 
     buildTypes {
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("customDebug")
-        }
         getByName("release") {
-            // 릴리즈는 나중에
+            // 릴리즈는 나중에 설정
         }
     }
 }
