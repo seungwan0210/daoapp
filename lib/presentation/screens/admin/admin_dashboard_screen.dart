@@ -1,9 +1,13 @@
 // lib/presentation/screens/admin/admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'forms/notice_form_screen.dart';
-import 'forms/news_form_screen.dart';
-import 'forms/sponsor_form_screen.dart';
+import 'package:provider/provider.dart' as provider;
+import 'package:daoapp/di/service_locator.dart';
+import 'package:daoapp/presentation/screens/admin/forms/notice_form_screen.dart';
+import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
+import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
+import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
+import 'package:daoapp/presentation/providers/ranking_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -22,8 +26,6 @@ class AdminDashboardScreen extends ConsumerWidget {
           _buildStatCard('미검수 제출', '12건', Colors.orange),
           _buildStatCard('진행중 일정', '3건', Colors.blue),
           _buildStatCard('오늘 포인트 부여', '245pt', Colors.green),
-
-          // const 제거
           const SizedBox(height: 24),
 
           _buildMenuTile(context, '공지 등록', Icons.campaign, () {
@@ -35,21 +37,24 @@ class AdminDashboardScreen extends ConsumerWidget {
           _buildMenuTile(context, '뉴스 등록', Icons.article, () {
             Navigator.push(
               context,
-              // const 제거 → NewsFormScreen이 const 생성자 없음
-              MaterialPageRoute(builder: (_) => NewsFormScreen()),
+              MaterialPageRoute(builder: (_) => const NewsFormScreen()), // const OK
             );
           }),
           _buildMenuTile(context, '스폰서 배너 등록', Icons.image, () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => SponsorFormScreen()),
+              MaterialPageRoute(builder: (_) => const SponsorFormScreen()),
             );
           }),
           _buildMenuTile(context, '포인트 수동 부여', Icons.add_circle, () {
-            // 임시 → 나중에 연결
-            // Navigator.push(context, MaterialPageRoute(builder: (_) => PointAwardScreen()));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("포인트 수동 부여 기능 준비 중")),
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => provider.ChangeNotifierProvider<RankingProvider>(
+                  create: (_) => sl<RankingProvider>(),
+                  child: const PointAwardScreen(),
+                ),
+              ),
             );
           }),
         ],
