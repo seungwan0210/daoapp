@@ -259,6 +259,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                 children: _rankingProvider.rankings.take(3).toList().asMap().entries.map((e) {
                   final rank = e.key + 1;
                   final user = e.value;
+                  final genderText = user.gender == 'male' ? '남자' : '여자';
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Row(
@@ -272,7 +273,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
                         Expanded(child: Text('${user.koreanName} (${user.englishName})')),
                         Text('${user.displayPoints} pt', style: const TextStyle(fontWeight: FontWeight.bold)),
                         const SizedBox(width: 8),
-                        Text(user.shopName, style: const TextStyle(color: Colors.grey)),
+                        Text(genderText, style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
                   );
