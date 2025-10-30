@@ -1,5 +1,5 @@
 name: daoapp
-description: "스틸리그 포인트 집계 앱 - 관리자 전용 입력 + 실시간 랭킹"
+description: "스틸리그 포인트 집계 앱 - 관리자 전용 입력 + 실시간 랭킹 + 경기 일정"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -11,29 +11,19 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-
-  # Firebase 핵심 패키지
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   firebase_storage: ^12.3.3
-
-  # 상태 관리 + 의존성 주입
   flutter_riverpod: ^2.5.1
   get_it: ^8.0.1
-
-  # 유틸리티
+  provider: ^6.1.2
   table_calendar: ^3.1.2
+  carousel_slider: ^5.0.0
   image_picker: ^1.1.2
   intl: ^0.19.0
-
-  # 슬라이드 배너
-  carousel_slider: ^5.0.0
-
-  # Google 로그인
-  google_sign_in: ^6.2.1
   url_launcher: ^6.2.6
-  provider: ^6.1.2
+  google_sign_in: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -42,3 +32,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Regular.ttf
+        - asset: assets/fonts/Pretendard-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Pretendard-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Pretendard-Black.ttf
+          weight: 900
+  assets:
+    - assets/fonts/

@@ -214,22 +214,23 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   }
 
   Widget _buildNextEventCard(BuildContext context) {
-    return Consumer(builder: (context, ref, child) {
-      final event = ref.watch(nextEventProvider);
-      return event.when(
-        data: (snapshot) {
-          if (snapshot.docs.isEmpty) return _buildEmptyCard('예정된 경기 없음');
-          final data = snapshot.docs.first.data() as Map<String, dynamic>;
-          final shop = data['shopName'] ?? '미정';
-          final timestamp = data['date'] as Timestamp;
-          final date = timestamp.toDate();
-          final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) ${date.hour}:00';
-          return _buildEventCard(shop, formatted, context);
-        },
-        loading: () => _buildShimmerCard(),
-        error: (_, __) => _buildErrorCard(),
-      );
-    });
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('events')
+          .where('date', isGreaterThan: Timestamp.now())
+          .orderBy('date')
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyCard('예정된 경기 없음');
+        }
+        final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+        final date = (data['date'] as Timestamp).toDate();
+        final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) ${data['time']}';
+        return _buildEventCard(data['shopName'], formatted, context);
+      },
+    );
   }
 
   Widget _buildTop3Ranking(BuildContext context) {
