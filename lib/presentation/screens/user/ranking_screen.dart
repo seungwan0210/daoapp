@@ -17,10 +17,9 @@ class _RankingScreenState extends State<RankingScreen> {
   void initState() {
     super.initState();
     _rankingProvider = sl<RankingProvider>();
-    // ChangeNotifier 변경 감지 → setState
     _rankingProvider.addListener(_updateUI);
-    // 초기 로드
-    _rankingProvider.loadRanking();
+    // 앱 시작 시 통합 랭킹 로드 (기본값: 통합)
+    _rankingProvider.updateFilters('2026', 'total', 'male');
   }
 
   void _updateUI() {
@@ -64,10 +63,10 @@ class _RankingScreenState extends State<RankingScreen> {
                     isExpanded: true,
                     value: _rankingProvider.selectedPhase,
                     items: const [
+                      DropdownMenuItem(value: 'total', child: Text('통합')), // 맨 위
                       DropdownMenuItem(value: 'season1', child: Text('시즌1')),
                       DropdownMenuItem(value: 'season2', child: Text('시즌2')),
                       DropdownMenuItem(value: 'season3', child: Text('시즌3')),
-                      DropdownMenuItem(value: 'total', child: Text('통합')),
                     ],
                     onChanged: (v) => _rankingProvider.updateFilters(
                       _rankingProvider.selectedYear,
@@ -90,6 +89,22 @@ class _RankingScreenState extends State<RankingScreen> {
                       _rankingProvider.selectedPhase,
                       v!,
                     ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // 상위 9개 토글 (통합이면 비활성화)
+                Expanded(
+                  child: DropdownButton<bool>(
+                    isExpanded: true,
+                    value: _rankingProvider.selectedPhase == 'total' ? false : _rankingProvider.top9Mode,
+                    items: [
+                      const DropdownMenuItem(value: false, child: Text('전체 포인트')),
+                      if (_rankingProvider.selectedPhase != 'total')
+                        const DropdownMenuItem(value: true, child: Text('상위 9개')),
+                    ],
+                    onChanged: _rankingProvider.selectedPhase == 'total'
+                        ? null // 통합이면 비활성화
+                        : (v) => _rankingProvider.toggleTop9Mode(),
                   ),
                 ),
               ],
@@ -131,13 +146,24 @@ class _RankingScreenState extends State<RankingScreen> {
                       style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(user.shopName),
-                    trailing: Text(
-                      '${user.totalPoints} pt',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.blue,
-                      ),
+                    trailing: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${user.displayPoints} pt',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        if (user.top9Points != null && user.top9Points != user.totalPoints)
+                          Text(
+                            '전체: ${user.totalPoints}',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                      ],
                     ),
                   ),
                 );
@@ -151,14 +177,10 @@ class _RankingScreenState extends State<RankingScreen> {
 
   Color _getRankColor(int rank) {
     switch (rank) {
-      case 1:
-        return Colors.amber;
-      case 2:
-        return Colors.grey;
-      case 3:
-        return Colors.brown;
-      default:
-        return Colors.blue;
+      case 1: return Colors.amber;
+      case 2: return Colors.grey;
+      case 3: return Colors.brown;
+      default: return Colors.blue;
     }
   }
 }

@@ -7,11 +7,37 @@ import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
 import 'package:daoapp/presentation/providers/user_home_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:provider/provider.dart' as provider;
+import 'package:daoapp/di/service_locator.dart'; // GetIt 추가
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 
-class UserHomeScreen extends StatelessWidget {
+class UserHomeScreen extends StatefulWidget {
   const UserHomeScreen({super.key});
+
+  @override
+  State<UserHomeScreen> createState() => _UserHomeScreenState();
+}
+
+class _UserHomeScreenState extends State<UserHomeScreen> {
+  late final RankingProvider _rankingProvider;
+
+  @override
+  void initState() {
+    super.initState();
+    _rankingProvider = sl<RankingProvider>();
+    _rankingProvider.addListener(_updateUI);
+    // 통합 랭킹 로드 (top9Mode: false)
+    _rankingProvider.updateFilters('2026', 'total', 'male');
+  }
+
+  void _updateUI() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _rankingProvider.removeListener(_updateUI);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +57,7 @@ class UserHomeScreen extends StatelessWidget {
             const SizedBox(height: 24),
             _buildNextEventCard(context),
             const SizedBox(height: 24),
-            _buildTop3Ranking(context),
+            _buildTop3Ranking(context), // 수정됨: 통합 + 전체 보기
             const SizedBox(height: 24),
             _buildNewsPosterSlider(),
             const SizedBox(height: 24),
@@ -207,57 +233,58 @@ class UserHomeScreen extends StatelessWidget {
   }
 
   Widget _buildTop3Ranking(BuildContext context) {
-    return Consumer(builder: (context, ref, child) {
-      final rankingProvider = provider.Provider.of<RankingProvider>(context);
-      final top3 = rankingProvider.rankings.take(3).toList();
-
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text('현재 TOP 3', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.pushNamed(context, '/ranking'),
-                    child: const Text('전체 보기'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (top3.isEmpty)
-                const Text('랭킹 데이터 없음')
-              else
-                Column(
-                  children: top3.asMap().entries.map((e) {
-                    final rank = e.key + 1;
-                    final user = e.value;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
-                        children: [
-                          Text('$rank.', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 12),
-                          Expanded(child: Text('${user.koreanName} (${user.englishName})')),
-                          Text('${user.totalPoints} pt'),
-                          const SizedBox(width: 8),
-                          const Text('–', style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('현재 TOP 3 (통합)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, '/ranking'),
+                  child: const Text('전체 보기'),
                 ),
-            ],
-          ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_rankingProvider.loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_rankingProvider.rankings.isEmpty)
+              const Text('랭킹 데이터 없음')
+            else
+              Column(
+                children: _rankingProvider.rankings.take(3).toList().asMap().entries.map((e) {
+                  final rank = e.key + 1;
+                  final user = e.value;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: _getRankColor(rank),
+                          radius: 12,
+                          child: Text('$rank', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text('${user.koreanName} (${user.englishName})')),
+                        Text('${user.displayPoints} pt', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 8),
+                        Text(user.shopName, style: const TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 
-  // 스폰서 배너 (수정됨)
+  // 스폰서 배너 (기존 유지)
   Widget _buildSponsorBanner() {
     return Consumer(builder: (context, ref, child) {
       final sponsors = ref.watch(sponsorBannerProvider);
@@ -349,7 +376,6 @@ class UserHomeScreen extends StatelessWidget {
     );
   }
 
-  // 스폰서 배너 슬라이더 (완전히 수정됨)
   Widget _buildImageCarousel(List<String> urls) {
     return CarouselSlider(
       options: CarouselOptions(
@@ -425,5 +451,15 @@ class UserHomeScreen extends StatelessWidget {
         child: Text(msg, style: const TextStyle(color: Colors.grey)),
       ),
     );
+  }
+
+  // 랭킹 색상
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 1: return Colors.amber;
+      case 2: return Colors.grey;
+      case 3: return Colors.brown;
+      default: return Colors.blue;
+    }
   }
 }

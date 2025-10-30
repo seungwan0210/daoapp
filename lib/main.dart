@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/presentation/screens/splash_screen.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +36,7 @@ class DaoApp extends StatelessWidget {
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/main': (context) => const MainScreen(), // ← 여기서 모든 탭 관리
+        '/ranking': (context) => const RankingScreen(), // 추가!
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(builder: (_) => const SplashScreen());

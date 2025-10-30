@@ -29,6 +29,7 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
     required String seasonId,
     required String phase,
     required String gender,
+    required bool top9Mode,
   }) {
     // 쿼리 시작
     var query = _firestore
@@ -59,12 +60,18 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
       }
 
       final rankingMap = <String, RankingUser>{};
+      final userPointsList = <String, List<int>>{}; // 각 사용자별 포인트 리스트
 
       for (var doc in snapshot.docs) {
         final data = doc.data();
         final userId = data['userId'] as String;
+        final points = data['points'] as int;
         final userData = userMap[userId];
+
         if (userData == null || userData['gender'] != gender) continue;
+
+        // 사용자별 포인트 기록 수집
+        userPointsList.putIfAbsent(userId, () => []).add(points);
 
         rankingMap.putIfAbsent(userId, () => RankingUser(
           userId: userId,
@@ -74,11 +81,29 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
           gender: userData['gender'] ?? '',
           totalPoints: 0,
         ));
-        rankingMap[userId]!.totalPoints += data['points'] as int;
+
+        rankingMap[userId]!.totalPoints += points;
+      }
+
+      // 상위 9개 계산: 통합이면 무조건 전체, 시즌이면 top9Mode에 따라
+      if (top9Mode && phase != 'total') {
+        for (var entry in userPointsList.entries) {
+          final userId = entry.key;
+          final pointsList = entry.value;
+          if (pointsList.isNotEmpty) {
+            pointsList.sort((a, b) => b.compareTo(a)); // 내림차순
+            final top9Sum = pointsList.length > 9
+                ? pointsList.take(9).reduce((a, b) => a + b)
+                : pointsList.reduce((a, b) => a + b);
+            rankingMap[userId]!.top9Points = top9Sum;
+          }
+        }
       }
 
       final rankings = rankingMap.values.toList();
-      rankings.sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
+      rankings.sort((a, b) =>
+          (b.top9Points ?? b.totalPoints).compareTo(a.top9Points ?? a.totalPoints));
+
       for (int i = 0; i < rankings.length; i++) {
         rankings[i].rank = i + 1;
       }

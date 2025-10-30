@@ -6,9 +6,13 @@ import '../models/user_model.dart';
 
 abstract class PointRecordRepository {
   Future<void> awardPoints(PointRecord record);
+
+  /// 랭킹 조회
+  /// - top9Mode: true면 상위 9개 경기 포인트만 합산
   Stream<List<RankingUser>> getRanking({
     required String seasonId,
     required String phase,
     required String gender,
+    required bool top9Mode, // 추가!
   });
 }
