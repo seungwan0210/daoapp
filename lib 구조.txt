@@ -7,6 +7,7 @@ lib/
 │   ├── providers/
 │   │   ├── app_providers.dart
 │   │   └── user_home_provider.dart
+│   │   └── ranking_provider.dart
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   ├── login/
@@ -31,9 +32,12 @@ lib/
     ├── repositories/
     │   └── auth_repository.dart
     │   └── auth_repository_impl.dart
-    │   └── point_repository.dart
+    │   └── point_record_repository.dart
+    │   └──point_record_repository_impl.dart
     └── models/
-        └── user_model.dart(데이터 모델 - 예: User, Event, Notice 등)
+        └── point_record_model.dart
+        └──ranking_user.dart
+        └──user_model.dart
 └── core
 │   └── constants
 │   │   │   └── app_constants.dart
