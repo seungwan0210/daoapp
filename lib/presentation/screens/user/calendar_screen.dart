@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
+import 'package:daoapp/core/utils/date_utils.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -13,13 +13,14 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   CalendarFormat _format = CalendarFormat.month;
-  DateTime _focusedDay = DateTime.now();
+  late DateTime _focusedDay;
   DateTime? _selectedDay;
   Map<DateTime, List<Map<String, dynamic>>> _events = {};
 
   @override
   void initState() {
     super.initState();
+    _focusedDay = AppDateUtils.today;
     _selectedDay = _focusedDay;
     _loadEvents();
   }
@@ -35,6 +36,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         events.putIfAbsent(key, () => []).add({
           ...data,
           'id': doc.id,
+          'title': '${data['shopName']} 경기',
         });
       }
       setState(() => _events = events);
@@ -45,68 +47,137 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return _events[DateTime(day.year, day.month, day.day)] ?? [];
   }
 
-  Color _getMarkerColor(DateTime day) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final eventDay = DateTime(day.year, day.month, day.day);
-    if (!_events.containsKey(eventDay)) return Colors.transparent;
-    return eventDay.isBefore(today) ? Colors.red : Colors.green;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('경기 일정')),
+      appBar: AppBar(
+        title: const Text('경기 일정'),
+        backgroundColor: const Color(0xFF00D4FF),
+        foregroundColor: Colors.white,
+      ),
       body: Column(
         children: [
-          TableCalendar(
-            firstDay: DateTime.utc(2026, 1, 1),
-            lastDay: DateTime.utc(2027, 12, 31),
-            focusedDay: _focusedDay,
-            calendarFormat: _format,
-            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) {
-              setState(() {
-                _selectedDay = selectedDay;
-                _focusedDay = focusedDay;
-              });
-            },
-            onFormatChanged: (format) => setState(() => _format = format),
-            onPageChanged: (focusedDay) => _focusedDay = focusedDay,
-            eventLoader: _getEventsForDay,
-            calendarBuilders: CalendarBuilders(
-              markerBuilder: (context, day, events) {
-                final color = _getMarkerColor(day);
-                if (color == Colors.transparent) return null;
-                return Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                );
+          // 캘린더
+          Card(
+            margin: const EdgeInsets.all(16),
+            elevation: 4,
+            child: TableCalendar(
+              firstDay: AppDateUtils.firstDay,
+              lastDay: AppDateUtils.lastDay,
+              focusedDay: _focusedDay,
+              calendarFormat: _format,
+              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+              onDaySelected: (selectedDay, focusedDay) {
+                setState(() {
+                  _selectedDay = selectedDay;
+                  _focusedDay = focusedDay;
+                });
               },
+              onFormatChanged: (format) => setState(() => _format = format),
+              onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+              eventLoader: _getEventsForDay,
+              headerStyle: const HeaderStyle(
+                formatButtonVisible: true,
+                titleCentered: true,
+                formatButtonShowsNext: false,
+              ),
+              calendarStyle: const CalendarStyle(
+                outsideDaysVisible: false,
+                todayDecoration: BoxDecoration(
+                  color: Color(0xFF00D4FF),
+                  shape: BoxShape.circle,
+                ),
+                selectedDecoration: BoxDecoration(
+                  color: Colors.blue,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              calendarBuilders: CalendarBuilders(
+                markerBuilder: (context, day, events) {
+                  if (events.isEmpty) return null;
+                  final isPast = day.isBefore(AppDateUtils.today);
+                  return Container(
+                    width: 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    decoration: BoxDecoration(
+                      color: isPast ? Colors.red : Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
-          const Divider(),
+
+          // 선택된 날짜의 경기 목록
           Expanded(
             child: _selectedDay == null
                 ? const Center(child: Text('날짜를 선택하세요'))
                 : _getEventsForDay(_selectedDay!).isEmpty
                 ? const Center(child: Text('경기 없음'))
                 : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _getEventsForDay(_selectedDay!).length,
               itemBuilder: (_, i) {
                 final event = _getEventsForDay(_selectedDay!)[i];
-                final isPast = DateTime.now().isAfter((event['date'] as Timestamp).toDate());
-                return ListTile(
-                  leading: Icon(
-                    isPast ? Icons.check_circle : Icons.event,
-                    color: isPast ? Colors.red : Colors.green,
+                final eventDate = (event['date'] as Timestamp).toDate();
+                final isCompleted = event['status'] == 'completed';
+                return Card(
+                  color: isCompleted
+                      ? Colors.red.shade50   // 종료된 경기: 연한 빨강 배경
+                      : Colors.green.shade50, // 예정 경기: 연한 초록 배경
+                  elevation: isCompleted ? 6 : 3,  // 종료된 경기는 더 그림자
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: isCompleted
+                        ? BorderSide(color: Colors.red.shade300, width: 1.5)
+                        : BorderSide.none,
                   ),
-                  title: Text(event['title'] ?? '경기'),
-                  subtitle: Text(
-                    '${event['shopName']} • ${event['time']} • 참가비: ${event['entryFee']}원',
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isCompleted ? Colors.red : Colors.green,
+                      child: Icon(
+                        isCompleted ? Icons.emoji_events : Icons.event,
+                        color: Colors.white,
+                      ),
+                    ),
+                    title: Text(
+                      event['title'],
+                      style: TextStyle(
+                        fontWeight: isCompleted ? FontWeight.bold : FontWeight.w600,
+                        color: isCompleted ? Colors.red.shade900 : null,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('${event['shopName']} • ${event['time']}'),
+                        Text(
+                          '참가비: ${event['entryFee']}원',
+                          style: TextStyle(
+                            color: isCompleted ? Colors.red.shade700 : Colors.grey.shade700,
+                          ),
+                        ),
+                        if (isCompleted && event['winnerName'] != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '우승자: ${event['winnerName']}',
+                              style: TextStyle(
+                                color: Colors.red.shade900,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    trailing: isCompleted
+                        ? Icon(Icons.check_circle, color: Colors.red)
+                        : Icon(Icons.schedule, color: Colors.green),
+                    onTap: () => _showEventDetail(context, event, eventDate),
                   ),
-                  onTap: () => _showEventDetail(context, event),
                 );
               },
             ),
@@ -116,34 +187,72 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _showEventDetail(BuildContext context, Map<String, dynamic> event) {
+  // 상세 다이얼로그
+  void _showEventDetail(BuildContext context, Map<String, dynamic> event, DateTime date) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(event['title'] ?? '경기 상세'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('장소: ${event['shopName']}'),
-            Text('시간: ${event['time']}'),
-            Text('참가비: ${event['entryFee']}원'),
-            if (event['status'] == 'completed') ...[
-              const Divider(),
-              Text('우승자: ${event['winnerName']}'),
-              if (event['resultImageUrl'] != null)
-                Image.network(
-                  event['resultImageUrl'],
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
+        title: Text(event['title']),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDetailRow('날짜', AppDateUtils.formatKoreanDate(date)),
+              _buildDetailRow('시간', event['time']),
+              _buildDetailRow('장소', event['shopName']),
+              _buildDetailRow('참가비', '${event['entryFee']}원'),
+              if (event['status'] == 'completed') ...[
+                const Divider(height: 20),
+                _buildDetailRow('상태', '종료됨', color: Colors.red),
+                _buildDetailRow('우승자', event['winnerName'] ?? '미정'),
+                if (event['resultImageUrl'] != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        event['resultImageUrl'],
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+              ] else
+                _buildDetailRow('상태', '예정', color: Colors.green),
             ],
-          ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('닫기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 디테일 라벨
+  Widget _buildDetailRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(color: color),
+            ),
           ),
         ],
       ),

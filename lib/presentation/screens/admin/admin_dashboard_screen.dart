@@ -7,6 +7,7 @@ import 'package:daoapp/presentation/screens/admin/forms/notice_form_screen.dart'
 import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
+import 'package:daoapp/presentation/screens/admin/event_create_screen.dart'; // 추가!
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
@@ -28,6 +29,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           _buildStatCard('오늘 포인트 부여', '245pt', Colors.green),
           const SizedBox(height: 24),
 
+          // === 메뉴 항목들 ===
           _buildMenuTile(context, '공지 등록', Icons.campaign, () {
             Navigator.push(
               context,
@@ -37,7 +39,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           _buildMenuTile(context, '뉴스 등록', Icons.article, () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const NewsFormScreen()), // const OK
+              MaterialPageRoute(builder: (_) => const NewsFormScreen()),
             );
           }),
           _buildMenuTile(context, '스폰서 배너 등록', Icons.image, () {
@@ -57,6 +59,13 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
             );
           }),
+          // 경기 등록 추가
+          _buildMenuTile(context, '경기 등록', Icons.sports_esports, () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EventCreateScreen()),
+            );
+          }),
         ],
       ),
     );
@@ -64,23 +73,31 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   Widget _buildStatCard(String title, String value, Color color) {
     return Card(
+      elevation: 4,
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: color,
-          child: Text(value[0], style: const TextStyle(color: Colors.white)),
+          child: Text(
+            value.split('').first,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
         ),
-        title: Text(title),
-        trailing: Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        trailing: Text(
+          value,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }
 
   Widget _buildMenuTile(BuildContext context, String title, IconData icon, VoidCallback onTap) {
     return Card(
+      elevation: 3,
       child: ListTile(
         leading: Icon(icon, color: const Color(0xFF00D4FF)),
         title: Text(title, style: const TextStyle(fontSize: 16)),
-        trailing: const Icon(Icons.arrow_forward_ios),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
       ),
     );

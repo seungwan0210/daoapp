@@ -43,7 +43,7 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('스틸리그 포인트'),
+        title: const Text('HOME'),
         actions: [
           IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () {}),
         ],
@@ -351,26 +351,41 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
 
   Widget _buildEventCard(String shop, String date, BuildContext context) {
     return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('다음 경기 일정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              '다음 경기 일정',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.location_on, size: 16),
+                const Icon(Icons.location_on, size: 16, color: Colors.grey),
                 const SizedBox(width: 4),
-                Text(shop),
+                Text(shop, style: const TextStyle(fontSize: 15)),
                 const Spacer(),
-                Text(date),
+                Text(date, style: const TextStyle(fontSize: 15, color: Colors.grey)),
               ],
             ),
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/event'),
-              child: const Text('일정 보기'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pushNamed(context, '/calendar'),
+                icon: const Icon(Icons.calendar_today),
+                label: const Text('일정 보기'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D4FF),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
             ),
           ],
         ),

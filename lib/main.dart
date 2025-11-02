@@ -6,7 +6,9 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/presentation/screens/splash_screen.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
-
+import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
+import 'package:daoapp/presentation/screens/login/login_screen.dart';
+import 'package:daoapp/core/theme/app_theme.dart'; // 테마 추가!
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,21 +28,31 @@ class DaoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'DAO App - Steel League',
-      theme: ThemeData(
-        fontFamily: 'Pretendard',
-        scaffoldBackgroundColor: Colors.white,
-        useMaterial3: true,
-      ),
       debugShowCheckedModeBanner: false,
-      initialRoute: '/splash',
+      theme: AppTheme.light, // 여기서 테마 통일!
+      initialRoute: AppRoutes.splash,
       routes: {
-        '/splash': (context) => const SplashScreen(),
-        '/main': (context) => const MainScreen(), // ← 여기서 모든 탭 관리
-        '/ranking': (context) => const RankingScreen(), // 추가!
+        AppRoutes.splash: (context) => const SplashScreen(),
+        AppRoutes.login: (context) => const LoginScreen(),
+        AppRoutes.main: (context) => const MainScreen(),
+        AppRoutes.ranking: (context) => const RankingScreen(),
+        AppRoutes.calendar: (context) => const CalendarScreen(),
       },
       onUnknownRoute: (settings) {
-        return MaterialPageRoute(builder: (_) => const SplashScreen());
+        return MaterialPageRoute(
+          builder: (_) => const SplashScreen(),
+          settings: settings,
+        );
       },
     );
   }
+}
+
+// 라우트 상수
+class AppRoutes {
+  static const String splash = '/splash';
+  static const String login = '/login';
+  static const String main = '/main';
+  static const String ranking = '/ranking';
+  static const String calendar = '/calendar';
 }

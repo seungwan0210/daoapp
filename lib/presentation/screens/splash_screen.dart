@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 
-/// 앱 시작 시 2초 동안 보여주는 로딩 화면
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -17,65 +17,54 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // 2초 후에 로그인 상태 확인
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(seconds: 3), () {
       if (!mounted) return;
-      checkLoginStatus();
+      _navigateToNext();
     });
   }
 
-  void checkLoginStatus() {
+  void _navigateToNext() {
     final authState = ref.read(authStateProvider);
-
-    // 로그인 상태 확인
     if (authState.value == null) {
-      _goToLogin(); // 로그인 안 됨 → 로그인 화면
+      Navigator.pushReplacementNamed(context, AppRoutes.login);
     } else {
-      _goToMain(); // 로그인 됨 → 메인 화면
+      Navigator.pushReplacementNamed(context, AppRoutes.main);
     }
-  }
-
-  void _goToLogin() {
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
-    );
-  }
-
-  void _goToMain() {
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainScreen()),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF00D4FF),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.sports_esports, size: 100, color: Colors.white),
-            const SizedBox(height: 30),
-            const Text(
-              '스틸리그 포인트',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 배경 이미지 (꽉 채움!)
+          Image.asset(
+            'assets/images/splash_portrait.png',
+            fit: BoxFit.cover,           // 꽉 채움 + 확대
+            width: double.infinity,
+            height: double.infinity,
+            alignment: Alignment.center, // 중앙 정렬
+          ),
+
+          // 로딩 (하단 중앙)
+          const Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: SizedBox(
+                width: 60,
+                height: 60,
+                child: CircularProgressIndicator(
+                  strokeWidth: 5,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  backgroundColor: Colors.white30,
+                ),
               ),
             ),
-            const SizedBox(height: 50),
-            const CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

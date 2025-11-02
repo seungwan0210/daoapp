@@ -1,105 +1,181 @@
 // lib/presentation/screens/login/login_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:math';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
 
-class LoginScreen extends ConsumerWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _starController;
+  final List<Offset> _starPositions = [];
+  final List<double> _starSizes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _starController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+
+    final random = Random();
+    for (int i = 0; i < 25; i++) {
+      _starPositions.add(Offset(
+        random.nextDouble() * 400,
+        random.nextDouble() * 800,
+      ));
+      _starSizes.add(2 + random.nextDouble() * 3);
+    }
+  }
+
+  @override
+  void dispose() {
+    _starController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 로고
-              const Icon(
-                Icons.sports_esports,
-                size: 100,
-                color: Color(0xFF00D4FF),
-              ),
-              const SizedBox(height: 20),
+      body: Stack(
+        children: [
+          // 너가 만든 로그인 배경 이미지
+          Image.asset(
+            'assets/images/login_background.png',
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+          ),
 
-              // 앱 이름
-              const Text(
-                '스틸리그 포인트',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF00D4FF),
-                ),
-              ),
-              const SizedBox(height: 60),
-
-              // Google 로그인 버튼
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final user = await ref.read(authRepositoryProvider).signInWithGoogle();
-                    if (user != null && context.mounted) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MainScreen()),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.g_mobiledata, color: Colors.red),
-                  label: const Text(
-                    'Google로 로그인',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          // 반짝이는 별들 (애니메이션)
+          ..._starPositions.asMap().entries.map((entry) {
+            final index = entry.key;
+            final pos = entry.value;
+            final size = _starSizes[index];
+            return AnimatedBuilder(
+              animation: _starController,
+              builder: (_, __) {
+                final opacity = 0.3 + 0.7 * (sin(_starController.value * 2 * pi + index) + 1) / 2;
+                return Positioned(
+                  left: pos.dx,
+                  top: pos.dy,
+                  child: Opacity(
+                    opacity: opacity,
+                    child: Icon(Icons.star, color: Colors.white, size: size),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(color: Colors.grey),
+                );
+              },
+            );
+          }),
+
+          // 중앙: 로고 + 슬로건 + Google 로그인
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildGlowingLogo(),
+                const SizedBox(height: 24),
+                const Text(
+                  'Every Point Is Your Story',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 48),
+                SizedBox(
+                  width: 280,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final user = await ref.read(authRepositoryProvider).signInWithGoogle();
+                      if (user != null && context.mounted) {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const MainScreen()),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 24),
+                    label: const Text(
+                      'Google로 로그인',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
+              ],
+            ),
+          ),
 
-              // 로그인 없이 둘러보기
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MainScreen()),
-                    );
-                  },
-                  child: const Text(
-                    '로그인 없이 둘러보기',
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
+          // 오른쪽 상단: 건너뛰기
+          Positioned(
+            top: 60,
+            right: 24,
+            child: TextButton(
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MainScreen()),
+                );
+              },
+              child: const Text(
+                '건너뛰기',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-
-              // 테스트용 로그아웃 (나중에 삭제!)
-              // if (kDebugMode)
-              //   TextButton(
-              //     onPressed: () async {
-              //       await ref.read(authRepositoryProvider).signOut();
-              //       if (context.mounted) {
-              //         Navigator.pushReplacement(
-              //           context,
-              //           MaterialPageRoute(builder: (_) => const LoginScreen()),
-              //         );
-              //       }
-              //     },
-              //     child: const Text('로그아웃 (테스트용)', style: TextStyle(color: Colors.red)),
-              //   ),
-            ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlowingLogo() {
+    return Container(
+      width: 140,
+      height: 140,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withOpacity(0.9),
+            blurRadius: 50,
+            spreadRadius: 20,
+          ),
+          BoxShadow(
+            color: const Color(0xFF00D4FF).withOpacity(0.6),
+            blurRadius: 90,
+            spreadRadius: 40,
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: Image.asset(
+          'assets/images/logo_dao.png',
+          width: 140,
+          height: 140,
+          fit: BoxFit.contain,
         ),
       ),
     );

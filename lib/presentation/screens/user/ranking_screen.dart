@@ -35,7 +35,7 @@ class _RankingScreenState extends State<RankingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('랭킹')),
+      appBar: AppBar(title: const Text('RANKING')),
       body: Column(
         children: [
           // 필터
