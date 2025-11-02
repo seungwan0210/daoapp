@@ -6,6 +6,9 @@ class AppCard extends StatelessWidget {
   final VoidCallback? onTap;
   final EdgeInsetsGeometry? padding;
   final Color? color;
+  final double? elevation;
+  final ShapeBorder? shape;
+  final EdgeInsetsGeometry? margin;
 
   const AppCard({
     super.key,
@@ -13,14 +16,17 @@ class AppCard extends StatelessWidget {
     this.onTap,
     this.padding,
     this.color,
+    this.elevation,
+    this.shape,
+    this.margin,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      shape: shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: elevation ?? 4,
       color: color ?? Theme.of(context).cardTheme.color,
       shadowColor: Colors.black.withOpacity(0.08),
       child: InkWell(

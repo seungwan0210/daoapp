@@ -27,7 +27,7 @@ lib/
 │   │           ├── news_form_screen.dart
 │   │           └── sponsor_form_screen.dart
 │   └── widgets/
-│       └── (공통 위젯들 - 예: 로딩, 에러, 카드 등)
+│   │   ├── app_card.dart
 └── data/
     ├── repositories/
     │   └── auth_repository.dart

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
+import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -51,16 +53,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('경기 일정'),
-        backgroundColor: const Color(0xFF00D4FF),
-        foregroundColor: Colors.white,
+        title: const Text('CALENDAR'),
+        centerTitle: true,
       ),
       body: Column(
         children: [
           // 캘린더
-          Card(
+          AppCard(
             margin: const EdgeInsets.all(16),
-            elevation: 4,
+            elevation: 6,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: TableCalendar(
               firstDay: AppDateUtils.firstDay,
               lastDay: AppDateUtils.lastDay,
@@ -76,19 +78,25 @@ class _CalendarScreenState extends State<CalendarScreen> {
               onFormatChanged: (format) => setState(() => _format = format),
               onPageChanged: (focusedDay) => _focusedDay = focusedDay,
               eventLoader: _getEventsForDay,
-              headerStyle: const HeaderStyle(
+              headerStyle: HeaderStyle(
                 formatButtonVisible: true,
                 titleCentered: true,
                 formatButtonShowsNext: false,
+                titleTextStyle: Theme.of(context).textTheme.titleLarge!,
+                formatButtonTextStyle: Theme.of(context).textTheme.bodyMedium!,
+                formatButtonDecoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-              calendarStyle: const CalendarStyle(
+              calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
                 todayDecoration: BoxDecoration(
-                  color: Color(0xFF00D4FF),
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8), // 수정!
                   shape: BoxShape.circle,
                 ),
                 selectedDecoration: BoxDecoration(
-                  color: Colors.blue,
+                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8), // 수정!
                   shape: BoxShape.circle,
                 ),
               ),
@@ -113,9 +121,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
           // 선택된 날짜의 경기 목록
           Expanded(
             child: _selectedDay == null
-                ? const Center(child: Text('날짜를 선택하세요'))
+                ? Center(
+              child: Text(
+                '날짜를 선택하세요',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            )
                 : _getEventsForDay(_selectedDay!).isEmpty
-                ? const Center(child: Text('경기 없음'))
+                ? Center(
+              child: Text(
+                '경기 없음',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            )
                 : ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               itemCount: _getEventsForDay(_selectedDay!).length,
@@ -123,11 +141,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 final event = _getEventsForDay(_selectedDay!)[i];
                 final eventDate = (event['date'] as Timestamp).toDate();
                 final isCompleted = event['status'] == 'completed';
-                return Card(
-                  color: isCompleted
-                      ? Colors.red.shade50   // 종료된 경기: 연한 빨강 배경
-                      : Colors.green.shade50, // 예정 경기: 연한 초록 배경
-                  elevation: isCompleted ? 6 : 3,  // 종료된 경기는 더 그림자
+                return AppCard(
+                  color: isCompleted ? Colors.red.shade50 : Colors.green.shade50,
+                  elevation: isCompleted ? 6 : 3,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: isCompleted
@@ -140,6 +156,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       child: Icon(
                         isCompleted ? Icons.emoji_events : Icons.event,
                         color: Colors.white,
+                        size: 20,
                       ),
                     ),
                     title: Text(
@@ -187,12 +204,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // 상세 다이얼로그
   void _showEventDetail(BuildContext context, Map<String, dynamic> event, DateTime date) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(event['title']),
+        title: Text(event['title'], style: Theme.of(context).textTheme.titleLarge),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -234,7 +250,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  // 디테일 라벨
   Widget _buildDetailRow(String label, String value, {Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -245,13 +260,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
             width: 80,
             child: Text(
               '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(color: color),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
             ),
           ),
         ],
