@@ -1,13 +1,23 @@
 // lib/presentation/screens/admin/point_award_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../data/models/point_record_model.dart';
-import '../../../data/repositories/point_record_repository.dart';
-import '../../providers/ranking_provider.dart';
-import 'package:daoapp/di/service_locator.dart'; // GetIt 사용
+import 'package:daoapp/core/utils/date_utils.dart';
+import 'package:daoapp/di/service_locator.dart';
+import 'package:daoapp/data/repositories/point_record_repository.dart';
+import 'package:daoapp/data/models/point_record_model.dart';
+import 'package:daoapp/presentation/providers/ranking_provider.dart'; // ← 추가!
 
 class PointAwardScreen extends StatefulWidget {
-  const PointAwardScreen({super.key});
+  final bool editMode;
+  final String? docId;
+  final Map<String, dynamic>? initialData;
+
+  const PointAwardScreen({
+    super.key,
+    this.editMode = false,
+    this.docId,
+    this.initialData,
+  });
 
   @override
   State<PointAwardScreen> createState() => _PointAwardScreenState();
@@ -20,6 +30,7 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
   String _englishName = '';
   String _shopName = '';
   String _gender = 'male';
+  DateTime _selectedDate = DateTime.now();
 
   List<DocumentSnapshot> _searchResults = [];
   DocumentSnapshot? _selectedUser;
@@ -29,6 +40,30 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
   final _englishController = TextEditingController();
   final _shopController = TextEditingController();
   final _pointsController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.editMode && widget.initialData != null) {
+      _loadInitialData();
+    }
+  }
+
+  void _loadInitialData() {
+    final data = widget.initialData!;
+    _year = data['seasonId'] ?? '2026';
+    _phase = data['phase'] ?? 'season1';
+    _koreanName = data['koreanName'] ?? '';
+    _englishName = data['englishName'] ?? '';
+    _shopName = data['shopName'] ?? '';
+    _gender = data['gender'] ?? 'male';
+    _selectedDate = (data['date'] as Timestamp).toDate();
+
+    _koreanController.text = _koreanName;
+    _englishController.text = _englishName;
+    _shopController.text = _shopName;
+    _pointsController.text = data['points'].toString();
+  }
 
   @override
   void dispose() {
@@ -42,7 +77,9 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('포인트 수동 부여')),
+      appBar: AppBar(
+        title: Text(widget.editMode ? '포인트 수정' : '포인트 수동 부여'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -66,7 +103,25 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 한글 이름 검색 + 신규 등록
+            // 날짜 선택
+            Card(
+              child: ListTile(
+                title: Text('날짜: ${AppDateUtils.formatKoreanDate(_selectedDate)}'),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDate,
+                    firstDate: AppDateUtils.firstDay,
+                    lastDate: AppDateUtils.lastDay,
+                  );
+                  if (picked != null) setState(() => _selectedDate = picked);
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 한글 이름 검색
             TextField(
               controller: _koreanController,
               decoration: InputDecoration(
@@ -116,7 +171,7 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
 
             const SizedBox(height: 16),
 
-            // 영문 이름, 샵, 성별
+            // 나머지 입력
             TextField(
               controller: _englishController,
               decoration: const InputDecoration(labelText: '영문 이름 (신규 등록 시 필수)'),
@@ -155,7 +210,7 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  '포인트 부여',
+                  widget.editMode ? '수정하기' : '포인트 부여',
                   style: TextStyle(
                     fontSize: 18,
                     color: _canAward() ? Colors.white : Colors.white70,
@@ -230,27 +285,29 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
     }
 
     final record = PointRecord(
-      id: '',
+      id: widget.editMode ? widget.docId! : '',
       userId: userId,
       seasonId: _year,
       phase: _phase,
       points: points,
       eventName: '관리자 수동 부여',
       shopName: _shopController.text.isEmpty ? '미기입' : _shopController.text,
-      date: DateTime.now(),
+      date: _selectedDate,
       awardedBy: 'admin',
     );
 
     try {
-      // GetIt으로 가져오기
-      await sl<PointRecordRepository>().awardPoints(record);
+      if (widget.editMode) {
+        await sl<PointRecordRepository>().updatePointRecord(record);
+      } else {
+        await sl<PointRecordRepository>().awardPoints(record);
+      }
 
-      // 랭킹 강제 갱신
       sl<RankingProvider>().loadRanking();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('포인트 부여 완료!')),
+          SnackBar(content: Text(widget.editMode ? '수정 완료!' : '포인트 부여 완료!')),
         );
         Navigator.pop(context);
       }

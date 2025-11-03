@@ -12,6 +12,10 @@ class PointRecord {
   final DateTime date;
   final String awardedBy;
 
+  // 추가: 사용자 이름 (UI 표시용)
+  final String koreanName;
+  final String englishName;
+
   PointRecord({
     required this.id,
     required this.userId,
@@ -22,6 +26,8 @@ class PointRecord {
     required this.shopName,
     required this.date,
     required this.awardedBy,
+    this.koreanName = '',
+    this.englishName = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -37,17 +43,19 @@ class PointRecord {
     };
   }
 
-  factory PointRecord.fromMap(String id, Map<String, dynamic> map) {
+  factory PointRecord.fromMap(String id, Map<String, dynamic> map, Map<String, dynamic>? userData) {
     return PointRecord(
       id: id,
-      userId: map['userId'],
-      seasonId: map['seasonId'],
-      phase: map['phase'],
-      points: map['points'],
-      eventName: map['eventName'],
-      shopName: map['shopName'],
-      date: (map['date'] as Timestamp).toDate(),
-      awardedBy: map['awardedBy'],
+      userId: map['userId'] ?? '',
+      seasonId: map['seasonId'] ?? '',
+      phase: map['phase'] ?? '',
+      points: map['points'] ?? 0,
+      eventName: map['eventName'] ?? '',
+      shopName: map['shopName'] ?? '',
+      date: (map['date'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      awardedBy: map['awardedBy'] ?? '',
+      koreanName: userData?['koreanName'] ?? '',
+      englishName: userData?['englishName'] ?? '',
     );
   }
 }

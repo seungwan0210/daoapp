@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
+import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart'; // 변경!
 import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/presentation/widgets/app_card.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
 class MyPageScreen extends ConsumerWidget {
@@ -16,7 +17,7 @@ class MyPageScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MY PAGE'), // 통일!
+        title: const Text('MY PAGE'),
         centerTitle: true,
       ),
       body: Padding(
@@ -25,7 +26,6 @@ class MyPageScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (user == null) ...[
-              // 비로그인 상태
               AppCard(
                 child: Column(
                   children: [
@@ -48,7 +48,7 @@ class MyPageScreen extends ConsumerWidget {
                 ),
               ),
             ] else ...[
-              // 로그인 상태
+              // 프로필
               AppCard(
                 child: Row(
                   children: [
@@ -83,7 +83,22 @@ class MyPageScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // 로그아웃 버튼
+              // 포인트 달력 버튼
+              AppCard(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PointCalendarScreen()),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_month, color: Colors.blue),
+                  title: const Text('포인트 달력'),
+                  subtitle: const Text('날짜별 포인트 내역 확인'),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 로그아웃
               AppCard(
                 child: ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
