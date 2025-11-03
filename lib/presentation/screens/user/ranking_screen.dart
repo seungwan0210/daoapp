@@ -20,7 +20,6 @@ class _RankingScreenState extends State<RankingScreen> {
     super.initState();
     _rankingProvider = sl<RankingProvider>();
     _rankingProvider.addListener(_updateUI);
-    _rankingProvider.updateFilters('2026', 'total', 'male');
   }
 
   void _updateUI() {
@@ -177,11 +176,19 @@ class _RankingScreenState extends State<RankingScreen> {
       isExpanded: true,
       value: _rankingProvider.selectedGender,
       items: const [
+        DropdownMenuItem(value: 'all', child: Text('전체')), // 추가!
         DropdownMenuItem(value: 'male', child: Text('남자')),
         DropdownMenuItem(value: 'female', child: Text('여자')),
-      ].map((item) => DropdownMenuItem(value: item.value, child: item.child))
+      ].map((item) => DropdownMenuItem(
+        value: item.value,
+        child: item.child,
+      ))
           .toList(),
-      onChanged: (v) => _rankingProvider.updateFilters(_rankingProvider.selectedYear, _rankingProvider.selectedPhase, v!),
+      onChanged: (v) => _rankingProvider.updateFilters(
+        _rankingProvider.selectedYear,
+        _rankingProvider.selectedPhase,
+        v!, // 전체 / 남자 / 여자
+      ),
       underline: Container(height: 1, color: Colors.grey),
     );
   }

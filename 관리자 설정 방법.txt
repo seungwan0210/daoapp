@@ -44,3 +44,9 @@ admin.auth().setCustomUserClaims(uid, { admin: null })
 
 cd C:\Users\A\daoapp
 node removeAdmin.js
+
+저장방법
+파일 이름: serviceAccountKey.json
+→ 확장자 .json 꼭 넣기!
+→ "모든 파일" 선택 (안 하면 .txt 붙음)
+UTF-8 

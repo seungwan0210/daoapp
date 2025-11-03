@@ -92,12 +92,11 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                 ),
               ),
               calendarBuilders: CalendarBuilders(
-                // 포인트 수치 제거 → 녹색 점만!
+                // 녹색 점만 + 가운데 아래 정렬
                 markerBuilder: (context, day, events) {
                   return events.isNotEmpty
-                      ? const Positioned(
-                    right: 1,
-                    bottom: 1,
+                      ? const Align(
+                    alignment: Alignment.bottomCenter,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: Colors.green,
@@ -112,7 +111,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
             ),
           ),
 
-          // 선택된 날짜 포인트 내역
+          // 선택된 날짜 포인트 내역 (랭킹 스타일)
           Expanded(
             child: _selectedDay == null
                 ? const Center(child: Text('날짜를 선택하세요'))
@@ -124,16 +123,50 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
               itemBuilder: (_, i) {
                 final record = _getEventsForDay(_selectedDay!)[i];
                 return AppCard(
-                  child: ListTile(
-                    title: Text('${record.koreanName} (${record.englishName})'),
-                    subtitle: Text(record.shopName),
-                    trailing: Text(
-                      '+${record.points}pt',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.green,
-                      ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        // 한글 이름 + 영문 이름
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                record.koreanName,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
+                              Text(
+                                record.englishName,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 샵 이름
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            record.shopName,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        // 포인트
+                        Expanded(
+                          flex: 1,
+                          child: Text(
+                            '+${record.points}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 );

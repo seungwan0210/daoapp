@@ -94,12 +94,10 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                 ),
               ),
               calendarBuilders: CalendarBuilders(
-                // 빨간 점만 표시 (포인트 수치 제거)
                 markerBuilder: (context, day, events) {
                   return events.isNotEmpty
-                      ? const Positioned(
-                    right: 1,
-                    bottom: 1,
+                      ? const Align(
+                    alignment: Alignment.bottomCenter,
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: Colors.red,
@@ -127,39 +125,86 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                 final record = _getEventsForDay(_selectedDay!)[i];
 
                 return AppCard(
-                  child: ListTile(
-                    title: Text('${record.koreanName} (${record.englishName})'),
-                    subtitle: Text(record.shopName),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
                       children: [
-                        Text(
-                          '+${record.points}pt',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.green,
+                        // 한글 이름 + 영문 이름
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                record.koreanName,
+                                style: Theme.of(context).textTheme.titleMedium,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              Text(
+                                record.englishName,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        // 수정 버튼
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PointAwardScreen(
-                                editMode: true,
-                                docId: record.id,
-                                initialData: record.toMap(),
-                              ),
+                        // 포인트 + 버튼
+                        Expanded(
+                          flex: 3,
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                // 포인트
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    '+${record.points}pt',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                // 수정 버튼
+                                SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.blue, size: 14),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PointAwardScreen(
+                                          editMode: true,
+                                          docId: record.id,
+                                          initialData: record.toMap(),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // 삭제 버튼
+                                SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red, size: 14),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () => _deletePoint(context, record.id, record.userId, record.points),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        // 삭제 버튼
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deletePoint(context, record.id, record.userId, record.points),
                         ),
                       ],
                     ),

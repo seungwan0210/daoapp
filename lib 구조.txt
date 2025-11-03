@@ -18,11 +18,13 @@ lib/
 │   │   │   ├── ranking_screen.dart
 │   │   │   ├── calendar_screen.dart
 │   │   │   └── my_page_screen.dart
+│   │   │   └── point_calendar_screen.dart
 │   │   └── admin/
 │   │       ├── admin_dashboard_screen.dart
 │   │       ├── event_create_screen.dart        # 경기 등록
 │   │       ├── event_list_screen.dart
 │   │       ├── point_award_screen.dart         # 포인트 수동 부여
+│   │       ├── point_award_list_screen.dart
 │   │       └── forms/
 │   │           ├── notice_form_screen.dart
 │   │           ├── news_form_screen.dart
@@ -34,14 +36,15 @@ lib/
     │   └── auth_repository.dart
     │   └── auth_repository_impl.dart
     │   └── point_record_repository.dart
-    │   └──point_record_repository_impl.dart
+    │   └── point_record_repository_impl.dart
     └── models/
         └── point_record_model.dart
-        └──ranking_user.dart
-        └──user_model.dart
+        └── ranking_user.dart
+        └── user_model.dart
 └── core
 │   └── constants
 │   │   │   └── app_constants.dart
+│   │   │   └── route_constants.dart
 │   └── theme
 │   │   │   └──app_theme.dart
 │   └──utils

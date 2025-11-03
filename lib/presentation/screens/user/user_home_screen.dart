@@ -154,36 +154,64 @@ class _UserHomeScreenState extends State<UserHomeScreen> {
           .collection('events')
           .where('date', isGreaterThan: Timestamp.now())
           .orderBy('date')
-          .limit(1)
+          .limit(3) // 1 → 3개로 변경!
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyCard('예정된 경기 없음');
         }
-        final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-        final date = (data['date'] as Timestamp).toDate();
-        final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) ${data['time']}';
+
+        final docs = snapshot.data!.docs;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('다음 경기 일정', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.location_on, color: Theme.of(context).colorScheme.primary, size: 20),
-                const SizedBox(width: 4),
-                Text(data['shopName'], style: Theme.of(context).textTheme.bodyMedium),
+                Text('다음 경기 일정', style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
-                Text(formatted, style: Theme.of(context).textTheme.bodyMedium),
+                TextButton(
+                  onPressed: () => Navigator.pushNamed(context, AppRoutes.calendar),
+                  child: const Text('전체 보기'),
+                ),
               ],
             ),
+            const SizedBox(height: 8),
+
+            // 최대 3개 경기 표시
+            ...docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final date = (data['date'] as Timestamp).toDate();
+              final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) ${data['time']}';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(Icons.location_on, color: Theme.of(context).colorScheme.primary, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        data['shopName'],
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      formatted,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.pushNamed(context, AppRoutes.calendar),
                 icon: const Icon(Icons.calendar_today),
-                label: const Text('일정 보기'),
+                label: const Text('전체 일정 보기'),
               ),
             ),
           ],

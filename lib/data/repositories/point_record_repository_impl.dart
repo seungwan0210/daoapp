@@ -11,7 +11,6 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
   Future<void> awardPoints(PointRecord record) async {
     await _firestore.collection('point_records').add(record.toMap());
 
-    // users.totalPoints 업데이트
     final userRef = _firestore.collection('users').doc(record.userId);
     await _firestore.runTransaction((tx) async {
       final snapshot = await tx.get(userRef);
@@ -26,15 +25,12 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
 
   @override
   Future<void> updatePointRecord(PointRecord record) async {
-    // 기존 포인트 가져오기
     final oldDoc = await _firestore.collection('point_records').doc(record.id).get();
     final oldPoints = (oldDoc.data()?['points'] as int?) ?? 0;
     final diff = record.points - oldPoints;
 
-    // 포인트 기록 업데이트
     await _firestore.collection('point_records').doc(record.id).update(record.toMap());
 
-    // users.totalPoints 조정
     final userRef = _firestore.collection('users').doc(record.userId);
     await _firestore.runTransaction((tx) async {
       final snapshot = await tx.get(userRef);
@@ -47,10 +43,8 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
 
   @override
   Future<void> deletePointRecord(String recordId, String userId, int points) async {
-    // 포인트 기록 삭제
     await _firestore.collection('point_records').doc(recordId).delete();
 
-    // users.totalPoints 감소
     final userRef = _firestore.collection('users').doc(userId);
     await _firestore.runTransaction((tx) async {
       final snapshot = await tx.get(userRef);
@@ -78,13 +72,11 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
 
   @override
   Stream<List<PointRecord>> getAllPointRecords() async* {
-    // 모든 point_records 가져오기
     final recordsSnapshot = _firestore
         .collection('point_records')
         .orderBy('date', descending: true)
         .snapshots();
 
-    // 사용자 정보 캐시
     final userCache = <String, Map<String, dynamic>>{};
 
     yield* recordsSnapshot.asyncMap((snapshot) async {
@@ -94,7 +86,6 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         final data = doc.data();
         final userId = data['userId'] as String;
 
-        // 캐시에서 사용자 정보 가져오기
         if (!userCache.containsKey(userId)) {
           final userDoc = await _firestore.collection('users').doc(userId).get();
           userCache[userId] = userDoc.data() ?? {};
@@ -148,16 +139,19 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         final points = data['points'] as int;
         final userData = userMap[userId];
 
-        if (userData == null || userData['gender'] != gender) continue;
+        // 성별 필터: 'all'이면 모든 성별 포함
+        if (gender != 'all' && (userData == null || userData['gender'] != gender)) {
+          continue;
+        }
 
         userPointsList.putIfAbsent(userId, () => []).add(points);
 
         rankingMap.putIfAbsent(userId, () => RankingUser(
           userId: userId,
-          koreanName: userData['koreanName'] ?? 'Unknown',
-          englishName: userData['englishName'] ?? '',
-          shopName: userData['shopName'] ?? '',
-          gender: userData['gender'] ?? '',
+          koreanName: userData?['koreanName'] ?? 'Unknown',
+          englishName: userData?['englishName'] ?? '',
+          shopName: userData?['shopName'] ?? '',
+          gender: userData?['gender'] ?? '',
           totalPoints: 0,
         ));
 

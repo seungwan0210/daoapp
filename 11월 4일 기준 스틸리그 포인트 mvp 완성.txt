@@ -1,0 +1,135 @@
+============================================================
+                     DAOApp 전체 정리
+                     (2025년 11월 기준)
+============================================================
+
+1. 앱 개요
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- 이름: DAOApp
+- 목적: 포인트 기반 랭킹 + 경기 관리 시스템
+- 핵심: 실시간 반영 + 달력 UX + 관리자 편의성
+- 테마: 진한 파랑 (0xFF1565C0) 
+
+2. 주요 기능
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. 회원
+   - 구글 로그인 (Firebase Auth)
+   - admin 연동 setadmin js연동/ Custom Claims
+   - 
+
+2. 포인트 시스템
+   - 관리자 수동 부여 / 수정 / 삭제
+   - 날짜 선택 필수 (달력 연동)
+   - totalPoints 자동 계산 (트랜잭션)
+
+3. 달력 3종
+   - 사용자 포인트 달력 (녹색 점)
+   - 관리자 포인트 관리 (빨간 점)
+   - 경기 관리 달력 (파란 점)
+
+4. 랭킹 시스템
+   - 필터: 년도 / 시즌 / 성별(전체,남자,여자) / 상위9개
+   - 실시간 반영 (Stream)
+   - 1~3등 색상 구분 (금/은/동)
+
+5. 홈 스크린
+   - 공지 슬라이더
+   - 다음 경기 3개
+   - TOP 3 랭킹
+   - 뉴스 캐러셀
+   - 스폰서 배너
+
+6. 관리자 기능
+   - 경기 CRUD (달력 + 수정/삭제)
+   - 포인트 CRUD (달력 + 수정/삭제)
+   - 사용자 검색 + 신규 등록
+
+3. 기술 스택
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Flutter + Riverpod
+- Firebase (Auth + Firestore)
+- TableCalendar
+- CarouselSlider
+- get_it (의존성 주입)
+- Material 3 테마
+
+4. 핵심 파일 구조
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+lib/
+├── main.dart
+├── firebase_options.dart
+├── di/
+│   └── service_locator.dart
+├── presentation/
+│   ├── providers/
+│   │   ├── app_providers.dart
+│   │   └── user_home_provider.dart
+│   │   └── ranking_provider.dart
+│   ├── screens/
+│   │   ├── splash_screen.dart
+│   │   ├── login/
+│   │   │   └── login_screen.dart
+│   │   ├── main_screen.dart
+│   │   ├── user/
+│   │   │   ├── user_home_screen.dart
+│   │   │   ├── ranking_screen.dart
+│   │   │   ├── calendar_screen.dart
+│   │   │   └── my_page_screen.dart
+│   │   │   └── point_calendar_screen.dart
+│   │   └── admin/
+│   │       ├── admin_dashboard_screen.dart
+│   │       ├── event_create_screen.dart        # 경기 등록
+│   │       ├── event_list_screen.dart
+│   │       ├── point_award_screen.dart         # 포인트 수동 부여
+│   │       ├── point_award_list_screen.dart
+│   │       └── forms/
+│   │           ├── notice_form_screen.dart
+│   │           ├── news_form_screen.dart
+│   │           └── sponsor_form_screen.dart
+│   └── widgets/
+│   │   ├── app_card.dart
+└── data/
+    ├── repositories/
+    │   └── auth_repository.dart
+    │   └── auth_repository_impl.dart
+    │   └── point_record_repository.dart
+    │   └── point_record_repository_impl.dart
+    └── models/
+        └── point_record_model.dart
+        └── ranking_user.dart
+        └── user_model.dart
+└── core
+│   └── constants
+│   │   │   └── app_constants.dart
+│   │   │   └── route_constants.dart
+│   └── theme
+│   │   │   └──app_theme.dart
+│   └──utils
+│   │   │   └──date_utils.dart
+
+
+
+5. UX 하이라이트
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- 첫 실행 → 랭킹: 전체 / 2026 / 통합
+- 모든 달력 → 마커: 진한 파랑 (0xFF1565C0)
+- 리스트 뷰 → 이름 + 포인트 + 버튼 (오버플로우 0)
+- 실시간 반영 → 포인트 부여 → 즉시 랭킹/달력 갱신
+
+6. 출시 준비 완료 항목
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- [완료] 구글 로그인
+- [완료] 포인트 시스템
+- [완료] 랭킹 시스템
+- [완료] 달력 3종
+- [완료] 관리자 CRUD
+- [완료] 홈 화면
+- [완료] 테마 통일
+- [완료] 실시간 반영
+
+7. 다음 단계
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. 앱 아이콘 제작
+2. 스플래시 화면
+3. 테스트플라이트 배포
+4. Google Play / App Store 등록

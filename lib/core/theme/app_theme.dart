@@ -7,11 +7,20 @@ class AppTheme {
     fontFamily: 'Pretendard',
     scaffoldBackgroundColor: Colors.white,
 
-    // 메인 컬러
+    // 메인 컬러: 진한 파랑 (Deep Blue)
     colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF00D4FF),
-      primary: const Color(0xFF00D4FF),
-      secondary: Colors.white,
+      seedColor: const Color(0xFF1565C0), // 진한 파랑!
+      primary: const Color(0xFF1565C0),
+      secondary: const Color(0xFF42A5F5), // 보조: 밝은 파랑
+      surface: Colors.white,
+      background: Colors.white,
+      error: Colors.red,
+      onPrimary: Colors.white,
+      onSecondary: Colors.black,
+      onSurface: Colors.black87,
+      onBackground: Colors.black87,
+      onError: Colors.white,
+      brightness: Brightness.light,
     ),
 
     // 앱바
@@ -39,7 +48,7 @@ class AppTheme {
     // 버튼
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF00D4FF),
+        backgroundColor: const Color(0xFF1565C0), // 진한 파랑 버튼!
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -58,11 +67,15 @@ class AppTheme {
 
     // 바텀 네비게이션
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      selectedItemColor: Color(0xFF00D4FF),
+      selectedItemColor: Color(0xFF1565C0), // 진한 파랑 선택
       unselectedItemColor: Colors.grey,
       selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
       showUnselectedLabels: true,
       type: BottomNavigationBarType.fixed,
     ),
+
+    // 달력 마커 색상 (직접 지정)
+    // TableCalendar는 theme에서 직접 안 읽기 때문에
+    // 각 화면에서 Color(0xFF1565C0) 사용
   );
 }

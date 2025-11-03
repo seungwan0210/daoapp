@@ -14,7 +14,7 @@ class RankingProvider extends ChangeNotifier {
 
   String selectedYear = '2026';
   String selectedPhase = 'total'; // 통합 기본값
-  String selectedGender = 'male';
+  String selectedGender = 'all'; // 기본값: 전체!
   bool _top9Mode = false; // 상위 9개 모드
 
   List<RankingUser> get rankings => _rankings;
@@ -28,9 +28,9 @@ class RankingProvider extends ChangeNotifier {
   void updateFilters(String year, String phase, String gender) {
     selectedYear = year;
     selectedPhase = phase;
-    selectedGender = gender;
+    selectedGender = gender; // all / male / female
 
-    // 통합으로 변경 시 상위 9개 자동 비활성화
+    // 통합일 때 top9Mode 자동 비활성화
     if (phase == 'total' && _top9Mode) {
       _top9Mode = false;
     }
@@ -63,8 +63,8 @@ class RankingProvider extends ChangeNotifier {
         .getRanking(
       seasonId: selectedYear,
       phase: selectedPhase,
-      gender: selectedGender,
-      top9Mode: _top9Mode && selectedPhase != 'total', // 통합이면 false
+      gender: selectedGender, // all / male / female
+      top9Mode: _top9Mode && selectedPhase != 'total',
     )
         .listen(
           (data) {
