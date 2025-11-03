@@ -4,11 +4,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:daoapp/core/utils/date_utils.dart'; // 추가
+import 'package:daoapp/core/utils/date_utils.dart';
 
 class EventCreateScreen extends StatefulWidget {
-  final String? eventId;
-  const EventCreateScreen({super.key, this.eventId});
+  final bool editMode;
+  final String? docId;
+  final Map<String, dynamic>? initialData;
+
+  const EventCreateScreen({
+    super.key,
+    this.editMode = false,
+    this.docId,
+    this.initialData,
+  });
 
   @override
   State<EventCreateScreen> createState() => _EventCreateScreenState();
@@ -22,7 +30,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   int _entryFee = 0;
   String? _resultImageUrl;
   String _winnerName = '';
-  String _status = 'upcoming'; // 기본값
+  String _status = 'upcoming';
 
   late final TextEditingController _shopController;
   late final TextEditingController _timeController;
@@ -40,7 +48,10 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     _entryFeeController = TextEditingController();
     _winnerController = TextEditingController();
 
-    if (widget.eventId != null) _loadEvent();
+    // 수정 모드면 초기 데이터 로드
+    if (widget.editMode && widget.initialData != null) {
+      _loadEvent();
+    }
   }
 
   @override
@@ -53,13 +64,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   }
 
   Future<void> _loadEvent() async {
-    final doc = await FirebaseFirestore.instance
-        .collection('events')
-        .doc(widget.eventId)
-        .get();
-    if (!doc.exists) return;
-
-    final data = doc.data()!;
+    final data = widget.initialData!;
     setState(() {
       _date = (data['date'] as Timestamp).toDate();
       _shopName = data['shopName'] ?? '';
@@ -129,26 +134,31 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       'resultImageUrl': _resultImageUrl,
       'winnerName': _winnerName,
       'status': _status,
-      // calendar_screen과 연동을 위해 추가
       'title': '$_shopName 경기',
     };
 
     try {
-      if (widget.eventId == null) {
-        await FirebaseFirestore.instance.collection('events').add(data);
-      } else {
+      if (widget.editMode) {
+        // 수정
         await FirebaseFirestore.instance
             .collection('events')
-            .doc(widget.eventId)
+            .doc(widget.docId)
             .update(data);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('경기 수정 완료!')),
+          );
+        }
+      } else {
+        // 등록
+        await FirebaseFirestore.instance.collection('events').add(data);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('경기 등록 완료!')),
+          );
+        }
       }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('경기 저장 완료!')),
-        );
-        Navigator.pop(context);
-      }
+      Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -162,9 +172,8 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.eventId == null ? '경기 등록' : '경기 수정'),
-        backgroundColor: const Color(0xFF00D4FF),
-        foregroundColor: Colors.white,
+        title: Text(widget.editMode ? '경기 수정' : '경기 등록'),
+        centerTitle: true,
       ),
       body: Form(
         key: _formKey,
@@ -176,7 +185,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
               child: ListTile(
                 title: Text('날짜: ${_date.toLocal().toString().split(' ')[0]}'),
                 trailing: const Icon(Icons.calendar_today),
-                // showDatePicker 부분만 수정
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
@@ -300,11 +308,11 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                     ? null
                     : _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00D4FF),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  widget.eventId == null ? '등록하기' : '수정하기',
+                  widget.editMode ? '수정하기' : '등록하기',
                   style: const TextStyle(fontSize: 18, color: Colors.white),
                 ),
               ),

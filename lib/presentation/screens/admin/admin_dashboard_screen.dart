@@ -6,6 +6,7 @@ import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
 import 'package:daoapp/presentation/screens/admin/event_create_screen.dart';
+import 'package:daoapp/presentation/screens/admin/event_list_screen.dart'; // ← 추가!
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
@@ -13,7 +14,7 @@ class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) { // ← ref 추가!
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ADMIN'),
@@ -27,6 +28,7 @@ class AdminDashboardScreen extends ConsumerWidget {
           _buildMenuTile(context, '스폰서 배너 등록', Icons.image, const SponsorFormScreen()),
           _buildMenuTile(context, '포인트 수동 부여', Icons.add_circle, const PointAwardScreen()),
           _buildMenuTile(context, '경기 등록', Icons.sports_esports, const EventCreateScreen()),
+          _buildMenuTile(context, '경기 관리', Icons.list_alt, const EventListScreen()), // ← 사용!
         ],
       ),
     );
