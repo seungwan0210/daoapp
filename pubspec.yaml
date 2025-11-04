@@ -53,6 +53,7 @@ flutter:
     - assets/images/logo_dao.png
     - assets/images/splash_portrait.png
     - assets/images/login_background.png
+    - assets/images/google_logo.png
 
 # === 앱 아이콘 자동 생성 설정 ===
 flutter_launcher_icons:

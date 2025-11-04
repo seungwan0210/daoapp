@@ -1,9 +1,10 @@
 // lib/presentation/screens/login/login_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
 import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/core/constants/route_constants.dart'; // 추가!
+import 'package:daoapp/core/constants/route_constants.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -44,10 +45,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       body: Stack(
         children: [
-          // 너가 만든 로그인 배경 이미지
+          // 배경 이미지
           Image.asset(
             'assets/images/login_background.png',
             fit: BoxFit.cover,
@@ -55,7 +58,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             height: double.infinity,
           ),
 
-          // 반짝이는 별들 (애니메이션)
+          // 반짝이는 별들
           ..._starPositions.asMap().entries.map((entry) {
             final index = entry.key;
             final pos = entry.value;
@@ -95,30 +98,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
+                // 완벽한 Google 로그인 버튼
                 SizedBox(
                   width: 280,
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: () async {
                       final user = await ref.read(authRepositoryProvider).signInWithGoogle();
                       if (user != null && context.mounted) {
-                        // 기존: MainScreen 직행 → X
-                        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
-
-                        // 수정: SplashScreen으로 이동 → 상태 감지 시작
                         Navigator.pushReplacementNamed(context, RouteConstants.splash);
                       }
                     },
-                    icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 24),
-                    label: const Text(
-                      'Google로 로그인',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                       elevation: 3,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/images/google_logo.png',
+                            width: 20,
+                            height: 20,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Icon(Icons.g_mobiledata, size: 20, color: Colors.red);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Google로 로그인',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -126,14 +147,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           ),
 
-          // 오른쪽 상단: 건너뛰기
+          // 오른쪽 상단: 건너뛰기 → main
           Positioned(
             top: 60,
             right: 24,
             child: TextButton(
               onPressed: () {
-                // 건너뛰기 → SplashScreen으로
-                Navigator.pushReplacementNamed(context, RouteConstants.splash);
+                Navigator.pushReplacementNamed(context, RouteConstants.main);
               },
               child: const Text(
                 '건너뛰기',
