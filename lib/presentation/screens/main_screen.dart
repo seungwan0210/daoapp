@@ -1,4 +1,5 @@
 // lib/presentation/screens/main_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/screens/user/user_home_screen.dart';
@@ -14,27 +15,36 @@ class MainScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
+
+  // 정적 메서드 추가 (핵심!)
+  static void changeTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_MainScreenState>();
+    state?._onTabTapped(index);
+  }
 }
 
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
 
-  // body만 반환
   static final List<Widget> _pageBodies = [
     const UserHomeScreenBody(),
     const RankingScreenBody(),
-    const CalendarScreen(), // 직접 사용
+    const CalendarScreen(),
     const CommunityScreenBody(),
     const MyPageScreenBody(),
   ];
 
   static const List<BottomNavigationBarItem> _items = [
-    BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),           // ← 여기!
-    BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: '랭킹'), // ← 여기!
-    BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: '일정'), // ← 여기!
-    BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: '커뮤니티'), // ← 여기!
-    BottomNavigationBarItem(icon: Icon(Icons.person), label: '내정보'),   // ← 여기!
+    BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
+    BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: '랭킹'),
+    BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: '일정'),
+    BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: '커뮤니티'),
+    BottomNavigationBarItem(icon: Icon(Icons.person), label: '내정보'),
   ];
+
+  void _onTabTapped(int index) {
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +75,7 @@ class _MainScreenState extends ConsumerState<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
         items: _items,
       ),

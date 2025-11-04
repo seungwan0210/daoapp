@@ -6,40 +6,28 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/providers/user_home_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/presentation/screens/main_screen.dart'; // 이 줄 추가!
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/data/models/ranking_user.dart';
-import 'package:daoapp/core/theme/app_theme.dart'; // 추가!
+import 'package:daoapp/core/theme/app_theme.dart';
 
-class UserHomeScreen extends ConsumerStatefulWidget {
+class UserHomeScreen extends ConsumerWidget {
   const UserHomeScreen({super.key});
 
-  // body만 반환
-  static Widget body() => const UserHomeScreenBody();
-
   @override
-  ConsumerState<UserHomeScreen> createState() => _UserHomeScreenState();
-}
-
-class _UserHomeScreenState extends ConsumerState<UserHomeScreen> {
-  @override
-  void initState() {
-    super.initState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    // initState 대체: 화면 진입 시 랭킹 필터 초기화
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.microtask(() {
-        ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
-      });
+      ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
     });
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return UserHomeScreen.body();
+    return const UserHomeScreenBody();
   }
 }
 
 class UserHomeScreenBody extends ConsumerWidget {
-  const UserHomeScreenBody();
+  const UserHomeScreenBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,7 +131,7 @@ class UserHomeScreenBody extends ConsumerWidget {
                 Text('다음 경기 일정', style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
                 TextButton(
-                  onPressed: () => Navigator.pushNamed(context, RouteConstants.calendar),
+                  onPressed: () => MainScreen.changeTab(context, 2),
                   child: const Text('전체 보기'),
                 ),
               ],
@@ -174,15 +162,6 @@ class UserHomeScreenBody extends ConsumerWidget {
                 ),
               );
             }).toList(),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => Navigator.pushNamed(context, RouteConstants.calendar),
-                icon: const Icon(Icons.calendar_today),
-                label: const Text('전체 일정 보기'),
-              ),
-            ),
           ],
         );
       },
@@ -198,7 +177,9 @@ class UserHomeScreenBody extends ConsumerWidget {
             Text('현재 TOP 3 (통합)', style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
             TextButton(
-              onPressed: () => Navigator.pushNamed(context, RouteConstants.ranking),
+              onPressed: () {
+                MainScreen.changeTab(context, 1); // 랭킹 탭으로 이동
+              },
               child: const Text('전체 보기'),
             ),
           ],

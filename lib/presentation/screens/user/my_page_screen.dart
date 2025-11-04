@@ -1,4 +1,5 @@
 // lib/presentation/screens/user/my_page_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,7 +10,6 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
 
-  // body만 반환
   static Widget body() => const MyPageScreenBody();
 
   @override
@@ -19,7 +19,7 @@ class MyPageScreen extends ConsumerWidget {
 }
 
 class MyPageScreenBody extends ConsumerWidget {
-  const MyPageScreenBody();
+  const MyPageScreenBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,7 +38,6 @@ class MyPageScreenBody extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 프로필 등록 유도
               profileState.when(
                 data: (hasProfile) {
                   return hasProfile
@@ -48,10 +47,7 @@ class MyPageScreenBody extends ConsumerWidget {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (_, __) => const Text('프로필 확인 오류'),
               ),
-
               const SizedBox(height: 24),
-
-              // 로그아웃 (항상 보임!)
               AppCard(
                 child: ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
@@ -74,6 +70,7 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
+  // 로그인 유도
   static Widget _buildLoginPrompt(BuildContext context) {
     final theme = Theme.of(context);
     return Column(
@@ -88,9 +85,7 @@ class MyPageScreenBody extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, RouteConstants.login);
-                },
+                onPressed: () => Navigator.pushReplacementNamed(context, RouteConstants.login),
                 child: const Text('Google 로그인'),
               ),
             ],
@@ -100,6 +95,7 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
+  // 프로필 미등록 유도
   static Widget _buildProfilePrompt(BuildContext context, ThemeData theme) {
     return AppCard(
       child: Column(
@@ -111,9 +107,7 @@ class MyPageScreenBody extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pushNamed(context, RouteConstants.profileRegister);
-            },
+            onPressed: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
             child: const Text('프로필 등록'),
           ),
         ],
@@ -121,44 +115,62 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
+  // 프로필 등록 완료 + 수정 버튼 추가
   static Widget _buildProfileComplete(BuildContext context, User user, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // === 1. 프로필 정보 (사진 + 이름 + 이메일) ===
         AppCard(
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundImage: user.photoURL != null
-                    ? NetworkImage(user.photoURL!)
-                    : null,
-                child: user.photoURL == null
-                    ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                    : null,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.displayName ?? '이름 없음',
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user.email ?? '이메일 없음',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                    ),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: user.photoURL != null ? NetworkImage(user.photoURL!) : null,
+                  child: user.photoURL == null
+                      ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                      : null,
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.displayName ?? '이름 없음',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user.email ?? '이메일 없음',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
+
         const SizedBox(height: 24),
 
+        // === 2. 프로필 수정 (포인트 달력과 동일한 ListTile 스타일) ===
+        AppCard(
+          onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
+          child: ListTile(
+            leading: Icon(Icons.edit, color: theme.colorScheme.primary),
+            title: const Text('프로필 수정'),
+            subtitle: const Text('이름, 샵, 성별 수정'),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // === 3. 포인트 달력 (기존 유지) ===
         AppCard(
           onTap: () => Navigator.pushNamed(context, RouteConstants.pointCalendar),
           child: ListTile(
