@@ -2,6 +2,11 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+// 탭 전환을 위한 MainScreen import (필수!)
+import 'package:daoapp/presentation/screens/main_screen.dart'; // ← 여기에 MainScreen 있음
 
 class NoticeFormScreen extends StatefulWidget {
   const NoticeFormScreen({super.key});
@@ -22,72 +27,88 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: const Text("공지사항 관리")),
+      appBar: AppBar(
+        title: const Text("공지사항 관리"),
+        centerTitle: true,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+      ),
       body: Column(
         children: [
-          _buildInputForm(),
+          _buildInputForm(theme),
           const Divider(height: 1),
-          Expanded(child: _buildNoticeList()),
+          Expanded(child: _buildNoticeList(theme)),
         ],
       ),
     );
   }
 
   /* ────────────────────────── 입력 폼 ────────────────────────── */
-  Widget _buildInputForm() {
+  Widget _buildInputForm(ThemeData theme) {
     return Expanded(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 제목
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: "제목",
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-
-            // 내용
-            SizedBox(
-              height: 120,
-              child: TextField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  labelText: "내용",
-                  border: OutlineInputBorder(),
-                  alignLabelWithHint: true,
+        child: AppCard(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 제목
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: "제목",
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
                 ),
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                textAlignVertical: TextAlignVertical.top,
-              ),
-            ),
-            const SizedBox(height: 12),
+                const SizedBox(height: 12),
 
-            // 액션 섹션
-            _buildActionSection(),
-            const SizedBox(height: 16),
+                // 내용
+                SizedBox(
+                  height: 120,
+                  child: TextField(
+                    controller: _contentController,
+                    decoration: const InputDecoration(
+                      labelText: "내용",
+                      border: OutlineInputBorder(),
+                      alignLabelWithHint: true,
+                    ),
+                    maxLines: null,
+                    keyboardType: TextInputType.multiline,
+                    textAlignVertical: TextAlignVertical.top,
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-            // 등록 버튼
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-              onPressed: _addNotice,
-              child: const Text("공지 등록"),
+                // 액션 섹션
+                _buildActionSection(theme),
+                const SizedBox(height: 16),
+
+                // 등록 버튼
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _addNotice,
+                    style: theme.elevatedButtonTheme.style,
+                    child: const Text("공지 등록", style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildActionSection() {
+  Widget _buildActionSection(ThemeData theme) {
     return Column(
       children: [
         DropdownButtonFormField<String>(
@@ -119,7 +140,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
             controller: _actionRouteController,
             decoration: const InputDecoration(
               labelText: '라우트 경로',
-              hintText: '/event, /ranking 등',
+              hintText: '/ranking',
               border: OutlineInputBorder(),
             ),
           ),
@@ -169,7 +190,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
   }
 
   /* ────────────────────────── 목록 ────────────────────────── */
-  Widget _buildNoticeList() {
+  Widget _buildNoticeList(ThemeData theme) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('notices')
@@ -192,7 +213,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
             final docId = doc.id;
             final isActive = data['isActive'] as bool? ?? true;
 
-            return Card(
+            return AppCard(
               color: isActive ? null : Colors.grey[100],
               margin: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
@@ -221,7 +242,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                           'isActive': value,
                         });
                       },
-                      activeColor: const Color(0xFF00D4FF),
+                      activeColor: theme.colorScheme.primary,
                     ),
                     // 수정
                     IconButton(
@@ -235,12 +256,47 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                     ),
                   ],
                 ),
+                // 내부 링크 클릭 → 푸쉬 + 탭 전환
+                onTap: () {
+                  final type = data['actionType'];
+                  final url = data['actionUrl'] as String?;
+                  final route = data['actionRoute'] as String?;
+
+                  if (type == 'link' && url != null) {
+                    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                  } else if (type == 'internal' && route != null) {
+                    // 1. 탭 전환
+                    _syncTabWithRoute(route);
+                    // 2. 페이지 푸쉬
+                    Navigator.pushNamed(context, route);
+                  }
+                },
               ),
             );
           },
         );
       },
     );
+  }
+
+  /* ────────────────────────── 탭 동기화 ────────────────────────── */
+  void _syncTabWithRoute(String route) {
+    int? tabIndex;
+    switch (route) {
+      case '/ranking':
+        tabIndex = 1;
+        break;
+      case '/point-calendar':
+        tabIndex = 2; // 예: 일정 탭이 2번
+        break;
+    // 다른 페이지 추가 가능
+      default:
+        return;
+    }
+
+    if (tabIndex != null) {
+      MainScreen.changeTab(context, tabIndex);
+    }
   }
 
   /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
@@ -258,41 +314,43 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
         content: SizedBox(
           width: double.maxFinite,
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: "제목",
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: 120,
-                  child: TextField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: "내용",
-                      border: OutlineInputBorder(),
+            child: AppCard(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: _titleController,
+                      decoration: const InputDecoration(
+                        labelText: "제목",
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
                     ),
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                  ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 120,
+                      child: TextField(
+                        controller: _contentController,
+                        decoration: const InputDecoration(
+                          labelText: "내용",
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionSection(Theme.of(context)),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                _buildActionSection(),
-              ],
+              ),
             ),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("취소"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
           ElevatedButton(
             onPressed: () async {
               final title = _titleController.text.trim();

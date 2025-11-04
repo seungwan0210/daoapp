@@ -1,10 +1,12 @@
 // lib/presentation/screens/admin/event_create_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:daoapp/core/utils/date_utils.dart';
+import 'package:daoapp/presentation/widgets/app_card.dart';
 
 class EventCreateScreen extends StatefulWidget {
   final bool editMode;
@@ -48,7 +50,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     _entryFeeController = TextEditingController();
     _winnerController = TextEditingController();
 
-    // 수정 모드면 초기 데이터 로드
     if (widget.editMode && widget.initialData != null) {
       _loadEvent();
     }
@@ -104,7 +105,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('이미지 업로드 실패: $e')),
+          SnackBar(content: Text('이미지 업로드 실패: $e'), backgroundColor: Colors.red),
         );
       }
       return null;
@@ -139,22 +140,20 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
 
     try {
       if (widget.editMode) {
-        // 수정
         await FirebaseFirestore.instance
             .collection('events')
             .doc(widget.docId)
             .update(data);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('경기 수정 완료!')),
+            const SnackBar(content: Text('경기 수정 완료!'), backgroundColor: Colors.green),
           );
         }
       } else {
-        // 등록
         await FirebaseFirestore.instance.collection('events').add(data);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('경기 등록 완료!')),
+            const SnackBar(content: Text('경기 등록 완료!'), backgroundColor: Colors.green),
           );
         }
       }
@@ -162,7 +161,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('저장 실패: $e')),
+          SnackBar(content: Text('저장 실패: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -170,6 +169,8 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.editMode ? '경기 수정' : '경기 등록'),
@@ -181,9 +182,9 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             // 날짜 선택
-            Card(
+            AppCard(
               child: ListTile(
-                title: Text('날짜: ${_date.toLocal().toString().split(' ')[0]}'),
+                title: Text('날짜: ${AppDateUtils.formatKoreanDate(_date)}'),
                 trailing: const Icon(Icons.calendar_today),
                 onTap: () async {
                   final picked = await showDatePicker(
@@ -199,103 +200,118 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
             const SizedBox(height: 16),
 
             // 상태 선택
-            DropdownButtonFormField<String>(
-              value: _status,
-              decoration: const InputDecoration(
-                labelText: '경기 상태',
-                border: OutlineInputBorder(),
+            AppCard(
+              child: DropdownButtonFormField<String>(
+                value: _status,
+                decoration: const InputDecoration(
+                  labelText: '경기 상태',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'upcoming', child: Text('예정')),
+                  DropdownMenuItem(value: 'completed', child: Text('종료')),
+                ],
+                onChanged: (v) => setState(() => _status = v!),
               ),
-              items: const [
-                DropdownMenuItem(value: 'upcoming', child: Text('예정')),
-                DropdownMenuItem(value: 'completed', child: Text('종료')),
-              ],
-              onChanged: (v) => setState(() => _status = v!),
             ),
             const SizedBox(height: 16),
 
             // 장소
-            TextFormField(
-              controller: _shopController,
-              decoration: const InputDecoration(
-                labelText: '장소 (샵명)',
-                border: OutlineInputBorder(),
+            AppCard(
+              child: TextFormField(
+                controller: _shopController,
+                decoration: const InputDecoration(
+                  labelText: '장소 (샵명)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v!.trim().isEmpty ? '샵명을 입력하세요' : null,
               ),
-              validator: (v) => v!.trim().isEmpty ? '샵명을 입력하세요' : null,
             ),
             const SizedBox(height: 16),
 
             // 시간
-            TextFormField(
-              controller: _timeController,
-              decoration: const InputDecoration(
-                labelText: '시간 (예: 14:00)',
-                border: OutlineInputBorder(),
+            AppCard(
+              child: TextFormField(
+                controller: _timeController,
+                decoration: const InputDecoration(
+                  labelText: '시간 (예: 14:00)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v!.trim().isEmpty ? '시간을 입력하세요' : null,
               ),
-              validator: (v) => v!.trim().isEmpty ? '시간을 입력하세요' : null,
             ),
             const SizedBox(height: 16),
 
             // 참가비
-            TextFormField(
-              controller: _entryFeeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: '참가비 (원)',
-                border: OutlineInputBorder(),
+            AppCard(
+              child: TextFormField(
+                controller: _entryFeeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: '참가비 (원)',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) {
+                  final val = v!.trim();
+                  if (val.isEmpty) return null;
+                  if (int.tryParse(val) == null) return '숫자만 입력하세요';
+                  return null;
+                },
               ),
-              validator: (v) {
-                final val = v!.trim();
-                if (val.isEmpty) return null;
-                if (int.tryParse(val) == null) return '숫자만 입력하세요';
-                return null;
-              },
             ),
             const SizedBox(height: 16),
 
             // 종료된 경기일 때만 보임
             if (_status == 'completed') ...[
-              TextFormField(
-                controller: _winnerController,
-                decoration: const InputDecoration(
-                  labelText: '우승자 이름 (필수)',
-                  border: OutlineInputBorder(),
+              AppCard(
+                child: TextFormField(
+                  controller: _winnerController,
+                  decoration: const InputDecoration(
+                    labelText: '우승자 이름 (필수)',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) => v!.trim().isEmpty ? '우승자 이름을 입력하세요' : null,
                 ),
-                validator: (v) => v!.trim().isEmpty ? '우승자 이름을 입력하세요' : null,
               ),
               const SizedBox(height: 16),
 
               // 이미지 업로드
-              _pickedImage == null && _resultImageUrl == null
-                  ? ElevatedButton.icon(
-                onPressed: _pickImage,
-                icon: const Icon(Icons.photo),
-                label: const Text('결과 사진 추가 (필수)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-              )
-                  : Column(
-                children: [
-                  if (_pickedImage != null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(_pickedImage!, height: 200, fit: BoxFit.cover),
-                    ),
-                  if (_resultImageUrl != null && _pickedImage == null)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(_resultImageUrl!, height: 200, fit: BoxFit.cover),
-                    ),
-                  const SizedBox(height: 8),
-                  _isUploading
-                      ? const CircularProgressIndicator()
-                      : ElevatedButton.icon(
-                    onPressed: _pickImage,
-                    icon: const Icon(Icons.photo),
-                    label: const Text('사진 변경'),
+              AppCard(
+                child: _pickedImage == null && _resultImageUrl == null
+                    ? ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo),
+                  label: const Text('결과 사진 추가 (필수)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
                   ),
-                ],
+                )
+                    : Column(
+                  children: [
+                    if (_pickedImage != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.file(_pickedImage!, height: 200, fit: BoxFit.cover),
+                      ),
+                    if (_resultImageUrl != null && _pickedImage == null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(_resultImageUrl!, height: 200, fit: BoxFit.cover),
+                      ),
+                    const SizedBox(height: 8),
+                    _isUploading
+                        ? const CircularProgressIndicator()
+                        : ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.photo),
+                      label: const Text('사진 변경'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -307,9 +323,12 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                 onPressed: _status == 'completed' && (_pickedImage == null && _resultImageUrl == null)
                     ? null
                     : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                style: theme.elevatedButtonTheme.style?.copyWith(
+                  backgroundColor: WidgetStateProperty.resolveWith((states) {
+                    return _status == 'completed' && (_pickedImage == null && _resultImageUrl == null)
+                        ? Colors.grey
+                        : null;
+                  }),
                 ),
                 child: Text(
                   widget.editMode ? '수정하기' : '등록하기',
@@ -317,6 +336,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),

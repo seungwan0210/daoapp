@@ -1,10 +1,11 @@
 // lib/presentation/screens/admin/event_list_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/screens/admin/event_create_screen.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 
 class EventListScreen extends StatefulWidget {
   const EventListScreen({super.key});
@@ -49,6 +50,8 @@ class _EventListScreenState extends State<EventListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('경기 관리'),
@@ -82,11 +85,11 @@ class _EventListScreenState extends State<EventListScreen> {
               calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
                 todayDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
                 selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  color: theme.colorScheme.primary.withOpacity(0.8),
                   shape: BoxShape.circle,
                 ),
                 markerDecoration: const BoxDecoration(
@@ -95,7 +98,6 @@ class _EventListScreenState extends State<EventListScreen> {
                 ),
               ),
               calendarBuilders: CalendarBuilders(
-                // 파란 점만 표시
                 markerBuilder: (context, day, events) {
                   return events.isNotEmpty
                       ? const Align(
@@ -141,7 +143,7 @@ class _EventListScreenState extends State<EventListScreen> {
                     ),
                     title: Text(
                       data['shopName'],
-                      style: Theme.of(context).textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium,
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,19 +163,20 @@ class _EventListScreenState extends State<EventListScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // 수정 버튼
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => Navigator.push(
+                          onPressed: () => Navigator.pushNamed(
                             context,
-                            MaterialPageRoute(
-                              builder: (_) => EventCreateScreen(
-                                editMode: true,
-                                docId: docId,
-                                initialData: data,
-                              ),
-                            ),
+                            RouteConstants.eventCreate,
+                            arguments: {
+                              'editMode': true,
+                              'docId': docId,
+                              'initialData': data,
+                            },
                           ),
                         ),
+                        // 삭제 버튼
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _deleteEvent(context, docId),
@@ -201,10 +204,12 @@ class _EventListScreenState extends State<EventListScreen> {
           TextButton(
             onPressed: () async {
               await FirebaseFirestore.instance.collection('events').doc(docId).delete();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('삭제 완료'), backgroundColor: Colors.red),
-              );
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('삭제 완료'), backgroundColor: Colors.red),
+                );
+              }
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
           ),

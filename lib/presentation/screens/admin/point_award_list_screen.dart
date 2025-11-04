@@ -1,12 +1,13 @@
 // lib/presentation/screens/admin/point_award_list_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 
 class PointAwardListScreen extends StatefulWidget {
   const PointAwardListScreen({super.key});
@@ -48,6 +49,8 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('포인트 관리'),
@@ -81,11 +84,11 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
               calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
                 todayDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
                 selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  color: theme.colorScheme.primary.withOpacity(0.8),
                   shape: BoxShape.circle,
                 ),
                 markerDecoration: const BoxDecoration(
@@ -137,13 +140,13 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                             children: [
                               Text(
                                 record.koreanName,
-                                style: Theme.of(context).textTheme.titleMedium,
+                                style: theme.textTheme.titleMedium,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
                               Text(
                                 record.englishName,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
@@ -179,15 +182,14 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                                     icon: const Icon(Icons.edit, color: Colors.blue, size: 14),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => Navigator.push(
+                                    onPressed: () => Navigator.pushNamed(
                                       context,
-                                      MaterialPageRoute(
-                                        builder: (_) => PointAwardScreen(
-                                          editMode: true,
-                                          docId: record.id,
-                                          initialData: record.toMap(),
-                                        ),
-                                      ),
+                                      RouteConstants.pointAward,
+                                      arguments: {
+                                        'editMode': true,
+                                        'docId': record.id,
+                                        'initialData': record.toMap(),
+                                      },
                                     ),
                                   ),
                                 ),
@@ -229,10 +231,12 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
           TextButton(
             onPressed: () async {
               await sl<PointRecordRepository>().deletePointRecord(recordId, userId, points);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('삭제 완료'), backgroundColor: Colors.red),
-              );
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('삭제 완료'), backgroundColor: Colors.red),
+                );
+              }
             },
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
           ),

@@ -5,6 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/app_card.dart';
+
+// 모달로 띄울 화면 import
+import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
+import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
 
 class SponsorFormScreen extends StatefulWidget {
   const SponsorFormScreen({super.key});
@@ -16,79 +22,144 @@ class SponsorFormScreen extends StatefulWidget {
 class _SponsorFormScreenState extends State<SponsorFormScreen> {
   File? _image;
   bool _isActive = true;
+  String _actionType = 'none';
+  final _actionUrlController = TextEditingController();
+  final _actionRouteController = TextEditingController();
+
+  bool _isLoading = false;
   final picker = ImagePicker();
   final _firestore = FirebaseFirestore.instance;
   final _storage = FirebaseStorage.instance;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('스폰서 관리'),
-        backgroundColor: const Color(0xFF00D4FF),
+        centerTitle: true,
+        backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          _buildInputForm(),
+          _buildInputForm(theme),
           const Divider(height: 1),
-          Expanded(child: _buildSponsorList()),
+          Expanded(child: _buildSponsorList(theme)),
         ],
       ),
     );
   }
 
   /* ────────────────────────── 입력 폼 ────────────────────────── */
-  Widget _buildInputForm() {
+  Widget _buildInputForm(ThemeData theme) {
     return Expanded(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 180,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: _image == null
-                  ? const Center(
-                child: Text(
-                  '이미지를 선택하세요',
-                  style: TextStyle(color: Colors.grey),
+        child: AppCard(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 이미지 미리보기
+                Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _image == null
+                      ? const Center(
+                    child: Text(
+                      '이미지를 선택하세요',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(_image!, fit: BoxFit.contain),
+                  ),
                 ),
-              )
-                  : ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(_image!, fit: BoxFit.contain), // 로고 잘 보이게
-              ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('갤러리에서 선택'),
+                  style: theme.elevatedButtonTheme.style,
+                ),
+                const SizedBox(height: 16),
+
+                // 활성화 스위치
+                SwitchListTile(
+                  title: const Text('배너 활성화'),
+                  value: _isActive,
+                  onChanged: (v) => setState(() => _isActive = v),
+                  activeColor: theme.colorScheme.primary,
+                ),
+                const SizedBox(height: 16),
+
+                // 액션 섹션 (내부/외부 URL)
+                _buildActionSection(theme),
+                const SizedBox(height: 16),
+
+                // 등록 버튼
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _save,
+                    style: theme.elevatedButtonTheme.style,
+                    child: const Text('등록하기', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.photo_library),
-              label: const Text('갤러리에서 선택'),
-            ),
-            const SizedBox(height: 12),
-            SwitchListTile(
-              title: const Text('배너 활성화'),
-              value: _isActive,
-              onChanged: (v) => setState(() => _isActive = v),
-              activeColor: const Color(0xFF00D4FF),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00D4FF),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('등록하기'),
-            ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildActionSection(ThemeData theme) {
+    return Column(
+      children: [
+        DropdownButtonFormField<String>(
+          value: _actionType,
+          decoration: const InputDecoration(
+            labelText: '클릭 시 이동',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'none', child: Text('없음')),
+            DropdownMenuItem(value: 'link', child: Text('외부 링크')),
+            DropdownMenuItem(value: 'internal', child: Text('앱 내부 페이지')),
+          ],
+          onChanged: (v) => setState(() => _actionType = v!),
+        ),
+        const SizedBox(height: 8),
+        if (_actionType == 'link')
+          TextField(
+            controller: _actionUrlController,
+            decoration: const InputDecoration(
+              labelText: '링크 URL',
+              hintText: 'https://example.com',
+              border: OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.url,
+          ),
+        if (_actionType == 'internal')
+          TextField(
+            controller: _actionRouteController,
+            decoration: const InputDecoration(
+              labelText: '라우트 경로',
+              hintText: '/ranking',
+              border: OutlineInputBorder(),
+            ),
+          ),
+      ],
     );
   }
 
@@ -100,15 +171,15 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
         maxWidth: 800,
         imageQuality: 85,
       );
-      if (picked != null && mounted) {
-        final file = File(picked.path);
-        final sizeInMB = file.lengthSync() / (1024 * 1024);
-        if (sizeInMB > 3) {
-          _showSnackBar('이미지는 3MB 이하만 가능합니다.', Colors.red);
-          return;
-        }
-        setState(() => _image = file);
+      if (picked == null || !mounted) return;
+
+      final file = File(picked.path);
+      final sizeInMB = file.lengthSync() / (1024 * 1024);
+      if (sizeInMB > 3) {
+        _showSnackBar('이미지는 3MB 이하만 가능합니다.', Colors.red);
+        return;
       }
+      setState(() => _image = file);
     } catch (e) {
       _showSnackBar('이미지 선택 실패: $e', Colors.red);
     }
@@ -116,11 +187,15 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
 
   /* ────────────────────────── 등록 ────────────────────────── */
   Future<void> _save() async {
-    if (_image == null) {
-      _showSnackBar('이미지를 선택하세요', Colors.red);
-      return;
+    if (_image == null) return _showSnackBar('이미지를 선택하세요', Colors.red);
+    if (_actionType == 'link' && _actionUrlController.text.trim().isEmpty) {
+      return _showSnackBar('링크 URL을 입력하세요', Colors.red);
+    }
+    if (_actionType == 'internal' && _actionRouteController.text.trim().isEmpty) {
+      return _showSnackBar('라우트 경로를 입력하세요', Colors.red);
     }
 
+    setState(() => _isLoading = true);
     _showSnackBar('업로드 중...', Colors.blue);
 
     try {
@@ -132,6 +207,9 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
       await _firestore.collection('sponsors').add({
         'imageUrl': url,
         'isActive': _isActive,
+        'actionType': _actionType,
+        'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
+        'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -139,6 +217,8 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
       _showSnackBar('등록 완료!', Colors.green);
     } catch (e) {
       _showSnackBar('등록 실패: $e', Colors.red);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -146,15 +226,18 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
     setState(() {
       _image = null;
       _isActive = true;
+      _actionType = 'none';
+      _actionUrlController.clear();
+      _actionRouteController.clear();
     });
   }
 
   /* ────────────────────────── 스폰서 목록 ────────────────────────── */
-  Widget _buildSponsorList() {
+  Widget _buildSponsorList(ThemeData theme) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('sponsors')
-          .orderBy('createdAt', descending: true)  // where 삭제 → 모두 보임
+          .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -174,7 +257,7 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
             final url = data['imageUrl'] as String?;
             final isActive = data['isActive'] as bool? ?? true;
 
-            return Card(
+            return AppCard(
               color: isActive ? null : Colors.grey[100],
               margin: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
@@ -185,7 +268,7 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
                     url,
                     width: 60,
                     height: 60,
-                    fit: BoxFit.contain, // 로고 잘 보이게
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
                   ),
                 )
@@ -204,7 +287,7 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
                           'isActive': value,
                         });
                       },
-                      activeColor: const Color(0xFF00D4FF),
+                      activeColor: theme.colorScheme.primary,
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
@@ -216,6 +299,15 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
                     ),
                   ],
                 ),
+                // 내부 링크 클릭 시 모달
+                onTap: () {
+                  final type = data['actionType'];
+                  if (type == 'link' && data['actionUrl'] != null) {
+                    launchUrl(Uri.parse(data['actionUrl']), mode: LaunchMode.externalApplication);
+                  } else if (type == 'internal' && data['actionRoute'] != null) {
+                    _handleInternalLink(data['actionRoute']);
+                  }
+                },
               ),
             );
           },
@@ -224,9 +316,59 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
     );
   }
 
+  /* ────────────────────────── 내부 링크 모달 처리 ────────────────────────── */
+  void _handleInternalLink(String? route) {
+    if (route == null) return;
+
+    Widget screen;
+    switch (route) {
+      case '/ranking':
+        screen = const RankingScreen();
+        break;
+      case '/point-calendar':
+        screen = const PointCalendarScreen();
+        break;
+      default:
+        return;
+    }
+
+    _showFullScreenModal(screen);
+  }
+
+  void _showFullScreenModal(Widget screen) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return FadeTransition(
+          opacity: animation,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                screen is RankingScreen ? '전체 랭킹' :
+                screen is PointCalendarScreen ? '전체 일정' :
+                '상세',
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            body: screen,
+          ),
+        );
+      },
+    );
+  }
+
   /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
   void _editSponsor(String docId, Map<String, dynamic> data, String? currentImageUrl) {
     final isActive = data['isActive'] as bool? ?? true;
+    _actionType = data['actionType'] ?? 'none';
+    _actionUrlController.text = data['actionUrl'] ?? '';
+    _actionRouteController.text = data['actionRoute'] ?? '';
 
     showDialog(
       context: context,
@@ -240,41 +382,48 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
             content: SizedBox(
               width: double.maxFinite,
               child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 150,
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-                      child: tempImage != null
-                          ? Image.file(tempImage, fit: BoxFit.contain)
-                          : currentImageUrl != null
-                          ? Image.network(currentImageUrl, fit: BoxFit.contain)
-                          : const Center(child: Text("이미지 없음")),
+                child: AppCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 150,
+                          decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+                          child: tempImage != null
+                              ? Image.file(tempImage, fit: BoxFit.contain)
+                              : currentImageUrl != null
+                              ? Image.network(currentImageUrl, fit: BoxFit.contain)
+                              : const Center(child: Text("이미지 없음")),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            final picked = await picker.pickImage(source: ImageSource.gallery);
+                            if (picked != null) {
+                              final file = File(picked.path);
+                              if (file.lengthSync() / (1024 * 1024) <= 3) {
+                                setStateDialog(() => tempImage = file);
+                              } else {
+                                _showSnackBar('3MB 이하만 가능', Colors.red);
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.image),
+                          label: const Text("이미지 변경"),
+                        ),
+                        const SizedBox(height: 12),
+                        SwitchListTile(
+                          title: const Text('배너 활성화'),
+                          value: tempActive,
+                          onChanged: (v) => setStateDialog(() => tempActive = v),
+                          activeColor: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActionSection(Theme.of(context)),
+                      ],
                     ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        final picked = await picker.pickImage(source: ImageSource.gallery);
-                        if (picked != null) {
-                          final file = File(picked.path);
-                          if (file.lengthSync() / (1024 * 1024) <= 3) {
-                            setStateDialog(() => tempImage = file);
-                          } else {
-                            _showSnackBar('3MB 이하만 가능', Colors.red);
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.image),
-                      label: const Text("이미지 변경"),
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      title: const Text('배너 활성화'),
-                      value: tempActive,
-                      onChanged: (v) => setStateDialog(() => tempActive = v),
-                      activeColor: const Color(0xFF00D4FF),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -298,6 +447,9 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
                   await _firestore.collection('sponsors').doc(docId).update({
                     'imageUrl': newImageUrl,
                     'isActive': tempActive,
+                    'actionType': _actionType,
+                    'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
+                    'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
                   });
 
                   if (mounted) {
@@ -340,7 +492,7 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
           await _storage.refFromURL(imageUrl).delete();
         } catch (_) {}
       }
-      if (mounted) _showSnackBar('삭제 완료!', Colors.green);
+      if (mounted) _showSnackBar('삭제 완료!', Colors.red);
     } catch (e) {
       if (mounted) _showSnackBar('삭제 실패: $e', Colors.red);
     }
@@ -357,6 +509,8 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
 
   @override
   void dispose() {
+    _actionUrlController.dispose();
+    _actionRouteController.dispose();
     super.dispose();
   }
 }

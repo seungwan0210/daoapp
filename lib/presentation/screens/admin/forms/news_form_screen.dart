@@ -5,6 +5,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/app_card.dart';
+
+// 모달로 띄울 화면 import
+import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
+import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
 
 class NewsFormScreen extends StatefulWidget {
   const NewsFormScreen({super.key});
@@ -28,104 +34,116 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('뉴스 관리'),
-        backgroundColor: const Color(0xFF00D4FF),
+        backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
-          _buildInputForm(),
+          _buildInputForm(theme),
           const Divider(height: 1),
-          Expanded(child: _buildNewsList()),
+          Expanded(child: _buildNewsList(theme)),
         ],
       ),
     );
   }
 
   /* ────────────────────────── 입력 폼 ────────────────────────── */
-  Widget _buildInputForm() {
+  Widget _buildInputForm(ThemeData theme) {
     return Expanded(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 이미지 미리보기
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: _image == null
-                  ? const Center(
-                child: Text(
-                  '포스터 이미지 (3MB 이하)',
-                  style: TextStyle(color: Colors.grey),
+        child: AppCard(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // 이미지 미리보기
+                Container(
+                  height: 300,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _image == null
+                      ? const Center(
+                    child: Text(
+                      '포스터 이미지 (3MB 이하)',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  )
+                      : ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(_image!, fit: BoxFit.cover),
+                  ),
                 ),
-              )
-                  : ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(_image!, fit: BoxFit.cover),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _pickImage,
-              icon: const Icon(Icons.image),
-              label: const Text('이미지 선택'),
-            ),
-            const SizedBox(height: 16),
-
-            // 제목
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: '제목',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 2,
-            ),
-            const SizedBox(height: 12),
-
-            // 날짜 선택
-            InkWell(
-              onTap: _selectDate,
-              child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: '날짜',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  onPressed: _pickImage,
+                  icon: const Icon(Icons.image),
+                  label: const Text('이미지 선택'),
+                  style: theme.elevatedButtonTheme.style,
                 ),
-                child: Text(
-                  _selectedDate == null
-                      ? '날짜를 선택하세요'
-                      : '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                const SizedBox(height: 16),
+
+                // 제목
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: '제목',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
-            // 액션 섹션
-            _buildActionSection(),
-            const SizedBox(height: 20),
+                // 날짜 선택
+                InkWell(
+                  onTap: _selectDate,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: '날짜',
+                      border: OutlineInputBorder(),
+                      suffixIcon: Icon(Icons.calendar_today),
+                    ),
+                    child: Text(
+                      _selectedDate == null
+                          ? '날짜를 선택하세요'
+                          : '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
 
-            // 등록 버튼
-            _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : ElevatedButton(
-              onPressed: _saveNews,
-              child: const Text('뉴스 등록'),
+                // 액션 섹션
+                _buildActionSection(theme),
+                const SizedBox(height: 20),
+
+                // 등록 버튼
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveNews,
+                    style: theme.elevatedButtonTheme.style,
+                    child: const Text('뉴스 등록', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildActionSection() {
+  Widget _buildActionSection(ThemeData theme) {
     return Column(
       children: [
         DropdownButtonFormField<String>(
@@ -250,7 +268,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
   }
 
   /* ────────────────────────── 뉴스 목록 ────────────────────────── */
-  Widget _buildNewsList() {
+  Widget _buildNewsList(ThemeData theme) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('news')
@@ -274,7 +292,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
             final imageUrl = data['imageUrl'] as String?;
             final isActive = data['isActive'] as bool? ?? true;
 
-            return Card(
+            return AppCard(
               color: isActive ? null : Colors.grey[100],
               margin: const EdgeInsets.symmetric(vertical: 4),
               child: ListTile(
@@ -315,7 +333,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                           'isActive': value,
                         });
                       },
-                      activeColor: const Color(0xFF00D4FF),
+                      activeColor: theme.colorScheme.primary,
                     ),
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
@@ -327,9 +345,65 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                     ),
                   ],
                 ),
+                // 내부 링크 클릭 시 모달
+                onTap: () {
+                  final type = data['actionType'];
+                  if (type == 'link' && data['actionUrl'] != null) {
+                    launchUrl(Uri.parse(data['actionUrl']), mode: LaunchMode.externalApplication);
+                  } else if (type == 'internal' && data['actionRoute'] != null) {
+                    _handleInternalLink(data['actionRoute']);
+                  }
+                },
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  /* ────────────────────────── 내부 링크 모달 처리 ────────────────────────── */
+  void _handleInternalLink(String? route) {
+    if (route == null) return;
+
+    Widget screen;
+    switch (route) {
+      case '/ranking':
+        screen = const RankingScreen();
+        break;
+      case '/point-calendar':
+        screen = const PointCalendarScreen();
+        break;
+      default:
+        return;
+    }
+
+    _showFullScreenModal(screen);
+  }
+
+  void _showFullScreenModal(Widget screen) {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return FadeTransition(
+          opacity: animation,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(
+                screen is RankingScreen ? '전체 랭킹' :
+                screen is PointCalendarScreen ? '전체 일정' :
+                '상세',
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            body: screen,
+          ),
         );
       },
     );
@@ -354,57 +428,62 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
             content: SizedBox(
               width: double.maxFinite,
               child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      height: 200,
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-                      child: tempImage != null
-                          ? Image.file(tempImage, fit: BoxFit.cover)
-                          : currentImageUrl != null
-                          ? Image.network(currentImageUrl, fit: BoxFit.cover)
-                          : const Center(child: Text("이미지 없음")),
+                child: AppCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 200,
+                          decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
+                          child: tempImage != null
+                              ? Image.file(tempImage, fit: BoxFit.cover)
+                              : currentImageUrl != null
+                              ? Image.network(currentImageUrl, fit: BoxFit.cover)
+                              : const Center(child: Text("이미지 없음")),
+                        ),
+                        TextButton.icon(
+                          onPressed: () async {
+                            final picked = await picker.pickImage(source: ImageSource.gallery);
+                            if (picked != null) {
+                              final file = File(picked.path);
+                              if (file.lengthSync() / (1024 * 1024) <= 3) {
+                                setStateDialog(() => tempImage = file);
+                              } else {
+                                _showSnackBar("3MB 이하만 가능", Colors.red);
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.image),
+                          label: const Text("이미지 변경"),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _titleController,
+                          decoration: const InputDecoration(labelText: "제목", border: OutlineInputBorder()),
+                        ),
+                        const SizedBox(height: 12),
+                        InkWell(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: _selectedDate ?? DateTime.now(),
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                            );
+                            if (picked != null) setStateDialog(() => _selectedDate = picked);
+                          },
+                          child: InputDecorator(
+                            decoration: const InputDecoration(labelText: "날짜", border: OutlineInputBorder()),
+                            child: Text(_selectedDate?.toString().substring(0, 10) ?? '선택'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildActionSection(Theme.of(context)),
+                      ],
                     ),
-                    TextButton.icon(
-                      onPressed: () async {
-                        final picked = await picker.pickImage(source: ImageSource.gallery);
-                        if (picked != null) {
-                          final file = File(picked.path);
-                          if (file.lengthSync() / (1024 * 1024) <= 3) {
-                            setStateDialog(() => tempImage = file);
-                          } else {
-                            _showSnackBar("3MB 이하만 가능", Colors.red);
-                          }
-                        }
-                      },
-                      icon: const Icon(Icons.image),
-                      label: const Text("이미지 변경"),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(labelText: "제목", border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 12),
-                    InkWell(
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          initialDate: _selectedDate ?? DateTime.now(),
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime(2030),
-                        );
-                        if (picked != null) setStateDialog(() => _selectedDate = picked);
-                      },
-                      child: InputDecorator(
-                        decoration: const InputDecoration(labelText: "날짜", border: OutlineInputBorder()),
-                        child: Text(_selectedDate?.toString().substring(0, 10) ?? '선택'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActionSection(),
-                  ],
+                  ),
                 ),
               ),
             ),
