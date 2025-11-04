@@ -471,13 +471,6 @@
             </list>
           </value>
         </entry>
-        <entry key="nested">
-          <value>
-            <list>
-              <option value="$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/nested-1.0.0/lib" />
-            </list>
-          </value>
-        </entry>
         <entry key="path">
           <value>
             <list>
@@ -503,13 +496,6 @@
           <value>
             <list>
               <option value="$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/posix-6.0.3/lib" />
-            </list>
-          </value>
-        </entry>
-        <entry key="provider">
-          <value>
-            <list>
-              <option value="$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/provider-6.1.5+1/lib" />
             </list>
           </value>
         </entry>
@@ -755,12 +741,10 @@
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/material_color_utilities-0.11.1/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/meta-1.16.0/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/mime-2.0.0/lib" />
-      <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/nested-1.0.0/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/path-1.9.1/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/petitparser-6.0.2/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/plugin_platform_interface-2.1.8/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/posix-6.0.3/lib" />
-      <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/provider-6.1.5+1/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/riverpod-2.6.1/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/simple_gesture_detector-0.2.1/lib" />
       <root url="file://$PROJECT_DIR$/../AppData/Local/Pub/Cache/hosted/pub.dev/source_span-1.10.1/lib" />

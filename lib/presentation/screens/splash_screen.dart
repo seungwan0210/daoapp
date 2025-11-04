@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/presentation/screens/login/login_screen.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -14,22 +12,51 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  int _retryCount = 0;
+  static const int _maxRetries = 10; // 최대 10초 대기
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      if (!mounted) return;
-      _navigateToNext();
+    // 첫 프레임 후 즉시 상태 확인 시작
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthState();
     });
   }
 
-  void _navigateToNext() {
-    final authState = ref.read(authStateProvider);
-    if (authState.value == null) {
-      Navigator.pushReplacementNamed(context, AppRoutes.login);
-    } else {
-      Navigator.pushReplacementNamed(context, AppRoutes.main);
-    }
+  void _checkAuthState() {
+    final authState = ref.watch(authStateProvider);
+
+    authState.when(
+      data: (user) {
+        // 로그인 상태가 확정되면 즉시 이동
+        if (user == null) {
+          Navigator.pushReplacementNamed(context, RouteConstants.login);
+        } else {
+          Navigator.pushReplacementNamed(context, RouteConstants.main);
+        }
+      },
+      loading: () {
+        // 로딩 중 → 1초 후 재시도
+        if (_retryCount < _maxRetries) {
+          _retryCount++;
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              _checkAuthState();
+            }
+          });
+        } else {
+          // 타임아웃 → 강제 로그인 화면
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, RouteConstants.login);
+          }
+        }
+      },
+      error: (_, __) {
+        // 에러 → 로그인 화면
+        Navigator.pushReplacementNamed(context, RouteConstants.login);
+      },
+    );
   }
 
   @override
@@ -38,16 +65,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 배경 이미지 (꽉 채움!)
           Image.asset(
             'assets/images/splash_portrait.png',
-            fit: BoxFit.cover,           // 꽉 채움 + 확대
+            fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
-            alignment: Alignment.center, // 중앙 정렬
+            alignment: Alignment.center,
           ),
-
-          // 로딩 (하단 중앙)
           const Positioned(
             bottom: 100,
             left: 0,

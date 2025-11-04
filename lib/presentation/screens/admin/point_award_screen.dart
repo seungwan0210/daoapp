@@ -1,13 +1,13 @@
 // lib/presentation/screens/admin/point_award_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 추가!
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
-import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
-import 'package:daoapp/presentation/providers/ranking_provider.dart'; // ← 추가!
+import 'package:daoapp/presentation/providers/ranking_provider.dart'; // 필요 시
 
-class PointAwardScreen extends StatefulWidget {
+class PointAwardScreen extends ConsumerStatefulWidget {
   final bool editMode;
   final String? docId;
   final Map<String, dynamic>? initialData;
@@ -20,10 +20,10 @@ class PointAwardScreen extends StatefulWidget {
   });
 
   @override
-  State<PointAwardScreen> createState() => _PointAwardScreenState();
+  ConsumerState<PointAwardScreen> createState() => _PointAwardScreenState();
 }
 
-class _PointAwardScreenState extends State<PointAwardScreen> {
+class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
   String _year = '2026';
   String _phase = 'season1';
   String _koreanName = '';
@@ -297,13 +297,15 @@ class _PointAwardScreenState extends State<PointAwardScreen> {
     );
 
     try {
+      final repo = ref.read(pointRecordRepositoryProvider);
       if (widget.editMode) {
-        await sl<PointRecordRepository>().updatePointRecord(record);
+        await repo.updatePointRecord(record);
       } else {
-        await sl<PointRecordRepository>().awardPoints(record);
+        await repo.awardPoints(record);
       }
 
-      sl<RankingProvider>().loadRanking();
+      // 랭킹 갱신 (Riverpod)
+      ref.read(rankingProvider.notifier).loadRanking();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

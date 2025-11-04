@@ -404,12 +404,6 @@
       "languageVersion": "3.2"
     },
     {
-      "name": "nested",
-      "rootUri": "file:///C:/Users/A/AppData/Local/Pub/Cache/hosted/pub.dev/nested-1.0.0",
-      "packageUri": "lib/",
-      "languageVersion": "2.12"
-    },
-    {
       "name": "path",
       "rootUri": "file:///C:/Users/A/AppData/Local/Pub/Cache/hosted/pub.dev/path-1.9.1",
       "packageUri": "lib/",
@@ -432,12 +426,6 @@
       "rootUri": "file:///C:/Users/A/AppData/Local/Pub/Cache/hosted/pub.dev/posix-6.0.3",
       "packageUri": "lib/",
       "languageVersion": "3.0"
-    },
-    {
-      "name": "provider",
-      "rootUri": "file:///C:/Users/A/AppData/Local/Pub/Cache/hosted/pub.dev/provider-6.1.5+1",
-      "packageUri": "lib/",
-      "languageVersion": "2.12"
     },
     {
       "name": "riverpod",
@@ -596,7 +584,7 @@
       "languageVersion": "3.3"
     }
   ],
-  "generated": "2025-11-03T15:20:04.877514Z",
+  "generated": "2025-11-04T02:12:09.930585Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/Users/A/flutter",

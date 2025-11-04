@@ -8,7 +8,12 @@ import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
-import 'package:daoapp/core/theme/app_theme.dart'; // 테마 추가!
+import 'package:daoapp/core/theme/app_theme.dart';
+import 'package:daoapp/core/constants/route_constants.dart'; // 수정
+import 'package:daoapp/presentation/screens/community/community_screen.dart'; // 추가
+import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
+import 'package:daoapp/presentation/screens/user/profile_register_screen.dart'; // 추가
+import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart'; // 추가
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,14 +34,18 @@ class DaoApp extends StatelessWidget {
     return MaterialApp(
       title: 'DAO App - Steel League',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light, // 여기서 테마 통일!
-      initialRoute: AppRoutes.splash,
+      theme: AppTheme.light,
+      initialRoute: RouteConstants.splash,
       routes: {
-        AppRoutes.splash: (context) => const SplashScreen(),
-        AppRoutes.login: (context) => const LoginScreen(),
-        AppRoutes.main: (context) => const MainScreen(),
-        AppRoutes.ranking: (context) => const RankingScreen(),
-        AppRoutes.calendar: (context) => const CalendarScreen(),
+        RouteConstants.splash: (context) => const SplashScreen(),
+        RouteConstants.login: (context) => const LoginScreen(),
+        RouteConstants.main: (context) => const MainScreen(),
+        RouteConstants.ranking: (context) => const RankingScreen(),
+        RouteConstants.calendar: (context) => const CalendarScreen(),
+        RouteConstants.community: (context) => const CommunityScreen(),
+        RouteConstants.profileRegister: (context) => const ProfileRegisterScreen(),
+        RouteConstants.pointCalendar: (context) => const PointCalendarScreen(),
+        RouteConstants.adminDashboard: (context) => const AdminDashboardScreen(),
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(
@@ -46,13 +55,4 @@ class DaoApp extends StatelessWidget {
       },
     );
   }
-}
-
-// 라우트 상수
-class AppRoutes {
-  static const String splash = '/splash';
-  static const String login = '/login';
-  static const String main = '/main';
-  static const String ranking = '/ranking';
-  static const String calendar = '/calendar';
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
 import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/core/constants/route_constants.dart'; // 추가!
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -101,10 +101,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     onPressed: () async {
                       final user = await ref.read(authRepositoryProvider).signInWithGoogle();
                       if (user != null && context.mounted) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MainScreen()),
-                        );
+                        // 기존: MainScreen 직행 → X
+                        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainScreen()));
+
+                        // 수정: SplashScreen으로 이동 → 상태 감지 시작
+                        Navigator.pushReplacementNamed(context, RouteConstants.splash);
                       }
                     },
                     icon: const Icon(Icons.g_mobiledata, color: Colors.red, size: 24),
@@ -131,10 +132,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             right: 24,
             child: TextButton(
               onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MainScreen()),
-                );
+                // 건너뛰기 → SplashScreen으로
+                Navigator.pushReplacementNamed(context, RouteConstants.splash);
               },
               child: const Text(
                 '건너뛰기',

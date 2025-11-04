@@ -1,36 +1,35 @@
 // lib/presentation/providers/ranking_provider.dart
 import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../data/repositories/point_record_repository.dart';
-import '../../data/models/ranking_user.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:daoapp/data/repositories/point_record_repository_impl.dart';
+import 'package:daoapp/data/repositories/point_record_repository.dart';
+import 'package:daoapp/data/models/ranking_user.dart';
 
-class RankingProvider extends ChangeNotifier {
+final pointRecordRepositoryProvider = Provider<PointRecordRepository>((ref) {
+  return PointRecordRepositoryImpl();
+});
+
+class RankingNotifier extends StateNotifier<AsyncValue<List<RankingUser>>> {
   final PointRecordRepository _repo;
-
-  List<RankingUser> _rankings = [];
-  bool _loading = false;
   StreamSubscription<List<RankingUser>>? _subscription;
 
   String selectedYear = '2026';
-  String selectedPhase = 'total'; // 통합 기본값
-  String selectedGender = 'all'; // 기본값: 전체!
-  bool _top9Mode = false; // 상위 9개 모드
+  String selectedPhase = 'total';
+  String selectedGender = 'all';
+  bool _top9Mode = false;
 
-  List<RankingUser> get rankings => _rankings;
-  bool get loading => _loading;
+  // 외부에서 접근 가능한 getter 추가!
   bool get top9Mode => _top9Mode;
 
-  RankingProvider(this._repo) {
+  RankingNotifier(this._repo) : super(const AsyncValue.loading()) {
     _subscribeToRanking();
   }
 
   void updateFilters(String year, String phase, String gender) {
     selectedYear = year;
     selectedPhase = phase;
-    selectedGender = gender; // all / male / female
+    selectedGender = gender;
 
-    // 통합일 때 top9Mode 자동 비활성화
     if (phase == 'total' && _top9Mode) {
       _top9Mode = false;
     }
@@ -39,14 +38,9 @@ class RankingProvider extends ChangeNotifier {
   }
 
   void toggleTop9Mode() {
-    // 통합에서는 토글 불가
-    if (selectedPhase == 'total') {
-      return;
-    }
-
+    if (selectedPhase == 'total') return;
     _top9Mode = !_top9Mode;
     _subscribeToRanking();
-    notifyListeners();
   }
 
   void loadRanking() {
@@ -54,29 +48,19 @@ class RankingProvider extends ChangeNotifier {
   }
 
   void _subscribeToRanking() {
-    _loading = true;
-    notifyListeners();
-
+    state = const AsyncValue.loading();
     _subscription?.cancel();
 
     _subscription = _repo
         .getRanking(
       seasonId: selectedYear,
       phase: selectedPhase,
-      gender: selectedGender, // all / male / female
+      gender: selectedGender,
       top9Mode: _top9Mode && selectedPhase != 'total',
     )
         .listen(
-          (data) {
-        _rankings = data;
-        _loading = false;
-        notifyListeners();
-      },
-      onError: (e) {
-        _loading = false;
-        notifyListeners();
-        debugPrint('Ranking error: $e');
-      },
+          (data) => state = AsyncValue.data(data),
+      onError: (e) => state = AsyncValue.error(e, StackTrace.current),
     );
   }
 
@@ -86,3 +70,8 @@ class RankingProvider extends ChangeNotifier {
     super.dispose();
   }
 }
+
+final rankingProvider = StateNotifierProvider<RankingNotifier, AsyncValue<List<RankingUser>>>((ref) {
+  final repo = ref.read(pointRecordRepositoryProvider);
+  return RankingNotifier(repo);
+});

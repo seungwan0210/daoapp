@@ -1,6 +1,7 @@
 // lib/data/repositories/auth_repository_impl.dart
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 추가!
 import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -32,7 +33,35 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       final userCredential = await _auth.signInWithCredential(credential);
-      return userCredential.user;
+      final user = userCredential.user;
+
+      if (user != null) {
+        // === users 문서 자동 생성 ===
+        final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final docSnapshot = await userDoc.get();
+
+        if (!docSnapshot.exists) {
+          await userDoc.set({
+            'uid': user.uid,
+            'displayName': user.displayName ?? '이름 없음',
+            'email': user.email ?? '',
+            'photoURL': user.photoURL,
+            'koreanName': '',
+            'englishName': '',
+            'hasProfile': false, // 프로필 등록 여부
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastLoginAt': FieldValue.serverTimestamp(),
+          });
+          print('users 문서 생성 완료: ${user.uid}');
+        } else {
+          // 기존 사용자 → 로그인 시간 갱신
+          await userDoc.update({
+            'lastLoginAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      return user;
     } catch (e) {
       print('Google Sign-In Error: $e');
       return null;
@@ -47,17 +76,6 @@ class AuthRepositoryImpl implements AuthRepository {
     ]);
   }
 
-  @override
-  Future<bool> isAdmin() async {
-    final user = _auth.currentUser;
-    if (user == null) return false;
-
-    // 토큰 강제 새로고침!
-    final idTokenResult = await user.getIdTokenResult(true);
-    final isAdmin = idTokenResult.claims?['admin'] == true || idTokenResult.claims?['super_admin'] == true;
-
-    print('isAdmin(): $isAdmin, claims: ${idTokenResult.claims}'); // 디버그
-
-    return isAdmin;
-  }
+// isAdmin() 제거됨
+// → app_providers.dart의 isAdminProvider가 실시간 처리
 }
