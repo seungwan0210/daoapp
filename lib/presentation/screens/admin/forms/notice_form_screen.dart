@@ -6,7 +6,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // 탭 전환을 위한 MainScreen import (필수!)
-import 'package:daoapp/presentation/screens/main_screen.dart'; // ← 여기에 MainScreen 있음
+import 'package:daoapp/presentation/screens/main_screen.dart';
 
 class NoticeFormScreen extends StatefulWidget {
   const NoticeFormScreen({super.key});
@@ -256,7 +256,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                     ),
                   ],
                 ),
-                // 내부 링크 클릭 → 푸쉬 + 탭 전환
+                // 내부 링크 클릭 → 탭 전환만!
                 onTap: () {
                   final type = data['actionType'];
                   final url = data['actionUrl'] as String?;
@@ -265,10 +265,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                   if (type == 'link' && url != null) {
                     launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                   } else if (type == 'internal' && route != null) {
-                    // 1. 탭 전환
-                    _syncTabWithRoute(route);
-                    // 2. 페이지 푸쉬
-                    Navigator.pushNamed(context, route);
+                    _syncTabWithRoute(route); // 탭만 전환!
                   }
                 },
               ),
@@ -286,10 +283,15 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
       case '/ranking':
         tabIndex = 1;
         break;
-      case '/point-calendar':
-        tabIndex = 2; // 예: 일정 탭이 2번
+      case '/calendar':
+        tabIndex = 2;
         break;
-    // 다른 페이지 추가 가능
+      case '/community':
+        tabIndex = 3;
+        break;
+      case '/my-page':
+        tabIndex = 4;
+        break;
       default:
         return;
     }

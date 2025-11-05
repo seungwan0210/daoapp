@@ -16,6 +16,7 @@ import 'package:daoapp/presentation/screens/login/login_screen.dart';
 import 'package:daoapp/presentation/screens/community/community_screen.dart';
 import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
 import 'package:daoapp/presentation/screens/user/profile_register_screen.dart';
+import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
 
 // 관리자 스크린 import
@@ -59,9 +60,10 @@ class DaoApp extends StatelessWidget {
         RouteConstants.main: (_) => const MainScreen(),
 
         // 유저
-        RouteConstants.ranking: (_) => const RankingScreen(),
-        RouteConstants.calendar: (_) => const CalendarScreen(),
-        RouteConstants.community: (_) => const CommunityScreen(),
+        RouteConstants.ranking: (_) => const RankingScreenBody(),
+        RouteConstants.calendar: (_) => const CalendarScreenBody(),     // ← 수정!
+        RouteConstants.community: (_) => const CommunityScreenBody(),
+        RouteConstants.myPage: (_) => const MyPageScreenBody(),
         RouteConstants.profileRegister: (_) => const ProfileRegisterScreen(),
         RouteConstants.pointCalendar: (_) => const PointCalendarScreen(),
 

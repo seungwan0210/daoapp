@@ -11,6 +11,7 @@ class RouteConstants {
   static const String ranking = '/ranking';
   static const String calendar = '/calendar';
   static const String community = '/community';
+  static const String myPage = '/my-page'; // ← 이거 추가!
   static const String profileRegister = '/profile-register';
   static const String pointCalendar = '/point-calendar';
 

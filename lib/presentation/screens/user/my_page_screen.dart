@@ -27,159 +27,164 @@ class MyPageScreenBody extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final theme = Theme.of(context);
 
-    return authState.when(
-      data: (user) {
-        if (user == null) {
-          return _buildLoginPrompt(context);
-        }
-
-        return StreamBuilder<DocumentSnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
+    return SafeArea(
+      top: true,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: authState.when(
+          data: (user) {
+            if (user == null) {
+              return _buildLoginPrompt(context);
             }
 
-            final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-            final hasProfile = data['hasProfile'] == true;
-            final profileImageUrl = data['profileImageUrl'] as String?;
-            final koreanName = data['koreanName'] ?? '';
-            final englishName = data['englishName'] ?? '';
-            final shopName = data['shopName'] ?? '';
-            final email = user.email ?? '이메일 없음';
+            return StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            return ListView(
-              padding: const EdgeInsets.all(16), // ← Padding 여기로 이동
-              children: [
-                // === 1. 프로필 정보 ===
-                AppCard(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundImage: _getProfileImageProvider(
-                            profileImageUrl: profileImageUrl,
-                            googlePhotoUrl: hasProfile ? null : user.photoURL,
-                          ),
-                          child: profileImageUrl == null && (hasProfile || user.photoURL == null)
-                              ? const Icon(Icons.account_circle, size: 50, color: Colors.grey)
-                              : null,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                final hasProfile = data['hasProfile'] == true;
+                final profileImageUrl = data['profileImageUrl'] as String?;
+                final koreanName = data['koreanName'] ?? '';
+                final englishName = data['englishName'] ?? '';
+                final shopName = data['shopName'] ?? '';
+                final email = user.email ?? '이메일 없음';
+
+                return ListView(
+                  children: [
+                    // === 1. 프로필 정보 ===
+                    AppCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundImage: _getProfileImageProvider(
+                                profileImageUrl: profileImageUrl,
+                                googlePhotoUrl: hasProfile ? null : user.photoURL,
+                              ),
+                              child: profileImageUrl == null && (hasProfile || user.photoURL == null)
+                                  ? const Icon(Icons.account_circle, size: 50, color: Colors.grey)
+                                  : null,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    koreanName.isNotEmpty ? koreanName : '이름 없음',
-                                    style: theme.textTheme.titleLarge,
-                                    overflow: TextOverflow.ellipsis,
+                                  Row(
+                                    children: [
+                                      Text(
+                                        koreanName.isNotEmpty ? koreanName : '이름 없음',
+                                        style: theme.textTheme.titleLarge,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (englishName.isNotEmpty)
+                                        Text(
+                                          englishName,
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            color: Colors.grey[700],
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                    ],
                                   ),
-                                  const SizedBox(width: 8),
-                                  if (englishName.isNotEmpty)
+                                  const SizedBox(height: 4),
+                                  if (shopName.isNotEmpty)
                                     Text(
-                                      englishName,
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        color: Colors.grey[700],
-                                        fontStyle: FontStyle.italic,
+                                      shopName,
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        color: theme.colorScheme.primary,
+                                        fontWeight: FontWeight.w600,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    email,
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              if (shopName.isNotEmpty)
-                                Text(
-                                  shopName,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              const SizedBox(height: 4),
-                              Text(
-                                email,
-                                style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // === 2. 프로필 수정 ===
-                AppCard(
-                  onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
-                  child: ListTile(
-                    leading: Icon(Icons.edit, color: theme.colorScheme.primary),
-                    title: const Text('프로필 수정'),
-                    subtitle: hasProfile
-                        ? const Text('닉네임, 샵, 배럴 세팅')
-                        : const Text('프로필 등록이 필요합니다', style: TextStyle(color: Colors.red)),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  ),
-                ),
+                    // === 2. 프로필 수정 ===
+                    AppCard(
+                      onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
+                      child: ListTile(
+                        leading: Icon(Icons.edit, color: theme.colorScheme.primary),
+                        title: const Text('프로필 수정'),
+                        subtitle: hasProfile
+                            ? const Text('닉네임, 샵, 배럴 세팅')
+                            : const Text('프로필 등록이 필요합니다', style: TextStyle(color: Colors.red)),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      ),
+                    ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                // === 3. 포인트 달력 ===
-                AppCard(
-                  onTap: () => Navigator.pushNamed(context, RouteConstants.pointCalendar),
-                  child: ListTile(
-                    leading: Icon(Icons.calendar_month, color: theme.colorScheme.primary),
-                    title: const Text('포인트 달력'),
-                    subtitle: const Text('날짜별 내역 확인'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  ),
-                ),
+                    // === 3. 포인트 달력 ===
+                    AppCard(
+                      onTap: () => Navigator.pushNamed(context, RouteConstants.pointCalendar),
+                      child: ListTile(
+                        leading: Icon(Icons.calendar_month, color: theme.colorScheme.primary),
+                        title: const Text('포인트 달력'),
+                        subtitle: const Text('날짜별 내역 확인'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      ),
+                    ),
 
-                // === 4. KDF 정회원 명단 (포인트 달력 아래) ===
-                AppCard(
-                  onTap: () => Navigator.pushNamed(context, RouteConstants.memberList),
-                  child: ListTile(
-                    leading: Icon(Icons.card_membership, color: theme.colorScheme.primary),
-                    title: const Text('KDF 정회원 명단'),
-                    subtitle: const Text('등록된 정회원 리스트 확인'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  ),
-                ),
+                    // === 4. KDF 정회원 명단 ===
+                    AppCard(
+                      onTap: () => Navigator.pushNamed(context, RouteConstants.memberList),
+                      child: ListTile(
+                        leading: Icon(Icons.card_membership, color: theme.colorScheme.primary),
+                        title: const Text('KDF 정회원 명단'),
+                        subtitle: const Text('등록된 정회원 리스트 확인'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      ),
+                    ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                // === 5. 로그아웃 ===
-                AppCard(
-                  child: ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
-                    title: const Text('로그아웃'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () async {
-                      await ref.read(authRepositoryProvider).signOut();
-                      if (context.mounted) {
-                        Navigator.pushReplacementNamed(context, RouteConstants.login);
-                      }
-                    },
-                  ),
-                ),
+                    // === 5. 로그아웃 ===
+                    AppCard(
+                      child: ListTile(
+                        leading: const Icon(Icons.logout, color: Colors.red),
+                        title: const Text('로그아웃'),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () async {
+                          await ref.read(authRepositoryProvider).signOut();
+                          if (context.mounted) {
+                            Navigator.pushReplacementNamed(context, RouteConstants.login);
+                          }
+                        },
+                      ),
+                    ),
 
-                // 하단 여백 (선택)
-                const SizedBox(height: 32),
-              ],
+                    // 하단 여백
+                    const SizedBox(height: 32),
+                  ],
+                );
+              },
             );
           },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => _buildLoginPrompt(context),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => _buildLoginPrompt(context),
+        ),
+      ),
     );
   }
 

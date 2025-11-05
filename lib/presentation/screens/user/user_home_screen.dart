@@ -6,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/providers/user_home_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart'; // 이 줄 추가!
+import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/data/models/ranking_user.dart';
@@ -17,7 +17,6 @@ class UserHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // initState 대체: 화면 진입 시 랭킹 필터 초기화
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
     });
@@ -63,6 +62,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // 공지 슬라이더
   static Widget _buildNoticeSlider(BuildContext context, WidgetRef ref) {
     final notices = ref.watch(noticeBannerProvider);
     return notices.when(
@@ -108,6 +108,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // 다음 경기
   static Widget _buildNextEventCard(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -168,6 +169,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // TOP 3 랭킹
   static Widget _buildTop3Ranking(AsyncValue<List<RankingUser>> rankingState, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,9 +179,7 @@ class UserHomeScreenBody extends ConsumerWidget {
             Text('현재 TOP 3 (통합)', style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
             TextButton(
-              onPressed: () {
-                MainScreen.changeTab(context, 1); // 랭킹 탭으로 이동
-              },
+              onPressed: () => MainScreen.changeTab(context, 1),
               child: const Text('전체 보기'),
             ),
           ],
@@ -220,6 +220,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // 뉴스 섹션
   static Widget _buildNewsSection(BuildContext context, WidgetRef ref) {
     final news = ref.watch(newsProvider);
     return news.when(
@@ -303,6 +304,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // 스폰서 섹션 (클릭 지원 추가!)
   static Widget _buildSponsorSection(BuildContext context, WidgetRef ref) {
     final sponsors = ref.watch(sponsorBannerProvider);
     return Column(
@@ -312,14 +314,22 @@ class UserHomeScreenBody extends ConsumerWidget {
         const SizedBox(height: 12),
         sponsors.when(
           data: (snapshot) {
-            final urls = <String>[];
+            final items = <Map<String, dynamic>>[];
             for (final doc in snapshot.docs) {
-              final url = doc.get('imageUrl') as String?;
-              if (url != null && url.isNotEmpty) urls.add(url);
+              final data = doc.data() as Map<String, dynamic>;
+              final url = data['imageUrl'] as String?;
+              if (url != null && url.isNotEmpty) {
+                items.add({
+                  'imageUrl': url,
+                  'actionType': data['actionType'] ?? 'none',
+                  'actionUrl': data['actionUrl'] as String?,
+                  'actionRoute': data['actionRoute'] as String?,
+                });
+              }
             }
-            return urls.isEmpty
+            return items.isEmpty
                 ? const Text('스폰서 없음', style: TextStyle(color: Colors.grey))
-                : _buildImageCarousel(urls);
+                : _buildSponsorCarousel(context, items);
           },
           loading: () => _buildShimmerBanner(height: 180),
           error: (_, __) => const Text('오류', style: TextStyle(color: Colors.red)),
@@ -328,33 +338,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
-  static void _handleNoticeTap(BuildContext context, Map<String, dynamic> data) {
-    final type = data['actionType'];
-    if (type == 'link' && data['actionUrl'] != null) {
-      launchUrl(Uri.parse(data['actionUrl']), mode: LaunchMode.externalApplication);
-    } else if (type == 'internal' && data['actionRoute'] != null) {
-      Navigator.pushNamed(context, data['actionRoute']);
-    }
-  }
-
-  static void _handleNewsTap(BuildContext context, Map<String, dynamic> item) {
-    final type = item['actionType'];
-    if (type == 'link' && item['actionUrl'] != null) {
-      launchUrl(Uri.parse(item['actionUrl']), mode: LaunchMode.externalApplication);
-    } else if (type == 'internal' && item['actionRoute'] != null) {
-      Navigator.pushNamed(context, item['actionRoute']);
-    }
-  }
-
-  static String _getWeekday(int weekday) => ['일', '월', '화', '수', '목', '금', '토'][weekday - 1];
-
-  static Widget _buildEmptyCard(BuildContext context, String msg) {
-    return AppCard(
-      child: Text(msg, style: const TextStyle(color: Colors.grey)),
-    );
-  }
-
-  static Widget _buildImageCarousel(List<String> urls) {
+  static Widget _buildSponsorCarousel(BuildContext context, List<Map<String, dynamic>> items) {
     return CarouselSlider(
       options: CarouselOptions(
         height: 180,
@@ -363,31 +347,108 @@ class UserHomeScreenBody extends ConsumerWidget {
         viewportFraction: 0.92,
         enlargeCenterPage: false,
       ),
-      items: urls.map((url) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+      items: items.map((item) {
+        return GestureDetector(
+          onTap: () => _handleSponsorTap(context, item),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Image.network(
-            url,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            errorBuilder: (_, __, ___) => Container(
-              color: Colors.grey[200],
-              child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                item['imageUrl'],
+                fit: BoxFit.cover,
+                width: double.infinity,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey[200],
+                  child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                ),
+              ),
             ),
           ),
-        ),
-      )).toList(),
+        );
+      }).toList(),
+    );
+  }
+
+  // 공지 클릭 → 탭 전환
+  static void _handleNoticeTap(BuildContext context, Map<String, dynamic> data) {
+    final type = data['actionType'];
+    final url = data['actionUrl'] as String?;
+    final route = data['actionRoute'] as String?;
+
+    if (type == 'link' && url != null) {
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else if (type == 'internal' && route != null) {
+      _navigateToTab(context, route);
+    }
+  }
+
+  // 뉴스 클릭 → 탭 전환
+  static void _handleNewsTap(BuildContext context, Map<String, dynamic> item) {
+    final type = item['actionType'];
+    final url = item['actionUrl'] as String?;
+    final route = item['actionRoute'] as String?;
+
+    if (type == 'link' && url != null) {
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else if (type == 'internal' && route != null) {
+      _navigateToTab(context, route);
+    }
+  }
+
+  // 스폰서 클릭 → 탭 전환
+  static void _handleSponsorTap(BuildContext context, Map<String, dynamic> item) {
+    final type = item['actionType'];
+    final url = item['actionUrl'] as String?;
+    final route = item['actionRoute'] as String?;
+
+    if (type == 'link' && url != null) {
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else if (type == 'internal' && route != null) {
+      _navigateToTab(context, route);
+    }
+  }
+
+  // 공통 탭 전환 함수
+  static void _navigateToTab(BuildContext context, String route) {
+    int? tabIndex;
+    switch (route) {
+      case '/ranking':
+        tabIndex = 1;
+        break;
+      case '/calendar':
+        tabIndex = 2;
+        break;
+      case '/community':
+        tabIndex = 3;
+        break;
+      case '/my-page':
+        tabIndex = 4;
+        break;
+      default:
+        return;
+    }
+    if (tabIndex != null) {
+      MainScreen.changeTab(context, tabIndex);
+    }
+  }
+
+  // 기타 유틸
+  static String _getWeekday(int weekday) => ['일', '월', '화', '수', '목', '금', '토'][weekday - 1];
+
+  static Widget _buildEmptyCard(BuildContext context, String msg) {
+    return AppCard(
+      child: Text(msg, style: const TextStyle(color: Colors.grey)),
     );
   }
 
@@ -411,7 +472,7 @@ class UserHomeScreenBody extends ConsumerWidget {
       1 => Colors.amber,
       2 => Colors.grey,
       3 => Colors.brown[700]!,
-      _ => const Color(0xFF1565C0), // app_theme의 primary 색상 직접 지정
+      _ => const Color(0xFF1565C0),
     };
   }
 }

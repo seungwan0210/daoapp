@@ -29,9 +29,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   static final List<Widget> _pageBodies = [
     const UserHomeScreenBody(),
     const RankingScreenBody(),
-    const CalendarScreen(),
-    const CommunityScreenBody(),
-    const MyPageScreenBody(),
+    const CalendarScreenBody(),     // ← 수정!
+    const CommunityScreenBody(),   // ← 수정!
+    const MyPageScreenBody()
   ];
 
   static const List<BottomNavigationBarItem> _items = [

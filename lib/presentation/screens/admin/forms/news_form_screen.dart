@@ -5,12 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart'; // 추가!
+import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
-// 모달로 띄울 화면 import
-import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
-import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
+// 탭 전환을 위한 MainScreen import
+import 'package:daoapp/presentation/screens/main_screen.dart';
 
 class NewsFormScreen extends StatefulWidget {
   const NewsFormScreen({super.key});
@@ -345,13 +344,16 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                     ),
                   ],
                 ),
-                // 내부 링크 클릭 시 모달
+                // 뉴스 클릭 → 탭 전환만!
                 onTap: () {
                   final type = data['actionType'];
-                  if (type == 'link' && data['actionUrl'] != null) {
-                    launchUrl(Uri.parse(data['actionUrl']), mode: LaunchMode.externalApplication);
-                  } else if (type == 'internal' && data['actionRoute'] != null) {
-                    _handleInternalLink(data['actionRoute']);
+                  final url = data['actionUrl'] as String?;
+                  final route = data['actionRoute'] as String?;
+
+                  if (type == 'link' && url != null) {
+                    launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                  } else if (type == 'internal' && route != null) {
+                    _syncTabWithRoute(route);
                   }
                 },
               ),
@@ -362,51 +364,29 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
     );
   }
 
-  /* ────────────────────────── 내부 링크 모달 처리 ────────────────────────── */
-  void _handleInternalLink(String? route) {
-    if (route == null) return;
-
-    Widget screen;
+  /* ────────────────────────── 탭 동기화 ────────────────────────── */
+  void _syncTabWithRoute(String route) {
+    int? tabIndex;
     switch (route) {
       case '/ranking':
-        screen = const RankingScreen();
+        tabIndex = 1;
         break;
-      case '/point-calendar':
-        screen = const PointCalendarScreen();
+      case '/calendar':
+        tabIndex = 2;
+        break;
+      case '/community':
+        tabIndex = 3;
+        break;
+      case '/my-page':
+        tabIndex = 4;
         break;
       default:
         return;
     }
 
-    _showFullScreenModal(screen);
-  }
-
-  void _showFullScreenModal(Widget screen) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: '',
-      transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (context, animation, secondaryAnimation) {
-        return FadeTransition(
-          opacity: animation,
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(
-                screen is RankingScreen ? '전체 랭킹' :
-                screen is PointCalendarScreen ? '전체 일정' :
-                '상세',
-              ),
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            body: screen,
-          ),
-        );
-      },
-    );
+    if (tabIndex != null) {
+      MainScreen.changeTab(context, tabIndex);
+    }
   }
 
   /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */

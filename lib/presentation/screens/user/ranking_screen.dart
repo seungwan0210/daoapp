@@ -1,4 +1,5 @@
 // lib/presentation/screens/user/ranking_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
@@ -8,7 +9,6 @@ import 'package:daoapp/data/models/ranking_user.dart';
 class RankingScreen extends ConsumerStatefulWidget {
   const RankingScreen({super.key});
 
-  // body만 반환
   static Widget body() => const RankingScreenBody();
 
   @override
@@ -33,111 +33,117 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
 }
 
 class RankingScreenBody extends ConsumerWidget {
-  const RankingScreenBody();
+  const RankingScreenBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rankingState = ref.watch(rankingProvider);
     final theme = Theme.of(context);
 
-    return Column(
-      children: [
-        AppCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(child: _buildYearDropdown(ref)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildPhaseDropdown(ref)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildGenderDropdown(ref)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildTop9Dropdown(ref)),
-            ],
-          ),
-        ),
-        Expanded(
-          child: rankingState.when(
-            data: (rankings) {
-              if (rankings.isEmpty) {
-                return Center(
-                  child: Text(
-                    '랭킹 데이터가 없습니다.\n포인트를 부여해 보세요!',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                  ),
-                );
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                itemCount: rankings.length,
-                itemBuilder: (_, i) {
-                  final user = rankings[i];
-                  return AppCard(
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: _getRankColor(user.rank),
-                        child: Text(
-                          '${user.rank}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+    return SafeArea(
+      top: true,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            AppCard(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Expanded(child: _buildYearDropdown(ref)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildPhaseDropdown(ref)), // ← 여기 고침!
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildGenderDropdown(ref)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildTop9Dropdown(ref)),
+                ],
+              ),
+            ),
+            Expanded(
+              child: rankingState.when(
+                data: (rankings) {
+                  if (rankings.isEmpty) {
+                    return Center(
+                      child: Text(
+                        '랭킹 데이터가 없습니다.\n포인트를 부여해 보세요!',
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                      ),
+                    );
+                  }
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    itemCount: rankings.length,
+                    itemBuilder: (_, i) {
+                      final user = rankings[i];
+                      return AppCard(
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: _getRankColor(user.rank),
+                            child: Text(
+                              '${user.rank}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                user.koreanName,
+                                style: theme.textTheme.titleMedium,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '(${user.englishName})',
+                                style: theme.textTheme.bodySmall?.copyWith(color: Colors.black),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            user.shopName,
+                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                          ),
+                          trailing: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${user.displayPoints} pt',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                              if (user.top9Points != null && user.top9Points != user.totalPoints)
+                                Text(
+                                  '전체: ${user.totalPoints}',
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                ),
+                            ],
                           ),
                         ),
-                      ),
-                      title: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            user.koreanName,
-                            style: theme.textTheme.titleMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            '(${user.englishName})',
-                            style: theme.textTheme.bodySmall?.copyWith(color: Colors.black),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                      subtitle: Text(
-                        user.shopName,
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
-                      ),
-                      trailing: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${user.displayPoints} pt',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                          if (user.top9Points != null && user.top9Points != user.totalPoints)
-                            Text(
-                              '전체: ${user.totalPoints}',
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
-                            ),
-                        ],
-                      ),
-                    ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Center(child: Text('랭킹 로드 오류')),
-          ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const Center(child: Text('랭킹 로드 오류')),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -219,7 +225,7 @@ class RankingScreenBody extends ConsumerWidget {
       1 => Colors.amber,
       2 => Colors.grey,
       3 => Colors.brown[700]!,
-      _ => const Color(0xFF1565C0), // Theme 대신 직접 색상
+      _ => const Color(0xFF1565C0),
     };
   }
 }
