@@ -23,18 +23,22 @@ class AppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: margin ?? const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-      shape: shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: elevation ?? 4,
-      color: color ?? Theme.of(context).cardTheme.color,
-      shadowColor: Colors.black.withOpacity(0.08),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: padding ?? const EdgeInsets.all(16),
-          child: child,
+    final cardTheme = Theme.of(context).cardTheme;
+
+    return Container(
+      margin: margin ?? cardTheme.margin ?? const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: Material(
+        color: color ?? cardTheme.color ?? Colors.white,
+        elevation: elevation ?? cardTheme.elevation ?? 4,
+        shadowColor: cardTheme.shadowColor ?? Colors.black.withOpacity(0.08),
+        shape: shape ?? cardTheme.shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: padding ?? const EdgeInsets.all(16),
+            child: child,
+          ),
         ),
       ),
     );

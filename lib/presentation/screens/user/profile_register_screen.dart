@@ -1,5 +1,4 @@
 // lib/presentation/screens/user/profile_register_screen.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,13 +22,17 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   final _englishNameController = TextEditingController();
   final _shopNameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _codeController = TextEditingController();
+  final _codeController = TextEditingController(); // 인증번호 입력용
 
-  String? _verificationId;
-  bool _codeSent = false;
-  bool _isPhoneVerified = false;
   String? _originalPhone;
   bool _isFirstRegistration = false;
+  bool _isPhoneVerified = false;
+
+  // 인증 상태
+  bool _isEditingPhone = false;
+  bool _codeSent = false;
+  bool _isVerifying = false;
+  String? _verificationId;
 
   File? _profileImage;
   File? _barrelImage;
@@ -69,21 +72,25 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     }
 
     final data = doc.data()!;
-    final phoneRaw = data['phoneNumber']?.toString().replaceAll(RegExp(r'\+82'), '0') ?? '';
+    final phoneRaw = data['phoneNumber']?.toString();
+
+    String displayPhone = '';
+    if (phoneRaw != null && phoneRaw.startsWith('+82')) {
+      final digits = phoneRaw.substring(3);
+      if (digits.length == 10) displayPhone = '0$digits';
+    }
 
     setState(() {
       _koreanNameController.text = data['koreanName'] ?? '';
       _englishNameController.text = data['englishName'] ?? '';
       _shopNameController.text = data['shopName'] ?? '';
-      _phoneController.text = phoneRaw;
-      _originalPhone = phoneRaw;
+      _phoneController.text = displayPhone;
+      _originalPhone = displayPhone;
       _isPhoneVerified = data['isPhoneVerified'] == true;
-
       _selectedBarrel = data['barrelName'];
       _selectedShaft = data['shaft'];
       _selectedFlight = data['flight'];
       _selectedTip = data['tip'];
-
       _firestoreProfileUrl = data['profileImageUrl'];
       _firestoreBarrelUrl = data['barrelImageUrl'];
     });
@@ -97,6 +104,105 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     _phoneController.dispose();
     _codeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _sendVerificationCode() async {
+    final input = _phoneController.text.trim();
+    final digits = input.replaceAll(RegExp(r'\D'), '');
+
+    if (digits.length != 11 || !digits.startsWith('0')) {
+      _showSnackBar('010으로 시작하는 11자리 번호를 입력하세요');
+      return;
+    }
+
+    final phone = '+82${digits.substring(1)}';
+    print('인증 요청: $phone');
+
+    setState(() {
+      _isVerifying = true;
+      _verificationId = null;        // 초기화
+      _codeController.clear();       // 초기화
+    });
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: phone,
+        verificationCompleted: (_) {},
+        verificationFailed: (e) {
+          _showSnackBar(e.message ?? '인증 실패');
+          setState(() => _isVerifying = false);
+        },
+        codeSent: (verificationId, _) {
+          setState(() {
+            _verificationId = verificationId;
+            _codeSent = true;
+            _isVerifying = false;
+          });
+          _showSnackBar('인증번호가 전송되었습니다');
+        },
+        codeAutoRetrievalTimeout: (verificationId) {
+          setState(() {
+            _verificationId = null;
+            _codeSent = false;
+            _isVerifying = false;
+          });
+          _showSnackBar('인증번호가 만료되었습니다. 다시 요청하세요', color: Colors.orange);
+        },
+        timeout: const Duration(seconds: 60),
+      );
+    } catch (e) {
+      _showSnackBar('요청 실패');
+      setState(() => _isVerifying = false);
+    }
+  }
+
+  // 인증번호 확인
+  Future<void> _verifyCode() async {
+    if (_codeController.text.length != 6 || !_codeController.text.trim().contains(RegExp(r'^\d{6}$'))) {
+      _showSnackBar('6자리 숫자 인증번호를 입력하세요');
+      return;
+    }
+
+    if (_verificationId == null) {
+      _showSnackBar('인증번호를 다시 요청하세요');
+      return;
+    }
+
+    setState(() => _isVerifying = true);
+
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: _codeController.text.trim(),
+      );
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      setState(() {
+        _isPhoneVerified = true;
+        _isEditingPhone = false;
+        _codeSent = false;
+        _originalPhone = _phoneController.text;
+      });
+      _codeController.clear();
+      _showSnackBar('인증 완료!', color: Colors.green);
+    } on FirebaseAuthException catch (e) {
+      String msg;
+      switch (e.code) {
+        case 'invalid-verification-code':
+          msg = '인증번호가 틀렸습니다';
+          break;
+        case 'session-expired':
+          msg = '인증번호가 만료되었습니다. 다시 요청하세요';
+          break;
+        default:
+          msg = '인증 실패: ${e.message}';
+      }
+      _showSnackBar(msg);
+    } catch (e) {
+      _showSnackBar('인증 실패');
+    } finally {
+      setState(() => _isVerifying = false);
+    }
   }
 
   Future<void> _pickImage(bool isProfile) async {
@@ -150,160 +256,90 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     _showSnackBar('사진이 삭제되었습니다.', color: Colors.orange);
   }
 
-  Future<void> _sendCode() async {
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final phoneInput = _phoneController.text.trim();
-    if (phoneInput.isEmpty) {
-      _showSnackBar('전화번호를 입력하세요.');
-      return;
-    }
-
     final needsVerification = _isFirstRegistration || (phoneInput != _originalPhone);
-    if (!needsVerification) return;
 
-    final phone = '+82$phoneInput';
-
-    try {
-      await FirebaseAuth.instance.verifyPhoneNumber(
-        phoneNumber: phone,
-        verificationCompleted: (_) {
-          // 자동 로그인 방지
-          debugPrint('자동 로그인 무시');
-        },
-        verificationFailed: (e) {
-          String msg;
-          switch (e.code) {
-            case 'invalid-phone-number':
-              msg = '유효하지 않은 전화번호입니다.';
-              break;
-            case 'too-many-requests':
-              msg = '너무 많은 요청. 잠시 후 다시 시도하세요.';
-              break;
-            default:
-              msg = e.message ?? '인증 실패';
-          }
-          _showSnackBar(msg);
-        },
-        codeSent: (verificationId, _) {
-          setState(() {
-            _verificationId = verificationId;
-            _codeSent = true;
-          });
-          _showSnackBar('인증번호 전송됨');
-        },
-        codeAutoRetrievalTimeout: (_) {},
-        timeout: const Duration(seconds: 60),
-      );
-    } catch (e) {
-      _showSnackBar('인증 요청 실패');
-    }
-  }
-
-  Future<void> _verifyCode() async {
-    if (_verificationId == null || _codeController.text.trim().isEmpty) {
-      _showSnackBar('인증번호를 입력하세요.');
+    // 인증이 필요하고, v 체크 안 됐으면 막기
+    if (needsVerification && !_isPhoneVerified) {
+      _showSnackBar('전화번호 인증을 완료해주세요!', color: Colors.red);
       return;
     }
 
-    try {
-      final credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: _codeController.text.trim(),
-      );
-      await _linkAndSave(credential);
-    } on FirebaseAuthException catch (e) {
-      String msg;
-      switch (e.code) {
-        case 'invalid-verification-code':
-          msg = '잘못된 인증번호입니다.';
-          break;
-        case 'session-expired':
-          msg = '인증 시간이 만료되었습니다.';
-          break;
-        default:
-          msg = e.message ?? '인증 실패';
-      }
-      _showSnackBar(msg);
+    // 인증 중이면 저장 금지
+    if (_codeSent || _isEditingPhone) {
+      _showSnackBar('인증을 완료한 후 저장해주세요', color: Colors.red);
+      return;
     }
-  }
 
-  Future<void> _linkAndSave(PhoneAuthCredential? credential) async {
-    if (user == null) return;
+    String? profileUrl;
+    String? barrelUrl;
 
-    try {
-      final phoneInput = _phoneController.text.trim();
-      final needsVerification = _isFirstRegistration || (phoneInput != _originalPhone);
+    if (_profileImage != null) {
+      final ref = FirebaseStorage.instance.ref().child('profiles/${user!.uid}');
+      await ref.putFile(_profileImage!);
+      profileUrl = await ref.getDownloadURL();
+    }
 
-      if (needsVerification && credential == null) {
-        _showSnackBar('전화번호 인증이 필요합니다.');
-        return;
-      }
+    if (_barrelImage != null) {
+      final ref = FirebaseStorage.instance.ref().child('barrels/${user!.uid}');
+      await ref.putFile(_barrelImage!);
+      barrelUrl = await ref.getDownloadURL();
+    }
 
-      if (credential != null && needsVerification) {
-        try {
-          await user!.linkWithCredential(credential);
-        } on FirebaseAuthException catch (e) {
-          if (e.code != 'credential-already-in-use') rethrow;
-          debugPrint('이미 연결된 번호');
-        }
-      }
+    final cleanNumber = phoneInput.replaceAll(RegExp(r'\D'), '').substring(1);
 
-      String? profileUrl;
-      String? barrelUrl;
+    await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
+      'koreanName': _koreanNameController.text.trim(),
+      'englishName': _englishNameController.text.trim(),
+      'shopName': _shopNameController.text.trim(),
+      'phoneNumber': phoneInput.isNotEmpty ? '+82$cleanNumber' : FieldValue.delete(),
+      'isPhoneVerified': _isPhoneVerified,
+      'barrelName': _selectedBarrel,
+      'shaft': _selectedShaft,
+      'flight': _selectedFlight,
+      'tip': _selectedTip,
+      'profileImageUrl': _profileImage != null
+          ? profileUrl
+          : (_firestoreProfileUrl == null ? null : _firestoreProfileUrl),
+      'barrelImageUrl': _barrelImage != null
+          ? barrelUrl
+          : (_firestoreBarrelUrl == null ? null : _firestoreBarrelUrl),
+      'hasProfile': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
-      if (_profileImage != null) {
-        final ref = FirebaseStorage.instance.ref().child('profiles/${user!.uid}');
-        await ref.putFile(_profileImage!);
-        profileUrl = await ref.getDownloadURL();
-      }
-
-      if (_barrelImage != null) {
-        final ref = FirebaseStorage.instance.ref().child('barrels/${user!.uid}');
-        await ref.putFile(_barrelImage!);
-        barrelUrl = await ref.getDownloadURL();
-      }
-
-      await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
-        'koreanName': _koreanNameController.text.trim(),
-        'englishName': _englishNameController.text.trim(),
-        'shopName': _shopNameController.text.trim(),
-        'phoneNumber': phoneInput.isNotEmpty ? '+82$phoneInput' : FieldValue.delete(),
-        'isPhoneVerified': true,
-        'barrelName': _selectedBarrel,
-        'shaft': _selectedShaft,
-        'flight': _selectedFlight,
-        'tip': _selectedTip,
-        'profileImageUrl': _profileImage != null ? profileUrl : (_firestoreProfileUrl == null ? null : _firestoreProfileUrl),
-        'barrelImageUrl': _barrelImage != null ? barrelUrl : (_firestoreBarrelUrl == null ? null : _firestoreBarrelUrl),
-        'hasProfile': true,
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-
-      if (mounted) {
-        Navigator.pop(context);
-        ref.invalidate(userHasProfileProvider);
-        _showSnackBar('프로필이 저장되었습니다.', color: Colors.green);
-      }
-    } on FirebaseAuthException catch (e) {
-      _showSnackBar(e.code == 'credential-already-in-use' ? '이미 사용 중인 전화번호입니다.' : (e.message ?? '저장 실패'));
-    } catch (e) {
-      _showSnackBar('오류가 발생했습니다.');
+    if (mounted) {
+      Navigator.pop(context);
+      ref.invalidate(userHasProfileProvider);
+      _showSnackBar('프로필이 저장되었습니다.', color: Colors.green);
     }
   }
 
   void _showSnackBar(String message, {Color? color}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
   }
 
   ImageProvider? _getProfileImageProvider() {
     if (_profileImage != null) return FileImage(_profileImage!);
-    if (_firestoreProfileUrl != null && _firestoreProfileUrl!.isNotEmpty) return NetworkImage(_firestoreProfileUrl!);
-    if (_isFirstRegistration && user?.photoURL != null) return NetworkImage(user!.photoURL!);
+    if (_firestoreProfileUrl != null && _firestoreProfileUrl!.isNotEmpty) {
+      return NetworkImage(_firestoreProfileUrl!);
+    }
+    if (_isFirstRegistration && user?.photoURL != null) {
+      return NetworkImage(user!.photoURL!);
+    }
     return null;
   }
 
   DecorationImage? _getBarrelDecorationImage() {
     if (_barrelImage != null) return DecorationImage(image: FileImage(_barrelImage!), fit: BoxFit.cover);
-    if (_firestoreBarrelUrl != null && _firestoreBarrelUrl!.isNotEmpty) return DecorationImage(image: NetworkImage(_firestoreBarrelUrl!), fit: BoxFit.cover);
+    if (_firestoreBarrelUrl != null && _firestoreBarrelUrl!.isNotEmpty) {
+      return DecorationImage(image: NetworkImage(_firestoreBarrelUrl!), fit: BoxFit.cover);
+    }
     return null;
   }
 
@@ -334,7 +370,9 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   }
 
   Widget _buildProfileImageStack() {
-    final hasImage = _profileImage != null || _firestoreProfileUrl != null || (_isFirstRegistration && user?.photoURL != null);
+    final hasImage = _profileImage != null ||
+        _firestoreProfileUrl != null ||
+        (_isFirstRegistration && user?.photoURL != null);
 
     return Stack(
       children: [
@@ -342,9 +380,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
           radius: 50,
           backgroundColor: Colors.grey[200],
           backgroundImage: hasImage ? _getProfileImageProvider() : null,
-          child: !hasImage
-              ? const Icon(Icons.account_circle, size: 50, color: Colors.grey)
-              : null,
+          child: !hasImage ? const Icon(Icons.account_circle, size: 50, color: Colors.grey) : null,
         ),
         Positioned(bottom: 0, right: 0, child: _buildIconButton(Icons.camera_alt, () => _pickImage(true))),
         if (_profileImage != null || _firestoreProfileUrl != null)
@@ -355,7 +391,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   Widget _buildBarrelImageStack() {
     final hasImage = _barrelImage != null || _firestoreBarrelUrl != null;
-
     return Stack(
       children: [
         Container(
@@ -367,9 +402,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
             borderRadius: BorderRadius.circular(8),
             image: hasImage ? _getBarrelDecorationImage() : null,
           ),
-          child: !hasImage
-              ? const Icon(Icons.sports_esports, size: 40, color: Colors.grey)
-              : null,
+          child: !hasImage ? const Icon(Icons.sports_esports, size: 40, color: Colors.grey) : null,
         ),
         Positioned(bottom: 0, right: 0, child: _buildIconButton(Icons.camera_alt, () => _pickImage(false), size: 28)),
         if (_barrelImage != null || _firestoreBarrelUrl != null)
@@ -396,53 +429,167 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
               AppCard(
                 child: Column(
                   children: [
-                    TextFormField(controller: _koreanNameController, decoration: const InputDecoration(labelText: '한국 이름', prefixIcon: Icon(Icons.person)), validator: (v) => v!.trim().isEmpty ? '한국 이름을 입력하세요' : null),
-                    const SizedBox(height: 12),
-                    TextFormField(controller: _englishNameController, decoration: const InputDecoration(labelText: '영어 이름', prefixIcon: Icon(Icons.translate)), validator: (v) => v!.trim().isEmpty ? '영어 이름을 입력하세요' : null),
-                    const SizedBox(height: 12),
-                    TextFormField(controller: _shopNameController, decoration: const InputDecoration(labelText: '샵 이름', prefixIcon: Icon(Icons.store)), validator: (v) => v!.trim().isEmpty ? '샵 이름을 입력하세요' : null),
+                    TextFormField(
+                      controller: _koreanNameController,
+                      decoration: const InputDecoration(labelText: '한국 이름', prefixIcon: Icon(Icons.person)),
+                      validator: (v) => v!.trim().isEmpty ? '한국 이름을 입력하세요' : null,
+                    ),
                     const SizedBox(height: 12),
                     TextFormField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: _isFirstRegistration ? '전화번호 (필수)' : '전화번호 변경 (선택)',
-                        prefixText: '+82 ',
-                        prefixIcon: const Icon(Icons.phone),
-                        suffixIcon: _codeSent ? null : (_phoneController.text.trim() == _originalPhone && !_isFirstRegistration ? const Icon(Icons.check, color: Colors.green) : IconButton(icon: const Icon(Icons.send), onPressed: _sendCode)),
-                      ),
-                      validator: (v) => _isFirstRegistration && v!.trim().isEmpty ? '최초 등록 시 전화번호는 필수입니다' : null,
+                      controller: _englishNameController,
+                      decoration: const InputDecoration(labelText: '영어 이름', prefixIcon: Icon(Icons.translate)),
+                      validator: (v) => v!.trim().isEmpty ? '영어 이름을 입력하세요' : null,
                     ),
-                    if (_codeSent) ...[
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: _codeController,
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          labelText: '인증번호 6자리',
-                          prefixIcon: const Icon(Icons.sms),
-                          suffixIcon: Row(
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _shopNameController,
+                      decoration: const InputDecoration(labelText: '샵 이름', prefixIcon: Icon(Icons.store)),
+                      validator: (v) => v!.trim().isEmpty ? '샵 이름을 입력하세요' : null,
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 전화번호 인증 UI (핵심)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.phone, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // 인증 완료 상태
+                                if (!_isEditingPhone && _isPhoneVerified)
+                                  Text(
+                                    '+82 ${_phoneController.text}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+
+                                // 편집 모드 또는 최초 등록
+                                if (_isEditingPhone || !_isPhoneVerified)
+                                  TextFormField(
+                                    controller: _phoneController,
+                                    enabled: _isEditingPhone || !_isPhoneVerified,
+                                    keyboardType: TextInputType.phone,
+                                    decoration: InputDecoration(
+                                      hintText: '01012345678',
+                                      border: const UnderlineInputBorder(),
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                    ),
+                                    validator: (v) {
+                                      if (_isFirstRegistration && (v?.trim().isEmpty ?? true)) {
+                                        return '전화번호는 필수입니다';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+
+                                // 인증번호 입력
+                                if (_codeSent && _isEditingPhone)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: _codeController,
+                                            keyboardType: TextInputType.number,
+                                            decoration: const InputDecoration(
+                                              hintText: '인증번호 6자리',
+                                              border: UnderlineInputBorder(),
+                                              isDense: true,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _isVerifying
+                                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                            : IconButton(
+                                          icon: const Icon(Icons.check, color: Colors.green),
+                                          onPressed: _verifyCode,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          // 액션 버튼
+                          Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(icon: const Icon(Icons.check), onPressed: _verifyCode),
-                              TextButton(onPressed: _sendCode, child: const Text('재전송', style: TextStyle(fontSize: 12))),
+                              // 인증 완료 체크
+                              if (_isPhoneVerified && !_isEditingPhone)
+                                const Icon(Icons.check_circle, color: Colors.green, size: 20),
+
+                              // 변경 버튼
+                              if (_isPhoneVerified && !_isEditingPhone)
+                                TextButton(
+                                  onPressed: () => setState(() => _isEditingPhone = true),
+                                  child: const Text('변경', style: TextStyle(fontSize: 12)),
+                                ),
+
+                              // 인증 요청 버튼
+                              if (_isEditingPhone && !_codeSent)
+                                IconButton(
+                                  icon: const Icon(Icons.send, color: Colors.blue),
+                                  onPressed: _sendVerificationCode,
+                                ),
+
+                              // 취소 버튼
+                              if (_isEditingPhone)
+                                IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isEditingPhone = false;
+                                      _codeSent = false;
+                                      _codeController.clear();
+                                      _phoneController.text = _originalPhone ?? '';
+                                    });
+                                  },
+                                ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
+
                     const SizedBox(height: 24),
                     ExpansionTile(
                       leading: const Icon(Icons.sports_esports),
                       title: const Text('배럴 세팅 (선택)'),
                       children: [
-                        DropdownButtonFormField<String>(value: _selectedBarrel, hint: const Text('배럴 이름'), items: _barrels.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(), onChanged: (v) => setState(() => _selectedBarrel = v)),
+                        DropdownButtonFormField<String>(
+                          value: _selectedBarrel,
+                          hint: const Text('배럴 이름'),
+                          items: _barrels.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                          onChanged: (v) => setState(() => _selectedBarrel = v),
+                        ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(value: _selectedShaft, hint: const Text('샤프트'), items: _shafts.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), onChanged: (v) => setState(() => _selectedShaft = v)),
+                        DropdownButtonFormField<String>(
+                          value: _selectedShaft,
+                          hint: const Text('샤프트'),
+                          items: _shafts.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                          onChanged: (v) => setState(() => _selectedShaft = v),
+                        ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(value: _selectedFlight, hint: const Text('플라이트'), items: _flights.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(), onChanged: (v) => setState(() => _selectedFlight = v)),
+                        DropdownButtonFormField<String>(
+                          value: _selectedFlight,
+                          hint: const Text('플라이트'),
+                          items: _flights.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                          onChanged: (v) => setState(() => _selectedFlight = v),
+                        ),
                         const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(value: _selectedTip, hint: const Text('팁'), items: _tips.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) => setState(() => _selectedTip = v)),
+                        DropdownButtonFormField<String>(
+                          value: _selectedTip,
+                          hint: const Text('팁'),
+                          items: _tips.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                          onChanged: (v) => setState(() => _selectedTip = v),
+                        ),
                         const SizedBox(height: 16),
                         Center(child: _buildBarrelImageStack()),
                       ],
@@ -451,16 +598,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () async {
-                          if (!_formKey.currentState!.validate()) return;
-                          final phoneInput = _phoneController.text.trim();
-                          final needsVerification = _isFirstRegistration || (phoneInput != _originalPhone);
-                          if (needsVerification && !_codeSent) {
-                            _showSnackBar('전화번호 인증이 필요합니다.');
-                            return;
-                          }
-                          await _linkAndSave(null);
-                        },
+                        onPressed: _save,
                         child: const Text('완료'),
                       ),
                     ),

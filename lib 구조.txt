@@ -19,10 +19,8 @@ lib/
 │   │   │   ├── calendar_screen.dart
 │   │   │   ├── my_page_screen.dart
 │   │   │   └── point_calendar_screen.dart
-│   │   ├── community/           추가!
+│   │   ├── community/        
 │   │   │   ├── community_screen.dart
-│   │   │   ├── post_detail_screen.dart
-│   │   │   └── post_create_screen.dart
 │   │   ├── utils/             
 │   │   │   └── date_utils.dart
 │   │   └── admin/
@@ -31,20 +29,22 @@ lib/
 │   │       ├── event_list_screen.dart
 │   │       ├── point_award_screen.dart
 │   │       ├── point_award_list_screen.dart
+│   │       └── member_register_screen.dart
+│   │       └── point_edit_screen.dart
 │   │       └── forms/
 │   │           ├── notice_form_screen.dart
 │   │           ├── news_form_screen.dart
 │   │           └── sponsor_form_screen.dart
+│   │           └── member_register_screen.dart
 │   └── widgets/
 │       └── app_card.dart
+│       └── phone_change_dialog.dart
 ├── data/
 │   ├── repositories/
 │   │   ├── auth_repository.dart
 │   │   ├── auth_repository_impl.dart
 │   │   ├── point_record_repository.dart
 │   │   ├── point_record_repository_impl.dart
-│   │   └── post_repository.dart            추가!
-│   │   └── post_repository_impl.dart        추가!
 │   └── models/
 │       ├── point_record_model.dart
 │       ├── ranking_user.dart

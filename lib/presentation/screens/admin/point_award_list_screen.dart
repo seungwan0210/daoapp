@@ -7,7 +7,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
+import 'point_edit_screen.dart'; // ← 추가!
 
 class PointAwardListScreen extends StatefulWidget {
   const PointAwardListScreen({super.key});
@@ -174,7 +174,7 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                // 수정 버튼
+                                // 수정 버튼 → PointEditScreen으로 이동
                                 SizedBox(
                                   width: 26,
                                   height: 26,
@@ -182,15 +182,17 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                                     icon: const Icon(Icons.edit, color: Colors.blue, size: 14),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => Navigator.pushNamed(
-                                      context,
-                                      RouteConstants.pointAward,
-                                      arguments: {
-                                        'editMode': true,
-                                        'docId': record.id,
-                                        'initialData': record.toMap(),
-                                      },
-                                    ),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => PointEditScreen(
+                                            record: record,
+                                            oldPoints: record.points,
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ),
                                 // 삭제 버튼
@@ -201,7 +203,7 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                                     icon: const Icon(Icons.delete, color: Colors.red, size: 14),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(),
-                                    onPressed: () => _deletePoint(context, record.id, record.userId, record.points),
+                                    onPressed: () => _deletePoint(context, record.id!, record.userId, record.points),
                                   ),
                                 ),
                               ],

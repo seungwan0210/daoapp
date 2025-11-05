@@ -4,11 +4,11 @@ import '../models/point_record_model.dart';
 import '../models/ranking_user.dart';
 
 abstract class PointRecordRepository {
-  // 포인트 부여
+  // 포인트 부여 (추가)
   Future<void> awardPoints(PointRecord record);
 
-  // 포인트 수정
-  Future<void> updatePointRecord(PointRecord record);
+  // 포인트 수정 (업데이트 + totalPoints 조정)
+  Future<void> updatePointRecord(PointRecord record, int oldPoints);
 
   // 포인트 삭제
   Future<void> deletePointRecord(String recordId, String userId, int points);

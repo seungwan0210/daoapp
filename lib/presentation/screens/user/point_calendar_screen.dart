@@ -33,7 +33,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
     repo.getAllPointRecords().listen((records) {
       final Map<DateTime, List<PointRecord>> events = {};
       for (var record in records) {
-        final date = DateTime(record.date.year, record.date.month, record.date.day);
+        final date = DateTime(record.date.year, record.date.month, record.date.day); // ← .day 추가
         events.putIfAbsent(date, () => []).add(record);
       }
       setState(() => _events = events);
@@ -41,7 +41,26 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
   }
 
   List<PointRecord> _getEventsForDay(DateTime day) {
-    return _events[DateTime(day.year, day.month, day.day)] ?? [];
+    final events = _events[DateTime(day.year, day.month, day.day)] ?? [];
+
+    events.sort((a, b) => b.points.compareTo(a.points));
+
+    int currentRank = 1;
+    int? previousPoints;
+
+    for (int i = 0; i < events.length; i++) {
+      if (i == 0) {
+        currentRank = 1;
+      } else if (events[i].points == previousPoints!) {
+        // 같은 포인트 → 같은 순위 유지
+      } else {
+        currentRank = i + 1;
+      }
+      events[i] = events[i].copyWith(rank: currentRank);
+      previousPoints = events[i].points;
+    }
+
+    return events;
   }
 
   @override
@@ -92,7 +111,6 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                 ),
               ),
               calendarBuilders: CalendarBuilders(
-                // 녹색 점만 + 가운데 아래 정렬
                 markerBuilder: (context, day, events) {
                   return events.isNotEmpty
                       ? const Align(
@@ -111,7 +129,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
             ),
           ),
 
-          // 선택된 날짜 포인트 내역 (랭킹 스타일)
+          // 선택된 날짜 포인트 내역 (포인트 높은 순 + 순위)
           Expanded(
             child: _selectedDay == null
                 ? const Center(child: Text('날짜를 선택하세요'))
@@ -122,12 +140,26 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
               itemCount: _getEventsForDay(_selectedDay!).length,
               itemBuilder: (_, i) {
                 final record = _getEventsForDay(_selectedDay!)[i];
+                final rank = record.rank ?? i + 1;
+
                 return AppCard(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
-                        // 한글 이름 + 영문 이름
+                        // 순위
+                        SizedBox(
+                          width: 36,
+                          child: Text(
+                            '$rank',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: rank == 1 ? Colors.amber : Colors.blue,
+                            ),
+                          ),
+                        ),
+                        // 이름
                         Expanded(
                           flex: 3,
                           child: Column(
@@ -144,7 +176,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                             ],
                           ),
                         ),
-                        // 샵 이름
+                        // 샵
                         Expanded(
                           flex: 2,
                           child: Text(

@@ -1,5 +1,4 @@
 // lib/presentation/screens/admin/event_create_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -42,6 +41,10 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   File? _pickedImage;
   bool _isUploading = false;
 
+  // 자동완성 검색 결과 (String 리스트)
+  List<String> _shopSearchResults = [];
+  bool _isLoadingShop = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +53,9 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     _entryFeeController = TextEditingController();
     _winnerController = TextEditingController();
 
+    // 실시간 검색 리스너
+    _shopController.addListener(_searchShops);
+
     if (widget.editMode && widget.initialData != null) {
       _loadEvent();
     }
@@ -57,6 +63,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
 
   @override
   void dispose() {
+    _shopController.removeListener(_searchShops);
     _shopController.dispose();
     _timeController.dispose();
     _entryFeeController.dispose();
@@ -79,6 +86,69 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       _timeController.text = _time;
       _entryFeeController.text = _entryFee.toString();
       _winnerController.text = _winnerName;
+    });
+  }
+
+  // events 컬렉션에서 고유한 shopName 가져오기
+  Future<List<String>> _getUniqueShopNames() async {
+    final snapshot = await FirebaseFirestore.instance.collection('events').get();
+    final Set<String> names = {};
+    for (var doc in snapshot.docs) {
+      final name = doc['shopName'] as String?;
+      if (name != null && name.trim().isNotEmpty) {
+        names.add(name.trim());
+      }
+    }
+    return names.toList()..sort();
+  }
+
+  // 실시간 검색
+  void _searchShops() async {
+    final query = _shopController.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _shopSearchResults = [];
+        _isLoadingShop = false;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingShop = true);
+
+    final allShops = await _getUniqueShopNames();
+    final filtered = allShops
+        .where((name) => name.toLowerCase().contains(query.toLowerCase()))
+        .take(5)
+        .toList();
+
+    setState(() {
+      _shopSearchResults = filtered;
+      _isLoadingShop = false;
+    });
+  }
+
+  // 샵 선택 → 최근 이벤트에서 기본값 가져오기
+  Future<void> _selectShop(String shopName) async {
+    setState(() => _isLoadingShop = true);
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('events')
+        .where('shopName', isEqualTo: shopName)
+        .orderBy('date', descending: true)
+        .limit(1)
+        .get();
+
+    setState(() {
+      _shopName = shopName;
+      _shopController.text = shopName;
+      _shopSearchResults = [];
+      _isLoadingShop = false;
+
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        _timeController.text = data['time'] ?? '';
+        _entryFeeController.text = (data['entryFee'] ?? 0).toString();
+      }
     });
   }
 
@@ -216,15 +286,66 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 장소
+            // 장소 (자동완성 + 로딩)
             AppCard(
-              child: TextFormField(
-                controller: _shopController,
-                decoration: const InputDecoration(
-                  labelText: '장소 (샵명)',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => v!.trim().isEmpty ? '샵명을 입력하세요' : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    controller: _shopController,
+                    decoration: InputDecoration(
+                      labelText: '장소 (샵명)',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isLoadingShop)
+                            const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          if (_shopSearchResults.isNotEmpty && !_isLoadingShop)
+                            IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _shopController.clear();
+                                setState(() => _shopSearchResults = []);
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                    validator: (v) => v!.trim().isEmpty ? '샵명을 입력하세요' : null,
+                  ),
+                  if (_shopSearchResults.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      constraints: const BoxConstraints(maxHeight: 150),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _shopSearchResults.length,
+                        itemBuilder: (_, i) {
+                          final shopName = _shopSearchResults[i];
+                          return ListTile(
+                            dense: true,
+                            title: Text(shopName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            onTap: () async {
+                              await _selectShop(shopName); // await 보장!
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 16),

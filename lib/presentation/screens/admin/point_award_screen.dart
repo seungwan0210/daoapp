@@ -10,16 +10,7 @@ import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
 class PointAwardScreen extends ConsumerStatefulWidget {
-  final bool editMode;
-  final String? docId;
-  final Map<String, dynamic>? initialData;
-
-  const PointAwardScreen({
-    super.key,
-    this.editMode = false,
-    this.docId,
-    this.initialData,
-  });
+  const PointAwardScreen({super.key});
 
   @override
   ConsumerState<PointAwardScreen> createState() => _PointAwardScreenState();
@@ -44,30 +35,6 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
   final _pointsController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    if (widget.editMode && widget.initialData != null) {
-      _loadInitialData();
-    }
-  }
-
-  void _loadInitialData() {
-    final data = widget.initialData!;
-    _year = data['seasonId'] ?? '2026';
-    _phase = data['phase'] ?? 'season1';
-    _koreanName = data['koreanName'] ?? '';
-    _englishName = data['englishName'] ?? '';
-    _shopName = data['shopName'] ?? '';
-    _gender = data['gender'] ?? 'male';
-    _selectedDate = (data['date'] as Timestamp).toDate();
-
-    _koreanController.text = _koreanName;
-    _englishController.text = _englishName;
-    _shopController.text = _shopName;
-    _pointsController.text = data['points'].toString();
-  }
-
-  @override
   void dispose() {
     _koreanController.dispose();
     _englishController.dispose();
@@ -82,7 +49,7 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.editMode ? '포인트 수정' : '포인트 수동 부여'),
+        title: const Text('포인트 수동 부여'),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -222,10 +189,7 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
                         return _canAward() ? null : Colors.grey;
                       }),
                     ),
-                    child: Text(
-                      widget.editMode ? '수정하기' : '포인트 부여',
-                      style: const TextStyle(fontSize: 18),
-                    ),
+                    child: const Text('포인트 부여', style: TextStyle(fontSize: 18)),
                   ),
                 ),
               ],
@@ -279,10 +243,12 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
     });
   }
 
+  // 신규 포인트 부여 전용
   Future<void> _award() async {
     final points = int.parse(_pointsController.text);
     String userId;
 
+    // 1. 유저 처리 (기존 or 신규)
     if (_selectedUser != null) {
       userId = _selectedUser!.id;
     } else {
@@ -296,8 +262,9 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
       userId = newUser.id;
     }
 
+    // 2. PointRecord 생성 (id는 null → awardPoints에서 생성)
     final record = PointRecord(
-      id: widget.editMode ? widget.docId! : '',
+      id: null, // 신규 → Firestore가 자동 생성
       userId: userId,
       seasonId: _year,
       phase: _phase,
@@ -306,21 +273,19 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
       shopName: _shopController.text.isEmpty ? '미기입' : _shopController.text,
       date: _selectedDate,
       awardedBy: 'admin',
+      koreanName: _koreanName,
+      englishName: _englishController.text,
     );
 
     try {
       final repo = ref.read(pointRecordRepositoryProvider);
-      if (widget.editMode) {
-        await repo.updatePointRecord(record);
-      } else {
-        await repo.awardPoints(record);
-      }
+      await repo.awardPoints(record); // 수정 로직 제거!
 
       ref.read(rankingProvider.notifier).loadRanking();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.editMode ? '수정 완료!' : '포인트 부여 완료!'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('포인트 부여 완료!'), backgroundColor: Colors.green),
         );
         Navigator.pop(context);
       }

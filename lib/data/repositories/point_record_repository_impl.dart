@@ -9,50 +9,57 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
 
   @override
   Future<void> awardPoints(PointRecord record) async {
-    await _firestore.collection('point_records').add(record.toMap());
+    final batch = _firestore.batch();
+
+    final recordRef = _firestore.collection('point_records').doc();
+    final newRecord = record.copyWith(id: recordRef.id);
+    batch.set(recordRef, newRecord.toMap());
 
     final userRef = _firestore.collection('users').doc(record.userId);
-    await _firestore.runTransaction((tx) async {
-      final snapshot = await tx.get(userRef);
-      if (snapshot.exists) {
-        final current = snapshot.data()?['totalPoints'] ?? 0;
-        tx.update(userRef, {'totalPoints': current + record.points});
-      } else {
-        tx.set(userRef, {'totalPoints': record.points}, SetOptions(merge: true));
-      }
+    batch.update(userRef, {
+      'totalPoints': FieldValue.increment(record.points),
     });
+
+    await batch.commit();
   }
 
   @override
-  Future<void> updatePointRecord(PointRecord record) async {
-    final oldDoc = await _firestore.collection('point_records').doc(record.id).get();
-    final oldPoints = (oldDoc.data()?['points'] as int?) ?? 0;
+  Future<void> updatePointRecord(PointRecord record, int oldPoints) async {
+    if (record.id == null || record.id!.isEmpty) {  // ← ?.isEmpty 대신 이렇게!
+      throw Exception('포인트 기록 ID가 없습니다.');
+    }
+
     final diff = record.points - oldPoints;
+    final batch = _firestore.batch();
 
-    await _firestore.collection('point_records').doc(record.id).update(record.toMap());
+    // 1. 포인트 기록 업데이트
+    final recordRef = _firestore.collection('point_records').doc(record.id);
+    batch.update(recordRef, record.toMap());
 
+    // 2. 유저 totalPoints 조정
     final userRef = _firestore.collection('users').doc(record.userId);
-    await _firestore.runTransaction((tx) async {
-      final snapshot = await tx.get(userRef);
-      if (snapshot.exists) {
-        final current = snapshot.data()?['totalPoints'] ?? 0;
-        tx.update(userRef, {'totalPoints': current + diff});
-      }
+    batch.update(userRef, {
+      'totalPoints': FieldValue.increment(diff),
     });
+
+    await batch.commit();
   }
 
   @override
   Future<void> deletePointRecord(String recordId, String userId, int points) async {
-    await _firestore.collection('point_records').doc(recordId).delete();
+    final batch = _firestore.batch();
 
+    // 1. 포인트 기록 삭제
+    final recordRef = _firestore.collection('point_records').doc(recordId);
+    batch.delete(recordRef);
+
+    // 2. 유저 totalPoints 감소
     final userRef = _firestore.collection('users').doc(userId);
-    await _firestore.runTransaction((tx) async {
-      final snapshot = await tx.get(userRef);
-      if (snapshot.exists) {
-        final current = snapshot.data()?['totalPoints'] ?? 0;
-        tx.update(userRef, {'totalPoints': current - points});
-      }
+    batch.update(userRef, {
+      'totalPoints': FieldValue.increment(-points),
     });
+
+    await batch.commit();
   }
 
   @override
@@ -139,7 +146,7 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         final points = data['points'] as int;
         final userData = userMap[userId];
 
-        // 성별 필터: 'all'이면 모든 성별 포함
+        // 성별 필터
         if (gender != 'all' && (userData == null || userData['gender'] != gender)) {
           continue;
         }
