@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class CompetitionPhotosFormScreen extends StatefulWidget {
   const CompetitionPhotosFormScreen({super.key});
@@ -34,11 +35,9 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("대회 사진 관리"),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '대회사진',
+        showBackButton: true,
       ),
       body: Column(
         children: [

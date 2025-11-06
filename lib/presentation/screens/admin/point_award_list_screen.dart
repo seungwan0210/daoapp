@@ -8,6 +8,7 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
 import 'point_edit_screen.dart'; // ← 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class PointAwardListScreen extends StatefulWidget {
   const PointAwardListScreen({super.key});
@@ -52,11 +53,9 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('포인트 관리'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '포인트 관리',
+        showBackButton: true,
       ),
       body: Column(
         children: [

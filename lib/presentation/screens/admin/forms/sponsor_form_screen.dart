@@ -10,6 +10,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 
 // 탭 전환을 위한 MainScreen import
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class SponsorFormScreen extends StatefulWidget {
   const SponsorFormScreen({super.key});
@@ -35,11 +36,9 @@ class _SponsorFormScreenState extends State<SponsorFormScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('스폰서 관리'),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '스폰서 관리',
+        showBackButton: true,
       ),
       body: Column(
         children: [

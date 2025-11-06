@@ -6,6 +6,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class PointCalendarScreen extends StatefulWidget {
   const PointCalendarScreen({super.key});
@@ -69,110 +70,87 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('포인트 달력'),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '포인트 달력',
+        showBackButton: true,
       ),
       body: Column(
         children: [
-          // 달력
+          // 달력 (400px 고정 + overflow 방지)
           AppCard(
             margin: const EdgeInsets.all(16),
             elevation: 6,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: TableCalendar(
-              firstDay: AppDateUtils.firstDay,
-              lastDay: AppDateUtils.lastDay,
-              focusedDay: _focusedDay,
-              calendarFormat: _calendarFormat,
-              selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-              onDaySelected: (selectedDay, focusedDay) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-              },
-              onFormatChanged: null,
-              onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
-              eventLoader: _getEventsForDay,
-              headerStyle: const HeaderStyle(
-                formatButtonVisible: false,
-                titleCentered: true,
-                formatButtonShowsNext: false,
-                titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              calendarStyle: CalendarStyle(
-                outsideDaysVisible: false,
-                // 오늘: 파란색
-                todayDecoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  shape: BoxShape.circle,
-                ),
-                todayTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                // 선택: 주황색
-                selectedDecoration: BoxDecoration(
-                  color: theme.colorScheme.secondary,
-                  shape: BoxShape.circle,
-                ),
-                selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
-              calendarBuilders: CalendarBuilders(
-                markerBuilder: (context, day, events) {
-                  if (events.isEmpty) return null;
-                  return Align(
-                    alignment: Alignment.bottomCenter,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      margin: const EdgeInsets.only(bottom: 2),
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  );
-                },
-                // 오늘 날짜 커스텀 (선택된 경우 제외)
-                todayBuilder: (context, day, focusedDay) {
-                  if (isSameDay(day, _selectedDay)) return null;
-                  return Center(
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            child: Padding(
+              padding: EdgeInsets.zero,
+              child: SizedBox(
+                height: 400,
+                child: TableCalendar(
+                  firstDay: AppDateUtils.firstDay,
+                  lastDay: AppDateUtils.lastDay,
+                  focusedDay: _focusedDay,
+                  calendarFormat: _calendarFormat,
+                  selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                  onDaySelected: (selectedDay, focusedDay) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  },
+                  onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
+                  eventLoader: _getEventsForDay,
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                    formatButtonShowsNext: false,
+                    titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  calendarStyle: CalendarStyle(
+                    outsideDaysVisible: false,
+                    todayDecoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                    todayTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    selectedDecoration: BoxDecoration(color: theme.colorScheme.secondary, shape: BoxShape.circle),
+                    selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  calendarBuilders: CalendarBuilders(
+                    markerBuilder: (context, day, events) {
+                      if (events.isEmpty) return null;
+                      return Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.only(bottom: 2),
+                          decoration: const BoxDecoration(
+                            color: Colors.green,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-                // 선택된 날짜 커스텀
-                selectedBuilder: (context, day, focusedDay) {
-                  return Center(
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.secondary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${day.day}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      );
+                    },
+                    todayBuilder: (context, day, focusedDay) {
+                      if (isSameDay(day, _selectedDay)) return null;
+                      return Center(
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                          child: Center(child: Text('${day.day}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                         ),
-                      ),
-                    ),
-                  );
-                },
+                      );
+                    },
+                    selectedBuilder: (context, day, focusedDay) {
+                      return Center(
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(color: theme.colorScheme.secondary, shape: BoxShape.circle),
+                          child: Center(child: Text('${day.day}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ),
@@ -194,9 +172,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                   padding: const EdgeInsets.only(bottom: 10),
                   child: AppCard(
                     elevation: 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
                       child: Row(
@@ -229,17 +205,13 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                               children: [
                                 Text(
                                   record.koreanName,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   record.englishName,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.grey.shade600,
-                                  ),
+                                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class NoticeListScreen extends StatefulWidget {
   const NoticeListScreen({super.key});
@@ -35,11 +36,9 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('공지사항'),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '공지사항',
+        showBackButton: true,
       ),
       body: Column(
         children: [

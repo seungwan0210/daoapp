@@ -24,6 +24,7 @@ import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/event_create_screen.dart';
 import 'package:daoapp/presentation/screens/admin/event_list_screen.dart';
+import 'package:daoapp/presentation/screens/admin/event_edit_screen.dart'; // 추가
 import 'package:daoapp/presentation/screens/admin/forms/notice_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
@@ -38,7 +39,6 @@ import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
 // 새로 추가: 공지 리스트 + 대회 사진 폼
 import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -77,6 +77,13 @@ class DaoApp extends StatelessWidget {
         RouteConstants.pointAwardList: (_) => const PointAwardListScreen(),
         RouteConstants.eventCreate: (_) => const EventCreateScreen(),
         RouteConstants.eventList: (_) => const EventListScreen(),
+        RouteConstants.eventEdit: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+          return EventEditScreen(
+            docId: args['docId'] as String,
+            initialData: args['initialData'] as Map<String, dynamic>,
+          );
+        }, // 추가: 동적 생성
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
@@ -93,7 +100,6 @@ class DaoApp extends StatelessWidget {
           );
         }
 
-        // 공지 리스트
         if (settings.name == RouteConstants.noticeList) {
           return MaterialPageRoute(
             builder: (_) => const NoticeListScreen(),
@@ -101,7 +107,6 @@ class DaoApp extends StatelessWidget {
           );
         }
 
-        // 대회 사진 폼
         if (settings.name == RouteConstants.competitionPhotosForm) {
           return MaterialPageRoute(
             builder: (_) => const CompetitionPhotosFormScreen(),

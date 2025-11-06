@@ -9,6 +9,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class ProfileRegisterScreen extends ConsumerStatefulWidget {
   const ProfileRegisterScreen({super.key});
@@ -416,9 +417,9 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isFirstRegistration ? '프로필 등록 (필수)' : '프로필 수정'),
-        centerTitle: true,
+      appBar: CommonAppBar(
+        title: '프로필 수정',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

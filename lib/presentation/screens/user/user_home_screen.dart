@@ -1,5 +1,4 @@
-// lib/presentation/screens/user/user_home_screen.dart (수정된 대회 사진 섹션 추가)
-
+// lib/presentation/screens/user/user_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -39,17 +38,8 @@ class UserHomeScreenBody extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === 대회 사진 섹션 (공지사항 위치) ===
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('대회 사진', style: theme.textTheme.titleLarge),
-                const SizedBox(height: 12),
-                SizedBox(height: 220, child: _buildCompetitionPhotos(context, ref)),
-              ],
-            ),
-          ),
+          // === 최신 뉴스 ===
+          AppCard(child: _buildNewsSection(context, ref)),
           const SizedBox(height: 4),
 
           // === 다음 경기 ===
@@ -60,8 +50,17 @@ class UserHomeScreenBody extends ConsumerWidget {
           AppCard(child: _buildTop3Ranking(rankingState, context)),
           const SizedBox(height: 4),
 
-          // === 최신 뉴스 ===
-          AppCard(child: _buildNewsSection(context, ref)),
+          // === 대회 사진 섹션 ===
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('대회 사진', style: theme.textTheme.titleLarge),
+                const SizedBox(height: 12),
+                SizedBox(height: 220, child: _buildCompetitionPhotos(context)),
+              ],
+            ),
+          ),
           const SizedBox(height: 4),
 
           // === 스폰서 ===
@@ -73,7 +72,7 @@ class UserHomeScreenBody extends ConsumerWidget {
   }
 
   // 대회 사진 캐러셀
-  static Widget _buildCompetitionPhotos(BuildContext context, WidgetRef ref) {
+  static Widget _buildCompetitionPhotos(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('competition_photos')
@@ -98,7 +97,7 @@ class UserHomeScreenBody extends ConsumerWidget {
 
         return CarouselSlider(
           options: CarouselOptions(
-            height: 300,
+            height: 200,
             autoPlay: true,
             enlargeCenterPage: true,
             viewportFraction: 0.85,
@@ -265,7 +264,7 @@ class UserHomeScreenBody extends ConsumerWidget {
                       Expanded(child: Text('${user.koreanName} (${user.englishName})')),
                       Text('${user.displayPoints} pt', style: const TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(width: 8),
-                      Text(genderText, style: const TextStyle(color: Colors.grey)),
+                      Text(genderText, style: const TextStyle(color: Colors.black87)),
                     ],
                   ),
                 );
@@ -279,7 +278,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
-  // 뉴스 섹션
+  // 최신 뉴스
   static Widget _buildNewsSection(BuildContext context, WidgetRef ref) {
     final news = ref.watch(newsProvider);
     return news.when(
@@ -303,7 +302,7 @@ class UserHomeScreenBody extends ConsumerWidget {
             const SizedBox(height: 12),
             CarouselSlider(
               options: CarouselOptions(
-                height: 300,
+                height: 220,
                 autoPlay: true,
                 enlargeCenterPage: true,
                 viewportFraction: 0.85,
@@ -469,20 +468,10 @@ class UserHomeScreenBody extends ConsumerWidget {
   static void _navigateToTab(BuildContext context, String route) {
     int? tabIndex;
     switch (route) {
-      case '/ranking':
-        tabIndex = 1;
-        break;
-      case '/calendar':
-        tabIndex = 2;
-        break;
-      case '/community':
-        tabIndex = 3;
-        break;
-      case '/my-page':
-        tabIndex = 4;
-        break;
-      default:
-        return;
+      case '/ranking': tabIndex = 1; break;
+      case '/calendar': tabIndex = 2; break;
+      case '/community': tabIndex = 3; break;
+      case '/my-page': tabIndex = 4; break;
     }
     if (tabIndex != null) {
       MainScreen.changeTab(context, tabIndex);
@@ -494,7 +483,10 @@ class UserHomeScreenBody extends ConsumerWidget {
 
   static Widget _buildEmptyCard(BuildContext context, String msg) {
     return AppCard(
-      child: Text(msg, style: const TextStyle(color: Colors.grey)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(msg, style: const TextStyle(color: Colors.grey)),
+      ),
     );
   }
 
@@ -507,7 +499,7 @@ class UserHomeScreenBody extends ConsumerWidget {
 
   static Widget _buildEmptyBanner(BuildContext context, String msg) {
     return Container(
-      height: 50,
+      height: 200,
       decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
       child: Center(child: Text(msg, style: const TextStyle(color: Colors.grey))),
     );

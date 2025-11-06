@@ -10,6 +10,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 
 // 탭 전환을 위한 MainScreen import
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class NewsFormScreen extends StatefulWidget {
   const NewsFormScreen({super.key});
@@ -36,10 +37,9 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('뉴스 관리'),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '뉴스 등록',
+        showBackButton: true,
       ),
       body: Column(
         children: [

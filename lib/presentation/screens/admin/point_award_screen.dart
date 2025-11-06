@@ -8,6 +8,7 @@ import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class PointAwardScreen extends ConsumerStatefulWidget {
   const PointAwardScreen({super.key});
@@ -48,11 +49,9 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('포인트 수동 부여'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: '포인트 부여',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

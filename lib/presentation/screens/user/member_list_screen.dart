@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class MemberListScreen extends StatefulWidget {
   const MemberListScreen({super.key});
@@ -34,26 +35,39 @@ class _MemberListScreenState extends State<MemberListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('KDF 정회원 명단'),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: 'KDF 정회원 명단',
+        showBackButton: true,
       ),
       body: Column(
         children: [
-          // 검색창
+          // 검색창 (여백 줄임)
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: TextField(
               controller: _searchController,
+              style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
-                labelText: '이름 또는 이메일로 검색',
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
+                hintText: '이름 또는 이메일로 검색',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: Colors.grey[100],
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                  icon: const Icon(Icons.clear),
+                  icon: const Icon(Icons.clear, color: Colors.grey),
                   onPressed: () {
                     _searchController.clear();
                     setState(() => _searchQuery = '');
@@ -63,6 +77,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
               ),
             ),
           ),
+
           // 정회원 리스트
           Expanded(child: _buildMemberList(theme)),
         ],
@@ -81,7 +96,12 @@ class _MemberListScreenState extends State<MemberListScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('등록된 정회원이 없습니다.'));
+          return const Center(
+            child: Text(
+              '등록된 정회원이 없습니다.',
+              style: TextStyle(fontSize: 15, color: Colors.grey),
+            ),
+          );
         }
 
         var docs = snapshot.data!.docs;
@@ -98,7 +118,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           itemCount: docs.length,
           itemBuilder: (context, index) {
             final doc = docs[index];
@@ -106,63 +126,83 @@ class _MemberListScreenState extends State<MemberListScreen> {
             final imageUrl = data['profileImageUrl'] as String?;
 
             return AppCard(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: 10),
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 leading: CircleAvatar(
-                  radius: 24,
+                  radius: 28,
+                  backgroundColor: Colors.grey[300],
                   backgroundImage: imageUrl != null && imageUrl.isNotEmpty
                       ? NetworkImage(imageUrl)
                       : null,
                   child: imageUrl == null || imageUrl.isEmpty
                       ? Text(
                     data['koreanName']?[0] ?? '?',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   )
                       : null,
                 ),
-                // 한국 이름 + 성별 한 줄
                 title: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         data['koreanName'] ?? '이름 없음',
-                        style: theme.textTheme.titleMedium,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      '(${data['gender'] == 'male' ? '남' : '여'})',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: data['gender'] == 'male' ? Colors.blue[700] : Colors.pink[700],
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: data['gender'] == 'male' ? Colors.blue[50] : Colors.pink[50],
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        data['gender'] == 'male' ? '남자' : '여자',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: data['gender'] == 'male' ? Colors.blue[800] : Colors.pink[800],
+                        ),
                       ),
                     ),
                   ],
                 ),
-                // 영어 이름 + 이메일 밑으로
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    const SizedBox(height: 2),
                     Text(
-                      '(${data['englishName']})',
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.black),
+                      data['englishName'] ?? '',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 1),
                     Text(
                       data['email'] ?? '이메일 없음',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
-                trailing: const Icon(Icons.verified, color: Colors.green),
+                trailing: const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 24,
+                ),
               ),
             );
           },

@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
 
 class MemberRegisterScreen extends StatefulWidget {
   const MemberRegisterScreen({super.key});
@@ -296,11 +297,9 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('KDF 정회원 관리'),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
+      appBar: CommonAppBar(
+        title: 'KDF 정회원 관리',
+        showBackButton: true,
       ),
       body: Column(
         children: [

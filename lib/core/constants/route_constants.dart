@@ -24,6 +24,7 @@ class RouteConstants {
   // 관리자 - 경기
   static const String eventCreate = '/admin/event-create';
   static const String eventList = '/admin/event-list';
+  static const String eventEdit = '/admin/event-edit'; // 추가
 
   // 관리자 - 폼
   static const String noticeForm = '/admin/notice-form';
@@ -34,9 +35,9 @@ class RouteConstants {
   static const String memberRegister = '/admin/member-register';
   static const String memberList = '/member-list';
 
-  // 방명록 (추가!)
+  // 방명록
   static const String guestbook = '/guestbook';
 
-  // 대회 사진 폼 (어드민)
+  // 대회 사진 폼
   static const String competitionPhotosForm = '/admin/competition-photos-form';
 }

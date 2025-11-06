@@ -52,10 +52,10 @@ class AppTheme {
 
       // lib/core/theme/app_theme.dart
       textTheme: const TextTheme(
-        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),     // 20 → 15
+        titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),     // 20 → 15
         titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),   // 16 → 13
         bodyLarge: TextStyle(fontSize: 15, height: 1.3),                     // 14 → 13
-        bodyMedium: TextStyle(fontSize: 14, height: 1.3, color: Colors.grey), // 14 → 12
+        bodyMedium: TextStyle(fontSize: 14, height: 1.0, fontWeight: FontWeight.w500), // 14 → 12
         labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       ),
 
