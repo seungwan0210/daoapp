@@ -130,7 +130,7 @@ class MyPageScreenBody extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 12), // 카드 간격 통일
+                    const SizedBox(height: 4), // 카드 간격 통일
 
                     // === 2. 프로필 수정 ===
                     AppCard(
