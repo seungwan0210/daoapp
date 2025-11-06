@@ -1,4 +1,5 @@
-// lib/presentation/screens/user/user_home_screen.dart
+// lib/presentation/screens/user/user_home_screen.dart (수정된 대회 사진 섹션 추가)
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -38,23 +39,32 @@ class UserHomeScreenBody extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // === 대회 사진 섹션 (공지사항 위치) ===
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('공지사항', style: theme.textTheme.titleLarge),
+                Text('대회 사진', style: theme.textTheme.titleLarge),
                 const SizedBox(height: 12),
-                SizedBox(height: 50, child: _buildNoticeSlider(context, ref)),
+                SizedBox(height: 220, child: _buildCompetitionPhotos(context, ref)),
               ],
             ),
           ),
           const SizedBox(height: 4),
+
+          // === 다음 경기 ===
           AppCard(child: _buildNextEventCard(context)),
           const SizedBox(height: 4),
+
+          // === TOP 3 랭킹 ===
           AppCard(child: _buildTop3Ranking(rankingState, context)),
           const SizedBox(height: 4),
+
+          // === 최신 뉴스 ===
           AppCard(child: _buildNewsSection(context, ref)),
           const SizedBox(height: 4),
+
+          // === 스폰서 ===
           AppCard(child: _buildSponsorSection(context, ref)),
           const SizedBox(height: 24),
         ],
@@ -62,50 +72,99 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
-  // 공지 슬라이더
-  static Widget _buildNoticeSlider(BuildContext context, WidgetRef ref) {
-    final notices = ref.watch(noticeBannerProvider);
-    return notices.when(
-      data: (snapshot) {
-        if (snapshot.docs.isEmpty) return _buildEmptyBanner(context, '공지 없음');
+  // 대회 사진 캐러셀
+  static Widget _buildCompetitionPhotos(BuildContext context, WidgetRef ref) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('competition_photos')
+          .where('isActive', isEqualTo: true)
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return _buildEmptyBanner(context, '대회 사진 없음');
+        }
+
+        final items = snapshot.data!.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {
+            'imageUrl': data['imageUrl'] as String?,
+            'title': data['title'] as String? ?? '',
+            'actionType': data['actionType'] ?? 'none',
+            'actionUrl': data['actionUrl'] as String?,
+            'actionRoute': data['actionRoute'] as String?,
+          };
+        }).toList();
+
         return CarouselSlider(
           options: CarouselOptions(
-            height: 50,
+            height: 300,
             autoPlay: true,
-            viewportFraction: 1.0,
-            autoPlayInterval: const Duration(seconds: 4),
+            enlargeCenterPage: true,
+            viewportFraction: 0.85,
           ),
-          items: snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            final title = data['title'] as String? ?? '';
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _handleNoticeTap(context, data),
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
+          items: items.map((item) {
+            return GestureDetector(
+              onTap: () => _handleCompetitionPhotoTap(context, item),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (item['imageUrl'] != null && item['imageUrl']!.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        item['imageUrl']!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.broken_image, size: 60),
+                        ),
+                      ),
+                    )
+                  else
+                    Container(color: Colors.grey[300], child: const Icon(Icons.image, size: 60)),
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [Colors.black54, Colors.transparent],
+                        ),
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                      ),
+                      child: Text(
+                        item['title']!,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                ],
               ),
             );
           }).toList(),
         );
       },
-      loading: () => _buildShimmerBanner(),
-      error: (_, __) => const Text('오류'),
     );
+  }
+
+  // 대회 사진 클릭 처리
+  static void _handleCompetitionPhotoTap(BuildContext context, Map<String, dynamic> item) {
+    final type = item['actionType'];
+    final url = item['actionUrl'] as String?;
+    final route = item['actionRoute'] as String?;
+
+    if (type == 'link' && url != null) {
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else if (type == 'internal' && route != null) {
+      _navigateToTab(context, route);
+    }
   }
 
   // 다음 경기
@@ -304,7 +363,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
-  // 스폰서 섹션 (클릭 지원 추가!)
+  // 스폰서 섹션
   static Widget _buildSponsorSection(BuildContext context, WidgetRef ref) {
     final sponsors = ref.watch(sponsorBannerProvider);
     return Column(
@@ -380,20 +439,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
-  // 공지 클릭 → 탭 전환
-  static void _handleNoticeTap(BuildContext context, Map<String, dynamic> data) {
-    final type = data['actionType'];
-    final url = data['actionUrl'] as String?;
-    final route = data['actionRoute'] as String?;
-
-    if (type == 'link' && url != null) {
-      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else if (type == 'internal' && route != null) {
-      _navigateToTab(context, route);
-    }
-  }
-
-  // 뉴스 클릭 → 탭 전환
+  // 뉴스 클릭
   static void _handleNewsTap(BuildContext context, Map<String, dynamic> item) {
     final type = item['actionType'];
     final url = item['actionUrl'] as String?;
@@ -406,7 +452,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 스폰서 클릭 → 탭 전환
+  // 스폰서 클릭
   static void _handleSponsorTap(BuildContext context, Map<String, dynamic> item) {
     final type = item['actionType'];
     final url = item['actionUrl'] as String?;
@@ -419,7 +465,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 공통 탭 전환 함수
+  // 탭 전환
   static void _navigateToTab(BuildContext context, String route) {
     int? tabIndex;
     switch (route) {
@@ -443,7 +489,7 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 기타 유틸
+  // 유틸
   static String _getWeekday(int weekday) => ['일', '월', '화', '수', '목', '금', '토'][weekday - 1];
 
   static Widget _buildEmptyCard(BuildContext context, String msg) {

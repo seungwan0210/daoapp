@@ -15,11 +15,8 @@ class AppTheme {
 
     // AppBar (기존 유지)
     appBarTheme: const AppBarTheme(
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black87,
       elevation: 0,
-      centerTitle: true,
-      titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.black87),
+      centerTitle: false,
     ),
 
     // 입력창 (여백 최소화!)

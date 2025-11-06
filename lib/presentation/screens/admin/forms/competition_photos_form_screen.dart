@@ -1,27 +1,33 @@
-// lib/presentation/screens/admin/forms/notice_form_screen.dart
+// lib/presentation/screens/admin/forms/competition_photos_form_screen.dart
 
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
 
-class NoticeFormScreen extends StatefulWidget {
-  const NoticeFormScreen({super.key});
+class CompetitionPhotosFormScreen extends StatefulWidget {
+  const CompetitionPhotosFormScreen({super.key});
 
   @override
-  State<NoticeFormScreen> createState() => _NoticeFormScreenState();
+  State<CompetitionPhotosFormScreen> createState() => _CompetitionPhotosFormScreenState();
 }
 
-class _NoticeFormScreenState extends State<NoticeFormScreen> {
+class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScreen> {
   final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
   final _actionUrlController = TextEditingController();
   final _actionRouteController = TextEditingController();
+  File? _selectedImage;
+  String? _imageUrl;
+  final ImagePicker _picker = ImagePicker();
 
   String _actionType = 'none';
   bool _isLoading = false;
   final _firestore = FirebaseFirestore.instance;
+  final _storage = FirebaseStorage.instance;
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +35,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("공지사항 관리"),
+        title: const Text("대회 사진 관리"),
         centerTitle: true,
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: Colors.white,
@@ -38,16 +44,16 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
         children: [
           _buildInputForm(theme),
           const Divider(height: 1),
-          Expanded(child: _buildNoticeList(theme)),
+          Expanded(child: _buildPhotoList(theme)),
         ],
       ),
     );
   }
 
-  /* ────────────────────────── 입력 폼 (크게 확장) ────────────────────────── */
+  /* ────────────────────────── 입력 폼 ────────────────────────── */
   Widget _buildInputForm(ThemeData theme) {
     return Expanded(
-      flex: 2, // 리스트보다 더 넓게
+      flex: 2,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: AppCard(
@@ -60,7 +66,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                 TextField(
                   controller: _titleController,
                   decoration: const InputDecoration(
-                    labelText: "제목",
+                    labelText: "사진 제목",
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                   ),
@@ -69,24 +75,32 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 내용 (크게!)
-                SizedBox(
-                  height: 200, // 120 → 200
-                  child: TextField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: "내용",
-                      hintText: "자세한 내용을 입력하세요...",
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                // 이미지 선택 (갤러리에서 가져오기)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _selectedImage != null
+                          ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(_selectedImage!, height: 120, fit: BoxFit.cover),
+                      )
+                          : Container(
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade400),
+                        ),
+                        child: const Icon(Icons.image, size: 50, color: Colors.grey),
+                      ),
                     ),
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textAlignVertical: TextAlignVertical.top,
-                    expands: true,
-                  ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.photo_library),
+                      label: const Text("사진 선택"),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -98,16 +112,15 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : SizedBox(
-                  width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: _addNotice,
+                    onPressed: _addPhoto,
                     style: theme.elevatedButtonTheme.style?.copyWith(
                       textStyle: MaterialStateProperty.all(
                         theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    child: const Text("공지 등록"),
+                    child: const Text("사진 등록"),
                   ),
                 ),
               ],
@@ -116,6 +129,16 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _selectedImage = File(pickedFile.path);
+        _imageUrl = null; // 새로 선택하면 URL 초기화
+      });
+    }
   }
 
   Widget _buildActionSection(ThemeData theme) {
@@ -129,7 +152,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
             contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
           ),
           items: const [
-            DropdownMenuItem(value: 'none', child: Text('텍스트만')),
+            DropdownMenuItem(value: 'none', child: Text('이미지만')),
             DropdownMenuItem(value: 'link', child: Text('외부 링크')),
             DropdownMenuItem(value: 'internal', child: Text('앱 내부 페이지')),
           ],
@@ -161,10 +184,12 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
     );
   }
 
-  /* ────────────────────────── 등록 ────────────────────────── */
-  Future<void> _addNotice() async {
+  /* ────────────────────────── 등록 (이미지 업로드 포함) ────────────────────────── */
+  Future<void> _addPhoto() async {
     final title = _titleController.text.trim();
-    if (title.isEmpty) return _showSnackBar("제목을 입력하세요", Colors.red);
+    if (title.isEmpty || _selectedImage == null) {
+      return _showSnackBar("제목과 사진을 선택하세요", Colors.red);
+    }
 
     if (_actionType == 'link' && _actionUrlController.text.trim().isEmpty) {
       return _showSnackBar("링크 URL을 입력하세요", Colors.red);
@@ -175,9 +200,15 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
 
     setState(() => _isLoading = true);
     try {
-      await _firestore.collection('notices').add({
+      // 이미지 업로드
+      final ref = _storage.ref().child('competition_photos/${DateTime.now().millisecondsSinceEpoch}');
+      final uploadTask = await ref.putFile(_selectedImage!);
+      final imageUrl = await uploadTask.ref.getDownloadURL();
+
+      // Firestore 저장
+      await _firestore.collection('competition_photos').add({
         'title': title,
-        'content': _contentController.text.trim(),
+        'imageUrl': imageUrl,
         'actionType': _actionType,
         'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
         'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
@@ -186,7 +217,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
       });
 
       _clearForm();
-      _showSnackBar("공지가 등록되었습니다!", Colors.green);
+      _showSnackBar("대회 사진이 등록되었습니다!", Colors.green);
     } catch (e) {
       _showSnackBar("등록 실패: $e", Colors.red);
     } finally {
@@ -196,19 +227,21 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
 
   void _clearForm() {
     _titleController.clear();
-    _contentController.clear();
     _actionUrlController.clear();
     _actionRouteController.clear();
-    setState(() => _actionType = 'none');
+    setState(() {
+      _selectedImage = null;
+      _actionType = 'none';
+    });
   }
 
-  /* ────────────────────────── 목록 (내용 잘 보이게) ────────────────────────── */
-  Widget _buildNoticeList(ThemeData theme) {
+  /* ────────────────────────── 목록 ────────────────────────── */
+  Widget _buildPhotoList(ThemeData theme) {
     return Expanded(
       flex: 1,
       child: StreamBuilder<QuerySnapshot>(
         stream: _firestore
-            .collection('notices')
+            .collection('competition_photos')
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -216,7 +249,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("등록된 공지가 없습니다."));
+            return const Center(child: Text("등록된 대회 사진이 없습니다."));
           }
 
           return ListView.builder(
@@ -232,6 +265,21 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                 color: isActive ? null : Colors.grey[100],
                 margin: const EdgeInsets.symmetric(vertical: 4),
                 child: ListTile(
+                  leading: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      data['imageUrl'] ?? '',
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        width: 60,
+                        height: 60,
+                        color: Colors.grey[300],
+                        child: const Icon(Icons.broken_image),
+                      ),
+                    ),
+                  ),
                   title: Text(
                     data['title'] ?? '',
                     maxLines: 1,
@@ -241,33 +289,13 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                     ),
                   ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (data['content'] != null && data['content'].toString().isNotEmpty)
-                        Text(
-                          data['content'].toString(),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-                        ),
-                      const SizedBox(height: 4),
-                      if (data['actionUrl'] != null)
-                        Text(
-                          data['actionUrl'].toString(),
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.blue),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Switch(
                         value: isActive,
                         onChanged: (value) async {
-                          await _firestore.collection('notices').doc(docId).update({
+                          await _firestore.collection('competition_photos').doc(docId).update({
                             'isActive': value,
                           });
                         },
@@ -275,11 +303,11 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                       ),
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _editNotice(docId, data),
+                        onPressed: () => _editPhoto(docId, data),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteNotice(docId),
+                        onPressed: () => _deletePhoto(docId),
                       ),
                     ],
                   ),
@@ -329,17 +357,21 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
   }
 
   /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
-  void _editNotice(String docId, Map<String, dynamic> data) {
+  void _editPhoto(String docId, Map<String, dynamic> data) {
     _titleController.text = data['title'] ?? '';
-    _contentController.text = data['content'] ?? '';
+    _imageUrl = data['imageUrl'] ?? '';
     _actionType = data['actionType'] ?? 'none';
     _actionUrlController.text = data['actionUrl'] ?? '';
     _actionRouteController.text = data['actionRoute'] ?? '';
 
+    setState(() {
+      _selectedImage = null; // 수정 시 기존 이미지는 URL로 표시
+    });
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("공지 수정"),
+        title: const Text("대회 사진 수정"),
         content: SizedBox(
           width: double.maxFinite,
           child: SingleChildScrollView(
@@ -352,7 +384,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                     TextField(
                       controller: _titleController,
                       decoration: const InputDecoration(
-                        labelText: "제목",
+                        labelText: "사진 제목",
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
                       ),
@@ -360,21 +392,36 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      height: 200,
-                      child: TextField(
-                        controller: _contentController,
-                        decoration: const InputDecoration(
-                          labelText: "내용",
-                          hintText: "자세한 내용을 입력하세요...",
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _selectedImage != null
+                              ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(_selectedImage!, height: 100, fit: BoxFit.cover),
+                          )
+                              : _imageUrl != null && _imageUrl!.isNotEmpty
+                              ? ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(_imageUrl!, height: 100, fit: BoxFit.cover),
+                          )
+                              : Container(
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade400),
+                            ),
+                            child: const Icon(Icons.image, size: 40, color: Colors.grey),
+                          ),
                         ),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        expands: true,
-                      ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: _pickImage,
+                          icon: const Icon(Icons.photo_library),
+                          label: const Text("재선택"),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     _buildActionSection(Theme.of(context)),
@@ -395,9 +442,16 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
               }
 
               try {
-                await _firestore.collection('notices').doc(docId).update({
+                String? finalImageUrl = _imageUrl;
+                if (_selectedImage != null) {
+                  final ref = _storage.ref().child('competition_photos/${DateTime.now().millisecondsSinceEpoch}');
+                  final uploadTask = await ref.putFile(_selectedImage!);
+                  finalImageUrl = await uploadTask.ref.getDownloadURL();
+                }
+
+                await _firestore.collection('competition_photos').doc(docId).update({
                   'title': title,
-                  'content': _contentController.text.trim(),
+                  'imageUrl': finalImageUrl,
                   'actionType': _actionType,
                   'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
                   'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
@@ -417,7 +471,7 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
   }
 
   /* ────────────────────────── 삭제 ────────────────────────── */
-  Future<void> _deleteNotice(String docId) async {
+  Future<void> _deletePhoto(String docId) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -435,8 +489,8 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
 
     if (confirm == true) {
       try {
-        await _firestore.collection('notices').doc(docId).delete();
-        if (mounted) _showSnackBar("공지가 삭제되었습니다.", Colors.red);
+        await _firestore.collection('competition_photos').doc(docId).delete();
+        if (mounted) _showSnackBar("대회 사진이 삭제되었습니다.", Colors.red);
       } catch (e) {
         _showSnackBar("삭제 실패: $e", Colors.red);
       }
@@ -454,7 +508,6 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
   @override
   void dispose() {
     _titleController.dispose();
-    _contentController.dispose();
     _actionUrlController.dispose();
     _actionRouteController.dispose();
     super.dispose();

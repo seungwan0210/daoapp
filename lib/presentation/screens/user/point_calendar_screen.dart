@@ -33,7 +33,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
     repo.getAllPointRecords().listen((records) {
       final Map<DateTime, List<PointRecord>> events = {};
       for (var record in records) {
-        final date = DateTime(record.date.year, record.date.month, record.date.day); // ← .day 추가
+        final date = DateTime(record.date.year, record.date.month, record.date.day);
         events.putIfAbsent(date, () => []).add(record);
       }
       setState(() => _events = events);
@@ -43,6 +43,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
   List<PointRecord> _getEventsForDay(DateTime day) {
     final events = _events[DateTime(day.year, day.month, day.day)] ?? [];
 
+    // 포인트 내림차순 정렬
     events.sort((a, b) => b.points.compareTo(a.points));
 
     int currentRank = 1;
@@ -52,7 +53,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
       if (i == 0) {
         currentRank = 1;
       } else if (events[i].points == previousPoints!) {
-        // 같은 포인트 → 같은 순위 유지
+        // 같은 포인트 → 같은 순위
       } else {
         currentRank = i + 1;
       }
@@ -65,16 +66,22 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('포인트 달력'),
         centerTitle: true,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
           // 달력
           AppCard(
             margin: const EdgeInsets.all(16),
+            elevation: 6,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             child: TableCalendar(
               firstDay: AppDateUtils.firstDay,
               lastDay: AppDateUtils.lastDay,
@@ -87,49 +94,90 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                   _focusedDay = focusedDay;
                 });
               },
-              onFormatChanged: null, // 터치해도 안 바뀜!
-              onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+              onFormatChanged: null,
+              onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
               eventLoader: _getEventsForDay,
               headerStyle: const HeaderStyle(
                 formatButtonVisible: false,
                 titleCentered: true,
                 formatButtonShowsNext: false,
+                titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               calendarStyle: CalendarStyle(
                 outsideDaysVisible: false,
+                // 오늘: 파란색
                 todayDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: theme.colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
+                todayTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                // 선택: 주황색
                 selectedDecoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                  color: theme.colorScheme.secondary,
                   shape: BoxShape.circle,
                 ),
-                markerDecoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
+                selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
               calendarBuilders: CalendarBuilders(
                 markerBuilder: (context, day, events) {
-                  return events.isNotEmpty
-                      ? const Align(
+                  if (events.isEmpty) return null;
+                  return Align(
                     alignment: Alignment.bottomCenter,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
+                    child: Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(bottom: 2),
+                      decoration: const BoxDecoration(
                         color: Colors.green,
                         shape: BoxShape.circle,
                       ),
-                      child: SizedBox(width: 8, height: 8),
                     ),
-                  )
-                      : null;
+                  );
+                },
+                // 오늘 날짜 커스텀 (선택된 경우 제외)
+                todayBuilder: (context, day, focusedDay) {
+                  if (isSameDay(day, _selectedDay)) return null;
+                  return Center(
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                // 선택된 날짜 커스텀
+                selectedBuilder: (context, day, focusedDay) {
+                  return Center(
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${day.day}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
           ),
 
-          // 선택된 날짜 포인트 내역 (포인트 높은 순 + 순위)
+          // 선택된 날짜 포인트 내역
           Expanded(
             child: _selectedDay == null
                 ? const Center(child: Text('날짜를 선택하세요'))
@@ -142,63 +190,90 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                 final record = _getEventsForDay(_selectedDay!)[i];
                 final rank = record.rank ?? i + 1;
 
-                return AppCard(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        // 순위
-                        SizedBox(
-                          width: 36,
-                          child: Text(
-                            '$rank',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: rank == 1 ? Colors.amber : Colors.blue,
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: AppCard(
+                    elevation: 3,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+                      child: Row(
+                        children: [
+                          // 순위
+                          SizedBox(
+                            width: 36,
+                            child: Text(
+                              '$rank',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: rank == 1
+                                    ? Colors.amber
+                                    : rank == 2
+                                    ? Colors.grey
+                                    : rank == 3
+                                    ? Colors.brown.shade600
+                                    : Colors.blue,
+                              ),
                             ),
                           ),
-                        ),
-                        // 이름
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                record.koreanName,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              Text(
-                                record.englishName,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                        ),
-                        // 샵
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            record.shopName,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        // 포인트
-                        Expanded(
-                          flex: 1,
-                          child: Text(
-                            '+${record.points}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
+                          const SizedBox(width: 8),
+
+                          // 이름
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  record.koreanName,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  record.englishName,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            textAlign: TextAlign.right,
                           ),
-                        ),
-                      ],
+
+                          // 샵
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              record.shopName,
+                              style: theme.textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+
+                          // 포인트
+                          Expanded(
+                            flex: 1,
+                            child: Text(
+                              '+${record.points}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );

@@ -55,6 +55,8 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
       appBar: AppBar(
         title: const Text('포인트 관리'),
         centerTitle: true,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [

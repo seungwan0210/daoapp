@@ -88,9 +88,7 @@ class CalendarNotifier extends StateNotifier<CalendarState> {
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
-
   static Widget body() => const CalendarScreenBody();
-
   @override
   Widget build(BuildContext context) {
     return CalendarScreen.body();
@@ -126,7 +124,7 @@ class CalendarScreenBody extends ConsumerWidget {
                 onDaySelected: (selectedDay, focusedDay) {
                   calendarNotifier.updateSelectedDay(selectedDay, focusedDay);
                 },
-                onFormatChanged: null, // 터치해도 안 바뀜!
+                onFormatChanged: null,
                 onPageChanged: (focusedDay) => calendarNotifier.updateFocusedDay(focusedDay),
                 eventLoader: calendarNotifier.getEventsForDay,
                 headerStyle: HeaderStyle(
@@ -142,14 +140,18 @@ class CalendarScreenBody extends ConsumerWidget {
                 ),
                 calendarStyle: CalendarStyle(
                   outsideDaysVisible: false,
+                  // 오늘: 파란색 (기본)
                   todayDecoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.8),
+                    color: theme.colorScheme.primary,
                     shape: BoxShape.circle,
                   ),
+                  todayTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  // 선택: 주황색 (구분됨)
                   selectedDecoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.8),
+                    color: theme.colorScheme.secondary,
                     shape: BoxShape.circle,
                   ),
+                  selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 calendarBuilders: CalendarBuilders(
                   markerBuilder: (context, day, events) {
@@ -165,10 +167,48 @@ class CalendarScreenBody extends ConsumerWidget {
                       ),
                     );
                   },
+                  // 오늘 날짜 커스텀 (선택된 경우는 selectedBuilder가 우선)
+                  todayBuilder: (context, day, focusedDay) {
+                    if (isSameDay(day, calendarState.selectedDay)) return null; // 선택된 경우는 selectedBuilder 사용
+                    return Center(
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  // 선택된 날짜 커스텀 (오늘 포함)
+                  selectedBuilder: (context, day, focusedDay) {
+                    return Center(
+                      child: Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
 
             // 선택된 날짜의 경기 목록
@@ -194,59 +234,116 @@ class CalendarScreenBody extends ConsumerWidget {
                   final event = calendarNotifier.getEventsForDay(calendarState.selectedDay!)[i];
                   final eventDate = (event['date'] as Timestamp).toDate();
                   final isCompleted = event['status'] == 'completed';
-                  return AppCard(
-                    color: isCompleted ? Colors.red.shade50 : Colors.green.shade50,
-                    elevation: isCompleted ? 6 : 3,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: isCompleted
-                          ? BorderSide(color: Colors.red.shade300, width: 1.5)
-                          : BorderSide.none,
-                    ),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isCompleted ? Colors.red : Colors.green,
-                        child: Icon(
-                          isCompleted ? Icons.emoji_events : Icons.event,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: AppCard(
+                      color: isCompleted ? Colors.red.shade50 : Colors.green.shade50,
+                      elevation: isCompleted ? 6 : 3,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: isCompleted
+                            ? BorderSide(color: Colors.red.shade300, width: 1.5)
+                            : BorderSide.none,
                       ),
-                      title: Text(
-                        event['title'],
-                        style: TextStyle(
-                          fontWeight: isCompleted ? FontWeight.bold : FontWeight.w600,
-                          color: isCompleted ? Colors.red.shade900 : null,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('${event['shopName']} • ${event['time']}'),
-                          Text(
-                            '참가비: ${event['entryFee']}원',
-                            style: TextStyle(
-                              color: isCompleted ? Colors.red.shade700 : Colors.grey.shade700,
-                            ),
-                          ),
-                          if (isCompleted && event['winnerName'] != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                '우승자: ${event['winnerName']}',
-                                style: TextStyle(
-                                  color: Colors.red.shade900,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => _showEventDetail(context, event, eventDate),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              // 상태 아이콘
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isCompleted ? Colors.red : Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isCompleted ? Icons.emoji_events : Icons.event,
+                                  color: Colors.white,
+                                  size: 24,
                                 ),
                               ),
-                            ),
-                        ],
+                              const SizedBox(width: 12),
+
+                              // 정보 영역
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      event['title'],
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: isCompleted ? FontWeight.bold : FontWeight.w600,
+                                        color: isCompleted ? Colors.red.shade900 : null,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            '${event['shopName']} • ${event['time']}',
+                                            style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            '참가비: ${event['entryFee']}원',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isCompleted ? Colors.red.shade700 : Colors.grey.shade700,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (isCompleted && event['winnerName'] != null) ...[
+                                          const SizedBox(width: 12),
+                                          Icon(Icons.star, size: 14, color: Colors.amber),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              '우승: ${event['winnerName']}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.red.shade900,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                isCompleted ? Icons.check_circle : Icons.schedule,
+                                color: isCompleted ? Colors.red : Colors.green,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                      trailing: isCompleted
-                          ? Icon(Icons.check_circle, color: Colors.red)
-                          : Icon(Icons.schedule, color: Colors.green),
-                      onTap: () => _showEventDetail(context, event, eventDate),
                     ),
                   );
                 },
@@ -258,11 +355,16 @@ class CalendarScreenBody extends ConsumerWidget {
     );
   }
 
+  // 다이얼로그
   static void _showEventDetail(BuildContext context, Map<String, dynamic> event, DateTime date) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(event['title'], style: Theme.of(context).textTheme.titleLarge),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          event['title'],
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -286,6 +388,11 @@ class CalendarScreenBody extends ConsumerWidget {
                         height: 200,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 200,
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.error, color: Colors.red),
+                        ),
                       ),
                     ),
                   ),

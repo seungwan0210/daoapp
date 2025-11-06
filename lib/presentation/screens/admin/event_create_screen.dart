@@ -41,7 +41,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
   File? _pickedImage;
   bool _isUploading = false;
 
-  // 자동완성 검색 결과 (String 리스트)
   List<String> _shopSearchResults = [];
   bool _isLoadingShop = false;
 
@@ -53,7 +52,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     _entryFeeController = TextEditingController();
     _winnerController = TextEditingController();
 
-    // 실시간 검색 리스너
     _shopController.addListener(_searchShops);
 
     if (widget.editMode && widget.initialData != null) {
@@ -89,7 +87,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     });
   }
 
-  // events 컬렉션에서 고유한 shopName 가져오기
   Future<List<String>> _getUniqueShopNames() async {
     final snapshot = await FirebaseFirestore.instance.collection('events').get();
     final Set<String> names = {};
@@ -102,7 +99,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     return names.toList()..sort();
   }
 
-  // 실시간 검색
   void _searchShops() async {
     final query = _shopController.text.trim();
     if (query.isEmpty) {
@@ -127,7 +123,6 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     });
   }
 
-  // 샵 선택 → 최근 이벤트에서 기본값 가져오기
   Future<void> _selectShop(String shopName) async {
     setState(() => _isLoadingShop = true);
 
@@ -245,23 +240,41 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       appBar: AppBar(
         title: Text(widget.editMode ? '경기 수정' : '경기 등록'),
         centerTitle: true,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // 날짜 선택
+            // 날짜
             AppCard(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: ListTile(
-                title: Text('날짜: ${AppDateUtils.formatKoreanDate(_date)}'),
-                trailing: const Icon(Icons.calendar_today),
+                leading: const Icon(Icons.calendar_today, color: Colors.blue),
+                title: Text(
+                  '날짜: ${AppDateUtils.formatKoreanDate(_date)}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: _date,
                     firstDate: AppDateUtils.firstDay,
                     lastDate: AppDateUtils.lastDay,
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: theme.colorScheme.copyWith(
+                            primary: theme.colorScheme.primary,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
                   if (picked != null) setState(() => _date = picked);
                 },
@@ -269,13 +282,19 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 상태 선택
+            // 상태
             AppCard(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: DropdownButtonFormField<String>(
                 value: _status,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '경기 상태',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: Icon(
+                    _status == 'completed' ? Icons.emoji_events : Icons.schedule,
+                    color: _status == 'completed' ? Colors.amber : Colors.green,
+                  ),
                 ),
                 items: const [
                   DropdownMenuItem(value: 'upcoming', child: Text('예정')),
@@ -286,8 +305,10 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 장소 (자동완성 + 로딩)
+            // 장소 (자동완성)
             AppCard(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -295,29 +316,26 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                     controller: _shopController,
                     decoration: InputDecoration(
                       labelText: '장소 (샵명)',
-                      border: const OutlineInputBorder(),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isLoadingShop)
-                            const Padding(
-                              padding: EdgeInsets.all(12),
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            ),
-                          if (_shopSearchResults.isNotEmpty && !_isLoadingShop)
-                            IconButton(
-                              icon: const Icon(Icons.clear),
-                              onPressed: () {
-                                _shopController.clear();
-                                setState(() => _shopSearchResults = []);
-                              },
-                            ),
-                        ],
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.location_on),
+                      suffixIcon: _isLoadingShop
+                          ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                          : _shopSearchResults.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _shopController.clear();
+                          setState(() => _shopSearchResults = []);
+                        },
+                      )
+                          : null,
                     ),
                     validator: (v) => v!.trim().isEmpty ? '샵명을 입력하세요' : null,
                   ),
@@ -326,21 +344,21 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                       margin: const EdgeInsets.only(top: 8),
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: Colors.grey[300]!),
                       ),
-                      constraints: const BoxConstraints(maxHeight: 150),
+                      constraints: const BoxConstraints(maxHeight: 160),
                       child: ListView.builder(
+                        padding: EdgeInsets.zero,
                         shrinkWrap: true,
                         itemCount: _shopSearchResults.length,
                         itemBuilder: (_, i) {
                           final shopName = _shopSearchResults[i];
                           return ListTile(
                             dense: true,
+                            leading: const Icon(Icons.store, size: 18),
                             title: Text(shopName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            onTap: () async {
-                              await _selectShop(shopName); // await 보장!
-                            },
+                            onTap: () => _selectShop(shopName),
                           );
                         },
                       ),
@@ -352,11 +370,14 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
 
             // 시간
             AppCard(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: TextFormField(
                 controller: _timeController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '시간 (예: 14:00)',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.access_time),
                 ),
                 validator: (v) => v!.trim().isEmpty ? '시간을 입력하세요' : null,
               ),
@@ -365,12 +386,15 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
 
             // 참가비
             AppCard(
+              elevation: 4,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: TextFormField(
                 controller: _entryFeeController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '참가비 (원)',
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.attach_money),
                 ),
                 validator: (v) {
                   final val = v!.trim();
@@ -382,14 +406,17 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
             ),
             const SizedBox(height: 16),
 
-            // 종료된 경기일 때만 보임
+            // 종료된 경기일 때만
             if (_status == 'completed') ...[
               AppCard(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: TextFormField(
                   controller: _winnerController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: '우승자 이름 (필수)',
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    prefixIcon: const Icon(Icons.emoji_events, color: Colors.amber),
                   ),
                   validator: (v) => v!.trim().isEmpty ? '우승자 이름을 입력하세요' : null,
                 ),
@@ -398,37 +425,49 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
 
               // 이미지 업로드
               AppCard(
-                child: _pickedImage == null && _resultImageUrl == null
-                    ? ElevatedButton.icon(
-                  onPressed: _pickImage,
-                  icon: const Icon(Icons.photo),
-                  label: const Text('결과 사진 추가 (필수)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                  ),
-                )
-                    : Column(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Column(
                   children: [
-                    if (_pickedImage != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(_pickedImage!, height: 200, fit: BoxFit.cover),
+                    if (_pickedImage != null || _resultImageUrl != null) ...[
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: _pickedImage != null
+                                ? Image.file(_pickedImage!, height: 200, width: double.infinity, fit: BoxFit.cover)
+                                : Image.network(_resultImageUrl!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white),
+                              style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                              onPressed: () => setState(() {
+                                _pickedImage = null;
+                                _resultImageUrl = null;
+                              }),
+                            ),
+                          ),
+                        ],
                       ),
-                    if (_resultImageUrl != null && _pickedImage == null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(_resultImageUrl!, height: 200, fit: BoxFit.cover),
-                      ),
-                    const SizedBox(height: 8),
+                      const SizedBox(height: 12),
+                    ],
                     _isUploading
-                        ? const CircularProgressIndicator()
-                        : ElevatedButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.photo),
-                      label: const Text('사진 변경'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
+                        ? const Center(child: CircularProgressIndicator())
+                        : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _pickImage,
+                        icon: const Icon(Icons.photo),
+                        label: Text(_pickedImage != null || _resultImageUrl != null ? '사진 변경' : '결과 사진 추가 (필수)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: (_pickedImage == null && _resultImageUrl == null) ? Colors.red : theme.colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
                   ],
@@ -441,23 +480,20 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _status == 'completed' && (_pickedImage == null && _resultImageUrl == null)
-                    ? null
-                    : _save,
-                style: theme.elevatedButtonTheme.style?.copyWith(
-                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                    return _status == 'completed' && (_pickedImage == null && _resultImageUrl == null)
-                        ? Colors.grey
-                        : null;
-                  }),
+                onPressed: (_status == 'completed' && (_pickedImage == null && _resultImageUrl == null)) ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: (_status == 'completed' && (_pickedImage == null && _resultImageUrl == null)) ? Colors.grey : theme.colorScheme.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 ),
                 child: Text(
                   widget.editMode ? '수정하기' : '등록하기',
-                  style: const TextStyle(fontSize: 18, color: Colors.white),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
           ],
         ),
       ),

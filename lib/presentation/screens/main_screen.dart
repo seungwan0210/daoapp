@@ -1,5 +1,4 @@
 // lib/presentation/screens/main_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/screens/user/user_home_screen.dart';
@@ -9,6 +8,7 @@ import 'package:daoapp/presentation/screens/community/community_screen.dart';
 import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 공통 AppBar
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -16,7 +16,6 @@ class MainScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
 
-  // 정적 메서드 추가 (핵심!)
   static void changeTab(BuildContext context, int index) {
     final state = context.findAncestorStateOfType<_MainScreenState>();
     state?._onTabTapped(index);
@@ -29,17 +28,17 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   static final List<Widget> _pageBodies = [
     const UserHomeScreenBody(),
     const RankingScreenBody(),
-    const CalendarScreenBody(),     // ← 수정!
-    const CommunityScreenBody(),   // ← 수정!
-    const MyPageScreenBody()
+    const CalendarScreenBody(),
+    const CommunityScreenBody(),
+    const MyPageScreenBody(),
   ];
 
   static const List<BottomNavigationBarItem> _items = [
-    BottomNavigationBarItem(icon: Icon(Icons.home), label: '홈'),
-    BottomNavigationBarItem(icon: Icon(Icons.leaderboard), label: '랭킹'),
-    BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: '일정'),
-    BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: '커뮤니티'),
-    BottomNavigationBarItem(icon: Icon(Icons.person), label: '내정보'),
+    BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: '홈'),
+    BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: '랭킹'),
+    BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: '일정'),
+    BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: '커뮤니티'),
+    BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '내정보'),
   ];
 
   void _onTabTapped(int index) {
@@ -49,25 +48,29 @@ class _MainScreenState extends ConsumerState<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_items[_currentIndex].label ?? ''),
-        centerTitle: true,
-        actions: ref.watch(isAdminProvider).when(
-          data: (isAdmin) => isAdmin
-              ? [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              onPressed: () {},
-            ),
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings),
-              onPressed: () => Navigator.pushNamed(context, RouteConstants.adminDashboard),
-            ),
-          ]
-              : null,
-          loading: () => null,
-          error: (_, __) => null,
-        ),
+      // 공통 AppBar 사용
+      appBar: CommonAppBar(
+        title: _items[_currentIndex].label ?? '',
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: '공지사항',
+            onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
+          ),
+          ...ref.watch(isAdminProvider).when(
+            data: (isAdmin) => isAdmin
+                ? [
+              IconButton(
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+                tooltip: '관리자 모드',
+                onPressed: () => Navigator.pushNamed(context, RouteConstants.adminDashboard),
+              ),
+            ]
+                : [],
+            loading: () => [],
+            error: (_, __) => [],
+          ),
+        ],
       ),
       body: IndexedStack(
         index: _currentIndex,
@@ -77,6 +80,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         currentIndex: _currentIndex,
         onTap: _onTabTapped,
         type: BottomNavigationBarType.fixed,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey[600],
+        backgroundColor: Theme.of(context).colorScheme.surface,
         items: _items,
       ),
     );

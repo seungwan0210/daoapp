@@ -51,6 +51,8 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
       appBar: AppBar(
         title: const Text('포인트 수동 부여'),
         centerTitle: true,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

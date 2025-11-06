@@ -32,6 +32,14 @@ import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
 
+// 방명록 스크린 import
+import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
+
+// 새로 추가: 공지 리스트 + 대회 사진 폼
+import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
+import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
+
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -54,20 +62,16 @@ class DaoApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: RouteConstants.splash,
       routes: {
-        // 공통
+        // === 정적 라우트 ===
         RouteConstants.splash: (_) => const SplashScreen(),
         RouteConstants.login: (_) => const LoginScreen(),
         RouteConstants.main: (_) => const MainScreen(),
-
-        // 유저
         RouteConstants.ranking: (_) => const RankingScreenBody(),
-        RouteConstants.calendar: (_) => const CalendarScreenBody(),     // ← 수정!
+        RouteConstants.calendar: (_) => const CalendarScreenBody(),
         RouteConstants.community: (_) => const CommunityScreenBody(),
         RouteConstants.myPage: (_) => const MyPageScreenBody(),
         RouteConstants.profileRegister: (_) => const ProfileRegisterScreen(),
         RouteConstants.pointCalendar: (_) => const PointCalendarScreen(),
-
-        // 관리자
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) => const PointAwardListScreen(),
@@ -77,9 +81,35 @@ class DaoApp extends StatelessWidget {
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
-
-        // 정회원 명단 (유저용)
         RouteConstants.memberList: (_) => const MemberListScreen(),
+      },
+      onGenerateRoute: (settings) {
+        // === 동적 라우트 ===
+        if (settings.name == RouteConstants.guestbook) {
+          final userId = settings.arguments as String;
+          return MaterialPageRoute(
+            builder: (_) => GuestbookScreen(userId: userId),
+            settings: settings,
+          );
+        }
+
+        // 공지 리스트
+        if (settings.name == RouteConstants.noticeList) {
+          return MaterialPageRoute(
+            builder: (_) => const NoticeListScreen(),
+            settings: settings,
+          );
+        }
+
+        // 대회 사진 폼
+        if (settings.name == RouteConstants.competitionPhotosForm) {
+          return MaterialPageRoute(
+            builder: (_) => const CompetitionPhotosFormScreen(),
+            settings: settings,
+          );
+        }
+
+        return null;
       },
       onUnknownRoute: (settings) {
         return MaterialPageRoute(
