@@ -26,17 +26,17 @@ class AppCard extends StatelessWidget {
     final cardTheme = Theme.of(context).cardTheme;
 
     return Container(
-      margin: margin ?? cardTheme.margin ?? const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: 8, vertical: 6), // 외부 여백
       child: Material(
         color: color ?? cardTheme.color ?? Colors.white,
-        elevation: elevation ?? cardTheme.elevation ?? 4,
-        shadowColor: cardTheme.shadowColor ?? Colors.black.withOpacity(0.08),
-        shape: shape ?? cardTheme.shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        elevation: elevation ?? cardTheme.elevation ?? 1.5,
+        shape: shape ?? cardTheme.shape ?? RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        clipBehavior: Clip.hardEdge,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: padding ?? const EdgeInsets.all(16),
+            padding: padding ?? const EdgeInsets.all(16), // 16→10 (내부 여백 최소!)
             child: child,
           ),
         ),

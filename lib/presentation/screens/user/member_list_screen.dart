@@ -108,6 +108,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
             return AppCard(
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 leading: CircleAvatar(
                   radius: 24,
                   backgroundImage: imageUrl != null && imageUrl.isNotEmpty
@@ -120,13 +121,46 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   )
                       : null,
                 ),
-                title: Text(
-                  '${data['koreanName']} (${data['englishName']})',
-                  style: theme.textTheme.titleMedium,
+                // 한국 이름 + 성별 한 줄
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        data['koreanName'] ?? '이름 없음',
+                        style: theme.textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '(${data['gender'] == 'male' ? '남' : '여'})',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: data['gender'] == 'male' ? Colors.blue[700] : Colors.pink[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                subtitle: Text(
-                  data['email'] ?? '이메일 없음',
-                  style: TextStyle(color: Colors.grey[600]),
+                // 영어 이름 + 이메일 밑으로
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '(${data['englishName']})',
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.black),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      data['email'] ?? '이메일 없음',
+                      style: TextStyle(color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
                 trailing: const Icon(Icons.verified, color: Colors.green),
               ),

@@ -87,11 +87,11 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                   _focusedDay = focusedDay;
                 });
               },
-              onFormatChanged: (format) => setState(() => _calendarFormat = format),
+              onFormatChanged: null, // 터치해도 안 바뀜!
               onPageChanged: (focusedDay) => _focusedDay = focusedDay,
               eventLoader: _getEventsForDay,
               headerStyle: const HeaderStyle(
-                formatButtonVisible: true,
+                formatButtonVisible: false,
                 titleCentered: true,
                 formatButtonShowsNext: false,
               ),

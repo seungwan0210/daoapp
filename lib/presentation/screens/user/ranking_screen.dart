@@ -52,7 +52,7 @@ class RankingScreenBody extends ConsumerWidget {
                 children: [
                   Expanded(child: _buildYearDropdown(ref)),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildPhaseDropdown(ref)), // ← 여기 고침!
+                  Expanded(child: _buildPhaseDropdown(ref)),
                   const SizedBox(width: 8),
                   Expanded(child: _buildGenderDropdown(ref)),
                   const SizedBox(width: 8),
@@ -79,6 +79,7 @@ class RankingScreenBody extends ConsumerWidget {
                       final user = rankings[i];
                       return AppCard(
                         child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           leading: CircleAvatar(
                             radius: 18,
                             backgroundColor: _getRankColor(user.rank),
@@ -95,12 +96,29 @@ class RankingScreenBody extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                user.koreanName,
-                                style: theme.textTheme.titleMedium,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                              // 한국 이름 + 성별
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      user.koreanName,
+                                      style: theme.textTheme.titleMedium,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '(${user.gender == 'male' ? '남자' : '여자'})',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: user.gender == 'male' ? Colors.blue[700] : Colors.pink[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
+                              // 영어 이름
                               Text(
                                 '(${user.englishName})',
                                 style: theme.textTheme.bodySmall?.copyWith(color: Colors.black),
@@ -112,6 +130,8 @@ class RankingScreenBody extends ConsumerWidget {
                           subtitle: Text(
                             user.shopName,
                             style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           trailing: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -209,7 +229,7 @@ class RankingScreenBody extends ConsumerWidget {
       isExpanded: true,
       value: notifier.selectedPhase == 'total' ? false : notifier.top9Mode,
       items: [
-        const DropdownMenuItem(value: false, child: Text('전체 포인트')),
+        const DropdownMenuItem(value: false, child: Text('성적')),
         if (notifier.selectedPhase != 'total')
           const DropdownMenuItem(value: true, child: Text('상위 9개')),
       ],

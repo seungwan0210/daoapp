@@ -57,8 +57,9 @@ class MyPageScreenBody extends ConsumerWidget {
                     // === 1. 프로필 정보 ===
                     AppCard(
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             CircleAvatar(
                               radius: 40,
@@ -75,40 +76,51 @@ class MyPageScreenBody extends ConsumerWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        koreanName.isNotEmpty ? koreanName : '이름 없음',
-                                        style: theme.textTheme.titleLarge,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      if (englishName.isNotEmpty)
-                                        Text(
-                                          englishName,
-                                          style: theme.textTheme.titleMedium?.copyWith(
-                                            color: Colors.grey[700],
-                                            fontStyle: FontStyle.italic,
+                                  // 한국 이름 + 홈샵 한 줄
+                                  if (koreanName.isNotEmpty)
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            koreanName,
+                                            style: theme.textTheme.titleLarge,
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
                                           ),
-                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  if (shopName.isNotEmpty)
-                                    Text(
-                                      shopName,
-                                      style: theme.textTheme.bodyLarge?.copyWith(
-                                        color: theme.colorScheme.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                        if (shopName.isNotEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '· $shopName',
+                                            style: theme.textTheme.bodyLarge?.copyWith(
+                                              color: theme.colorScheme.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                            maxLines: 1,
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   const SizedBox(height: 4),
+                                  // 영어 이름
+                                  if (englishName.isNotEmpty)
+                                    Text(
+                                      englishName,
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        color: Colors.grey[700],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  const SizedBox(height: 4),
+                                  // 이메일
                                   Text(
                                     email,
                                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                                     overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
                                   ),
                                 ],
                               ),
@@ -118,12 +130,13 @@ class MyPageScreenBody extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 12), // 카드 간격 통일
 
                     // === 2. 프로필 수정 ===
                     AppCard(
                       onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         leading: Icon(Icons.edit, color: theme.colorScheme.primary),
                         title: const Text('프로필 수정'),
                         subtitle: hasProfile
@@ -133,12 +146,13 @@ class MyPageScreenBody extends ConsumerWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // === 3. 포인트 달력 ===
                     AppCard(
                       onTap: () => Navigator.pushNamed(context, RouteConstants.pointCalendar),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         leading: Icon(Icons.calendar_month, color: theme.colorScheme.primary),
                         title: const Text('포인트 달력'),
                         subtitle: const Text('날짜별 내역 확인'),
@@ -146,10 +160,13 @@ class MyPageScreenBody extends ConsumerWidget {
                       ),
                     ),
 
+                    const SizedBox(height: 12),
+
                     // === 4. KDF 정회원 명단 ===
                     AppCard(
                       onTap: () => Navigator.pushNamed(context, RouteConstants.memberList),
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         leading: Icon(Icons.card_membership, color: theme.colorScheme.primary),
                         title: const Text('KDF 정회원 명단'),
                         subtitle: const Text('등록된 정회원 리스트 확인'),
@@ -162,6 +179,7 @@ class MyPageScreenBody extends ConsumerWidget {
                     // === 5. 로그아웃 ===
                     AppCard(
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         leading: const Icon(Icons.logout, color: Colors.red),
                         title: const Text('로그아웃'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),

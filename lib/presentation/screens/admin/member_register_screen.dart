@@ -24,6 +24,7 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
   File? _image;
   bool _isLoading = false;
   String _searchQuery = '';
+  String? _selectedGender; // 성별 추가!
 
   final picker = ImagePicker();
   final _firestore = FirebaseFirestore.instance;
@@ -66,12 +67,15 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
   Future<String?> _uploadImage(String docId) async {
     if (_image == null) return null;
     final ref = _storage.ref().child('official_members').child('$docId.jpg');
-    await ref.putFile(_image!); // ← ! 추가!
+    await ref.putFile(_image!);
     return await ref.getDownloadURL();
   }
 
   Future<void> _registerMember() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate() || _selectedGender == null) {
+      _showSnackBar('모든 필드를 입력하세요', Colors.red);
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -83,6 +87,7 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
         'koreanName': _koreanNameController.text.trim(),
         'englishName': _englishNameController.text.trim(),
         'email': _emailController.text.trim(),
+        'gender': _selectedGender,
         'profileImageUrl': imageUrl,
         'totalPoints': 0,
         'registeredAt': FieldValue.serverTimestamp(),
@@ -105,13 +110,17 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
     _koreanNameController.clear();
     _englishNameController.clear();
     _emailController.clear();
-    setState(() => _image = null);
+    setState(() {
+      _image = null;
+      _selectedGender = null;
+    });
   }
 
   Future<void> _editMember(String docId, Map<String, dynamic> data) async {
     final koreanNameCtrl = TextEditingController(text: data['koreanName']);
     final englishNameCtrl = TextEditingController(text: data['englishName']);
     final emailCtrl = TextEditingController(text: data['email']);
+    String? selectedGender = data['gender'];
     File? tempImage;
     String? currentImageUrl = data['profileImageUrl'];
 
@@ -123,18 +132,31 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                height: 120,
-                width: 120,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(60),
+              GestureDetector(
+                onTap: () async {
+                  final picked = await picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    final file = File(picked.path);
+                    if (file.lengthSync() / (1024 * 1024) <= 3) {
+                      setState(() => tempImage = file);
+                    } else {
+                      _showSnackBar('3MB 이하만 가능', Colors.red);
+                    }
+                  }
+                },
+                child: Container(
+                  height: 120,
+                  width: 120,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(60),
+                  ),
+                  child: tempImage != null
+                      ? ClipOval(child: Image.file(tempImage!, fit: BoxFit.cover))
+                      : currentImageUrl != null
+                      ? ClipOval(child: Image.network(currentImageUrl, fit: BoxFit.cover))
+                      : const Icon(Icons.person, size: 60),
                 ),
-                child: tempImage != null
-                    ? ClipOval(child: Image.file(tempImage!, fit: BoxFit.cover)) // ← ! 추가
-                    : currentImageUrl != null
-                    ? ClipOval(child: Image.network(currentImageUrl, fit: BoxFit.cover))
-                    : const Icon(Icons.person, size: 60),
               ),
               TextButton.icon(
                 onPressed: () async {
@@ -166,6 +188,19 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
                 controller: emailCtrl,
                 decoration: const InputDecoration(labelText: '이메일', border: OutlineInputBorder()),
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedGender,
+                decoration: const InputDecoration(
+                  labelText: '성별',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'male', child: Text('남자')),
+                  DropdownMenuItem(value: 'female', child: Text('여자')),
+                ],
+                onChanged: (v) => selectedGender = v,
+              ),
             ],
           ),
         ),
@@ -184,7 +219,7 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
         String? newImageUrl = currentImageUrl;
         if (tempImage != null) {
           final ref = _storage.ref().child('official_members').child('$docId.jpg');
-          await ref.putFile(tempImage!); // ← ! 추가
+          await ref.putFile(tempImage!);
           newImageUrl = await ref.getDownloadURL();
 
           if (currentImageUrl != null) {
@@ -198,6 +233,7 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
           'koreanName': koreanNameCtrl.text.trim(),
           'englishName': englishNameCtrl.text.trim(),
           'email': emailCtrl.text.trim(),
+          'gender': selectedGender,
           'profileImageUrl': newImageUrl,
         });
 
@@ -256,7 +292,7 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext) {
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -342,6 +378,21 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
                     validator: (v) => v!.trim().isEmpty ? '영어 이름을 입력하세요' : null,
                   ),
                   const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedGender,
+                    decoration: const InputDecoration(
+                      labelText: '성별 (필수)',
+                      prefixIcon: Icon(Icons.wc),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'male', child: Text('남자')),
+                      DropdownMenuItem(value: 'female', child: Text('여자')),
+                    ],
+                    onChanged: (v) => setState(() => _selectedGender = v),
+                    validator: (v) => v == null ? '성별을 선택하세요' : null,
+                  ),
+                  const SizedBox(height: 12),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -411,6 +462,7 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
             return AppCard(
               margin: const EdgeInsets.only(bottom: 12),
               child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 leading: CircleAvatar(
                   radius: 24,
                   backgroundImage: imageUrl != null && imageUrl.isNotEmpty
@@ -423,24 +475,57 @@ class _MemberRegisterScreenState extends State<MemberRegisterScreen> {
                   )
                       : null,
                 ),
-                title: Text(
-                  '${data['koreanName']} (${data['englishName']})',
-                  style: theme.textTheme.titleMedium,
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        data['koreanName'] ?? '이름 없음',
+                        style: theme.textTheme.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '(${data['gender'] == 'male' ? '남' : '여'})',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: data['gender'] == 'male' ? Colors.blue[700] : Colors.pink[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-                subtitle: Text(
-                  data['email'] ?? '이메일 없음',
-                  style: TextStyle(color: Colors.grey[600]),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '(${data['englishName']})',
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.black),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      data['email'] ?? '이메일 없음',
+                      style: TextStyle(color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
                       onPressed: () => _editMember(docId, data),
+                      tooltip: '수정',
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                       onPressed: () => _deleteMember(docId, imageUrl),
+                      tooltip: '삭제',
                     ),
                   ],
                 ),

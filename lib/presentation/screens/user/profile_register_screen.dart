@@ -1,4 +1,5 @@
 // lib/presentation/screens/user/profile_register_screen.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -22,13 +23,18 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   final _englishNameController = TextEditingController();
   final _shopNameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _codeController = TextEditingController(); // 인증번호 입력용
+  final _codeController = TextEditingController();
+
+  // 배럴 세팅 → 서술형 입력
+  final _barrelNameController = TextEditingController();
+  final _shaftController = TextEditingController();
+  final _flightController = TextEditingController();
+  final _tipController = TextEditingController();
 
   String? _originalPhone;
   bool _isFirstRegistration = false;
   bool _isPhoneVerified = false;
 
-  // 인증 상태
   bool _isEditingPhone = false;
   bool _codeSent = false;
   bool _isVerifying = false;
@@ -40,16 +46,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   String? _firestoreProfileUrl;
   String? _firestoreBarrelUrl;
-
-  String? _selectedBarrel;
-  String? _selectedShaft;
-  String? _selectedFlight;
-  String? _selectedTip;
-
-  final List<String> _barrels = ['Monster', 'Target', 'L-Style', 'Harrows'];
-  final List<String> _shafts = ['Nylon', 'Carbon', 'Titanium'];
-  final List<String> _flights = ['Standard', 'Slim', 'Kite'];
-  final List<String> _tips = ['Soft', 'Hard'];
 
   late final User? user;
 
@@ -87,10 +83,13 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       _phoneController.text = displayPhone;
       _originalPhone = displayPhone;
       _isPhoneVerified = data['isPhoneVerified'] == true;
-      _selectedBarrel = data['barrelName'];
-      _selectedShaft = data['shaft'];
-      _selectedFlight = data['flight'];
-      _selectedTip = data['tip'];
+
+      // 서술형 데이터 로드
+      _barrelNameController.text = data['barrelName'] ?? '';
+      _shaftController.text = data['shaft'] ?? '';
+      _flightController.text = data['flight'] ?? '';
+      _tipController.text = data['tip'] ?? '';
+
       _firestoreProfileUrl = data['profileImageUrl'];
       _firestoreBarrelUrl = data['barrelImageUrl'];
     });
@@ -103,6 +102,10 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     _shopNameController.dispose();
     _phoneController.dispose();
     _codeController.dispose();
+    _barrelNameController.dispose();
+    _shaftController.dispose();
+    _flightController.dispose();
+    _tipController.dispose();
     super.dispose();
   }
 
@@ -262,13 +265,11 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     final phoneInput = _phoneController.text.trim();
     final needsVerification = _isFirstRegistration || (phoneInput != _originalPhone);
 
-    // 인증이 필요하고, v 체크 안 됐으면 막기
     if (needsVerification && !_isPhoneVerified) {
       _showSnackBar('전화번호 인증을 완료해주세요!', color: Colors.red);
       return;
     }
 
-    // 인증 중이면 저장 금지
     if (_codeSent || _isEditingPhone) {
       _showSnackBar('인증을 완료한 후 저장해주세요', color: Colors.red);
       return;
@@ -297,10 +298,11 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       'shopName': _shopNameController.text.trim(),
       'phoneNumber': phoneInput.isNotEmpty ? '+82$cleanNumber' : FieldValue.delete(),
       'isPhoneVerified': _isPhoneVerified,
-      'barrelName': _selectedBarrel,
-      'shaft': _selectedShaft,
-      'flight': _selectedFlight,
-      'tip': _selectedTip,
+      // 서술형 저장
+      'barrelName': _barrelNameController.text.trim(),
+      'shaft': _shaftController.text.trim(),
+      'flight': _flightController.text.trim(),
+      'tip': _tipController.text.trim(),
       'profileImageUrl': _profileImage != null
           ? profileUrl
           : (_firestoreProfileUrl == null ? null : _firestoreProfileUrl),
@@ -563,32 +565,41 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                       leading: const Icon(Icons.sports_esports),
                       title: const Text('배럴 세팅 (선택)'),
                       children: [
-                        DropdownButtonFormField<String>(
-                          value: _selectedBarrel,
-                          hint: const Text('배럴 이름'),
-                          items: _barrels.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-                          onChanged: (v) => setState(() => _selectedBarrel = v),
+                        // 서술형 입력
+                        TextFormField(
+                          controller: _barrelNameController,
+                          decoration: const InputDecoration(
+                            labelText: '배럴 이름',
+                            prefixIcon: Icon(Icons.sports_esports),
+                            border: OutlineInputBorder(),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _selectedShaft,
-                          hint: const Text('샤프트'),
-                          items: _shafts.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                          onChanged: (v) => setState(() => _selectedShaft = v),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _shaftController,
+                          decoration: const InputDecoration(
+                            labelText: '샤프트',
+                            prefixIcon: Icon(Icons.straighten),
+                            border: OutlineInputBorder(),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _selectedFlight,
-                          hint: const Text('플라이트'),
-                          items: _flights.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
-                          onChanged: (v) => setState(() => _selectedFlight = v),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _flightController,
+                          decoration: const InputDecoration(
+                            labelText: '플라이트',
+                            prefixIcon: Icon(Icons.flight),
+                            border: OutlineInputBorder(),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: _selectedTip,
-                          hint: const Text('팁'),
-                          items: _tips.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                          onChanged: (v) => setState(() => _selectedTip = v),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _tipController,
+                          decoration: const InputDecoration(
+                            labelText: '팁',
+                            prefixIcon: Icon(Icons.push_pin),
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Center(child: _buildBarrelImageStack()),

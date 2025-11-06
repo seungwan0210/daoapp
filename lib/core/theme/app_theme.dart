@@ -7,75 +7,69 @@ class AppTheme {
     fontFamily: 'Pretendard',
     scaffoldBackgroundColor: Colors.white,
 
-    // 메인 컬러: 진한 파랑 (Deep Blue)
     colorScheme: ColorScheme.fromSeed(
-      seedColor: const Color(0xFF1565C0), // 진한 파랑!
+      seedColor: const Color(0xFF1565C0),
       primary: const Color(0xFF1565C0),
-      secondary: const Color(0xFF42A5F5), // 보조: 밝은 파랑
-      surface: Colors.white,
-      background: Colors.white,
-      error: Colors.red,
-      onPrimary: Colors.white,
-      onSecondary: Colors.black,
-      onSurface: Colors.black87,
-      onBackground: Colors.black87,
-      onError: Colors.white,
-      brightness: Brightness.light,
+      secondary: const Color(0xFF42A5F5),
     ),
 
-    // 앱바
+    // AppBar (기존 유지)
     appBarTheme: const AppBarTheme(
       backgroundColor: Colors.white,
       foregroundColor: Colors.black87,
       elevation: 0,
       centerTitle: true,
-      titleTextStyle: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: Colors.black87,
-      ),
+      titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.w600, color: Colors.black87),
     ),
 
-    // 카드
+    // 입력창 (여백 최소화!)
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.grey)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF1565C0), width: 1.5)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // 16→6
+      isDense: true,
+      labelStyle: const TextStyle(fontSize: 13, color: Colors.black54),
+      hintStyle: const TextStyle(fontSize: 13, color: Colors.grey),
+      errorStyle: const TextStyle(fontSize: 11),
+    ),
+
+    // 카드 (여백 줄임)
     cardTheme: CardTheme(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
-      shadowColor: Colors.black.withOpacity(0.08),
-      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      elevation: 1.5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.hardEdge,
     ),
 
     // 버튼
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF1565C0), // 진한 파랑 버튼!
+        backgroundColor: const Color(0xFF1565C0),
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 3,
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
     ),
 
-    // 텍스트
-    textTheme: const TextTheme(
-      titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
-      titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
-      bodyMedium: TextStyle(fontSize: 14, color: Colors.black54),
-      labelLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-    ),
+      // lib/core/theme/app_theme.dart
+      textTheme: const TextTheme(
+        titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),     // 20 → 15
+        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),   // 16 → 13
+        bodyLarge: TextStyle(fontSize: 15, height: 1.3),                     // 14 → 13
+        bodyMedium: TextStyle(fontSize: 14, height: 1.3, color: Colors.grey), // 14 → 12
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      ),
 
-    // 바텀 네비게이션
+    // 바텀 네비
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      selectedItemColor: Color(0xFF1565C0), // 진한 파랑 선택
+      selectedItemColor: Color(0xFF1565C0),
       unselectedItemColor: Colors.grey,
-      selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600),
+      selectedLabelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+      unselectedLabelStyle: TextStyle(fontSize: 11),
       showUnselectedLabels: true,
       type: BottomNavigationBarType.fixed,
     ),
-
-    // 달력 마커 색상 (직접 지정)
-    // TableCalendar는 theme에서 직접 안 읽기 때문에
-    // 각 화면에서 Color(0xFF1565C0) 사용
   );
 }

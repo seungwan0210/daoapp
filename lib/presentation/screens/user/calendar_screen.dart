@@ -126,11 +126,11 @@ class CalendarScreenBody extends ConsumerWidget {
                 onDaySelected: (selectedDay, focusedDay) {
                   calendarNotifier.updateSelectedDay(selectedDay, focusedDay);
                 },
-                onFormatChanged: (format) => calendarNotifier.updateFormat(format),
+                onFormatChanged: null, // 터치해도 안 바뀜!
                 onPageChanged: (focusedDay) => calendarNotifier.updateFocusedDay(focusedDay),
                 eventLoader: calendarNotifier.getEventsForDay,
                 headerStyle: HeaderStyle(
-                  formatButtonVisible: true,
+                  formatButtonVisible: false,
                   titleCentered: true,
                   formatButtonShowsNext: false,
                   titleTextStyle: theme.textTheme.titleLarge!,
