@@ -1,6 +1,8 @@
 lib/
 戍式式 main.dart
 戍式式 firebase_options.dart
+戍式式services/
+弛   戌式式storage_service.dart
 戍式式 di/
 弛   戌式式 service_locator.dart
 戍式式 presentation/
@@ -8,6 +10,9 @@ lib/
 弛   弛   戍式式 app_providers.dart
 弛   弛   戍式式 user_home_provider.dart
 弛   弛   戌式式 ranking_provider.dart
+弛   弛   戌式式 arena_provider.dart
+弛   弛   戌式式 community_provider.dart
+弛   弛   戌式式 checkout_provider.dart
 弛   戍式式 screens/
 弛   弛   戍式式 splash_screen.dart
 弛   弛   戍式式 login/
@@ -19,10 +24,26 @@ lib/
 弛   弛   弛   戍式式 calendar_screen.dart
 弛   弛   弛   戍式式 my_page_screen.dart
 弛   弛   弛   戌式式 point_calendar_screen.dart
-弛   弛   戍式式 community/        
-弛   弛   弛   戍式式 community_screen.dart
-弛   弛   戍式式 utils/             
-弛   弛   弛   戌式式 date_utils.dart
+弛   弛   弛   戌式式 profile_register_screen.dart
+弛   弛   弛   戌式式 notice_list_screen.dart
+弛   弛   弛   戌式式 member_list_screen.dart
+弛   弛   弛   戌式式 guestbook_screen.dart
+弛   弛   戍式式 community/ 
+弛   弛   弛   戌式式 widgets/   
+弛   弛   弛   弛      戌式式 circle_avatar_slider.dart
+弛   弛   弛   弛      戌式式 comment_item.dart
+弛   弛   弛   弛      戌式式 post_card.dart
+弛   弛   弛   戌式式community_screen.dart
+弛   弛   弛   戌式式post_detail_screen.dart
+弛   弛   弛   戌式式post_write_screen.dart
+弛   弛   弛   戌式式checkout/
+弛   弛   弛   弛      戌式式 widgets/
+弛   弛   弛   弛      弛      戌式式 dart_board.dart
+弛   弛   弛   弛      弛      戌式式 route_card.dart
+弛   弛   弛   弛      弛      戌式式 segment_button.dart
+弛   弛   弛   弛      戌式式 checkout_calculator_screen.dart
+弛   弛   弛   弛      戌式式 checkout_practice_screen.dart
+弛   弛   弛   弛      戌式式 checkout_result_screen.dart
 弛   弛   戌式式 admin/
 弛   弛       戍式式 admin_dashboard_screen.dart
 弛   弛       戍式式 event_create_screen.dart
@@ -31,6 +52,7 @@ lib/
 弛   弛       戍式式 point_award_list_screen.dart
 弛   弛       戌式式 member_register_screen.dart
 弛   弛       戌式式 point_edit_screen.dart
+弛   弛       戌式式 event_edit_screen.dart
 弛   弛       戌式式 forms/
 弛   弛           戍式式 notice_form_screen.dart
 弛   弛           戍式式 news_form_screen.dart
@@ -38,7 +60,8 @@ lib/
 弛   弛           戌式式 member_register_screen.dart
 弛   戌式式 widgets/
 弛       戌式式 app_card.dart
-弛       戌式式 phone_change_dialog.dart
+弛       戌式式 common_appbar.dart
+弛       戌式式 galaxy_settings_section.dart
 戍式式 data/
 弛   戍式式 repositories/
 弛   弛   戍式式 auth_repository.dart
@@ -49,15 +72,15 @@ lib/
 弛       戍式式 point_record_model.dart
 弛       戍式式 ranking_user.dart
 弛       戍式式 user_model.dart
-弛       戌式式 post_model.dart                  蹺陛!
 戍式式 core/
 弛   戍式式 constants/
-弛   弛   戍式式 app_constants.dart
 弛   弛   戌式式 route_constants.dart
+弛   弛   戌式式 checkout_table.dart
 弛   戍式式 theme/
 弛   弛   戌式式 app_theme.dart
 弛   戌式式 utils/
 弛       戌式式 date_utils.dart
+弛       戌式式 segment_utils.dart
 
 C:\Users\A\daoapp
  assets/
