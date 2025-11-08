@@ -1,11 +1,12 @@
 // lib/presentation/screens/admin/point_edit_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 추가
 import 'package:daoapp/data/models/point_record_model.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class PointEditScreen extends ConsumerStatefulWidget {
   final PointRecord record;
@@ -42,7 +43,6 @@ class _PointEditScreenState extends ConsumerState<PointEditScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      // 통일된 AppBar
       appBar: CommonAppBar(
         title: '포인트 수정',
         showBackButton: true,
@@ -185,6 +185,14 @@ class _PointEditScreenState extends ConsumerState<PointEditScreen> {
 
     final updatedRecord = widget.record.copyWith(points: newPoints);
     await ref.read(pointRecordRepositoryProvider).updatePointRecord(updatedRecord, widget.oldPoints);
+
+    // users.updatedAt 자동 갱신
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.record.userId)
+        .update({
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
 
     ref.read(rankingProvider.notifier).loadRanking();
     if (mounted) {

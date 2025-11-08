@@ -1,5 +1,4 @@
 // lib/presentation/screens/admin/point_award_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,7 +7,7 @@ import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class PointAwardScreen extends ConsumerStatefulWidget {
   const PointAwardScreen({super.key});
@@ -34,6 +33,17 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
   final _englishController = TextEditingController();
   final _shopController = TextEditingController();
   final _pointsController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // 실시간으로 _koreanName 업데이트
+    _koreanController.addListener(() {
+      setState(() {
+        _koreanName = _koreanController.text.trim();
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -120,19 +130,9 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
                       itemBuilder: (_, i) {
                         final data = _searchResults[i].data() as Map<String, dynamic>;
                         return ListTile(
-                          title: Text(data['koreanName']),
-                          subtitle: Text('${data['englishName']} • ${data['shopName']}'),
-                          onTap: () {
-                            setState(() {
-                              _selectedUser = _searchResults[i];
-                              _isNewUser = false;
-                              _koreanController.text = data['koreanName'];
-                              _englishController.text = data['englishName'];
-                              _shopController.text = data['shopName'];
-                              _gender = data['gender'];
-                              _searchResults = [];
-                            });
-                          },
+                          title: Text(data['koreanName'] ?? ''),
+                          subtitle: Text('${data['englishName'] ?? ''} • ${data['shopName'] ?? ''}'),
+                          onTap: () => _selectPlayer(i),
                         );
                       },
                     ),
@@ -148,7 +148,7 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
 
                 const SizedBox(height: 16),
 
-                // 나머지 입력
+                // 나머지 입력 (기존 선택 시에도 편집 가능)
                 TextField(
                   controller: _englishController,
                   decoration: const InputDecoration(labelText: '영문 이름 (신규 등록 시 필수)'),
@@ -211,77 +211,119 @@ class _PointAwardScreenState extends ConsumerState<PointAwardScreen> {
 
   bool _canAward() {
     final points = int.tryParse(_pointsController.text);
-    final hasName = _koreanName.isNotEmpty;
     final hasPoints = points != null && points > 0;
+    final hasKoreanName = _koreanController.text.trim().isNotEmpty;
 
     if (_isNewUser) {
-      return hasName &&
+      return hasKoreanName &&
           hasPoints &&
-          _englishController.text.isNotEmpty &&
-          _shopController.text.isNotEmpty;
+          _englishController.text.trim().isNotEmpty &&
+          _shopController.text.trim().isNotEmpty;
     } else {
-      return hasName && hasPoints;
+      return hasKoreanName && hasPoints;
     }
   }
 
+  // 검색 + 신규 여부 판단
   void _searchOrCreateUser(String query) async {
-    _koreanName = query.trim();
-    if (query.isEmpty) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
       setState(() => _searchResults = []);
       return;
     }
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('koreanName', isGreaterThanOrEqualTo: query)
-        .where('koreanName', isLessThanOrEqualTo: '$query\uf8ff')
-        .limit(5)
-        .get();
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('koreanName', isGreaterThanOrEqualTo: trimmed)
+          .where('koreanName', isLessThan: '$trimmed\uf8ff')
+          .orderBy('updatedAt', descending: true)
+          .limit(5)
+          .get();
 
+      setState(() {
+        _searchResults = snapshot.docs;
+        _isNewUser = _searchResults.isEmpty && trimmed.isNotEmpty;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('검색 오류: $e'), backgroundColor: Colors.orange),
+        );
+      }
+    }
+  }
+
+  // 기존 사용자 선택 → 입력 필드에 넣고, 편집 가능하게 유지
+  void _selectPlayer(int index) {
+    final data = _searchResults[index].data() as Map<String, dynamic>;
     setState(() {
-      _searchResults = snapshot.docs;
-      _isNewUser = _searchResults.isEmpty && query.isNotEmpty;
+      _selectedUser = _searchResults[index];
+      _isNewUser = false;
+      _searchResults = [];
+
+      _koreanController.text = data['koreanName'] ?? '';
+      _englishController.text = data['englishName'] ?? '';
+      _shopController.text = data['shopName'] ?? '';
+      _gender = data['gender'] ?? 'male';
     });
   }
 
-  // 신규 포인트 부여 전용
+  // 포인트 부여 + 사용자 정보 업데이트 (기존/신규 모두 처리)
   Future<void> _award() async {
     final points = int.parse(_pointsController.text);
+    final korean = _koreanController.text.trim();
+    final english = _englishController.text.trim();
+    final shop = _shopController.text.trim();
     String userId;
 
-    // 1. 유저 처리 (기존 or 신규)
-    if (_selectedUser != null) {
-      userId = _selectedUser!.id;
-    } else {
-      final newUser = await FirebaseFirestore.instance.collection('users').add({
-        'koreanName': _koreanName,
-        'englishName': _englishController.text,
-        'shopName': _shopController.text,
-        'gender': _gender,
-        'totalPoints': points,
-      });
-      userId = newUser.id;
-    }
-
-    // 2. PointRecord 생성 (id는 null → awardPoints에서 생성)
-    final record = PointRecord(
-      id: null, // 신규 → Firestore가 자동 생성
-      userId: userId,
-      seasonId: _year,
-      phase: _phase,
-      points: points,
-      eventName: '관리자 수동 부여',
-      shopName: _shopController.text.isEmpty ? '미기입' : _shopController.text,
-      date: _selectedDate,
-      awardedBy: 'admin',
-      koreanName: _koreanName,
-      englishName: _englishController.text,
-    );
-
     try {
-      final repo = ref.read(pointRecordRepositoryProvider);
-      await repo.awardPoints(record); // 수정 로직 제거!
+      if (_selectedUser != null) {
+        // 기존 사용자 → 정보 업데이트 + 포인트 누적
+        userId = _selectedUser!.id;
+        final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
 
+        await FirebaseFirestore.instance.runTransaction((tx) async {
+          final snap = await tx.get(userRef);
+          final currentPoints = snap.data()?['totalPoints'] ?? 0;
+          tx.update(userRef, {
+            'koreanName': korean,
+            'englishName': english,
+            'shopName': shop,
+            'gender': _gender,
+            'totalPoints': currentPoints + points,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        });
+      } else {
+        // 신규 사용자 → 새 문서 생성
+        final newUser = await FirebaseFirestore.instance.collection('users').add({
+          'koreanName': korean,
+          'englishName': english,
+          'shopName': shop,
+          'gender': _gender,
+          'totalPoints': points,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        userId = newUser.id;
+      }
+
+      // 포인트 기록 저장
+      final record = PointRecord(
+        id: null,
+        userId: userId,
+        seasonId: _year,
+        phase: _phase,
+        points: points,
+        eventName: '관리자 수동 부여',
+        shopName: shop.isEmpty ? '미기입' : shop,
+        date: _selectedDate,
+        awardedBy: 'admin',
+        koreanName: korean,
+        englishName: english,
+      );
+
+      await ref.read(pointRecordRepositoryProvider).awardPoints(record);
       ref.read(rankingProvider.notifier).loadRanking();
 
       if (mounted) {
