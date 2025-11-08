@@ -1,18 +1,19 @@
 // lib/data/models/user_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Firestore users 컬렉션의 사용자 모델
-class User {
+class AppUser {
   final String id;
   final String email;
   final String? koreanName;
   final String? englishName;
   final String? shopName;
-  final String? gender; // "male" or "female"
+  final String? gender;
   final int totalPoints;
-  final bool hasProfile; // 프로필 등록 여부 (koreanName 등 입력 완료)
+  final bool hasProfile;
+  final String? profileImageUrl;
+  final bool isPhoneVerified;
 
-  User({
+  AppUser({
     required this.id,
     required this.email,
     this.koreanName,
@@ -20,12 +21,13 @@ class User {
     this.shopName,
     this.gender,
     this.totalPoints = 0,
-    this.hasProfile = false, // 기본값: 등록 전
+    this.hasProfile = false,
+    this.profileImageUrl,
+    this.isPhoneVerified = false,
   });
 
-  /// Firestore 문서 → User 객체
-  factory User.fromMap(String id, Map<String, dynamic> map) {
-    return User(
+  factory AppUser.fromMap(String id, Map<String, dynamic> map) {
+    return AppUser(
       id: id,
       email: map['email'] ?? '',
       koreanName: map['koreanName'] as String?,
@@ -34,10 +36,11 @@ class User {
       gender: map['gender'] as String?,
       totalPoints: map['totalPoints'] ?? 0,
       hasProfile: map['hasProfile'] ?? false,
+      profileImageUrl: map['profileImageUrl'] as String?,
+      isPhoneVerified: map['isPhoneVerified'] ?? false,
     );
   }
 
-  /// User 객체 → Firestore 문서
   Map<String, dynamic> toMap() {
     return {
       'email': email,
@@ -47,19 +50,22 @@ class User {
       'gender': gender,
       'totalPoints': totalPoints,
       'hasProfile': hasProfile,
-      'lastLoginAt': FieldValue.serverTimestamp(), // 로그인 시간 갱신
+      'profileImageUrl': profileImageUrl,
+      'isPhoneVerified': isPhoneVerified,
+      'lastLoginAt': FieldValue.serverTimestamp(),
     };
   }
 
-  /// 프로필 등록 시 사용 (부분 업데이트)
-  User copyWith({
+  AppUser copyWith({
     String? koreanName,
     String? englishName,
     String? shopName,
     String? gender,
     bool? hasProfile,
+    String? profileImageUrl,
+    bool? isPhoneVerified,
   }) {
-    return User(
+    return AppUser(
       id: id,
       email: email,
       koreanName: koreanName ?? this.koreanName,
@@ -68,6 +74,8 @@ class User {
       gender: gender ?? this.gender,
       totalPoints: totalPoints,
       hasProfile: hasProfile ?? this.hasProfile,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      isPhoneVerified: isPhoneVerified ?? this.isPhoneVerified,
     );
   }
 }

@@ -1,11 +1,11 @@
-/// 앱 내 모든 라우트 상수 정의
+// lib/core/constants/route_constants.dart
 class RouteConstants {
-  // 공통
+  // === 공통 ===
   static const String splash = '/splash';
   static const String login = '/login';
   static const String main = '/main';
 
-  // 유저
+  // === 유저 ===
   static const String ranking = '/ranking';
   static const String calendar = '/calendar';
   static const String community = '/community';
@@ -13,31 +13,34 @@ class RouteConstants {
   static const String profileRegister = '/profile-register';
   static const String pointCalendar = '/point-calendar';
   static const String noticeList = '/notice-list';
+  static const String memberList = '/member-list';
+  static const String guestbook = '/guestbook';
 
-  // 관리자
+  // === 관리자 ===
   static const String adminDashboard = '/admin-dashboard';
-
-  // 관리자 - 포인트
   static const String pointAward = '/admin/point-award';
   static const String pointAwardList = '/admin/point-award-list';
-
-  // 관리자 - 경기
   static const String eventCreate = '/admin/event-create';
   static const String eventList = '/admin/event-list';
-  static const String eventEdit = '/admin/event-edit'; // 추가
-
-  // 관리자 - 폼
+  static const String eventEdit = '/admin/event-edit';
   static const String noticeForm = '/admin/notice-form';
   static const String newsForm = '/admin/news-form';
   static const String sponsorForm = '/admin/sponsor-form';
-
-  // 관리자 - 정회원
   static const String memberRegister = '/admin/member-register';
-  static const String memberList = '/member-list';
-
-  // 방명록
-  static const String guestbook = '/guestbook';
-
-  // 대회 사진 폼
   static const String competitionPhotosForm = '/admin/competition-photos-form';
+
+  // === 커뮤니티 - 서클 ===
+  static const String postWrite = '/community/post-write';
+  static const String postDetail = '/community/post-detail';
+
+  // === 커뮤니티 - 체크아웃 ===
+  static const String checkoutPractice = '/community/checkout-practice';
+  static const String checkoutResult = '/community/checkout-result';
+  static const String checkoutCalculator = '/community/checkout-calculator';
+
+  // === 커뮤니티 - 아레나 ===
+  static const String arenaDetail = '/community/arena-detail';
+  static const String arenaReviewWrite = '/community/arena-review-write';
+  static const String arenaReviewDetail = '/community/arena-review-detail';
+  static const String circleFull = '/community/circle-full';
 }

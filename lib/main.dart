@@ -1,5 +1,4 @@
 // lib/main.dart
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,38 +6,48 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
-// 스크린 import
+// === 공통 스크린 ===
 import 'package:daoapp/presentation/screens/splash_screen.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/presentation/screens/login/login_screen.dart';
+
+// === 유저 스크린 ===
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
-import 'package:daoapp/presentation/screens/login/login_screen.dart';
-import 'package:daoapp/presentation/screens/community/community_screen.dart';
+import 'package:daoapp/presentation/screens/community/community_home_screen.dart';
 import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
 import 'package:daoapp/presentation/screens/user/profile_register_screen.dart';
 import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
-import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
+import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
+import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
+import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
 
-// 관리자 스크린 import
+// === 관리자 스크린 ===
+import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/event_create_screen.dart';
 import 'package:daoapp/presentation/screens/admin/event_list_screen.dart';
-import 'package:daoapp/presentation/screens/admin/event_edit_screen.dart'; // 추가
+import 'package:daoapp/presentation/screens/admin/event_edit_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/notice_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
-
-// 정회원 등록/명단 스크린 import
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
-import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
-
-// 방명록 스크린 import
-import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
-
-// 새로 추가: 공지 리스트 + 대회 사진 폼
-import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
+
+// === 커뮤니티 - 서클 ===
+import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
+import 'package:daoapp/presentation/screens/community/circle/circle_screen.dart'; // 추가!
+
+// === 커뮤니티 - 체크아웃 ===
+import 'package:daoapp/presentation/screens/community/checkout/checkout_practice_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/checkout_result_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/checkout_calculator_screen.dart';
+
+// === 커뮤니티 - 아레나 ===
+import 'package:daoapp/presentation/screens/community/arena/arena_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/arena_review_write_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/arena_review_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,66 +71,71 @@ class DaoApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: RouteConstants.splash,
       routes: {
-        // === 정적 라우트 ===
+        // === 공통 ===
         RouteConstants.splash: (_) => const SplashScreen(),
         RouteConstants.login: (_) => const LoginScreen(),
         RouteConstants.main: (_) => const MainScreen(),
+
+        // === 유저 ===
         RouteConstants.ranking: (_) => const RankingScreenBody(),
         RouteConstants.calendar: (_) => const CalendarScreenBody(),
-        RouteConstants.community: (_) => const CommunityScreenBody(),
+        RouteConstants.community: (_) => const CommunityHomeScreen(),
         RouteConstants.myPage: (_) => const MyPageScreenBody(),
         RouteConstants.profileRegister: (_) => const ProfileRegisterScreen(),
         RouteConstants.pointCalendar: (_) => const PointCalendarScreen(),
+        RouteConstants.noticeList: (_) => const NoticeListScreen(),
+        RouteConstants.memberList: (_) => const MemberListScreen(),
+
+        // === 관리자 ===
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) => const PointAwardListScreen(),
         RouteConstants.eventCreate: (_) => const EventCreateScreen(),
         RouteConstants.eventList: (_) => const EventListScreen(),
-        RouteConstants.eventEdit: (context) {
-          final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-          return EventEditScreen(
-            docId: args['docId'] as String,
-            initialData: args['initialData'] as Map<String, dynamic>,
-          );
-        }, // 추가: 동적 생성
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
-        RouteConstants.memberList: (_) => const MemberListScreen(),
+        RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
+
+        // === 커뮤니티 - 서클 ===
+        RouteConstants.postWrite: (_) => const PostWriteScreen(),
+        RouteConstants.circleFull: (_) => const CircleScreen(),
+
+        // === 커뮤니티 - 체크아웃 ===
+        RouteConstants.checkoutPractice: (_) => const CheckoutPracticeScreen(),
+        RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
+        RouteConstants.checkoutCalculator: (_) => const CheckoutCalculatorScreen(),
+
+        // === 커뮤니티 - 아레나 ===
+        RouteConstants.arenaDetail: (_) => const ArenaScreen(),
+        RouteConstants.arenaReviewWrite: (_) => const ArenaReviewWriteScreen(),
       },
       onGenerateRoute: (settings) {
-        // === 동적 라우트 ===
         if (settings.name == RouteConstants.guestbook) {
           final userId = settings.arguments as String;
+          return MaterialPageRoute(builder: (_) => GuestbookScreen(userId: userId));
+        }
+
+
+        if (settings.name == RouteConstants.eventEdit) {
+          final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
-            builder: (_) => GuestbookScreen(userId: userId),
-            settings: settings,
+            builder: (_) => EventEditScreen(
+              docId: args['docId'] as String,
+              initialData: args['initialData'] as Map<String, dynamic>,
+            ),
           );
         }
 
-        if (settings.name == RouteConstants.noticeList) {
-          return MaterialPageRoute(
-            builder: (_) => const NoticeListScreen(),
-            settings: settings,
-          );
-        }
-
-        if (settings.name == RouteConstants.competitionPhotosForm) {
-          return MaterialPageRoute(
-            builder: (_) => const CompetitionPhotosFormScreen(),
-            settings: settings,
-          );
+        if (settings.name == RouteConstants.arenaReviewDetail) {
+          final reviewId = settings.arguments as String;
+          return MaterialPageRoute(builder: (_) => ArenaReviewDetailScreen(reviewId: reviewId));
         }
 
         return null;
       },
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (_) => const SplashScreen(),
-          settings: settings,
-        );
-      },
+      onUnknownRoute: (_) => MaterialPageRoute(builder: (_) => const SplashScreen()),
     );
   }
 }

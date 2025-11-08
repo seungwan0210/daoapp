@@ -10,9 +10,7 @@ lib/
 ¦¢   ¦¢   ¦§¦¡¦¡ app_providers.dart
 ¦¢   ¦¢   ¦§¦¡¦¡ user_home_provider.dart
 ¦¢   ¦¢   ¦¦¦¡¦¡ ranking_provider.dart
-¦¢   ¦¢   ¦¦¦¡¦¡ arena_provider.dart
 ¦¢   ¦¢   ¦¦¦¡¦¡ community_provider.dart
-¦¢   ¦¢   ¦¦¦¡¦¡ checkout_provider.dart
 ¦¢   ¦§¦¡¦¡ screens/
 ¦¢   ¦¢   ¦§¦¡¦¡ splash_screen.dart
 ¦¢   ¦¢   ¦§¦¡¦¡ login/
@@ -29,21 +27,24 @@ lib/
 ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ member_list_screen.dart
 ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ guestbook_screen.dart
 ¦¢   ¦¢   ¦§¦¡¦¡ community/ 
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ widgets/   
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ circle_avatar_slider.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ comment_item.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ post_card.dart
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡community_screen.dart
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡post_detail_screen.dart
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡post_write_screen.dart
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡checkout/
+¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡community_home_screen.dart
+¦¢   ¦¢   ¦¢   ¦§¦¡¦¡checkout/
 ¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ widgets/
-¦¢   ¦¢   ¦¢   ¦¢      ¦¢      ¦¦¦¡¦¡ dart_board.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¢      ¦¦¦¡¦¡ route_card.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¢      ¦¦¦¡¦¡ segment_button.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ checkout_calculator_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ checkout_practice_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ checkout_result_screen.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ dart_board.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ route_card.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ segment_button.dart
+¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ checkout_calculator_screen.dart
+¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ checkout_practice_screen.dart
+¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ checkout_result_screen.dart
+¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ checkout_trainer_preview.dart
+¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ circle/
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ circle_screen.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ circle_preview.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ post_write_screen.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ post_detail_screen.dart
+¦¢   ¦¢   ¦¢   ¦§¦¡¦¡arena/
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ arena_screen.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ arena_preview.dart
 ¦¢   ¦¢   ¦¦¦¡¦¡ admin/
 ¦¢   ¦¢       ¦§¦¡¦¡ admin_dashboard_screen.dart
 ¦¢   ¦¢       ¦§¦¡¦¡ event_create_screen.dart
@@ -62,6 +63,7 @@ lib/
 ¦¢       ¦¦¦¡¦¡ app_card.dart
 ¦¢       ¦¦¦¡¦¡ common_appbar.dart
 ¦¢       ¦¦¦¡¦¡ galaxy_settings_section.dart
+¦¢       ¦¦¦¡¦¡ circle_avatar_slider.dart
 ¦§¦¡¦¡ data/
 ¦¢   ¦§¦¡¦¡ repositories/
 ¦¢   ¦¢   ¦§¦¡¦¡ auth_repository.dart
@@ -72,6 +74,7 @@ lib/
 ¦¢       ¦§¦¡¦¡ point_record_model.dart
 ¦¢       ¦§¦¡¦¡ ranking_user.dart
 ¦¢       ¦§¦¡¦¡ user_model.dart
+¦¢       ¦§¦¡¦¡ checkout_route_model.dart
 ¦§¦¡¦¡ core/
 ¦¢   ¦§¦¡¦¡ constants/
 ¦¢   ¦¢   ¦¦¦¡¦¡ route_constants.dart

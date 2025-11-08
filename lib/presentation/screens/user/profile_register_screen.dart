@@ -1,5 +1,4 @@
 // lib/presentation/screens/user/profile_register_screen.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class ProfileRegisterScreen extends ConsumerStatefulWidget {
   const ProfileRegisterScreen({super.key});
@@ -26,7 +25,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   final _phoneController = TextEditingController();
   final _codeController = TextEditingController();
 
-  // 배럴 세팅 → 서술형 입력
   final _barrelNameController = TextEditingController();
   final _shaftController = TextEditingController();
   final _flightController = TextEditingController();
@@ -85,7 +83,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       _originalPhone = displayPhone;
       _isPhoneVerified = data['isPhoneVerified'] == true;
 
-      // 서술형 데이터 로드
       _barrelNameController.text = data['barrelName'] ?? '';
       _shaftController.text = data['shaft'] ?? '';
       _flightController.text = data['flight'] ?? '';
@@ -120,12 +117,11 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     }
 
     final phone = '+82${digits.substring(1)}';
-    print('인증 요청: $phone');
 
     setState(() {
       _isVerifying = true;
-      _verificationId = null;        // 초기화
-      _codeController.clear();       // 초기화
+      _verificationId = null;
+      _codeController.clear();
     });
 
     try {
@@ -144,7 +140,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
           });
           _showSnackBar('인증번호가 전송되었습니다');
         },
-        codeAutoRetrievalTimeout: (verificationId) {
+        codeAutoRetrievalTimeout: (_) {
           setState(() {
             _verificationId = null;
             _codeSent = false;
@@ -160,7 +156,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     }
   }
 
-  // 인증번호 확인
   Future<void> _verifyCode() async {
     if (_codeController.text.length != 6 || !_codeController.text.trim().contains(RegExp(r'^\d{6}$'))) {
       _showSnackBar('6자리 숫자 인증번호를 입력하세요');
@@ -179,7 +174,18 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
         verificationId: _verificationId!,
         smsCode: _codeController.text.trim(),
       );
-      await FirebaseAuth.instance.signInWithCredential(credential);
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser != null) {
+        // Google 계정에 Phone 번호 연동
+        await currentUser.linkWithCredential(credential);
+        _showSnackBar('휴대폰 번호가 연동되었습니다!', color: Colors.green);
+      } else {
+        // 비정상: currentUser 없음 → 새로 로그인
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        _showSnackBar('로그인되었습니다', color: Colors.green);
+      }
 
       setState(() {
         _isPhoneVerified = true;
@@ -188,18 +194,15 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
         _originalPhone = _phoneController.text;
       });
       _codeController.clear();
-      _showSnackBar('인증 완료!', color: Colors.green);
+
     } on FirebaseAuthException catch (e) {
       String msg;
-      switch (e.code) {
-        case 'invalid-verification-code':
-          msg = '인증번호가 틀렸습니다';
-          break;
-        case 'session-expired':
-          msg = '인증번호가 만료되었습니다. 다시 요청하세요';
-          break;
-        default:
-          msg = '인증 실패: ${e.message}';
+      if (e.code == 'credential-already-in-use') {
+        msg = '이 번호는 이미 다른 계정에 연동되어 있습니다';
+      } else if (e.code == 'invalid-verification-code') {
+        msg = '인증번호가 틀렸습니다';
+      } else {
+        msg = '인증 실패: ${e.message}';
       }
       _showSnackBar(msg);
     } catch (e) {
@@ -230,10 +233,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
         content: const Text('정말로 이 사진을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -299,17 +299,12 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       'shopName': _shopNameController.text.trim(),
       'phoneNumber': phoneInput.isNotEmpty ? '+82$cleanNumber' : FieldValue.delete(),
       'isPhoneVerified': _isPhoneVerified,
-      // 서술형 저장
       'barrelName': _barrelNameController.text.trim(),
       'shaft': _shaftController.text.trim(),
       'flight': _flightController.text.trim(),
       'tip': _tipController.text.trim(),
-      'profileImageUrl': _profileImage != null
-          ? profileUrl
-          : (_firestoreProfileUrl == null ? null : _firestoreProfileUrl),
-      'barrelImageUrl': _barrelImage != null
-          ? barrelUrl
-          : (_firestoreBarrelUrl == null ? null : _firestoreBarrelUrl),
+      'profileImageUrl': _profileImage != null ? profileUrl : (_firestoreProfileUrl == null ? null : _firestoreProfileUrl),
+      'barrelImageUrl': _barrelImage != null ? barrelUrl : (_firestoreBarrelUrl == null ? null : _firestoreBarrelUrl),
       'hasProfile': true,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
@@ -322,27 +317,19 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   }
 
   void _showSnackBar(String message, {Color? color}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   ImageProvider? _getProfileImageProvider() {
     if (_profileImage != null) return FileImage(_profileImage!);
-    if (_firestoreProfileUrl != null && _firestoreProfileUrl!.isNotEmpty) {
-      return NetworkImage(_firestoreProfileUrl!);
-    }
-    if (_isFirstRegistration && user?.photoURL != null) {
-      return NetworkImage(user!.photoURL!);
-    }
+    if (_firestoreProfileUrl != null && _firestoreProfileUrl!.isNotEmpty) return NetworkImage(_firestoreProfileUrl!);
+    if (_isFirstRegistration && user?.photoURL != null) return NetworkImage(user!.photoURL!);
     return null;
   }
 
   DecorationImage? _getBarrelDecorationImage() {
     if (_barrelImage != null) return DecorationImage(image: FileImage(_barrelImage!), fit: BoxFit.cover);
-    if (_firestoreBarrelUrl != null && _firestoreBarrelUrl!.isNotEmpty) {
-      return DecorationImage(image: NetworkImage(_firestoreBarrelUrl!), fit: BoxFit.cover);
-    }
+    if (_firestoreBarrelUrl != null && _firestoreBarrelUrl!.isNotEmpty) return DecorationImage(image: NetworkImage(_firestoreBarrelUrl!), fit: BoxFit.cover);
     return null;
   }
 
@@ -373,10 +360,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   }
 
   Widget _buildProfileImageStack() {
-    final hasImage = _profileImage != null ||
-        _firestoreProfileUrl != null ||
-        (_isFirstRegistration && user?.photoURL != null);
-
+    final hasImage = _profileImage != null || _firestoreProfileUrl != null || (_isFirstRegistration && user?.photoURL != null);
     return Stack(
       children: [
         CircleAvatar(
@@ -397,14 +381,8 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     return Stack(
       children: [
         Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-            image: hasImage ? _getBarrelDecorationImage() : null,
-          ),
+          width: 100, height: 100,
+          decoration: BoxDecoration(color: Colors.grey[200], border: Border.all(color: Colors.grey), borderRadius: BorderRadius.circular(8), image: hasImage ? _getBarrelDecorationImage() : null),
           child: !hasImage ? const Icon(Icons.sports_esports, size: 40, color: Colors.grey) : null,
         ),
         Positioned(bottom: 0, right: 0, child: _buildIconButton(Icons.camera_alt, () => _pickImage(false), size: 28)),
@@ -417,10 +395,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CommonAppBar(
-        title: '프로필 수정',
-        showBackButton: true,
-      ),
+      appBar: CommonAppBar(title: '프로필 등록/수정', showBackButton: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -432,26 +407,14 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
               AppCard(
                 child: Column(
                   children: [
-                    TextFormField(
-                      controller: _koreanNameController,
-                      decoration: const InputDecoration(labelText: '한국 이름', prefixIcon: Icon(Icons.person)),
-                      validator: (v) => v!.trim().isEmpty ? '한국 이름을 입력하세요' : null,
-                    ),
+                    TextFormField(controller: _koreanNameController, decoration: const InputDecoration(labelText: '한국 이름', prefixIcon: Icon(Icons.person)), validator: (v) => v!.trim().isEmpty ? '한국 이름을 입력하세요' : null),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _englishNameController,
-                      decoration: const InputDecoration(labelText: '영어 이름', prefixIcon: Icon(Icons.translate)),
-                      validator: (v) => v!.trim().isEmpty ? '영어 이름을 입력하세요' : null,
-                    ),
+                    TextFormField(controller: _englishNameController, decoration: const InputDecoration(labelText: '영어 이름', prefixIcon: Icon(Icons.translate)), validator: (v) => v!.trim().isEmpty ? '영어 이름을 입력하세요' : null),
                     const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _shopNameController,
-                      decoration: const InputDecoration(labelText: '샵 이름', prefixIcon: Icon(Icons.store)),
-                      validator: (v) => v!.trim().isEmpty ? '샵 이름을 입력하세요' : null,
-                    ),
+                    TextFormField(controller: _shopNameController, decoration: const InputDecoration(labelText: '샵 이름', prefixIcon: Icon(Icons.store)), validator: (v) => v!.trim().isEmpty ? '샵 이름을 입력하세요' : null),
                     const SizedBox(height: 12),
 
-                    // 전화번호 인증 UI (핵심)
+                    // 전화번호 인증 UI (신규 유저 인증 버튼 포함)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Row(
@@ -462,35 +425,22 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // 인증 완료 상태
-                                if (!_isEditingPhone && _isPhoneVerified)
-                                  Text(
-                                    '+82 ${_phoneController.text}',
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
+                                if (!_isEditingPhone && _isPhoneVerified && !_isFirstRegistration)
+                                  Text('+82 ${_phoneController.text}', style: const TextStyle(fontSize: 16)),
 
-                                // 편집 모드 또는 최초 등록
-                                if (_isEditingPhone || !_isPhoneVerified)
+                                if (_isFirstRegistration || _isEditingPhone || !_isPhoneVerified)
                                   TextFormField(
                                     controller: _phoneController,
-                                    enabled: _isEditingPhone || !_isPhoneVerified,
+                                    enabled: _isFirstRegistration || _isEditingPhone || !_isPhoneVerified,
                                     keyboardType: TextInputType.phone,
-                                    decoration: InputDecoration(
-                                      hintText: '01012345678',
-                                      border: const UnderlineInputBorder(),
-                                      isDense: true,
-                                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                                    ),
+                                    decoration: InputDecoration(hintText: '01012345678', border: const UnderlineInputBorder(), isDense: true, contentPadding: const EdgeInsets.symmetric(vertical: 8)),
                                     validator: (v) {
-                                      if (_isFirstRegistration && (v?.trim().isEmpty ?? true)) {
-                                        return '전화번호는 필수입니다';
-                                      }
+                                      if (_isFirstRegistration && (v?.trim().isEmpty ?? true)) return '전화번호는 필수입니다';
                                       return null;
                                     },
                                   ),
 
-                                // 인증번호 입력
-                                if (_codeSent && _isEditingPhone)
+                                if (_codeSent && (_isEditingPhone || _isFirstRegistration))
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),
                                     child: Row(
@@ -499,20 +449,13 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                                           child: TextField(
                                             controller: _codeController,
                                             keyboardType: TextInputType.number,
-                                            decoration: const InputDecoration(
-                                              hintText: '인증번호 6자리',
-                                              border: UnderlineInputBorder(),
-                                              isDense: true,
-                                            ),
+                                            decoration: const InputDecoration(hintText: '인증번호 6자리', border: UnderlineInputBorder(), isDense: true),
                                           ),
                                         ),
                                         const SizedBox(width: 8),
                                         _isVerifying
                                             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                                            : IconButton(
-                                          icon: const Icon(Icons.check, color: Colors.green),
-                                          onPressed: _verifyCode,
-                                        ),
+                                            : IconButton(icon: const Icon(Icons.check, color: Colors.green), onPressed: _verifyCode),
                                       ],
                                     ),
                                   ),
@@ -520,30 +463,25 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                             ),
                           ),
 
-                          // 액션 버튼
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // 인증 완료 체크
-                              if (_isPhoneVerified && !_isEditingPhone)
+                              if (_isPhoneVerified && !_isEditingPhone && !_isFirstRegistration)
                                 const Icon(Icons.check_circle, color: Colors.green, size: 20),
 
-                              // 변경 버튼
-                              if (_isPhoneVerified && !_isEditingPhone)
+                              if (_isPhoneVerified && !_isEditingPhone && !_isFirstRegistration)
                                 TextButton(
                                   onPressed: () => setState(() => _isEditingPhone = true),
                                   child: const Text('변경', style: TextStyle(fontSize: 12)),
                                 ),
 
-                              // 인증 요청 버튼
-                              if (_isEditingPhone && !_codeSent)
+                              if ((_isFirstRegistration || _isEditingPhone) && !_codeSent && !_isPhoneVerified)
                                 IconButton(
                                   icon: const Icon(Icons.send, color: Colors.blue),
-                                  onPressed: _sendVerificationCode,
+                                  onPressed: _isVerifying ? null : _sendVerificationCode,
                                 ),
 
-                              // 취소 버튼
-                              if (_isEditingPhone)
+                              if (_isEditingPhone && !_isFirstRegistration)
                                 IconButton(
                                   icon: const Icon(Icons.close, color: Colors.red),
                                   onPressed: () {
@@ -566,54 +504,19 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                       leading: const Icon(Icons.sports_esports),
                       title: const Text('배럴 세팅 (선택)'),
                       children: [
-                        // 서술형 입력
-                        TextFormField(
-                          controller: _barrelNameController,
-                          decoration: const InputDecoration(
-                            labelText: '배럴 이름',
-                            prefixIcon: Icon(Icons.sports_esports),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
+                        TextFormField(controller: _barrelNameController, decoration: const InputDecoration(labelText: '배럴 이름', prefixIcon: Icon(Icons.sports_esports), border: OutlineInputBorder())),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _shaftController,
-                          decoration: const InputDecoration(
-                            labelText: '샤프트',
-                            prefixIcon: Icon(Icons.straighten),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
+                        TextFormField(controller: _shaftController, decoration: const InputDecoration(labelText: '샤프트', prefixIcon: Icon(Icons.straighten), border: OutlineInputBorder())),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _flightController,
-                          decoration: const InputDecoration(
-                            labelText: '플라이트',
-                            prefixIcon: Icon(Icons.flight),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
+                        TextFormField(controller: _flightController, decoration: const InputDecoration(labelText: '플라이트', prefixIcon: Icon(Icons.flight), border: OutlineInputBorder())),
                         const SizedBox(height: 12),
-                        TextFormField(
-                          controller: _tipController,
-                          decoration: const InputDecoration(
-                            labelText: '팁',
-                            prefixIcon: Icon(Icons.push_pin),
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
+                        TextFormField(controller: _tipController, decoration: const InputDecoration(labelText: '팁', prefixIcon: Icon(Icons.push_pin), border: OutlineInputBorder())),
                         const SizedBox(height: 16),
                         Center(child: _buildBarrelImageStack()),
                       ],
                     ),
                     const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _save,
-                        child: const Text('완료'),
-                      ),
-                    ),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _save, child: const Text('완료'))),
                   ],
                 ),
               ),
