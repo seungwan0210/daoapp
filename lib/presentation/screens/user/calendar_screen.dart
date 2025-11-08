@@ -54,14 +54,17 @@ class CalendarNotifier extends StateNotifier<CalendarState> {
       final Map<DateTime, List<Map<String, dynamic>>> events = {};
       for (var doc in snapshot.docs) {
         final data = doc.data();
-        final timestamp = data['date'] as Timestamp?;
+        final timestamp = data['eventDateTime'] as Timestamp?;
         if (timestamp == null) continue;
-        final date = timestamp.toDate();
-        final key = DateTime(date.year, date.month, date.day);
+
+        final eventDateTime = timestamp.toDate();
+        final key = DateTime(eventDateTime.year, eventDateTime.month, eventDateTime.day);
+
         events.putIfAbsent(key, () => []).add({
           ...data,
           'id': doc.id,
           'title': '${data['shopName'] ?? '경기'} 경기',
+          'eventDateTime': eventDateTime, // 상태 판단용
         });
       }
       state = state.copyWith(events: events);
@@ -97,21 +100,14 @@ class CalendarScreen extends StatelessWidget {
 class CalendarScreenBody extends ConsumerWidget {
   const CalendarScreenBody({super.key});
 
-  String _getEventStatus(DateTime eventDate, String? time) {
-    if (time == null || time.isEmpty) return 'upcoming';
-    final parts = time.split(':');
-    if (parts.length < 2) return 'upcoming';
-    final hour = int.tryParse(parts[0]) ?? 0;
-    final minute = int.tryParse(parts[1]) ?? 0;
-    final eventDateTime = DateTime(eventDate.year, eventDate.month, eventDate.day, hour, minute);
+  // eventDateTime 기준으로 상태 판단
+  String _getEventStatus(DateTime eventDateTime) {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
 
     if (eventDateTime.isBefore(todayStart)) {
       return 'completed';
-    } else if (eventDate.year == now.year &&
-        eventDate.month == now.month &&
-        eventDate.day == now.day) {
+    } else if (isSameDay(eventDateTime, now)) {
       return eventDateTime.isBefore(now) ? 'completed' : 'ongoing';
     } else {
       return 'upcoming';
@@ -166,17 +162,22 @@ class CalendarScreenBody extends ConsumerWidget {
                         if (events.isEmpty) return null;
                         final eventList = events.cast<Map<String, dynamic>>();
                         final earliest = eventList.reduce((a, b) {
-                          final timeA = a['time'] as String? ?? '23:59';
-                          final timeB = b['time'] as String? ?? '23:59';
-                          return timeA.compareTo(timeB) <= 0 ? a : b;
+                          final timeA = a['eventDateTime'] as DateTime;
+                          final timeB = b['eventDateTime'] as DateTime;
+                          return timeA.isBefore(timeB) ? a : b;
                         });
-                        final status = _getEventStatus(day, earliest['time'] as String?);
+                        final eventDateTime = earliest['eventDateTime'] as DateTime;
+                        final status = _getEventStatus(eventDateTime);
                         return Container(
                           width: 6,
                           height: 6,
                           margin: const EdgeInsets.symmetric(horizontal: 1.5),
                           decoration: BoxDecoration(
-                            color: status == 'completed' ? Colors.red : status == 'ongoing' ? Colors.blue : Colors.green,
+                            color: status == 'completed'
+                                ? Colors.red
+                                : status == 'ongoing'
+                                ? Colors.blue
+                                : Colors.green,
                             shape: BoxShape.circle,
                           ),
                         );
@@ -219,11 +220,8 @@ class CalendarScreenBody extends ConsumerWidget {
                   itemCount: calendarNotifier.getEventsForDay(calendarState.selectedDay!).length,
                   itemBuilder: (_, i) {
                     final event = calendarNotifier.getEventsForDay(calendarState.selectedDay!)[i];
-                    final eventDate = (event['date'] as Timestamp?)?.toDate();
-                    final time = event['time'] as String?;
-                    final status = _getEventStatus(eventDate ?? DateTime.now(), time);
-
-                    if (eventDate == null || time == null) return const SizedBox.shrink();
+                    final eventDateTime = event['eventDateTime'] as DateTime;
+                    final status = _getEventStatus(eventDateTime);
 
                     final winner = event['winner'] as String?;
                     final hasWinner = winner != null && winner.trim().isNotEmpty;
@@ -246,7 +244,7 @@ class CalendarScreenBody extends ConsumerWidget {
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          onTap: () => _showEventDetail(context, event, eventDate),
+                          onTap: () => _showEventDetail(context, event, eventDateTime),
                           child: Padding(
                             padding: const EdgeInsets.all(14),
                             child: Row(
@@ -282,7 +280,7 @@ class CalendarScreenBody extends ConsumerWidget {
                                           const SizedBox(width: 4),
                                           Expanded(
                                             child: Text(
-                                              '${event['shopName'] ?? '장소 미정'} • $time',
+                                              '${event['shopName'] ?? '장소 미정'} • ${eventDateTime.hour.toString().padLeft(2, '0')}:${eventDateTime.minute.toString().padLeft(2, '0')}',
                                               style: TextStyle(fontSize: 14, color: Colors.grey[800]),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -367,8 +365,8 @@ class CalendarScreenBody extends ConsumerWidget {
   }
 
   // === 팝업 다이얼로그: 사진 위 + 글자 컴팩트 (인스타 스타일) ===
-  void _showEventDetail(BuildContext context, Map<String, dynamic> event, DateTime date) {
-    final status = _getEventStatus(date, event['time'] as String?);
+  void _showEventDetail(BuildContext context, Map<String, dynamic> event, DateTime eventDateTime) {
+    final status = _getEventStatus(eventDateTime);
     final hasImage = event['resultImageUrl'] != null;
     final winner = event['winner'] as String?;
     final hasWinner = winner != null && winner.trim().isNotEmpty;
@@ -434,8 +432,8 @@ class CalendarScreenBody extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      _buildCompactRow(context, '날짜', AppDateUtils.formatKoreanDate(date)),
-                      _buildCompactRow(context, '시간', event['time'] ?? '미정'),
+                      _buildCompactRow(context, '날짜', AppDateUtils.formatKoreanDate(eventDateTime)),
+                      _buildCompactRow(context, '시간', '${eventDateTime.hour.toString().padLeft(2, '0')}:${eventDateTime.minute.toString().padLeft(2, '0')}'),
                       _buildCompactRow(context, '장소', event['shopName'] ?? '미정'),
                       _buildCompactRow(context, '참가비', '${event['entryFee'] ?? 0}원'),
                       const SizedBox(height: 12),
@@ -461,7 +459,7 @@ class CalendarScreenBody extends ConsumerWidget {
                         _buildCompactRow(
                           context,
                           '상태',
-                          status == 'ongoing' ? '진행' : '예정',
+                          status == 'ongoing' ? '진행 중' : '예정',
                           color: status == 'ongoing' ? Colors.blue : Colors.green,
                         ),
                     ],

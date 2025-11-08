@@ -32,18 +32,17 @@ class _EventListScreenState extends State<EventListScreen> {
   void _loadAllEvents() {
     FirebaseFirestore.instance
         .collection('events')
-        .orderBy('date', descending: true)
+        .orderBy('eventDateTime', descending: true)
         .snapshots()
         .listen((snapshot) {
       final Map<DateTime, List<QueryDocumentSnapshot>> events = {};
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>?;
-        if (data == null) continue;
-        final timestamp = data['date'] as Timestamp?;
+        final timestamp = data?['eventDateTime'] as Timestamp?;
         if (timestamp == null) continue;
 
-        final date = timestamp.toDate();
-        final key = DateTime(date.year, date.month, date.day);
+        final eventDateTime = timestamp.toDate();
+        final key = DateTime(eventDateTime.year, eventDateTime.month, eventDateTime.day);
         events.putIfAbsent(key, () => []).add(doc);
       }
       if (mounted) {
@@ -57,25 +56,55 @@ class _EventListScreenState extends State<EventListScreen> {
     return _events[key] ?? [];
   }
 
-  String _getEventStatus(DateTime eventDate, String? time) {
-    if (time == null || time.isEmpty) return 'upcoming';
-    final parts = time.split(':');
-    if (parts.length < 2) return 'upcoming';
-    final hour = int.tryParse(parts[0]) ?? 0;
-    final minute = int.tryParse(parts[1]) ?? 0;
-    final eventDateTime = DateTime(eventDate.year, eventDate.month, eventDate.day, hour, minute);
+  String _getEventStatus(DateTime eventDateTime) {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
 
     if (eventDateTime.isBefore(todayStart)) {
       return 'completed';
-    } else if (eventDate.year == now.year &&
-        eventDate.month == now.month &&
-        eventDate.day == now.day) {
+    } else if (isSameDay(eventDateTime, now)) {
       return eventDateTime.isBefore(now) ? 'completed' : 'ongoing';
     } else {
       return 'upcoming';
     }
+  }
+
+  // 마이그레이션 함수
+  Future<void> _migrateData() async {
+    final snapshot = await FirebaseFirestore.instance.collection('events').get();
+    int count = 0;
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final eventDateTimeField = data['eventDateTime'];
+
+      if (eventDateTimeField is String) {
+        final match = RegExp(r'(\d{4})년 (\d{1,2})월 (\d{1,2})일 오([전후]) (\d{1,2})시 (\d{1,2})분').firstMatch(eventDateTimeField);
+        if (match != null) {
+          final year = int.parse(match.group(1)!);
+          final month = int.parse(match.group(2)!);
+          final day = int.parse(match.group(3)!);
+          final isPM = match.group(4) == '후';
+          var hour = int.parse(match.group(5)!);
+          final minute = int.parse(match.group(6)!);
+          if (isPM && hour != 12) hour += 12;
+          if (!isPM && hour == 12) hour = 0;
+          final eventDateTime = DateTime(year, month, day, hour, minute);
+
+          await doc.reference.update({
+            'eventDateTime': Timestamp.fromDate(eventDateTime),
+          });
+          count++;
+        }
+      }
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$count개 데이터 복구 완료!'),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   @override
@@ -90,7 +119,7 @@ class _EventListScreenState extends State<EventListScreen> {
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // 달력 (400px 고정 + 오버플로우 방지)
+            // 달력
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -100,7 +129,7 @@ class _EventListScreenState extends State<EventListScreen> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: SizedBox(
-                      height: 400, // 정확히 400px
+                      height: 400,
                       child: TableCalendar(
                         firstDay: AppDateUtils.firstDay,
                         lastDay: AppDateUtils.lastDay,
@@ -134,13 +163,14 @@ class _EventListScreenState extends State<EventListScreen> {
                             final earliest = eventList.reduce((a, b) {
                               final dataA = a.data() as Map<String, dynamic>?;
                               final dataB = b.data() as Map<String, dynamic>?;
-                              final timeA = (dataA?['time'] as String?) ?? '23:59';
-                              final timeB = (dataB?['time'] as String?) ?? '23:59';
-                              return timeA.compareTo(timeB) <= 0 ? a : b;
+                              final timeA = (dataA?['eventDateTime'] as Timestamp?)?.toDate() ?? DateTime.now();
+                              final timeB = (dataB?['eventDateTime'] as Timestamp?)?.toDate() ?? DateTime.now();
+                              return timeA.isBefore(timeB) ? a : b;
                             });
                             final data = earliest.data() as Map<String, dynamic>?;
-                            final time = data?['time'] as String?;
-                            final status = _getEventStatus(day, time);
+                            final eventDateTime = (data?['eventDateTime'] as Timestamp?)?.toDate();
+                            if (eventDateTime == null) return null;
+                            final status = _getEventStatus(eventDateTime);
                             return Align(
                               alignment: Alignment.bottomCenter,
                               child: Container(
@@ -207,12 +237,10 @@ class _EventListScreenState extends State<EventListScreen> {
                       if (data == null) return const SizedBox.shrink();
 
                       final docId = doc.id;
-                      final timestamp = data['date'] as Timestamp?;
-                      if (timestamp == null) return const SizedBox.shrink();
+                      final eventDateTime = (data['eventDateTime'] as Timestamp?)?.toDate();
+                      if (eventDateTime == null) return const SizedBox.shrink();
 
-                      final date = timestamp.toDate();
-                      final time = data['time'] as String?;
-                      final status = _getEventStatus(date, time);
+                      final status = _getEventStatus(eventDateTime);
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -231,14 +259,13 @@ class _EventListScreenState extends State<EventListScreen> {
                           ),
                           child: Row(
                             children: [
-                              // 왼쪽: 전체 클릭 → 수정
                               Expanded(
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(16),
                                   onTap: () {
                                     Navigator.pushNamed(
                                       context,
-                                      RouteConstants.eventEdit, // 수정 화면
+                                      RouteConstants.eventEdit,
                                       arguments: {
                                         'docId': docId,
                                         'initialData': data,
@@ -249,7 +276,6 @@ class _EventListScreenState extends State<EventListScreen> {
                                     padding: const EdgeInsets.all(14),
                                     child: Row(
                                       children: [
-                                        // 상태 아이콘
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
@@ -271,8 +297,6 @@ class _EventListScreenState extends State<EventListScreen> {
                                           ),
                                         ),
                                         const SizedBox(width: 12),
-
-                                        // 정보
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,7 +318,7 @@ class _EventListScreenState extends State<EventListScreen> {
                                                   const SizedBox(width: 4),
                                                   Expanded(
                                                     child: Text(
-                                                      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${time ?? '미정'}',
+                                                      '${eventDateTime.year}-${eventDateTime.month.toString().padLeft(2, '0')}-${eventDateTime.day.toString().padLeft(2, '0')} ${eventDateTime.hour.toString().padLeft(2, '0')}:${eventDateTime.minute.toString().padLeft(2, '0')}',
                                                       style: TextStyle(fontSize: 13, color: Colors.grey[700]),
                                                       maxLines: 1,
                                                       overflow: TextOverflow.ellipsis,
@@ -330,8 +354,6 @@ class _EventListScreenState extends State<EventListScreen> {
                                   ),
                                 ),
                               ),
-
-                              // 오른쪽: 삭제 아이콘만
                               IconButton(
                                 icon: const Icon(Icons.delete, color: Colors.red),
                                 onPressed: () => _deleteEvent(context, docId),
@@ -347,6 +369,13 @@ class _EventListScreenState extends State<EventListScreen> {
               ),
           ],
         ),
+      ),
+      // 마이그레이션 버튼 추가
+      floatingActionButton: FloatingActionButton(
+        onPressed: _migrateData,
+        child: const Icon(Icons.sync),
+        tooltip: '기존 데이터 복구 (eventDateTime → Timestamp)',
+        backgroundColor: Colors.green,
       ),
     );
   }

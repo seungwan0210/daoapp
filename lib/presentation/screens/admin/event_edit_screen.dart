@@ -44,9 +44,13 @@ class _EventEditScreenState extends State<EventEditScreen> {
     _winnerController = TextEditingController();
 
     final data = widget.initialData;
-    final timestamp = data['date'] as Timestamp?;
-    _date = timestamp?.toDate() ?? DateTime.now();
-    _time = data['time'] ?? '';
+
+    // eventDateTime에서 날짜/시간 추출
+    final eventDateTimeTs = data['eventDateTime'] as Timestamp?;
+    final eventDateTime = eventDateTimeTs?.toDate() ?? DateTime.now();
+
+    _date = DateTime(eventDateTime.year, eventDateTime.month, eventDateTime.day);
+    _time = '${eventDateTime.hour.toString().padLeft(2, '0')}:${eventDateTime.minute.toString().padLeft(2, '0')}';
     _shopName = data['shopName'] ?? '';
     _entryFee = data['entryFee'] ?? 0;
     _admin = data['admin'] ?? '';
@@ -112,7 +116,22 @@ class _EventEditScreenState extends State<EventEditScreen> {
       if (resultImageUrl == null) return;
     }
 
+    // time 파싱
+    final timeParts = _time.split(':');
+    final hour = int.tryParse(timeParts[0]) ?? 0;
+    final minute = int.tryParse(timeParts.length > 1 ? timeParts[1] : '0') ?? 0;
+
+    // 정확한 eventDateTime 생성
+    final eventDateTime = DateTime(
+      _date.year,
+      _date.month,
+      _date.day,
+      hour,
+      minute,
+    );
+
     final data = {
+      'eventDateTime': Timestamp.fromDate(eventDateTime), // 핵심!
       'winner': _winner,
       'resultImageUrl': resultImageUrl,
     };

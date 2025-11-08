@@ -91,7 +91,7 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     final snapshot = await FirebaseFirestore.instance
         .collection('events')
         .where('shopName', isEqualTo: shopName)
-        .orderBy('date', descending: true)
+        .orderBy('eventDateTime', descending: true)
         .limit(1)
         .get();
 
@@ -102,10 +102,31 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
       _isLoadingShop = false;
 
       if (snapshot.docs.isNotEmpty) {
-        final data = snapshot.docs.first.data();
-        _timeController.text = data['time'] ?? '';
+        final data = snapshot.docs.first.data(); // 첫 번째 = 가장 최근
+
+        // eventDateTime 처리
+        final eventDateTime = (data['eventDateTime'] as Timestamp?)?.toDate();
+        if (_timeController.text.trim().isEmpty && eventDateTime != null) {
+          _timeController.text = '${eventDateTime.hour.toString().padLeft(2, '0')}:${eventDateTime.minute.toString().padLeft(2, '0')}';
+        }
+
+        // 참가비
         final fee = data['entryFee'];
-        _entryFeeController.text = (fee is int && fee > 0) ? fee.toString() : '';
+        if (_entryFeeController.text.trim().isEmpty && fee is int && fee > 0) {
+          _entryFeeController.text = fee.toString();
+        }
+
+        // 관리자
+        final admin = data['admin'] as String?;
+        if (_adminController.text.trim().isEmpty && admin != null && admin.trim().isNotEmpty) {
+          _adminController.text = admin.trim();
+        }
+
+        // 연락처
+        final contact = data['contact'] as String?;
+        if (_contactController.text.trim().isEmpty && contact != null && contact.trim().isNotEmpty) {
+          _contactController.text = contact.trim();
+        }
       }
     });
   }
@@ -119,16 +140,29 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
     _admin = _adminController.text.trim();
     _contact = _contactController.text.trim();
 
+    // time 파싱
+    final timeParts = _time.split(':');
+    final hour = int.tryParse(timeParts[0]) ?? 0;
+    final minute = int.tryParse(timeParts.length > 1 ? timeParts[1] : '0') ?? 0;
+
+    // 정확한 eventDateTime 생성
+    final eventDateTime = DateTime(
+      _date.year,
+      _date.month,
+      _date.day,
+      hour,
+      minute,
+    );
+
     final data = {
-      'date': Timestamp.fromDate(_date),
-      'time': _time,
+      'eventDateTime': Timestamp.fromDate(eventDateTime),
       'shopName': _shopName,
       'entryFee': _entryFee,
       'admin': _admin,
       'contact': _contact,
       'title': '$_shopName 경기',
-      'resultImageUrl': null,  // 등록 시 사진 없음
-      'winner': null,          // 등록 시 우승자 없음
+      'resultImageUrl': null,
+      'winner': null,
     };
 
     try {
@@ -191,7 +225,17 @@ class _EventCreateScreenState extends State<EventCreateScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.access_time),
                 ),
-                validator: (v) => v!.trim().isEmpty ? '시간을 입력하세요' : null,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) return '시간을 입력하세요';
+                  final parts = v.trim().split(':');
+                  if (parts.length != 2) return 'HH:MM 형식으로 입력하세요';
+                  final hour = int.tryParse(parts[0]);
+                  final minute = int.tryParse(parts[1]);
+                  if (hour == null || minute == null || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+                    return '유효한 시간을 입력하세요';
+                  }
+                  return null;
+                },
               ),
             ),
             const SizedBox(height: 16),

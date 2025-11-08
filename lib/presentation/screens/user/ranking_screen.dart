@@ -284,7 +284,7 @@ class RankingScreenBody extends ConsumerWidget {
     return DropdownButtonFormField<bool>(
       value: notifier.selectedPhase == 'total' ? false : notifier.top9Mode,
       decoration: InputDecoration(
-        labelText: '상위',
+        labelText: '종합',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),

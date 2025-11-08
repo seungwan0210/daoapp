@@ -41,10 +41,11 @@ lib/
 ¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ circle_screen.dart
 ¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ circle_preview.dart
 ¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ post_write_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ post_detail_screen.dart
 ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡arena/
 ¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ arena_screen.dart
 ¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ arena_preview.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ arena_review_write_screen.dart
+¦¢   ¦¢   ¦¢   ¦¢      ¦¦¦¡¦¡ arena_review_detail_screen.dart
 ¦¢   ¦¢   ¦¦¦¡¦¡ admin/
 ¦¢   ¦¢       ¦§¦¡¦¡ admin_dashboard_screen.dart
 ¦¢   ¦¢       ¦§¦¡¦¡ event_create_screen.dart
