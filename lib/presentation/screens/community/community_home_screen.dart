@@ -5,8 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/presentation/widgets/circle_avatar_slider.dart';
-import 'package:daoapp/presentation/screens/community/circle/circle_preview.dart';
+import 'package:daoapp/presentation/screens/community/widgets/community_avatar_slider.dart';
+import 'package:daoapp/presentation/screens/community/widgets/community_preview.dart';
 import 'package:daoapp/presentation/screens/community/checkout/checkout_trainer_preview.dart';
 import 'package:daoapp/presentation/screens/community/arena/arena_preview.dart';
 
@@ -33,9 +33,8 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
     super.dispose();
   }
 
-  // 전체 보기 → CircleScreen 이동
   void _goToCircleFull() {
-    Navigator.pushNamed(context, RouteConstants.circleFull); // 라우트 추가 필요
+    Navigator.pushNamed(context, RouteConstants.circle);
   }
 
   @override
@@ -53,7 +52,10 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
             }
 
             return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .snapshots(includeMetadataChanges: true),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -69,14 +71,17 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
 
                 return Column(
                   children: [
-                    // 슬라이더 위에 간격 추가
-                    const SizedBox(height: 12), // ← 여기만 추가!
-                    const ProfileAvatarSlider(),
+                    const SizedBox(height: 16),
+                    const CommunityAvatarSlider(), // Done: 변경됨
                     Container(
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 2)),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
                         ],
                       ),
                       child: TabBar(
@@ -91,7 +96,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
                         ),
                         indicatorSize: TabBarIndicatorSize.tab,
                         dividerColor: Colors.transparent,
-                        padding: const EdgeInsets.only(top: 8), // 여백 줄임
                         tabAlignment: TabAlignment.fill,
                         tabs: const [
                           Tab(icon: Icon(Icons.groups, size: 22), text: "서클", iconMargin: EdgeInsets.only(bottom: 4)),
@@ -105,8 +109,8 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
                         controller: _tabController,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.only(top: 8), // 여백 줄임
-                            child: CirclePreview(onSeeAllPressed: _goToCircleFull),
+                            padding: const EdgeInsets.only(top: 8),
+                            child: CommunityPreview(onSeeAllPressed: _goToCircleFull), // Done: 변경됨
                           ),
                           const CheckoutTrainerPreview(),
                           const ArenaPreview(),
@@ -125,7 +129,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
     );
   }
 
-  // 로그인 유도
   Widget _buildLoginPrompt(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
@@ -172,7 +175,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
     );
   }
 
-  // 인증 유도
   Widget _buildVerificationPrompt(BuildContext context, bool hasProfile, bool isPhoneVerified) {
     final theme = Theme.of(context);
     return Center(

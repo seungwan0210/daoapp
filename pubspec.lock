@@ -129,6 +129,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.4.12"
+  cloud_functions:
+    dependency: "direct main"
+    description:
+      name: cloud_functions
+      sha256: b9ece944fc8c97ac0937cdf45e895f4670213c722ed819581e3d517b43413753
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.6.2"
+  cloud_functions_platform_interface:
+    dependency: transitive
+    description:
+      name: cloud_functions_platform_interface
+      sha256: "9720aa2ba715bfb1de6a131c70bbb0fa79329294ec1327fd24ce08004a080dcc"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.8.2"
+  cloud_functions_web:
+    dependency: transitive
+    description:
+      name: cloud_functions_web
+      sha256: "7756b6a6cf16016dc4c8631c88b31b81156b129c40914a84021216a841c0b3d8"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.11.5"
   collection:
     dependency: "direct main"
     description:
@@ -265,6 +289,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.24.1"
+  firebase_database:
+    dependency: "direct main"
+    description:
+      name: firebase_database
+      sha256: "35b37c04307b99c5f746387ce03292531c3aa1de91facffbd9cff5e069a8b5fd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "11.3.10"
+  firebase_database_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_database_platform_interface
+      sha256: "095342e96d94b486b8273afc6327f777d53b63a169bd4201e5153ee3b8210c11"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6+10"
+  firebase_database_web:
+    dependency: transitive
+    description:
+      name: firebase_database_web
+      sha256: "05f9b871d97b3ca879937947d0728ea95294395e7ddd5685583e8662be99eb16"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6+16"
   firebase_storage:
     dependency: "direct main"
     description:
@@ -572,10 +620,10 @@ packages:
     dependency: transitive
     description:
       name: mime
-      sha256: "41a20518f0cb1256669420fdba0cd90d21561e560ac240f26ef8322e45bb7ed6"
+      sha256: "801fd0b26f14a4a58ccb09d5892c3fbdeff209594300a542492cf13fba9d247a"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.0"
+    version: "1.0.6"
   octo_image:
     dependency: transitive
     description:
@@ -688,6 +736,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.28.0"
+  share_plus:
+    dependency: "direct main"
+    description:
+      name: share_plus
+      sha256: "3ef39599b00059db0990ca2e30fca0a29d8b37aae924d60063f8e0184cf20900"
+      url: "https://pub.dev"
+    source: hosted
+    version: "7.2.2"
+  share_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: share_plus_platform_interface
+      sha256: "251eb156a8b5fa9ce033747d73535bf53911071f8d3b6f4f0b578505ce0d4496"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.4.0"
   simple_gesture_detector:
     dependency: transitive
     description:
@@ -917,6 +981,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
+  win32:
+    dependency: transitive
+    description:
+      name: win32
+      sha256: "329edf97fdd893e0f1e3b9e88d6a0e627128cc17cc316a8d67fda8f1451178ba"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.13.0"
   xdg_directories:
     dependency: transitive
     description:

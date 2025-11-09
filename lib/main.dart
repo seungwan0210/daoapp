@@ -1,5 +1,7 @@
 // lib/main.dart
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/di/service_locator.dart';
@@ -37,7 +39,7 @@ import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_
 
 // === 커뮤니티 - 서클 ===
 import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
-import 'package:daoapp/presentation/screens/community/circle/circle_screen.dart'; // 추가!
+import 'package:daoapp/presentation/screens/community/circle/circle_screen.dart';
 
 // === 커뮤니티 - 체크아웃 ===
 import 'package:daoapp/presentation/screens/community/checkout/checkout_practice_screen.dart';
@@ -69,7 +71,7 @@ class DaoApp extends StatelessWidget {
       title: 'DAO App - Steel League',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      initialRoute: RouteConstants.splash,
+      initialRoute: RouteConstants.splash, // ← 여기! splash로 시작
       routes: {
         // === 공통 ===
         RouteConstants.splash: (_) => const SplashScreen(),
@@ -100,7 +102,7 @@ class DaoApp extends StatelessWidget {
 
         // === 커뮤니티 - 서클 ===
         RouteConstants.postWrite: (_) => const PostWriteScreen(),
-        RouteConstants.circleFull: (_) => const CircleScreen(),
+        RouteConstants.circle: (_) => const CircleScreen(),
 
         // === 커뮤니티 - 체크아웃 ===
         RouteConstants.checkoutPractice: (_) => const CheckoutPracticeScreen(),
@@ -116,7 +118,6 @@ class DaoApp extends StatelessWidget {
           final userId = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => GuestbookScreen(userId: userId));
         }
-
 
         if (settings.name == RouteConstants.eventEdit) {
           final args = settings.arguments as Map<String, dynamic>;

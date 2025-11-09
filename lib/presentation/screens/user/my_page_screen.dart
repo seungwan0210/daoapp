@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/main.dart'; // 이 줄 추가!
 
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
@@ -407,9 +408,26 @@ class MyPageScreenBody extends ConsumerWidget {
       '로그아웃',
       null,
       onTap: () async {
+        // 1. Firebase 로그아웃
         await ref.read(authRepositoryProvider).signOut();
+
+        // 2. Firestore 캐시 정리
+        await FirebaseFirestore.instance.clearPersistence();
+
+        // 3. Riverpod 상태 완전 초기화 (Riverpod 2.0+ 방식)
+        // 모든 Provider 상태 초기화
+        ProviderScope.containerOf(context).refresh(authStateProvider);
+        ProviderScope.containerOf(context).refresh(userHasProfileProvider);
+        // 필요하면 다른 provider도 추가
+        // 예: ProviderScope.containerOf(context).refresh(communityProvider);
+
+        // 4. 로그인 화면으로 이동 + 스택 완전 초기화
         if (context.mounted) {
-          Navigator.pushReplacementNamed(context, RouteConstants.login);
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const ProviderScope(child: DaoApp())),
+                (route) => false,
+          );
         }
       },
     );

@@ -166,16 +166,32 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 다음 경기
   static Widget _buildNextEventCard(BuildContext context) {
+    // 여기서 now를 미리 정의 (StreamBuilder 밖!)
+    final now = Timestamp.fromDate(DateTime.now().subtract(const Duration(minutes: 5)));
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('events')
-          .where('date', isGreaterThan: Timestamp.now())
-          .orderBy('date')
+          .where('eventDateTime', isGreaterThan: now)
+          .orderBy('eventDateTime')
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
+        // 디버깅 로그
+        print('NextEvent - State: ${snapshot.connectionState}, '
+            'HasData: ${snapshot.hasData}, '
+            'Docs: ${snapshot.data?.docs.length}, '
+            'Error: ${snapshot.error}');
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildShimmerBanner(height: 120);
+        }
+
+        if (snapshot.hasError) {
+          return _buildEmptyCard(context, '오류: ${snapshot.error}');
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return _buildEmptyCard(context, '예정된 경기 없음');
         }
@@ -198,8 +214,11 @@ class UserHomeScreenBody extends ConsumerWidget {
             const SizedBox(height: 8),
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final date = (data['date'] as Timestamp).toDate();
-              final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) ${data['time']}';
+              final date = (data['eventDateTime'] as Timestamp).toDate();
+              final timeStr = data['time'] as String? ??
+                  '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+              final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) $timeStr';
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
@@ -208,7 +227,7 @@ class UserHomeScreenBody extends ConsumerWidget {
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        data['shopName'],
+                        data['shopName'] ?? '장소 없음',
                         style: Theme.of(context).textTheme.bodyMedium,
                         overflow: TextOverflow.ellipsis,
                       ),

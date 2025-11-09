@@ -289,7 +289,7 @@ class RankingScreenBody extends ConsumerWidget {
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       items: [
-        const DropdownMenuItem(value: false, child: Text('성적')),
+        const DropdownMenuItem(value: false, child: Text('종합')),
         if (notifier.selectedPhase != 'total')
           const DropdownMenuItem(value: true, child: Text('상위 9개')),
       ],

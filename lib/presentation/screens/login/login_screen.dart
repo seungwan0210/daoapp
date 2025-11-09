@@ -1,5 +1,4 @@
 // lib/presentation/screens/login/login_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:math';
@@ -45,8 +44,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       body: Stack(
         children: [
@@ -98,7 +95,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                // 완벽한 Google 로그인 버튼
                 SizedBox(
                   width: 280,
                   child: ElevatedButton(
@@ -153,6 +149,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             right: 24,
             child: TextButton(
               onPressed: () {
+                // signOut, clearPersistence 제거 → 오류 방지
                 Navigator.pushReplacementNamed(context, RouteConstants.main);
               },
               child: const Text(

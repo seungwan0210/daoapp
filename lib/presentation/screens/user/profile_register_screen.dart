@@ -9,6 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 class ProfileRegisterScreen extends ConsumerStatefulWidget {
   const ProfileRegisterScreen({super.key});
@@ -178,11 +180,9 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       final currentUser = FirebaseAuth.instance.currentUser;
 
       if (currentUser != null) {
-        // Google 계정에 Phone 번호 연동
         await currentUser.linkWithCredential(credential);
         _showSnackBar('휴대폰 번호가 연동되었습니다!', color: Colors.green);
       } else {
-        // 비정상: currentUser 없음 → 새로 로그인
         await FirebaseAuth.instance.signInWithCredential(credential);
         _showSnackBar('로그인되었습니다', color: Colors.green);
       }
@@ -257,9 +257,15 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       debugPrint('Storage 삭제 실패: $e');
     }
 
+    if (isProfile) {
+      final onlineRef = FirebaseDatabase.instance.ref('online_users/${user!.uid}');
+      await onlineRef.update({'photoUrl': ''});
+    }
+
     _showSnackBar('사진이 삭제되었습니다.', color: Colors.orange);
   }
 
+  // 핵심: _save() 함수 완전히 수정됨
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -293,6 +299,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
     final cleanNumber = phoneInput.replaceAll(RegExp(r'\D'), '').substring(1);
 
+    // Firestore 저장
     await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
       'koreanName': _koreanNameController.text.trim(),
       'englishName': _englishNameController.text.trim(),
@@ -308,6 +315,34 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       'hasProfile': true,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+
+    // Realtime DB 동기화
+    final onlineRef = FirebaseDatabase.instance.ref('online_users/${user!.uid}');
+    await onlineRef.update({
+      'name': _koreanNameController.text.trim(),
+      'photoUrl': profileUrl ?? '',
+    });
+
+    // 토큰 갱신
+    await FirebaseAuth.instance.currentUser?.getIdToken(true);
+
+    // Custom Claims 설정: setHasProfile 호출 + 디버그 로그
+    try {
+      print('setHasProfile 호출 시작');
+      final callable = FirebaseFunctions.instance.httpsCallable('setHasProfile');
+      await callable.call();
+      print('setHasProfile 성공!');
+
+      // 즉시 토큰 갱신 + 확인
+      await FirebaseAuth.instance.currentUser?.reload();
+      final result = await FirebaseAuth.instance.currentUser?.getIdTokenResult(true);
+      print('hasProfile: ${result?.claims?['hasProfile']}'); // 성공!
+
+      _showSnackBar('프로필 저장 + 권한 업데이트 완료!', color: Colors.green);
+    } catch (e) {
+      print('setHasProfile 실패: $e');
+      _showSnackBar('권한 업데이트 실패: $e', color: Colors.red);
+    }
 
     if (mounted) {
       Navigator.pop(context);
@@ -414,7 +449,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                     TextFormField(controller: _shopNameController, decoration: const InputDecoration(labelText: '샵 이름', prefixIcon: Icon(Icons.store)), validator: (v) => v!.trim().isEmpty ? '샵 이름을 입력하세요' : null),
                     const SizedBox(height: 12),
 
-                    // 전화번호 인증 UI (신규 유저 인증 버튼 포함)
+                    // 전화번호 인증 UI
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8.0),
                       child: Row(

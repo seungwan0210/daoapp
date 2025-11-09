@@ -1,28 +1,24 @@
-// lib/presentation/screens/community/circle/circle_preview.dart
+// lib/presentation/screens/community/widgets/community_preview.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 
-class CirclePreview extends StatelessWidget {
+class CommunityPreview extends StatelessWidget {
   final VoidCallback onSeeAllPressed;
 
-  const CirclePreview({super.key, required this.onSeeAllPressed});
+  const CommunityPreview({super.key, required this.onSeeAllPressed});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // === 최근 게시물 ===
         _buildRecentPosts(context),
-
         const SizedBox(height: 12),
-
-        // === 인기 게시물 ===
         _buildPopularPosts(context),
       ],
     );
   }
 
-  // 최근 게시물
   Widget _buildRecentPosts(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -31,14 +27,9 @@ class CirclePreview extends StatelessWidget {
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox(height: 120);
-        }
-
+        if (!snapshot.hasData) return const SizedBox(height: 120);
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty) {
-          return const SizedBox();
-        }
+        if (docs.isEmpty) return const SizedBox();
 
         return Column(
           children: [
@@ -66,7 +57,8 @@ class CirclePreview extends StatelessWidget {
                 itemCount: docs.length,
                 itemBuilder: (context, i) {
                   final data = docs[i].data() as Map<String, dynamic>;
-                  return _buildPreviewItem(context, data, onSeeAllPressed);
+                  final postId = docs[i].id;
+                  return _buildPreviewItem(context, data, postId);
                 },
               ),
             ),
@@ -76,7 +68,6 @@ class CirclePreview extends StatelessWidget {
     );
   }
 
-  // 인기 게시물
   Widget _buildPopularPosts(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -85,14 +76,9 @@ class CirclePreview extends StatelessWidget {
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox(height: 120);
-        }
-
+        if (!snapshot.hasData) return const SizedBox(height: 120);
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty) {
-          return const SizedBox();
-        }
+        if (docs.isEmpty) return const SizedBox();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,8 +98,9 @@ class CirclePreview extends StatelessWidget {
                 itemCount: docs.length,
                 itemBuilder: (context, i) {
                   final data = docs[i].data() as Map<String, dynamic>;
+                  final postId = docs[i].id;
                   final likes = data['likes'] as int? ?? 0;
-                  return _buildPopularItem(context, data, likes, onSeeAllPressed);
+                  return _buildPopularItem(context, data, postId, likes);
                 },
               ),
             ),
@@ -123,23 +110,28 @@ class CirclePreview extends StatelessWidget {
     );
   }
 
-  // 미리보기 아이템 (클릭 → 전체 피드)
-  Widget _buildPreviewItem(BuildContext context, Map<String, dynamic> data, VoidCallback onTap) {
+  Widget _buildPreviewItem(BuildContext context, Map<String, dynamic> data, String postId) {
     final photoUrl = data['photoUrl'] as String?;
     final likes = data['likes'] as int? ?? 0;
     final comments = data['comments'] as int? ?? 0;
 
-    if (photoUrl == null || photoUrl.isEmpty) {
-      return const SizedBox(width: 100);
-    }
+    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox(width: 100);
 
     return GestureDetector(
-      onTap: onTap, // ← 클릭 시 전체 피드
+      onTap: () {
+        if (!context.mounted) return;
+        Navigator.pushNamed(
+          context,
+          RouteConstants.circle,
+          arguments: postId,
+        );
+      },
       child: Container(
         width: 100,
         margin: const EdgeInsets.only(right: 12),
         child: Stack(
           children: [
+            // 사진
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
@@ -149,6 +141,8 @@ class CirclePreview extends StatelessWidget {
                 height: 100,
               ),
             ),
+
+            // 좋아요 + 댓글
             Positioned(
               bottom: 4,
               left: 4,
@@ -179,21 +173,26 @@ class CirclePreview extends StatelessWidget {
     );
   }
 
-  // 인기 게시물 아이템 (클릭 → 전체 피드)
-  Widget _buildPopularItem(BuildContext context, Map<String, dynamic> data, int likes, VoidCallback onTap) {
+  Widget _buildPopularItem(BuildContext context, Map<String, dynamic> data, String postId, int likes) {
     final photoUrl = data['photoUrl'] as String?;
 
-    if (photoUrl == null || photoUrl.isEmpty) {
-      return const SizedBox(width: 100);
-    }
+    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox(width: 100);
 
     return GestureDetector(
-      onTap: onTap, // ← 클릭 시 전체 피드
+      onTap: () {
+        if (!context.mounted) return;
+        Navigator.pushNamed(
+          context,
+          RouteConstants.circle,
+          arguments: postId,
+        );
+      },
       child: Container(
         width: 100,
         margin: const EdgeInsets.only(right: 12),
         child: Stack(
           children: [
+            // 사진
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
@@ -203,6 +202,8 @@ class CirclePreview extends StatelessWidget {
                 height: 100,
               ),
             ),
+
+            // 좋아요 수
             Positioned(
               bottom: 4,
               left: 4,
@@ -218,7 +219,14 @@ class CirclePreview extends StatelessWidget {
                   children: [
                     const Icon(Icons.favorite, color: Colors.red, size: 12),
                     const SizedBox(width: 2),
-                    Text('$likes', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$likes',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/repositories/auth_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
 
+// === Auth ===
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return sl<AuthRepository>();
 });
@@ -13,24 +14,47 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
-/// 관리자 권한 (한 번만 체크)
-final isAdminProvider = FutureProvider<bool>((ref) async {
-  final user = ref.watch(authStateProvider).value;
-  if (user == null) return false;
-
-  try {
-    final result = await user.getIdTokenResult(true);
-    return result.claims?['admin'] == true || result.claims?['super_admin'] == true;
-  } catch (e) {
-    return false;
-  }
+// === 클레임 실시간 감시 ===
+final userClaimsProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return null;
+  final token = await user.getIdTokenResult(true);
+  return token.claims;
 });
 
-/// 프로필 등록 여부 (한 번만 체크)
-final userHasProfileProvider = FutureProvider<bool>((ref) async {
-  final user = ref.watch(authStateProvider).value;
-  if (user == null) return false;
+// === 관리자 여부 (실시간) ===
+final isAdminProvider = Provider<bool>((ref) {
+  final claims = ref.watch(userClaimsProvider).value;
+  return claims?['admin'] == true;
+});
 
-  final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-  return doc.exists;
+// === 프로필 등록 여부 ===
+final userHasProfileProvider = StreamProvider<bool>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(false);
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) => doc.exists && (doc.data()?['hasProfile'] == true));
+});
+
+// === 전화번호 인증 여부 ===
+final userPhoneVerifiedProvider = StreamProvider<bool>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(false);
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) => doc.data()?['isPhoneVerified'] == true);
+});
+
+// === 완전 인증 여부 ===
+final isFullyAuthenticatedProvider = Provider<bool>((ref) {
+  final hasProfile = ref.watch(userHasProfileProvider).value ?? false;
+  final phoneVerified = ref.watch(userPhoneVerifiedProvider).value ?? false;
+  return hasProfile && phoneVerified;
 });

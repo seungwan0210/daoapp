@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/screens/user/user_home_screen.dart';
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
-import 'package:daoapp/presentation/screens/community/community_home_screen.dart'; // 변경!
+import 'package:daoapp/presentation/screens/community/community_home_screen.dart';
 import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
@@ -25,12 +25,11 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
 
-  // 5개 탭 고정
   static final List<Widget> _pageBodies = [
     const UserHomeScreenBody(),
     const RankingScreenBody(),
     const CalendarScreenBody(),
-    const CommunityHomeScreen(),  // 변경!
+    const CommunityHomeScreen(),
     const MyPageScreenBody(),
   ];
 
@@ -48,6 +47,9 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // isAdminProvider → bool 타입
+    final isAdmin = ref.watch(isAdminProvider);
+
     return Scaffold(
       appBar: CommonAppBar(
         title: _items[_currentIndex].label ?? '',
@@ -57,19 +59,13 @@ class _MainScreenState extends ConsumerState<MainScreen> {
             tooltip: '공지사항',
             onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
           ),
-          ...ref.watch(isAdminProvider).when(
-            data: (isAdmin) => isAdmin
-                ? [
-              IconButton(
-                icon: const Icon(Icons.admin_panel_settings_outlined),
-                tooltip: '관리자 모드',
-                onPressed: () => Navigator.pushNamed(context, RouteConstants.adminDashboard),
-              ),
-            ]
-                : [],
-            loading: () => [],
-            error: (_, __) => [],
-          ),
+          // 관리자 버튼 (bool → 바로 사용)
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              tooltip: '관리자 모드',
+              onPressed: () => Navigator.pushNamed(context, RouteConstants.adminDashboard),
+            ),
         ],
       ),
       body: IndexedStack(
