@@ -23,6 +23,7 @@ import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
 import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
 import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
+import 'package:daoapp/presentation/screens/user/report_form_screen.dart';
 
 // === 관리자 스크린 ===
 import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
@@ -36,6 +37,7 @@ import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
+import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
 
 // === 커뮤니티 - 서클 ===
 import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
@@ -87,6 +89,8 @@ class DaoApp extends StatelessWidget {
         RouteConstants.pointCalendar: (_) => const PointCalendarScreen(),
         RouteConstants.noticeList: (_) => const NoticeListScreen(),
         RouteConstants.memberList: (_) => const MemberListScreen(),
+        RouteConstants.report: (_) => const ReportFormScreen(),
+        RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
 
         // === 관리자 ===
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),

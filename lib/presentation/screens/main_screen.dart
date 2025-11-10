@@ -1,6 +1,8 @@
 // lib/presentation/screens/main_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/presentation/screens/user/user_home_screen.dart';
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
@@ -47,19 +49,25 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // isAdminProvider → bool 타입
     final isAdmin = ref.watch(isAdminProvider);
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: CommonAppBar(
         title: _items[_currentIndex].label ?? '',
         actions: [
+          // === 공지 배지 ===
+          if (user != null)
+            _buildNotificationBadge(context, user.uid),
+
+          // === 버그 신고 아이콘 ===
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: '공지사항',
-            onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
+            icon: const Icon(Icons.bug_report_outlined),
+            tooltip: '버그/신고',
+            onPressed: () => Navigator.pushNamed(context, '/report'),
           ),
-          // 관리자 버튼 (bool → 바로 사용)
+
+          // === 관리자 버튼 ===
           if (isAdmin)
             IconButton(
               icon: const Icon(Icons.admin_panel_settings_outlined),
@@ -82,5 +90,79 @@ class _MainScreenState extends ConsumerState<MainScreen> {
         items: _items,
       ),
     );
+  }
+
+  // 배지 위젯
+  Widget _buildNotificationBadge(BuildContext context, String userId) {
+    return StreamBuilder<int>(
+      stream: _getUnreadNoticeCount(userId),
+      builder: (context, snapshot) {
+        final count = snapshot.data ?? 0;
+        if (count == 0) {
+          return IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: '공지사항',
+            onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
+          );
+        }
+
+        return Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              tooltip: '공지사항',
+              onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
+            ),
+            Positioned(
+              right: 6,
+              top: 6,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white, width: 1.5),
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                child: Center(
+                  child: Text(
+                    count > 99 ? '99+' : '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // 읽지 않은 공지 수 스트림
+  Stream<int> _getUnreadNoticeCount(String userId) {
+    final noticesRef = FirebaseFirestore.instance.collection('notices');
+    final readRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('readNotices');
+
+    return noticesRef
+        .where('isActive', isEqualTo: true)
+        .snapshots()
+        .asyncMap((noticeSnapshot) async {
+      final noticeIds = noticeSnapshot.docs.map((doc) => doc.id).toList();
+      if (noticeIds.isEmpty) return 0;
+
+      final readSnapshot = await readRef
+          .where(FieldPath.documentId, whereIn: noticeIds)
+          .get();
+
+      final readIds = readSnapshot.docs.map((doc) => doc.id).toSet();
+      return noticeIds.where((id) => !readIds.contains(id)).length;
+    });
   }
 }

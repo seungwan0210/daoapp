@@ -21,16 +21,28 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
   DateTime? _selectedDay;
   Map<DateTime, List<PointRecord>> _events = {};
 
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
   @override
   void initState() {
     super.initState();
     _selectedDay = _focusedDay;
     _loadAllPointEvents();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadAllPointEvents() async {
     final repo = sl<PointRecordRepository>();
-
     repo.getAllPointRecords().listen((records) {
       final Map<DateTime, List<PointRecord>> events = {};
       for (var record in records) {
@@ -43,46 +55,104 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
 
   List<PointRecord> _getEventsForDay(DateTime day) {
     final events = _events[DateTime(day.year, day.month, day.day)] ?? [];
+    return _sortAndRank(events);
+  }
 
-    // 포인트 내림차순 정렬
+  List<PointRecord> _getSearchResults(List<PointRecord> allRecords) {
+    if (_searchQuery.isEmpty) return [];
+    return allRecords
+        .where((r) =>
+    r.koreanName.toLowerCase().contains(_searchQuery) ||
+        r.englishName.toLowerCase().contains(_searchQuery))
+        .toList();
+  }
+
+  List<PointRecord> _sortAndRank(List<PointRecord> events) {
     events.sort((a, b) => b.points.compareTo(a.points));
-
     int currentRank = 1;
     int? previousPoints;
-
     for (int i = 0; i < events.length; i++) {
       if (i == 0) {
         currentRank = 1;
       } else if (events[i].points == previousPoints!) {
-        // 같은 포인트 → 같은 순위
       } else {
         currentRank = i + 1;
       }
       events[i] = events[i].copyWith(rank: currentRank);
       previousPoints = events[i].points;
     }
-
     return events;
+  }
+
+  void _startSearch() {
+    setState(() => _isSearching = true);
+  }
+
+  void _stopSearch() {
+    setState(() {
+      _isSearching = false;
+      _searchController.clear();
+      _searchQuery = '';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final repo = sl<PointRecordRepository>();
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: CommonAppBar(
-        title: '포인트 달력',
+        title: _isSearching ? '' : '포인트 달력',
         showBackButton: true,
+        actions: _isSearching
+            ? null
+            : [
+          IconButton(
+            icon: const Icon(Icons.search, size: 22),
+            onPressed: _startSearch,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      body: Column(
-        children: [
-          // 달력 (400px 고정 + overflow 방지)
-          AppCard(
-            margin: const EdgeInsets.all(16),
-            elevation: 6,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Padding(
-              padding: EdgeInsets.zero,
+      body: CustomScrollView(
+        slivers: [
+          // 검색바
+          if (_isSearching)
+            SliverToBoxAdapter(
+              child: Container(
+                color: theme.colorScheme.primaryContainer.withOpacity(0.95),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    hintText: '이름 검색 (한글/영어)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: _stopSearch,
+                    ),
+                  ),
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+
+          // 달력
+          SliverToBoxAdapter(
+            child: AppCard(
+              margin: const EdgeInsets.all(16),
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: SizedBox(
                 height: 400,
                 child: TableCalendar(
@@ -92,10 +162,12 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                   calendarFormat: _calendarFormat,
                   selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                   onDaySelected: (selectedDay, focusedDay) {
-                    setState(() {
-                      _selectedDay = selectedDay;
-                      _focusedDay = focusedDay;
-                    });
+                    if (!_isSearching) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                    }
                   },
                   onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
                   eventLoader: _getEventsForDay,
@@ -121,31 +193,7 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                           width: 6,
                           height: 6,
                           margin: const EdgeInsets.only(bottom: 2),
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                      );
-                    },
-                    todayBuilder: (context, day, focusedDay) {
-                      if (isSameDay(day, _selectedDay)) return null;
-                      return Center(
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
-                          child: Center(child: Text('${day.day}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-                        ),
-                      );
-                    },
-                    selectedBuilder: (context, day, focusedDay) {
-                      return Center(
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(color: theme.colorScheme.secondary, shape: BoxShape.circle),
-                          child: Center(child: Text('${day.day}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                          decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
                         ),
                       );
                     },
@@ -155,104 +203,112 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
             ),
           ),
 
-          // 선택된 날짜 포인트 내역
-          Expanded(
-            child: _selectedDay == null
-                ? const Center(child: Text('날짜를 선택하세요'))
-                : _getEventsForDay(_selectedDay!).isEmpty
-                ? const Center(child: Text('해당 날짜에 포인트 내역 없음'))
-                : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _getEventsForDay(_selectedDay!).length,
-              itemBuilder: (_, i) {
-                final record = _getEventsForDay(_selectedDay!)[i];
-                final rank = record.rank ?? i + 1;
+          // 리스트
+          _isSearching
+              ? SliverFillRemaining(
+            hasScrollBody: true,
+            child: StreamBuilder<List<PointRecord>>(
+              stream: repo.getAllPointRecords(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final allRecords = snapshot.data!;
+                final searchResults = _getSearchResults(allRecords);
+                final sortedResults = _sortAndRank(searchResults);
+                if (sortedResults.isEmpty) {
+                  return const Center(child: Text('검색 결과 없음'));
+                }
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: AppCard(
-                    elevation: 3,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                      child: Row(
-                        children: [
-                          // 순위
-                          SizedBox(
-                            width: 36,
-                            child: Text(
-                              '$rank',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: rank == 1
-                                    ? Colors.amber
-                                    : rank == 2
-                                    ? Colors.grey
-                                    : rank == 3
-                                    ? Colors.brown.shade600
-                                    : Colors.blue,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-
-                          // 이름
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  record.koreanName,
-                                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  record.englishName,
-                                  style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // 샵
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              record.shopName,
-                              style: theme.textTheme.bodyMedium,
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-
-                          // 포인트
-                          Expanded(
-                            flex: 1,
-                            child: Text(
-                              '+${record.points}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: sortedResults.length,
+                  itemBuilder: (_, i) {
+                    final record = sortedResults[i];
+                    final rank = record.rank ?? i + 1;
+                    return _buildRecordCard(theme, record, rank);
+                  },
                 );
               },
             ),
+          )
+              : _selectedDay == null
+              ? SliverFillRemaining(
+            child: const Center(child: Text('날짜를 선택하세요')),
+          )
+              : _getEventsForDay(_selectedDay!).isEmpty
+              ? SliverFillRemaining(
+            child: const Center(child: Text('해당 날짜에 포인트 내역 없음')),
+          )
+              : SliverList(
+            delegate: SliverChildBuilderDelegate(
+                  (_, i) {
+                final record = _getEventsForDay(_selectedDay!)[i];
+                final rank = record.rank ?? i + 1;
+                return _buildRecordCard(theme, record, rank);
+              },
+              childCount: _getEventsForDay(_selectedDay!).length,
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRecordCard(ThemeData theme, PointRecord record, int rank) {
+    final dateStr = '${record.date.year}.${record.date.month.toString().padLeft(2, '0')}.${record.date.day.toString().padLeft(2, '0')}';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 36,
+                child: Text(
+                  '$rank',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: rank == 1
+                        ? Colors.amber
+                        : rank == 2
+                        ? Colors.grey
+                        : rank == 3
+                        ? Colors.brown.shade600
+                        : Colors.blue,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(record.koreanName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(record.englishName, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 2),
+                    Text(dateStr, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade500, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(record.shopName, style: theme.textTheme.bodyMedium, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+              ),
+              Expanded(
+                flex: 1,
+                child: Text('+${record.points}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green), textAlign: TextAlign.right),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

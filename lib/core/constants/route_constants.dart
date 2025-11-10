@@ -28,6 +28,8 @@ class RouteConstants {
   static const String sponsorForm = '/admin/sponsor-form';
   static const String memberRegister = '/admin/member-register';
   static const String competitionPhotosForm = '/admin/competition-photos-form';
+  static const String report = '/report';
+  static const String adminReportList = '/admin/report-list';
 
   // === 커뮤니티 - 서클 ===
   static const String postWrite = '/community/circle/post-write';

@@ -17,6 +17,7 @@ class AdminDashboardScreen extends ConsumerWidget {
     return FutureBuilder<IdTokenResult?>(
       future: FirebaseAuth.instance.currentUser?.getIdTokenResult(true),
       builder: (context, snapshot) {
+
         // 로딩 중
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -151,6 +152,20 @@ class AdminDashboardScreen extends ConsumerWidget {
                     title: '정회원 등록',
                     subtitle: 'KDF 정회원 등록·사진 등록',
                     route: RouteConstants.memberRegister,
+                  ),
+                ],
+              ),
+              // _buildSection 추가 (기존 코드 아래에 삽입)
+              _buildSection(
+                context,
+                title: '버그/신고 관리',
+                items: [
+                  _buildItem(
+                    context,
+                    icon: Icons.bug_report,
+                    title: '신고 내역 확인',
+                    subtitle: '사용자 신고 확인 및 처리',
+                    route: RouteConstants.adminReportList,
                   ),
                 ],
               ),

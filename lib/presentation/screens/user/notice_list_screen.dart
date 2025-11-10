@@ -1,10 +1,10 @@
 // lib/presentation/screens/user/notice_list_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class NoticeListScreen extends StatefulWidget {
   const NoticeListScreen({super.key});
@@ -34,6 +34,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: CommonAppBar(
@@ -42,7 +43,6 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
       ),
       body: Column(
         children: [
-          // 검색창
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
@@ -63,18 +63,17 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
               ),
             ),
           ),
-          // 공지 리스트
-          Expanded(child: _buildNoticeList(theme)),
+          Expanded(child: _buildNoticeList(theme, user?.uid)),
         ],
       ),
     );
   }
 
-  Widget _buildNoticeList(ThemeData theme) {
+  Widget _buildNoticeList(ThemeData theme, String? userId) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('notices')
-          .where('isActive', isEqualTo: true) // 활성화된 공지만
+          .where('isActive', isEqualTo: true)
           .orderBy('createdAt', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -101,6 +100,7 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
           itemBuilder: (context, index) {
             final doc = docs[index];
             final data = doc.data() as Map<String, dynamic>;
+            final noticeId = doc.id;
             final title = data['title'] as String? ?? '제목 없음';
             final content = data['content'] as String? ?? '';
             final link = data['actionUrl'] as String?;
@@ -108,8 +108,8 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
             return AppCard(
               margin: const EdgeInsets.only(bottom: 12),
               onTap: link != null && link.isNotEmpty
-                  ? () => _launchURL(link)
-                  : null,
+                  ? () => _handleNoticeTap(noticeId, userId, link)
+                  : () => _markAsRead(noticeId, userId),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 title: Text(
@@ -135,6 +135,25 @@ class _NoticeListScreenState extends State<NoticeListScreen> {
         );
       },
     );
+  }
+
+  // 읽음 처리 + 링크 열기
+  Future<void> _handleNoticeTap(String noticeId, String? userId, String link) async {
+    if (userId != null) {
+      await _markAsRead(noticeId, userId);
+    }
+    await _launchURL(link);
+  }
+
+  // 읽음 처리
+  Future<void> _markAsRead(String noticeId, String? userId) async {
+    if (userId == null) return;
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('readNotices')
+        .doc(noticeId)
+        .set({'readAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
   }
 
   Future<void> _launchURL(String url) async {
