@@ -1,7 +1,6 @@
 // lib/main.dart
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/di/service_locator.dart';
@@ -53,6 +52,8 @@ import 'package:daoapp/presentation/screens/community/arena/arena_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/arena_review_write_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/arena_review_detail_screen.dart';
 
+import 'package:daoapp/presentation/widgets/more_menu_button.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
@@ -73,7 +74,7 @@ class DaoApp extends StatelessWidget {
       title: 'DAO App - Steel League',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      initialRoute: RouteConstants.splash, // ← 여기! splash로 시작
+      initialRoute: RouteConstants.splash,
       routes: {
         // === 공통 ===
         RouteConstants.splash: (_) => const SplashScreen(),

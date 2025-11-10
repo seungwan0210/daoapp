@@ -11,6 +11,7 @@ import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/widgets/more_menu_button.dart';
 
 class MainScreen extends ConsumerStatefulWidget {
   const MainScreen({super.key});
@@ -49,31 +50,12 @@ class _MainScreenState extends ConsumerState<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isAdmin = ref.watch(isAdminProvider);
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       appBar: CommonAppBar(
         title: _items[_currentIndex].label ?? '',
         actions: [
-          // === 공지 배지 ===
-          if (user != null)
-            _buildNotificationBadge(context, user.uid),
-
-          // === 버그 신고 아이콘 ===
-          IconButton(
-            icon: const Icon(Icons.bug_report_outlined),
-            tooltip: '버그/신고',
-            onPressed: () => Navigator.pushNamed(context, '/report'),
-          ),
-
-          // === 관리자 버튼 ===
-          if (isAdmin)
-            IconButton(
-              icon: const Icon(Icons.admin_panel_settings_outlined),
-              tooltip: '관리자 모드',
-              onPressed: () => Navigator.pushNamed(context, RouteConstants.adminDashboard),
-            ),
+          // === 설정 메뉴 + 공지 배지 (모든 사용자) ===
+          _buildSettingsWithBadge(context),
         ],
       ),
       body: IndexedStack(
@@ -92,50 +74,45 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     );
   }
 
-  // 배지 위젯
-  Widget _buildNotificationBadge(BuildContext context, String userId) {
+  // === 설정 아이콘 + 공지 배지 (방법 2) ===
+  Widget _buildSettingsWithBadge(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const MoreMenuButton(); // 로그인 안 하면 배지 없음
+    }
+
     return StreamBuilder<int>(
-      stream: _getUnreadNoticeCount(userId),
+      stream: _getUnreadNoticeCount(user.uid),
       builder: (context, snapshot) {
         final count = snapshot.data ?? 0;
-        if (count == 0) {
-          return IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: '공지사항',
-            onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
-          );
-        }
 
         return Stack(
           children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined),
-              tooltip: '공지사항',
-              onPressed: () => Navigator.pushNamed(context, RouteConstants.noticeList),
-            ),
-            Positioned(
-              right: 6,
-              top: 6,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                child: Center(
-                  child: Text(
-                    count > 99 ? '99+' : '$count',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+            const MoreMenuButton(),
+            if (count > 0)
+              Positioned(
+                right: 6,
+                top: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                  child: Center(
+                    child: Text(
+                      count > 99 ? '99+' : '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         );
       },

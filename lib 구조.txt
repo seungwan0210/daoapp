@@ -27,6 +27,7 @@ lib/
 弛   弛   弛   戍式式 notice_list_screen.dart
 弛   弛   弛   戍式式 member_list_screen.dart
 弛   弛   弛   戌式式 guestbook_screen.dart
+弛   弛   弛   戌式式 report_form_screen
 弛   弛   戍式式 community/ 
 弛   弛   弛   戍式式 community_home_screen.dart
 弛   弛   弛   弛   戍式式 widgets/
@@ -61,6 +62,7 @@ lib/
 弛   弛   弛   弛   戌式式 arena_review_detail_screen.dart
 弛   弛   戌式式 admin/
 弛   弛       戍式式 admin_dashboard_screen.dart
+弛   弛       戍式式 admin_report_list_screen
 弛   弛       戍式式 event_create_screen.dart
 弛   弛       戍式式 event_list_screen.dart
 弛   弛       戍式式 point_award_screen.dart
@@ -78,8 +80,8 @@ lib/
 弛       戍式式 admin_delete_button.dart
 弛       戍式式 post_item_widget.dart
 弛       戍式式 common_appbar.dart
+弛       戍式式 more_menu_button.dart
 弛       戍式式 galaxy_settings_section.dart
-弛       戌式式 circle_avatar_slider.dart
 戍式式 data/
 弛   戍式式 repositories/
 弛   弛   戍式式 auth_repository.dart
