@@ -27,3 +27,15 @@ Thumbs.db
 # Generated
 *.g.dart
 *.freezed.dart
+
+
+# Flutter & Gradle 추가 무시 규칙
+.gradle/
+android/.gradle/
+android/local.properties
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+.idea/
+.vscode/
+**/GeneratedPluginRegistrant.*
+**/generated_plugin_registrant.*
