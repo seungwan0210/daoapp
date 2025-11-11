@@ -5,7 +5,7 @@ plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
+    id("com.google.gms.google-services") // 루트에서 버전 선언했으니 여기선 버전 없이 OK
 }
 
 // key.properties 불러오기
@@ -37,7 +37,6 @@ android {
         versionName = flutter.versionName
     }
 
-    // 릴리즈 서명 설정
     signingConfigs {
         create("release") {
             val storeFilePath = keystoreProperties.getProperty("storeFile")
