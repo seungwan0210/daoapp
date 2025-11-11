@@ -1,13 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.daoapp">
+    package="kr.comong.daoapp">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
-        android:label="DaoApp"
         android:name="${applicationName}"
+        android:label="daoapp"
         android:icon="@mipmap/launcher_icon">
+
+        <!-- 여기로 이동! -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
 
         <activity
             android:name=".MainActivity"
@@ -18,7 +23,9 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
-            <!-- 이 meta-data는 삭제! google-services.json이 처리함 -->
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -26,15 +33,5 @@
             </intent-filter>
         </activity>
 
-        <meta-data
-            android:name="flutterEmbedding"
-            android:value="2" />
     </application>
-
-    <queries>
-        <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT" />
-            <data android:mimeType="text/plain" />
-        </intent>
-    </queries>
 </manifest>
