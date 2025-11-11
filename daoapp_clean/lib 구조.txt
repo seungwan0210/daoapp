@@ -1,0 +1,104 @@
+lib/
+├── main.dart
+├── firebase_options.dart
+├── services/
+│   └── storage_service.dart
+├── di/
+│   └── service_locator.dart
+├── presentation/
+│   ├── providers/
+│   │   ├── app_providers.dart
+│   │   ├── user_home_provider.dart
+│   │   ├── ranking_provider.dart
+│   │   └── community_provider.dart
+│   │   └── circle_feed_provider.dart          ← 새로 추가
+│   ├── screens/
+│   │   ├── splash_screen.dart
+│   │   ├── login/
+│   │   │   └── login_screen.dart
+│   │   ├── main_screen.dart
+│   │   ├── user/
+│   │   │   ├── user_home_screen.dart
+│   │   │   ├── ranking_screen.dart
+│   │   │   ├── calendar_screen.dart
+│   │   │   ├── my_page_screen.dart
+│   │   │   ├── point_calendar_screen.dart
+│   │   │   ├── profile_register_screen.dart
+│   │   │   ├── notice_list_screen.dart
+│   │   │   ├── member_list_screen.dart
+│   │   │   └── guestbook_screen.dart
+│   │   │   └── report_form_screen
+│   │   ├── community/ 
+│   │   │   ├── community_home_screen.dart
+│   │   │   │   ├── widgets/
+│   │   │   │   │   ├── community_avatar_slider.dart
+│   │   │   │   │   ├── community_preview.dart
+│   │   │   ├── checkout/
+│   │   │   │   ├── widgets/
+│   │   │   │   │   ├── dart_board.dart
+│   │   │   │   │   ├── route_card.dart
+│   │   │   │   │   └── segment_button.dart
+│   │   │   │   ├── checkout_calculator_screen.dart
+│   │   │   │   ├── checkout_practice_screen.dart
+│   │   │   │   ├── checkout_result_screen.dart
+│   │   │   │   └── checkout_trainer_preview.dart
+│   │   │   ├── circle/
+│   │   │   │   ├── circle_screen.dart             ← 메인 (120줄 정도로 줄어듦)
+│   │   │   │   ├── circle_grid_view.dart          ← 새로 추가
+│   │   │   │   ├── circle_list_view.dart          ← 새로 추가
+│   │   │   │   ├── circle_preview.dart
+│   │   │   │   ├── post_write_screen.dart
+│   │   │   │   └── widgets/                       ← 새로 추가 (하위 위젯들)
+│   │   │   │       ├── post_card.dart
+│   │   │   │       ├── post_grid_item.dart
+│   │   │   │       ├── like_button.dart
+│   │   │   │       ├── comment_button.dart
+│   │   │   │       ├── comment_preview.dart
+│   │   │   │       └── comment_bottom_sheet.dart
+│   │   │   ├── arena/
+│   │   │   │   ├── arena_screen.dart
+│   │   │   │   ├── arena_preview.dart
+│   │   │   │   ├── arena_review_write_screen.dart
+│   │   │   │   └── arena_review_detail_screen.dart
+│   │   └── admin/
+│   │       ├── admin_dashboard_screen.dart
+│   │       ├── admin_report_list_screen
+│   │       ├── event_create_screen.dart
+│   │       ├── event_list_screen.dart
+│   │       ├── point_award_screen.dart
+│   │       ├── point_award_list_screen.dart
+│   │       ├── member_register_screen.dart
+│   │       ├── point_edit_screen.dart
+│   │       ├── event_edit_screen.dart
+│   │       └── forms/
+│   │           ├── notice_form_screen.dart
+│   │           ├── news_form_screen.dart
+│   │           ├── sponsor_form_screen.dart
+│   │           └── member_register_screen.dart
+│   └── widgets/
+│       ├── app_card.dart
+│       ├── admin_delete_button.dart
+│       ├── post_item_widget.dart
+│       ├── common_appbar.dart
+│       ├── more_menu_button.dart
+│       ├── galaxy_settings_section.dart
+├── data/
+│   ├── repositories/
+│   │   ├── auth_repository.dart
+│   │   ├── auth_repository_impl.dart
+│   │   ├── point_record_repository.dart
+│   │   └── point_record_repository_impl.dart
+│   └── models/
+│       ├── point_record_model.dart
+│       ├── ranking_user.dart
+│       ├── user_model.dart
+│       └── checkout_route_model.dart
+├── core/
+│   ├── constants/
+│   │   ├── route_constants.dart
+│   │   └── checkout_table.dart
+│   ├── theme/
+│   │   └── app_theme.dart
+│   └── utils/
+│       ├── date_utils.dart
+│       └── segment_utils.dart

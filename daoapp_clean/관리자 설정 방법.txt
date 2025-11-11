@@ -1,0 +1,52 @@
+// setAdmin.js
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const uid = 'NaniHPGcdsMCfKHes7Mtxs...'; // 승인할 사용자 UID
+
+admin.auth().setCustomUserClaims(uid, { admin: true })
+  .then(() => {
+    console.log('관리자 권한 부여 완료!');
+    process.exit(0);
+  })
+  .catch(error => {
+    console.log('에러:', error);
+    process.exit(1);
+  });
+
+cd C:\Users\A\daoapp
+node setAdmin.js
+
+
+// removeAdmin.js
+const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const uid = 'NaniHPGcdsMCfKHes7Mtxs...'; // 삭제할 사용자 UID
+
+admin.auth().setCustomUserClaims(uid, { admin: null })
+  .then(() => {
+    console.log('관리자 권한 삭제 완료!');
+    process.exit(0);
+  })
+  .catch(error => {
+    console.log('에러:', error);
+    process.exit(1);
+  });
+
+cd C:\Users\A\daoapp
+node removeAdmin.js
+
+저장방법
+파일 이름: serviceAccountKey.json
+→ 확장자 .json 꼭 넣기!
+→ "모든 파일" 선택 (안 하면 .txt 붙음)
+UTF-8 
