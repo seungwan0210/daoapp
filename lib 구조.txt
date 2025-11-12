@@ -11,19 +11,29 @@ lib/
 │   │   ├── user_home_provider.dart
 │   │   ├── ranking_provider.dart
 │   │   └── community_provider.dart
-│   │   └── circle_feed_provider.dart          ← 새로 추가
+│   │   └── circle_feed_provider.dart          
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   ├── login/
 │   │   │   └── login_screen.dart
 │   │   ├── main_screen.dart
 │   │   ├── user/
+│   │   │   ├── services/
+│   │   │   │   ├── image_upload_service.dart (이미지 처리 전용)
+│   │   │   │   ├── phone_auth_service.dart (전화번호 인증 전용)
+│   │   │   │   ├── profile_service.dart
+│   │   │   ├── widgets/
+│   │   │   │   ├── barrel_image_widget.dart (배럴 사진 UI)
+│   │   │   │   ├── barrel_setting_section.dart (배럴 세팅 폼 전체)
+│   │   │   │   ├── phone_verification_section.dart (전화번호 인증 UI + 로직)
+│   │   │   │   ├── profile_form_fields.dart (기본 정보 입력 폼)
+│   │   │   │   ├── profile_image_widget.dart (프로필 사진 UI)
 │   │   │   ├── user_home_screen.dart
 │   │   │   ├── ranking_screen.dart
 │   │   │   ├── calendar_screen.dart
 │   │   │   ├── my_page_screen.dart
 │   │   │   ├── point_calendar_screen.dart
-│   │   │   ├── profile_register_screen.dart
+│   │   │   ├── profile_register_screen.dart (프로필 메인 화면)
 │   │   │   ├── notice_list_screen.dart
 │   │   │   ├── member_list_screen.dart
 │   │   │   └── guestbook_screen.dart
@@ -43,12 +53,12 @@ lib/
 │   │   │   │   ├── checkout_result_screen.dart
 │   │   │   │   └── checkout_trainer_preview.dart
 │   │   │   ├── circle/
-│   │   │   │   ├── circle_screen.dart             ← 메인 (120줄 정도로 줄어듦)
-│   │   │   │   ├── circle_grid_view.dart          ← 새로 추가
-│   │   │   │   ├── circle_list_view.dart          ← 새로 추가
+│   │   │   │   ├── circle_screen.dart             
+│   │   │   │   ├── circle_grid_view.dart          
+│   │   │   │   ├── circle_list_view.dart          
 │   │   │   │   ├── circle_preview.dart
 │   │   │   │   ├── post_write_screen.dart
-│   │   │   │   └── widgets/                       ← 새로 추가 (하위 위젯들)
+│   │   │   │   └── widgets/                       
 │   │   │   │       ├── post_card.dart
 │   │   │   │       ├── post_grid_item.dart
 │   │   │   │       ├── like_button.dart

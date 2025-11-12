@@ -37,14 +37,14 @@ class PostItemWidget extends ConsumerWidget {
     final currentUser = ref.watch(authStateProvider).value;
     final isAuthor = authorId == currentUser?.uid;
 
-    // 권한 체크 수정
     final isAdmin = ref.watch(isAdminProvider).when(
       data: (v) => v,
       loading: () => false,
       error: (_, __) => false,
     );
+
     final canEdit = isAuthor && onEdit != null;
-    final canDelete = isAuthor || isAdmin; // 수정: onDelete null 체크 제거
+    final canDelete = isAuthor || isAdmin;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -84,18 +84,31 @@ class PostItemWidget extends ConsumerWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 수정 버튼 (본인만)
-            if (canEdit)
-              IconButton(
-                icon: const Icon(Icons.edit, size: 20),
-                onPressed: onEdit,
+            // 더보기 버튼 (수정/삭제)
+            if (canEdit || canDelete)
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, size: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                onSelected: (value) {
+                  if (value == 'edit') onEdit?.call();
+                  if (value == 'delete') onDelete?.call();
+                },
+                itemBuilder: (context) => [
+                  if (canEdit)
+                    const PopupMenuItem(value: 'edit', child: Text('수정')),
+                  if (canDelete)
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('삭제', style: TextStyle(color: Colors.red)),
+                    ),
+                ],
               ),
-            // 삭제 버튼 (본인 OR 관리자)
-            if (canDelete)
+            // 관리자 전용 삭제 버튼
+            if (isAdmin && !isAuthor)
               AdminDeleteButton(
                 collectionPath: collectionPath,
                 docId: postId,
-                onDeleted: isAuthor ? onDelete : null,
+                onDeleted: () {}, // 관리자는 별도 처리
               ),
           ],
         ),

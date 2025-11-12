@@ -459,7 +459,7 @@ class CalendarScreenBody extends ConsumerWidget {
                         _buildCompactRow(
                           context,
                           '상태',
-                          status == 'ongoing' ? '진행 중' : '예정',
+                          status == 'ongoing' ? '진행' : '예정',
                           color: status == 'ongoing' ? Colors.blue : Colors.green,
                         ),
                     ],

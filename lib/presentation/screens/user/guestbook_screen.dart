@@ -19,7 +19,6 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
   final _commentController = TextEditingController();
   final _scrollController = ScrollController();
   bool _isLoading = false;
-  String? _editingDocId;
 
   @override
   void dispose() {
@@ -28,7 +27,8 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     super.dispose();
   }
 
-  Future<void> _sendComment([String? docId]) async {
+  // 새 댓글 작성
+  Future<void> _sendComment() async {
     if (_commentController.text.trim().isEmpty || _isLoading) return;
     setState(() => _isLoading = true);
 
@@ -41,26 +41,18 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
           .doc(widget.userId)
           .collection('guestbook');
 
-      final data = {
+      await ref.add({
         'writerId': currentUser.uid,
         'writerName': currentUser.displayName ?? '익명',
         'message': _commentController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
         'likes': 0,
         'likedBy': <String>[],
-      };
-
-      if (docId != null) {
-        await ref.doc(docId).update(data);
-        _showSnackBar('수정되었습니다', Colors.green);
-      } else {
-        await ref.add(data);
-        _showSnackBar('방명록이 작성되었습니다', Colors.green);
-      }
+      });
 
       _commentController.clear();
-      _editingDocId = null;
       _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _showSnackBar('방명록이 작성되었습니다', Colors.green);
     } catch (e) {
       _showSnackBar('전송 실패: $e', Colors.red);
     } finally {
@@ -68,6 +60,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     }
   }
 
+  // 삭제
   Future<void> _deleteComment(String docId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -101,10 +94,58 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     }
   }
 
-  void _startEdit(String docId, String message) {
-    _commentController.text = message;
-    _editingDocId = docId;
-    _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+  // 수정 다이얼로그
+  void _startEdit(String docId, String currentMessage) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController(text: currentMessage);
+        return AlertDialog(
+          title: const Text('방명록 수정'),
+          content: TextField(
+            controller: controller,
+            maxLines: 5,
+            decoration: const InputDecoration(
+              hintText: '메시지를 입력하세요',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final newMessage = controller.text.trim();
+                if (newMessage.isNotEmpty) {
+                  await _updateComment(docId, newMessage);
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('수정'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _updateComment(String docId, String message) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.userId)
+          .collection('guestbook')
+          .doc(docId)
+          .update({
+        'message': message,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+      _showSnackBar('수정되었습니다', Colors.green);
+    } catch (e) {
+      _showSnackBar('수정 실패: $e', Colors.red);
+    }
   }
 
   void _showSnackBar(String message, Color color) {
@@ -187,7 +228,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                   child: TextField(
                     controller: _commentController,
                     decoration: InputDecoration(
-                      hintText: _editingDocId != null ?('수정 중...') : '응원 메시지 남기기...',
+                      hintText: '응원 메시지 남기기...',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -204,22 +245,14 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                     : FloatingActionButton(
                   mini: true,
                   backgroundColor: theme.colorScheme.primary,
-                  onPressed: () => _sendComment(_editingDocId),
-                  child: Icon(_editingDocId != null ? Icons.check : Icons.send, size: 18, color: Colors.white),
+                  onPressed: _sendComment,
+                  child: const Icon(Icons.send, size: 18, color: Colors.white),
                 ),
-                if (_editingDocId != null)
-                  TextButton(
-                    onPressed: () {
-                      _commentController.clear();
-                      setState(() => _editingDocId = null);
-                    },
-                    child: const Text('취소'),
-                  ),
               ],
             ),
           ),
 
-          // 방명록 리스트 (PostItemWidget 사용)
+          // 방명록 리스트
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -248,7 +281,6 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                     final message = data['message'] ?? '';
                     final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
 
-                    // 권한 체크
                     final currentUser = FirebaseAuth.instance.currentUser;
                     final isAuthor = writerId == currentUser?.uid;
                     final isMyGuestbook = widget.userId == currentUser?.uid;
@@ -269,7 +301,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                       collectionPath: 'users/${widget.userId}/guestbook',
                       authorId: writerId ?? '',
                       onEdit: canEdit ? () => _startEdit(docId, message) : null,
-                      onDelete: canDelete ? () => _deleteComment(docId) : null, // ← 삭제 기능 추가!
+                      onDelete: canDelete ? () => _deleteComment(docId) : null,
                       onTap: null,
                     );
                   },

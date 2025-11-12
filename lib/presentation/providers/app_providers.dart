@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/repositories/auth_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
+import 'package:rxdart/rxdart.dart'; // 추가!
 
 // === Auth ===
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
@@ -13,7 +14,7 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
-// === 관리자 여부 (Firestore 기반 실시간 감시) ===
+// === 관리자 여부 ===
 final isAdminProvider = StreamProvider<bool>((ref) {
   final user = ref.watch(authStateProvider).value;
   if (user == null) return Stream.value(false);
@@ -56,39 +57,28 @@ final isFullyAuthenticatedProvider = Provider<bool>((ref) {
   return hasProfile && phoneVerified;
 });
 
-// === 실시간 안 읽은 공지 수 (공통) ===
+// === 실시간 안 읽은 공지 수 ===
 final unreadNoticesCountProvider = StreamProvider.autoDispose<int>((ref) {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return Stream.value(0);
 
-  final noticesRef = FirebaseFirestore.instance.collection('notices');
-  final readRef = FirebaseFirestore.instance
+  final noticesStream = FirebaseFirestore.instance
+      .collection('notices')
+      .where('isActive', isEqualTo: true)
+      .snapshots();
+
+  final readNoticesStream = FirebaseFirestore.instance
       .collection('users')
       .doc(user.uid)
-      .collection('readNotices');
+      .collection('readNotices')
+      .snapshots();
 
-  return noticesRef
-      .where('isActive', isEqualTo: true)
-      .snapshots()
-      .asyncMap((snapshot) async {
-    final noticeIds = snapshot.docs.map((d) => d.id).toList();
-    if (noticeIds.isEmpty) return 0;
-
-    // whereIn 제한 (10개) → 청크 처리
-    final chunks = <List<String>>[];
-    for (var i = 0; i < noticeIds.length; i += 10) {
-      chunks.add(noticeIds.sublist(
-        i,
-        i + 10 > noticeIds.length ? noticeIds.length : i + 10,
-      ));
-    }
-
-    int unreadCount = 0;
-    for (final chunk in chunks) {
-      final readSnapshot = await readRef.where(FieldPath.documentId, whereIn: chunk).get();
-      final readIds = readSnapshot.docs.map((d) => d.id).toSet();
-      unreadCount += chunk.where((id) => !readIds.contains(id)).length;
-    }
-    return unreadCount;
-  });
+  return Rx.combineLatest2<QuerySnapshot, QuerySnapshot, int>(
+    noticesStream,
+    readNoticesStream,
+        (notices, readNotices) {
+      final readIds = readNotices.docs.map((e) => e.id).toSet();
+      return notices.docs.where((doc) => !readIds.contains(doc.id)).length;
+    },
+  );
 });
