@@ -1,2 +1,0 @@
-C:/Users/A/dartschat/android/app/.cxx/RelWithDebInfo/1cl63844/arm64-v8a/CMakeFiles/edit_cache.dir
-C:/Users/A/dartschat/android/app/.cxx/RelWithDebInfo/1cl63844/arm64-v8a/CMakeFiles/rebuild_cache.dir

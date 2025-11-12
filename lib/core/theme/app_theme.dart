@@ -32,7 +32,7 @@ class AppTheme {
     ),
 
     // 카드 (여백 줄임)
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 1.5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       margin: EdgeInsets.zero,

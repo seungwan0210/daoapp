@@ -1,1 +1,0 @@
-C:\Users\A\dartschat\build\app\intermediates\cxx\RelWithDebInfo\1cl63844\obj\armeabi-v7a
