@@ -21,6 +21,30 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   bool _isUploading = false;
   final _picker = ImagePicker();
 
+  String? _postId;
+  String? _existingPhotoUrl;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && args['postId'] != null && _postId == null) {
+      _postId = args['postId'] as String;
+      _loadExistingPost(_postId!);
+    }
+  }
+
+  Future<void> _loadExistingPost(String postId) async {
+    final doc = await FirebaseFirestore.instance.collection('community').doc(postId).get();
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+    _contentController.text = data['content'] ?? '';
+    _existingPhotoUrl = data['photoUrl'] as String?;
+
+    if (mounted) setState(() {});
+  }
+
   Future<void> _pickImage() async {
     final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
     if (picked != null) {
@@ -29,7 +53,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   }
 
   Future<void> _upload() async {
-    if (_contentController.text.trim().isEmpty && _image == null) return;
+    if (_contentController.text.trim().isEmpty && _image == null && _existingPhotoUrl == null) {
+      _showSnackBar('내용 또는 사진을 입력하세요');
+      return;
+    }
 
     setState(() => _isUploading = true);
     try {
@@ -37,8 +64,16 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final appUser = AppUser.fromMap(user.uid, userDoc.data()!);
 
-      String? photoUrl;
+      String? photoUrl = _existingPhotoUrl;
       if (_image != null) {
+        if (_existingPhotoUrl != null) {
+          try {
+            await FirebaseStorage.instance.refFromURL(_existingPhotoUrl!).delete();
+          } catch (e) {
+            debugPrint('기존 이미지 삭제 실패: $e');
+          }
+        }
+
         final ref = FirebaseStorage.instance
             .ref()
             .child('community_posts')
@@ -47,25 +82,37 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
         photoUrl = await ref.getDownloadURL();
       }
 
-      await FirebaseFirestore.instance.collection('community').add({
+      final data = {
         'userId': user.uid,
         'displayName': appUser.koreanName ?? 'Unknown',
         'userPhotoUrl': appUser.profileImageUrl,
         'photoUrl': photoUrl,
         'content': _contentController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
-        'likes': 0,
-        'comments': 0,
-      });
+      };
+
+      if (_postId == null) {
+        await FirebaseFirestore.instance.collection('community').add({
+          ...data,
+          'likes': 0,
+          'comments': 0,
+        });
+      } else {
+        await FirebaseFirestore.instance.collection('community').doc(_postId).update(data);
+      }
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('업로드 실패: $e')));
+        _showSnackBar('업로드 실패: $e');
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -77,49 +124,34 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isEdit = _postId != null;
 
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
-          tooltip: '취소',
         ),
-        title: const Text("게시물 작성", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(isEdit ? "게시물 수정" : "게시물 작성"),
         actions: [
           TextButton(
             onPressed: _isUploading ? null : _upload,
             child: _isUploading
-                ? const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-                : Text(
-              "게시",
-              style: TextStyle(
-                color: _canPost ? theme.colorScheme.primary : Colors.grey,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(isEdit ? "수정" : "게시", style: TextStyle(color: _canPost ? theme.colorScheme.primary : Colors.grey)),
           ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // === 1. 사진 추가 (먼저!) ===
             Center(
-              child: _image == null
+              child: _image == null && _existingPhotoUrl == null
                   ? _buildImagePlaceholder(theme)
                   : _buildImagePreview(),
             ),
-
             const SizedBox(height: 24),
-
-            // === 2. 글쓰기 ===
             TextField(
               controller: _contentController,
               maxLines: null,
@@ -128,7 +160,6 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
                 border: InputBorder.none,
                 hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
               ),
-              style: const TextStyle(fontSize: 16),
             ),
           ],
         ),
@@ -136,9 +167,8 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
     );
   }
 
-  bool get _canPost => _contentController.text.trim().isNotEmpty || _image != null;
+  bool get _canPost => _contentController.text.trim().isNotEmpty || _image != null || _existingPhotoUrl != null;
 
-  // 사진 추가 플레이스홀더
   Widget _buildImagePlaceholder(ThemeData theme) {
     return GestureDetector(
       onTap: _pickImage,
@@ -148,47 +178,42 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
         decoration: BoxDecoration(
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade300, width: 2, style: BorderStyle.solid),
+          border: Border.all(color: Colors.grey.shade300, width: 2),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.add_a_photo, size: 48, color: Colors.grey[600]),
             const SizedBox(height: 12),
-            Text(
-              "사진 추가",
-              style: TextStyle(color: Colors.grey[700], fontSize: 16, fontWeight: FontWeight.w600),
-            ),
+            Text("사진 추가", style: TextStyle(color: Colors.grey[700], fontSize: 16)),
           ],
         ),
       ),
     );
   }
 
-  // 선택된 이미지 미리보기
   Widget _buildImagePreview() {
+    final imageProvider = _image != null
+        ? FileImage(_image!) as ImageProvider
+        : NetworkImage(_existingPhotoUrl!);
+
     return Stack(
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(16),
-          child: Image.file(
-            _image!,
-            height: 300,
-            width: double.infinity,
-            fit: BoxFit.cover,
-          ),
+          child: Image(image: imageProvider, height: 300, width: double.infinity, fit: BoxFit.cover),
         ),
         Positioned(
           top: 12,
           right: 12,
           child: GestureDetector(
-            onTap: () => setState(() => _image = null),
+            onTap: () => setState(() {
+              _image = null;
+              _existingPhotoUrl = null;
+            }),
             child: Container(
               padding: const EdgeInsets.all(6),
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                shape: BoxShape.circle,
-              ),
+              decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
               child: const Icon(Icons.close, color: Colors.white, size: 20),
             ),
           ),

@@ -1,4 +1,3 @@
-// lib/presentation/providers/app_providers.dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,18 +13,16 @@ final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
 
-// === 클레임 실시간 감시 ===
-final userClaimsProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return null;
-  final token = await user.getIdTokenResult(true);
-  return token.claims;
-});
+// === 관리자 여부 (Firestore 기반 실시간 감시) ===
+final isAdminProvider = StreamProvider<bool>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(false);
 
-// === 관리자 여부 (실시간) ===
-final isAdminProvider = Provider<bool>((ref) {
-  final claims = ref.watch(userClaimsProvider).value;
-  return claims?['admin'] == true;
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((doc) => doc.exists && (doc.data()?['admin'] == true));
 });
 
 // === 프로필 등록 여부 ===
@@ -59,7 +56,7 @@ final isFullyAuthenticatedProvider = Provider<bool>((ref) {
   return hasProfile && phoneVerified;
 });
 
-/// 실시간 안 읽은 공지 수 (모든 화면에서 공유)
+// === 실시간 안 읽은 공지 수 (공통) ===
 final unreadNoticesCountProvider = StreamProvider.autoDispose<int>((ref) {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return Stream.value(0);
@@ -77,9 +74,13 @@ final unreadNoticesCountProvider = StreamProvider.autoDispose<int>((ref) {
     final noticeIds = snapshot.docs.map((d) => d.id).toList();
     if (noticeIds.isEmpty) return 0;
 
+    // whereIn 제한 (10개) → 청크 처리
     final chunks = <List<String>>[];
     for (var i = 0; i < noticeIds.length; i += 10) {
-      chunks.add(noticeIds.sublist(i, i + 10 > noticeIds.length ? noticeIds.length : i + 10));
+      chunks.add(noticeIds.sublist(
+        i,
+        i + 10 > noticeIds.length ? noticeIds.length : i + 10,
+      ));
     }
 
     int unreadCount = 0;

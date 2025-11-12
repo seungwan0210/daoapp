@@ -23,7 +23,7 @@ class CircleScreen extends ConsumerStatefulWidget {
 
 class _CircleScreenState extends ConsumerState<CircleScreen> {
   FeedMode _mode = FeedMode.grid;
-  String? _initialPostId; // ← 여기서 관리!
+  String? _initialPostId;
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -31,7 +31,7 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
     super.initState();
     if (widget.initialPostId != null) {
       _mode = FeedMode.list;
-      _initialPostId = widget.initialPostId; // ← 초기값 설정
+      _initialPostId = widget.initialPostId;
     }
   }
 
@@ -44,14 +44,14 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
   void _switchToListMode(String postId) {
     setState(() {
       _mode = FeedMode.list;
-      _initialPostId = postId; // ← Grid에서 탭한 postId 저장!
+      _initialPostId = postId;
     });
   }
 
   void _switchToGridMode() {
     setState(() {
       _mode = FeedMode.grid;
-      _initialPostId = null; // ← Grid로 돌아가면 초기화
+      _initialPostId = null;
     });
   }
 
@@ -64,6 +64,7 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
       appBar: CommonAppBar(
         title: '피드',
         showBackButton: _mode == FeedMode.list,
+        onBackPressed: _switchToGridMode,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -112,14 +113,14 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
                                 ? CircleGridView(
                               key: const ValueKey('grid'),
                               docs: docs,
-                              onItemTap: _switchToListMode, // ← postId 받음!
+                              onItemTap: _switchToListMode,
                             )
                                 : CircleListView(
                               key: const ValueKey('list'),
                               docs: docs,
                               currentUserId: currentUserId,
                               scrollController: _scrollController,
-                              initialPostId: _initialPostId, // ← 여기로 전달!
+                              initialPostId: _initialPostId,
                             ),
                           );
                         },

@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
@@ -36,7 +37,7 @@ import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
-import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
+import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart'; // 수정 완료!
 
 // === 커뮤니티 - 서클 ===
 import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
@@ -58,6 +59,19 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   setupDependencies();
+
+  // === 실시간 온라인 상태 업데이트 ===
+  FirebaseAuth.instance.authStateChanges().listen((user) async {
+    if (user != null) {
+      final onlineRef = FirebaseFirestore.instance.collection('online_users').doc(user.uid);
+      await onlineRef.set({
+        'uid': user.uid,
+        'name': user.displayName ?? '이름 없음',
+        'lastSeen': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+  });
+
   runApp(
     const ProviderScope(
       child: DaoApp(),
@@ -91,7 +105,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.noticeList: (_) => const NoticeListScreen(),
         RouteConstants.memberList: (_) => const MemberListScreen(),
         RouteConstants.report: (_) => const ReportFormScreen(),
-        RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
+        RouteConstants.adminReportList: (_) => const AdminReportListScreen(), // 추가됨
 
         // === 관리자 ===
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),

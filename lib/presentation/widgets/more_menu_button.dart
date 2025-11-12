@@ -1,8 +1,5 @@
-// lib/presentation/widgets/more_menu_button.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 
@@ -11,19 +8,21 @@ class MoreMenuButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(isAdminProvider);
-    final user = FirebaseAuth.instance.currentUser;
+    final isAdminAsync = ref.watch(isAdminProvider);
+    final unreadCountAsync = ref.watch(unreadNoticesCountProvider);
 
-    if (user == null) {
-      return _buildMenuButton(isAdmin, context, 0);
-    }
+    return isAdminAsync.when(
+      data: (isAdmin) {
+        final count = unreadCountAsync.when(
+          data: (count) => count,
+          loading: () => 0,
+          error: (_, __) => 0,
+        );
 
-    return StreamBuilder<int>(
-      stream: _getUnreadNoticeCount(user.uid),
-      builder: (context, snapshot) {
-        final count = snapshot.data ?? 0;
         return _buildMenuButton(isAdmin, context, count);
       },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -52,7 +51,11 @@ class MoreMenuButton extends ConsumerWidget {
                       ),
                       child: Text(
                         count > 99 ? '99+' : '$count',
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -81,10 +84,8 @@ class MoreMenuButton extends ConsumerWidget {
                 ),
               ),
           ],
-          onSelected: (value) async {
+          onSelected: (value) {
             if (value == 'notice') {
-              // 공지 클릭 → 모든 공지 읽음 처리
-              await _markAllNoticesAsRead();
               Navigator.pushNamed(context, RouteConstants.noticeList);
             } else if (value == 'report') {
               Navigator.pushNamed(context, RouteConstants.report);
@@ -93,7 +94,7 @@ class MoreMenuButton extends ConsumerWidget {
             }
           },
         ),
-        // 설정 아이콘 위 배지 (항상 보임)
+        // 설정 아이콘 위 배지
         if (count > 0)
           Positioned(
             right: 6,
@@ -109,58 +110,16 @@ class MoreMenuButton extends ConsumerWidget {
               child: Center(
                 child: Text(
                   count > 99 ? '99+' : '$count',
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
           ),
       ],
     );
-  }
-
-  // 모든 공지 읽음 처리
-  Future<void> _markAllNoticesAsRead() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    final noticesSnapshot = await FirebaseFirestore.instance
-        .collection('notices')
-        .where('isActive', isEqualTo: true)
-        .get();
-
-    final batch = FirebaseFirestore.instance.batch();
-    final readRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('readNotices');
-
-    for (final doc in noticesSnapshot.docs) {
-      batch.set(readRef.doc(doc.id), {
-        'readAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
-    }
-
-    await batch.commit();
-  }
-
-  // 읽지 않은 공지 수
-  Stream<int> _getUnreadNoticeCount(String userId) {
-    final noticesRef = FirebaseFirestore.instance.collection('notices');
-    final readRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('readNotices');
-
-    return noticesRef
-        .where('isActive', isEqualTo: true)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      final noticeIds = snapshot.docs.map((d) => d.id).toList();
-      if (noticeIds.isEmpty) return 0;
-
-      final readSnapshot = await readRef.where(FieldPath.documentId, whereIn: noticeIds).get();
-      final readIds = readSnapshot.docs.map((d) => d.id).toSet();
-      return noticeIds.where((id) => !readIds.contains(id)).length;
-    });
   }
 }

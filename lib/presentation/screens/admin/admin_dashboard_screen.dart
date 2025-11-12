@@ -1,179 +1,117 @@
-// lib/presentation/screens/admin/admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // 추가!
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // 추가!
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/providers/app_providers.dart'; // 추가!
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = FirebaseAuth.instance.currentUser;
     final theme = Theme.of(context);
 
-    // 실시간 클레임 체크
-    return FutureBuilder<IdTokenResult?>(
-      future: FirebaseAuth.instance.currentUser?.getIdTokenResult(true),
-      builder: (context, snapshot) {
+    if (user == null) {
+      return _buildNoPermissionScaffold('로그인이 필요합니다');
+    }
 
-        // 로딩 중
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // 로그인 안 됨
-        if (snapshot.data == null || FirebaseAuth.instance.currentUser == null) {
-          return Scaffold(
-            appBar: CommonAppBar(title: 'ADMIN', showBackButton: true),
-            body: const Center(
-              child: Text(
-                '로그인이 필요합니다',
-                style: TextStyle(fontSize: 18),
-              ),
-            ),
-          );
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return _buildNoPermissionScaffold('사용자 정보가 없습니다');
         }
 
-        // 관리자 권한 체크
-        final isAdmin = snapshot.data!.claims?['admin'] == true;
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final isAdmin = data['admin'] == true;
 
         if (!isAdmin) {
-          return Scaffold(
-            appBar: CommonAppBar(title: '접근 불가', showBackButton: true),
-            body: const Center(
-              child: Text(
-                '관리자 권한이 없습니다',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          );
+          return _buildNoPermissionScaffold('관리자 권한이 없습니다');
         }
 
-        // 진짜 관리자 UI
-        return Scaffold(
-          appBar: CommonAppBar(
-            title: 'ADMIN',
-            showBackButton: true,
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildSection(
-                context,
-                title: '공지·뉴스·스폰서·사진',
-                items: [
-                  _buildItem(
-                    context,
-                    icon: Icons.campaign,
-                    title: '공지 등록',
-                    subtitle: '공지 작성·수정·삭제·링크',
-                    route: RouteConstants.noticeForm,
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.article,
-                    title: '뉴스 등록',
-                    subtitle: '뉴스 작성·수정·삭제·링크',
-                    route: RouteConstants.newsForm,
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.image,
-                    title: '스폰서 배너 등록',
-                    subtitle: '스폰서 등록·수정·삭제·링크',
-                    route: RouteConstants.sponsorForm,
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.photo_library,
-                    title: '대회 사진 등록',
-                    subtitle: '대회 사진 등록·수정·삭제·링크',
-                    route: RouteConstants.competitionPhotosForm,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+        return _buildAdminDashboard(context, theme);
+      },
+    );
+  }
 
-              _buildSection(
-                context,
-                title: '포인트 관리',
-                items: [
-                  _buildItem(
-                    context,
-                    icon: Icons.add_circle,
-                    title: '포인트 수동 부여',
-                    subtitle: '스틸리그 포인트 부여·등록',
-                    route: RouteConstants.pointAward,
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.list_alt,
-                    title: '포인트 내역 관리',
-                    subtitle: '포인트 내역 수정·삭제',
-                    route: RouteConstants.pointAwardList,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
+  // 접근 불가 화면
+  Widget _buildNoPermissionScaffold(String message) {
+    return Scaffold(
+      appBar: CommonAppBar(title: '접근 불가', showBackButton: true),
+      body: Center(
+        child: Text(
+          message,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
 
-              _buildSection(
-                context,
-                title: '스틸리그 경기',
-                items: [
-                  _buildItem(
-                    context,
-                    icon: Icons.sports_esports,
-                    title: '경기 등록',
-                    subtitle: '스틸리그 경기 일정 등록·예정·종료',
-                    route: RouteConstants.eventCreate,
-                  ),
-                  _buildItem(
-                    context,
-                    icon: Icons.list_alt,
-                    title: '경기 관리',
-                    subtitle: '스틸리그 경기 삭제·재등록',
-                    route: RouteConstants.eventList,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              _buildSection(
-                context,
-                title: 'KDF 정회원',
-                items: [
-                  _buildItem(
-                    context,
-                    icon: Icons.card_membership,
-                    title: '정회원 등록',
-                    subtitle: 'KDF 정회원 등록·사진 등록',
-                    route: RouteConstants.memberRegister,
-                  ),
-                ],
-              ),
-              // _buildSection 추가 (기존 코드 아래에 삽입)
-              _buildSection(
-                context,
-                title: '버그/신고 관리',
-                items: [
-                  _buildItem(
-                    context,
-                    icon: Icons.bug_report,
-                    title: '신고 내역 확인',
-                    subtitle: '사용자 신고 확인 및 처리',
-                    route: RouteConstants.adminReportList,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
+  // 관리자 대시보드 UI
+  Widget _buildAdminDashboard(BuildContext context, ThemeData theme) {
+    return Scaffold(
+      appBar: CommonAppBar(title: 'ADMIN', showBackButton: true),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildSection(
+            context,
+            title: '공지·뉴스·스폰서·사진',
+            items: [
+              _buildItem(context, icon: Icons.campaign, title: '공지 등록', subtitle: '공지 작성·수정·삭제·링크', route: RouteConstants.noticeForm),
+              _buildItem(context, icon: Icons.article, title: '뉴스 등록', subtitle: '뉴스 작성·수정·삭제·링크', route: RouteConstants.newsForm),
+              _buildItem(context, icon: Icons.image, title: '스폰서 배너 등록', subtitle: '스폰서 등록·수정·삭제·링크', route: RouteConstants.sponsorForm),
+              _buildItem(context, icon: Icons.photo_library, title: '대회 사진 등록', subtitle: '대회 사진 등록·수정·삭제·링크', route: RouteConstants.competitionPhotosForm),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 16),
+          _buildSection(
+            context,
+            title: '포인트 관리',
+            items: [
+              _buildItem(context, icon: Icons.add_circle, title: '포인트 수동 부여', subtitle: '스틸리그 포인트 부여·등록', route: RouteConstants.pointAward),
+              _buildItem(context, icon: Icons.list_alt, title: '포인트 내역 관리', subtitle: '포인트 내역 수정·삭제', route: RouteConstants.pointAwardList),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context,
+            title: '스틸리그 경기',
+            items: [
+              _buildItem(context, icon: Icons.sports_esports, title: '경기 등록', subtitle: '스틸리그 경기 일정 등록·예정·종료', route: RouteConstants.eventCreate),
+              _buildItem(context, icon: Icons.list_alt, title: '경기 관리', subtitle: '스틸리그 경기 삭제·재등록', route: RouteConstants.eventList),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context,
+            title: 'KDF 정회원',
+            items: [
+              _buildItem(context, icon: Icons.card_membership, title: '정회원 등록', subtitle: 'KDF 정회원 등록·사진 등록', route: RouteConstants.memberRegister),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSection(
+            context,
+            title: '버그/신고 관리',
+            items: [
+              _buildItem(context, icon: Icons.bug_report, title: '신고 내역 확인', subtitle: '사용자 신고 확인 및 처리', route: RouteConstants.adminReportList),
+            ],
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 

@@ -1,175 +1,151 @@
-// lib/presentation/screens/admin/admin_report_list_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
-class AdminReportListScreen extends StatelessWidget {
+class AdminReportListScreen extends ConsumerStatefulWidget {
   const AdminReportListScreen({super.key});
+
+  @override
+  ConsumerState<AdminReportListScreen> createState() => _AdminReportListScreenState();
+}
+
+class _AdminReportListScreenState extends ConsumerState<AdminReportListScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _markAsProcessed(String reportId) async {
+    await FirebaseFirestore.instance
+        .collection('reports')
+        .doc(reportId)
+        .update({'processed': true, 'processedAt': FieldValue.serverTimestamp()});
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: CommonAppBar(
-        title: '버그/신고 관리',
-        showBackButton: true,
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('reports')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                '신고 내역이 없습니다.',
-                style: TextStyle(fontSize: 16),
-              ),
-            );
-          }
-
-          return ListView.builder(
+      appBar: CommonAppBar(title: '신고 내역', showBackButton: true),
+      body: Column(
+        children: [
+          // 검색창
+          Padding(
             padding: const EdgeInsets.all(16),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final isResolved = data['isResolved'] as bool? ?? false;
-              final imageUrl = data['imageUrl'] as String?;
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                labelText: '신고 내용 검색',
+                prefixIcon: const Icon(Icons.search),
+                border: const OutlineInputBorder(),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                )
+                    : null,
+              ),
+            ),
+          ),
 
-              return AppCard(
-                color: isResolved ? Colors.grey[50] : null,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: isResolved
-                      ? BorderSide(color: Colors.grey.shade300)
-                      : BorderSide.none,
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(14),
-                  title: Text(
-                    data['title'] ?? '제목 없음',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      decoration: isResolved ? TextDecoration.lineThrough : null,
-                      color: isResolved ? Colors.grey : null,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        data['email'] ?? 'unknown@email.com',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+          // 신고 리스트
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('reports')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                var docs = snapshot.data!.docs;
+
+                // 검색 필터
+                if (_searchQuery.isNotEmpty) {
+                  docs = docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final content = (data['content'] as String?)?.toLowerCase() ?? '';
+                    final reporter = (data['reporterName'] as String?)?.toLowerCase() ?? '';
+                    return content.contains(_searchQuery) || reporter.contains(_searchQuery);
+                  }).toList();
+                }
+
+                if (docs.isEmpty) {
+                  return const Center(child: Text('신고 내역이 없습니다'));
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: docs.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, i) {
+                    final doc = docs[i];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final reportId = doc.id;
+                    final reporterId = data['reporterId'] as String?;
+                    final reporterName = data['reporterName'] ?? '익명';
+                    final content = data['content'] ?? '';
+                    final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
+                    final timeStr = timestamp != null ? AppDateUtils.formatRelativeTime(timestamp) : '방금 전';
+                    final processed = data['processed'] == true;
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      title: Row(
+                        children: [
+                          Text(reporterName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 8),
+                          Text(timeStr, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                          const Spacer(),
+                          if (processed)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text('처리완료', style: TextStyle(fontSize: 11, color: Colors.green)),
+                            ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-
-                      // 사진 있으면 표시
-                      if (imageUrl != null)
-                        Container(
-                          height: 180,
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.grey[200],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context, child, loadingProgress) {
-                                if (loadingProgress == null) return child;
-                                return Center(
-                                  child: CircularProgressIndicator(
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                        : null,
-                                  ),
-                                );
-                              },
-                              errorBuilder: (context, error, stackTrace) {
-                                return const Center(
-                                  child: Icon(Icons.error, color: Colors.red),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-
-                      // 내용
-                      if (data['content'] != null && data['content'].toString().isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            data['content'],
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.4,
-                              color: isResolved ? Colors.grey.shade600 : null,
-                            ),
-                            maxLines: 4,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-
-                      const SizedBox(height: 8),
-                      // 타임스탬프
-                      if (data['createdAt'] != null)
-                        Text(
-                          _formatTimestamp(data['createdAt']),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade500,
-                            fontSize: 11,
-                          ),
-                        ),
-                    ],
-                  ),
-                  trailing: Switch(
-                    value: isResolved,
-                    onChanged: (value) async {
-                      await doc.reference.update({'isResolved': value});
-                    },
-                    activeColor: theme.colorScheme.primary,
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(content, style: const TextStyle(fontSize: 13)),
+                      ),
+                      trailing: !processed
+                          ? TextButton(
+                        onPressed: () => _markAsProcessed(reportId),
+                        child: const Text('처리', style: TextStyle(color: Colors.blue)),
+                      )
+                          : null,
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp is Timestamp) {
-      final date = timestamp.toDate();
-      final now = DateTime.now();
-      final diff = now.difference(date);
-
-      if (diff.inDays > 0) {
-        return '${diff.inDays}일 전';
-      } else if (diff.inHours > 0) {
-        return '${diff.inHours}시간 전';
-      } else if (diff.inMinutes > 0) {
-        return '${diff.inMinutes}분 전';
-      } else {
-        return '방금 전';
-      }
-    }
-    return '알 수 없음';
   }
 }

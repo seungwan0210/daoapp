@@ -1,7 +1,7 @@
-// lib/presentation/screens/community/circle/circle_list_view.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/screens/community/circle/widgets/post_card.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 
 class CircleListView extends StatefulWidget {
   final List<QueryDocumentSnapshot> docs;
@@ -22,23 +22,23 @@ class CircleListView extends StatefulWidget {
 }
 
 class _CircleListViewState extends State<CircleListView> {
-  final Map<String, double> _cardHeights = {}; // postId → 높이
+  final Map<String, double> _cardHeights = {};
+  bool _hasScrolled = false;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialPostId != null) {
-      // 2프레임 대기 → 모든 카드 렌더링 후 스크롤
+    if (widget.initialPostId != null && !_hasScrolled) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToPost(widget.initialPostId!);
+          if (mounted) _scrollToPost(widget.initialPostId!);
         });
       });
     }
   }
 
   void _updateCardHeight(String postId, double height) {
-    if (_cardHeights[postId] != height) {
+    if (_cardHeights[postId] != height && mounted) {
       setState(() {
         _cardHeights[postId] = height;
       });
@@ -47,25 +47,55 @@ class _CircleListViewState extends State<CircleListView> {
 
   void _scrollToPost(String postId) {
     final index = widget.docs.indexWhere((doc) => doc.id == postId);
-    if (index == -1) return;
+    if (index == -1 || _hasScrolled) return;
 
-    // 이전 카드들의 높이 합산
     double offset = 0;
     for (int i = 0; i < index; i++) {
       final id = widget.docs[i].id;
-      offset += _cardHeights[id] ?? 520.0; // 기본값 520
+      offset += _cardHeights[id] ?? 520.0;
     }
 
-    // 현재 카드 중앙 정렬
     final currentHeight = _cardHeights[postId] ?? 520.0;
-    offset += currentHeight / 2 - 200; // 화면 중앙 (-200 조정 가능)
+    offset += currentHeight / 2 - 200;
 
-    // 스크롤 애니메이션
     widget.scrollController.animateTo(
       offset.clamp(0.0, widget.scrollController.position.maxScrollExtent),
       duration: const Duration(milliseconds: 600),
       curve: Curves.easeOutCubic,
     );
+
+    _hasScrolled = true;
+  }
+
+  // 수정 버튼 클릭
+  void _editPost(BuildContext context, String postId) {
+    Navigator.pushNamed(
+      context,
+      RouteConstants.postWrite,
+      arguments: {'postId': postId},
+    );
+  }
+
+  // 삭제 버튼 클릭
+  Future<void> _deletePost(String postId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('삭제 확인'),
+        content: const Text('이 게시물을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await FirebaseFirestore.instance.collection('community').doc(postId).delete();
+    }
   }
 
   @override
@@ -84,6 +114,8 @@ class _CircleListViewState extends State<CircleListView> {
           doc: doc,
           currentUserId: widget.currentUserId,
           onHeightCalculated: (height) => _updateCardHeight(postId, height),
+          onEdit: () => _editPost(context, postId),
+          onDelete: () => _deletePost(postId),
         );
       },
     );

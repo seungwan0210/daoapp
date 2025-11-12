@@ -1,4 +1,3 @@
-// lib/presentation/screens/user/profile_register_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -254,7 +253,8 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       final ref = FirebaseStorage.instance.ref().child(isProfile ? 'profiles/${user!.uid}' : 'barrels/${user!.uid}');
       await ref.delete();
     } catch (e) {
-      debugPrint('Storage 삭제 실패: $e');
+      // debugPrint → print
+      print('Storage 삭제 실패: $e');
     }
 
     if (isProfile) {
@@ -265,7 +265,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     _showSnackBar('사진이 삭제되었습니다.', color: Colors.orange);
   }
 
-  // 핵심: _save() 함수 완전히 수정됨
+  // _save() 함수 전체 교체
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -299,7 +299,12 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
     final cleanNumber = phoneInput.replaceAll(RegExp(r'\D'), '').substring(1);
 
-    // Firestore 저장
+    // === 현재 admin 상태 읽기 ===
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+    final currentData = userDoc.data() ?? {};
+    final isCurrentlyAdmin = currentData['admin'] == true;
+
+    // === Firestore 저장 (admin 보존) ===
     await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
       'koreanName': _koreanNameController.text.trim(),
       'englishName': _englishNameController.text.trim(),
@@ -314,6 +319,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       'barrelImageUrl': _barrelImage != null ? barrelUrl : (_firestoreBarrelUrl == null ? null : _firestoreBarrelUrl),
       'hasProfile': true,
       'updatedAt': FieldValue.serverTimestamp(),
+      if (isCurrentlyAdmin) 'admin': true,
     }, SetOptions(merge: true));
 
     // Realtime DB 동기화
@@ -323,28 +329,25 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       'photoUrl': profileUrl ?? '',
     });
 
-    // 토큰 갱신
-    await FirebaseAuth.instance.currentUser?.getIdToken(true);
-
-    // Custom Claims 설정: setHasProfile 호출 + 디버그 로그
+    // === Cloud Function 호출 ===
     try {
       print('setHasProfile 호출 시작');
       final callable = FirebaseFunctions.instance.httpsCallable('setHasProfile');
       await callable.call();
       print('setHasProfile 성공!');
 
-      // 즉시 토큰 갱신 + 확인
+      if (!mounted) return;
+
       await FirebaseAuth.instance.currentUser?.reload();
       final result = await FirebaseAuth.instance.currentUser?.getIdTokenResult(true);
       print('hasProfile: ${result?.claims?['hasProfile']}');
-      print('admin: ${result?.claims?['admin']}'); // ← 관리자 권한 확인!
+      print('admin 클레임: ${result?.claims?['admin']}');
 
-      // === 필수: isAdminProvider 강제 갱신 ===
       ref.invalidate(isAdminProvider);
-      // === 추가 끝 ===
 
-      _showSnackBar('프로필 저장 + 권한 업데이트 완료!', color: Colors.green);
+      _showSnackBar('프로필 저장 + 권한 유지 완료!', color: Colors.green);
     } catch (e) {
+      if (!mounted) return;
       print('setHasProfile 실패: $e');
       _showSnackBar('권한 업데이트 실패: $e', color: Colors.red);
     }

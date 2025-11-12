@@ -1,16 +1,17 @@
-// lib/presentation/widgets/common_appbar.dart
 import 'package:flutter/material.dart';
 
 class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final bool showBackButton;
+  final VoidCallback? onBackPressed; // 추가: 커스텀 뒤로 가기 동작
 
   const CommonAppBar({
     super.key,
     required this.title,
     this.actions,
     this.showBackButton = false,
+    this.onBackPressed,
   });
 
   @override
@@ -21,7 +22,8 @@ class CommonAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: showBackButton
           ? IconButton(
         icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-        onPressed: () => Navigator.pop(context),
+        onPressed: onBackPressed ?? () => Navigator.pop(context),
+        tooltip: '뒤로 가기',
       )
           : null,
       centerTitle: false,

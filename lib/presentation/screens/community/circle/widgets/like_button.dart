@@ -25,8 +25,11 @@ class LikeButton extends ConsumerWidget {
       builder: (context, snapshot) {
         final isLiked = snapshot.data?.exists ?? false;
         return IconButton(
-          icon: Icon(isLiked ? Icons.favorite : Icons.favorite_border,
-              color: isLiked ? Colors.red : null, size: 26),
+          icon: Icon(
+            isLiked ? Icons.favorite : Icons.favorite_border,
+            color: isLiked ? Colors.red : null,
+            size: 26,
+          ),
           onPressed: () => _toggleLike(isLiked),
         );
       },

@@ -14,7 +14,7 @@ class CommentPreview extends StatelessWidget {
           .collection('community')
           .doc(postId)
           .collection('comments')
-          .orderBy('timestamp')
+          .orderBy('timestamp', descending: true)
           .limit(2)
           .snapshots(),
       builder: (context, snapshot) {

@@ -1,14 +1,12 @@
 // lib/presentation/screens/community/circle/widgets/comment_bottom_sheet.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 추가!
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart'; // isAdminProvider
-// 파일 상단에 추가
-import 'package:daoapp/presentation/screens/community/circle/widgets/comment_bottom_sheet.dart';
+import 'package:daoapp/presentation/providers/app_providers.dart';
 
-class CommentBottomSheet extends ConsumerStatefulWidget { // 변경!
+class CommentBottomSheet extends ConsumerStatefulWidget {
   final String postId;
   const CommentBottomSheet({super.key, required this.postId});
 
@@ -90,7 +88,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                   .doc(commentId)
                   .update({'content': newText});
 
-              Navigator.pop(ctx);
+              if (mounted) Navigator.pop(ctx);
             },
             child: const Text('수정'),
           ),
@@ -99,10 +97,40 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     );
   }
 
+  Future<void> _deleteComment(String commentId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('삭제 확인'),
+        content: const Text('이 댓글을 삭제하시겠습니까?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+    batch.delete(FirebaseFirestore.instance
+        .collection('community')
+        .doc(widget.postId)
+        .collection('comments')
+        .doc(commentId));
+    batch.update(FirebaseFirestore.instance.collection('community').doc(widget.postId), {
+      'comments': FieldValue.increment(-1),
+    });
+    await batch.commit();
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final isAdmin = ref.watch(isAdminProvider); // 여기서 가져옴!
+    final isAdminAsync = ref.watch(isAdminProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -151,6 +179,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                   final timeStr = timestamp != null ? AppDateUtils.formatRelativeTime(timestamp.toDate()) : '방금 전';
 
                   final isMyComment = commentUserId == currentUserId;
+                  final isAdmin = isAdminAsync.when(data: (v) => v, loading: () => false, error: (_, __) => false);
                   final canEditDelete = isMyComment || isAdmin;
 
                   return Padding(
@@ -176,40 +205,14 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                                     PopupMenuButton<String>(
                                       icon: const Icon(Icons.more_horiz, size: 16),
                                       onSelected: (v) async {
-                                        if (v == 'edit') {
+                                        if (v == 'edit' && isMyComment) {
                                           _showEditDialog(commentId, content);
                                         } else if (v == 'delete') {
-                                          final confirmed = await showDialog<bool>(
-                                            context: context,
-                                            builder: (ctx) => AlertDialog(
-                                              title: const Text('삭제 확인'),
-                                              content: const Text('이 댓글을 삭제하시겠습니까?'),
-                                              actions: [
-                                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(ctx, true),
-                                                  child: const Text('삭제', style: TextStyle(color: Colors.red)),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                          if (confirmed == true) {
-                                            await FirebaseFirestore.instance
-                                                .collection('community')
-                                                .doc(widget.postId)
-                                                .collection('comments')
-                                                .doc(commentId)
-                                                .delete();
-
-                                            await FirebaseFirestore.instance
-                                                .collection('community')
-                                                .doc(widget.postId)
-                                                .update({'comments': FieldValue.increment(-1)});
-                                          }
+                                          await _deleteComment(commentId);
                                         }
                                       },
                                       itemBuilder: (_) => [
-                                        const PopupMenuItem(value: 'edit', child: Text('수정')),
+                                        if (isMyComment) const PopupMenuItem(value: 'edit', child: Text('수정')),
                                         const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
                                       ],
                                     ),
@@ -252,7 +255,13 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                 onSubmitted: (_) => _sendComment(),
               ),
             ),
-            GestureDetector(onTap: _sendComment, child: const Padding(padding: EdgeInsets.all(8.0), child: Icon(Icons.send, color: Colors.blue, size: 24))),
+            GestureDetector(
+              onTap: _sendComment,
+              child: const Padding(
+                padding: EdgeInsets.all(8.0),
+                child: Icon(Icons.send, color: Colors.blue, size: 24),
+              ),
+            ),
           ]),
         ),
       ]),

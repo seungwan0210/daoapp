@@ -5,7 +5,7 @@ import 'package:daoapp/presentation/screens/community/circle/widgets/post_grid_i
 
 class CircleGridView extends StatelessWidget {
   final List<QueryDocumentSnapshot> docs;
-  final void Function(String) onItemTap; // ← postId 받음!
+  final void Function(String) onItemTap;
 
   const CircleGridView({
     super.key,
@@ -30,11 +30,13 @@ class CircleGridView extends StatelessWidget {
         final postId = docs[i].id;
         final photoUrl = data['photoUrl'] as String?;
 
-        if (photoUrl == null) return const SizedBox.shrink();
+        if (photoUrl == null || photoUrl.isEmpty) {
+          return const SizedBox.shrink();
+        }
 
         return PostGridItem(
           photoUrl: photoUrl,
-          onTap: () => onItemTap(postId), // ← postId 전달!
+          onTap: () => onItemTap(postId),
         );
       },
     );
