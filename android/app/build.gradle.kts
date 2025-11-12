@@ -1,33 +1,27 @@
+// android/app/build.gradle.kts
+
 import java.util.Properties
 import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    id("org.jetbrains.kotlin.android")           // ← Kotlin DSL 올바른 ID
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services") // 루트에서 버전 선언했으니 여기선 버전 없이 OK
+    id("com.google.gms.google-services")         // 루트에서 버전 선언, 여기선 버전 없이 적용
 }
 
-// key.properties 불러오기
+// ── key.properties 로드 (있을 때만)
 val keystoreProperties = Properties()
-val keystorePropertiesFile = rootProject.file("key.properties")
-if (keystorePropertiesFile.exists()) {
-    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+val keystoreFile = rootProject.file("key.properties")
+val hasKeystore = if (keystoreFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystoreFile)); true
+} else {
+    false
 }
 
 android {
     namespace = "kr.comong.daoapp"
     compileSdk = flutter.compileSdkVersion
-
-    ndkVersion = "27.0.12077973"
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
 
     defaultConfig {
         applicationId = "kr.comong.daoapp"
@@ -35,29 +29,37 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // 필요시 멀티덱스:
+        // multiDexEnabled = true
     }
 
-    signingConfigs {
-        create("release") {
-            val storeFilePath = keystoreProperties.getProperty("storeFile")
-            if (storeFilePath != null && storeFilePath.isNotEmpty()) {
-                storeFile = file(storeFilePath)
-                storePassword = keystoreProperties.getProperty("storePassword") ?: ""
-                keyAlias = keystoreProperties.getProperty("keyAlias") ?: ""
-                keyPassword = keystoreProperties.getProperty("keyPassword") ?: ""
-            } else {
-                throw GradleException("key.properties에 storeFile이 없거나 잘못되었습니다.")
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+    kotlinOptions { jvmTarget = "11" }
+
+    // ── 릴리즈 서명 (keystore 있을 때만 구성)
+    if (hasKeystore) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
             }
         }
     }
 
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
+            if (hasKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
-        // debug는 자동 서명
+        // debug는 기본 디버그 키 사용
     }
 }
 

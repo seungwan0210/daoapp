@@ -58,3 +58,36 @@ final isFullyAuthenticatedProvider = Provider<bool>((ref) {
   final phoneVerified = ref.watch(userPhoneVerifiedProvider).value ?? false;
   return hasProfile && phoneVerified;
 });
+
+/// 실시간 안 읽은 공지 수 (모든 화면에서 공유)
+final unreadNoticesCountProvider = StreamProvider.autoDispose<int>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return Stream.value(0);
+
+  final noticesRef = FirebaseFirestore.instance.collection('notices');
+  final readRef = FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('readNotices');
+
+  return noticesRef
+      .where('isActive', isEqualTo: true)
+      .snapshots()
+      .asyncMap((snapshot) async {
+    final noticeIds = snapshot.docs.map((d) => d.id).toList();
+    if (noticeIds.isEmpty) return 0;
+
+    final chunks = <List<String>>[];
+    for (var i = 0; i < noticeIds.length; i += 10) {
+      chunks.add(noticeIds.sublist(i, i + 10 > noticeIds.length ? noticeIds.length : i + 10));
+    }
+
+    int unreadCount = 0;
+    for (final chunk in chunks) {
+      final readSnapshot = await readRef.where(FieldPath.documentId, whereIn: chunk).get();
+      final readIds = readSnapshot.docs.map((d) => d.id).toSet();
+      unreadCount += chunk.where((id) => !readIds.contains(id)).length;
+    }
+    return unreadCount;
+  });
+});

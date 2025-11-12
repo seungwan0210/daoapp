@@ -336,7 +336,12 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       // 즉시 토큰 갱신 + 확인
       await FirebaseAuth.instance.currentUser?.reload();
       final result = await FirebaseAuth.instance.currentUser?.getIdTokenResult(true);
-      print('hasProfile: ${result?.claims?['hasProfile']}'); // 성공!
+      print('hasProfile: ${result?.claims?['hasProfile']}');
+      print('admin: ${result?.claims?['admin']}'); // ← 관리자 권한 확인!
+
+      // === 필수: isAdminProvider 강제 갱신 ===
+      ref.invalidate(isAdminProvider);
+      // === 추가 끝 ===
 
       _showSnackBar('프로필 저장 + 권한 업데이트 완료!', color: Colors.green);
     } catch (e) {
