@@ -8,12 +8,12 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
-// === 공통 스크린 ===
+// 공통
 import 'package:daoapp/presentation/screens/splash_screen.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
 
-// === 유저 스크린 ===
+// 유저
 import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
 import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
 import 'package:daoapp/presentation/screens/community/community_home_screen.dart';
@@ -25,7 +25,7 @@ import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
 import 'package:daoapp/presentation/screens/user/report_form_screen.dart';
 
-// === 관리자 스크린 ===
+// 관리자
 import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_screen.dart';
 import 'package:daoapp/presentation/screens/admin/point_award_list_screen.dart';
@@ -37,34 +37,32 @@ import 'package:daoapp/presentation/screens/admin/forms/news_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
-import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart'; // 수정 완료!
+import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
 
-// === 커뮤니티 - 서클 ===
+// 서클
 import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
 import 'package:daoapp/presentation/screens/community/circle/circle_screen.dart';
 
-// === 커뮤니티 - 체크아웃 ===
-import 'package:daoapp/presentation/screens/community/checkout/checkout_practice_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/checkout_result_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/checkout_calculator_screen.dart';
+// 체크아웃
+import 'package:daoapp/presentation/screens/community/checkout/checkout_home_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/calculator/checkout_calculator_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_result_screen.dart';
 
-// === 커뮤니티 - 아레나 ===
+// 아레나
 import 'package:daoapp/presentation/screens/community/arena/arena_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/arena_review_write_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/arena_review_detail_screen.dart';
-
-import 'package:daoapp/presentation/widgets/more_menu_button.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   setupDependencies();
 
-  // === 실시간 온라인 상태 업데이트 ===
   FirebaseAuth.instance.authStateChanges().listen((user) async {
     if (user != null) {
-      final onlineRef = FirebaseFirestore.instance.collection('online_users').doc(user.uid);
-      await onlineRef.set({
+      final ref = FirebaseFirestore.instance.collection('online_users').doc(user.uid);
+      await ref.set({
         'uid': user.uid,
         'name': user.displayName ?? '이름 없음',
         'lastSeen': FieldValue.serverTimestamp(),
@@ -72,11 +70,7 @@ void main() async {
     }
   });
 
-  runApp(
-    const ProviderScope(
-      child: DaoApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: DaoApp()));
 }
 
 class DaoApp extends StatelessWidget {
@@ -90,12 +84,12 @@ class DaoApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: RouteConstants.splash,
       routes: {
-        // === 공통 ===
+        // 공통
         RouteConstants.splash: (_) => const SplashScreen(),
         RouteConstants.login: (_) => const LoginScreen(),
         RouteConstants.main: (_) => const MainScreen(),
 
-        // === 유저 ===
+        // 유저
         RouteConstants.ranking: (_) => const RankingScreenBody(),
         RouteConstants.calendar: (_) => const CalendarScreenBody(),
         RouteConstants.community: (_) => const CommunityHomeScreen(),
@@ -105,9 +99,9 @@ class DaoApp extends StatelessWidget {
         RouteConstants.noticeList: (_) => const NoticeListScreen(),
         RouteConstants.memberList: (_) => const MemberListScreen(),
         RouteConstants.report: (_) => const ReportFormScreen(),
-        RouteConstants.adminReportList: (_) => const AdminReportListScreen(), // 추가됨
+        RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
 
-        // === 관리자 ===
+        // 관리자
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) => const PointAwardListScreen(),
@@ -119,16 +113,17 @@ class DaoApp extends StatelessWidget {
         RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
 
-        // === 커뮤니티 - 서클 ===
-        RouteConstants.postWrite: (_) => PostWriteScreen(), // 정답
+        // 서클
+        RouteConstants.postWrite: (_) => PostWriteScreen(),
         RouteConstants.circle: (_) => const CircleScreen(),
 
-        // === 커뮤니티 - 체크아웃 ===
-        RouteConstants.checkoutPractice: (_) => const CheckoutPracticeScreen(),
-        RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
-        RouteConstants.checkoutCalculator: (_) => const CheckoutCalculatorScreen(),
+        // 체크아웃
+        RouteConstants.checkoutHome: (_) => CheckoutHomeScreen(),
+        RouteConstants.checkoutCalculator: (_) => CheckoutCalculatorScreen(),
+        RouteConstants.checkoutPractice: (_) => CheckoutPracticeScreen(),
+        RouteConstants.checkoutResult: (_) => CheckoutResultScreen(),
 
-        // === 커뮤니티 - 아레나 ===
+        // 아레나
         RouteConstants.arenaDetail: (_) => const ArenaScreen(),
         RouteConstants.arenaReviewWrite: (_) => const ArenaReviewWriteScreen(),
       },
@@ -137,7 +132,6 @@ class DaoApp extends StatelessWidget {
           final userId = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => GuestbookScreen(userId: userId));
         }
-
         if (settings.name == RouteConstants.eventEdit) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
@@ -147,12 +141,10 @@ class DaoApp extends StatelessWidget {
             ),
           );
         }
-
         if (settings.name == RouteConstants.arenaReviewDetail) {
           final reviewId = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => ArenaReviewDetailScreen(reviewId: reviewId));
         }
-
         return null;
       },
       onUnknownRoute: (_) => MaterialPageRoute(builder: (_) => const SplashScreen()),

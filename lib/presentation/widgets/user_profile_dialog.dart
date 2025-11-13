@@ -147,61 +147,71 @@ class UserProfileDialog extends StatelessWidget {
     );
   }
 
-  // 확대 이미지 다이얼로그 (오버플로우 방지 + 확대/축소 + 스크롤)
   void _showFullImage(BuildContext context, String url) {
+    final screenSize = MediaQuery.of(context).size;
+    final maxWidth = screenSize.width * 0.9;
+    final maxHeight = screenSize.height * 0.7;
+
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.zero, // 전체 화면 사용
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
         child: Stack(
           children: [
-            // 확대/축소 + 스크롤 가능한 이미지
-            InteractiveViewer(
-              panEnabled: true,
-              minScale: 0.5,
-              maxScale: 4.0,
-              child: Center(
-                child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const ClampingScrollPhysics(),
-                    child: Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.network(
-                          url,
-                          fit: BoxFit.contain,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(40),
-                                child: CircularProgressIndicator(color: Colors.white),
+            // 확대/축소 + 이동 가능한 이미지 (스크롤 제거!)
+            Center(
+              child: InteractiveViewer(
+                panEnabled: true,
+                minScale: 0.8,
+                maxScale: 2.5,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: maxWidth,
+                    maxHeight: maxHeight,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          width: maxWidth,
+                          height: maxHeight * 0.6,
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(color: Colors.white),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: maxWidth,
+                          height: maxHeight * 0.6,
+                          decoration: BoxDecoration(
+                            color: Colors.black26,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error, color: Colors.white70, size: 48),
+                              SizedBox(height: 12),
+                              Text(
+                                '이미지를 불러올 수 없어요',
+                                style: TextStyle(color: Colors.white70, fontSize: 14),
+                                textAlign: TextAlign.center,
                               ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              padding: const EdgeInsets.all(30),
-                              child: const Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.error, color: Colors.white, size: 50),
-                                  SizedBox(height: 12),
-                                  Text(
-                                    '이미지를 불러올 수 없어요',
-                                    style: TextStyle(color: Colors.white, fontSize: 14),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),

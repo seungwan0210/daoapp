@@ -15,6 +15,7 @@ class RouteConstants {
   static const String noticeList = '/notice-list';
   static const String memberList = '/member-list';
   static const String guestbook = '/guestbook';
+  static const String report = '/report';
 
   // === 관리자 ===
   static const String adminDashboard = '/admin/dashboard';
@@ -28,17 +29,17 @@ class RouteConstants {
   static const String sponsorForm = '/admin/sponsor-form';
   static const String memberRegister = '/admin/member-register';
   static const String competitionPhotosForm = '/admin/competition-photos-form';
-  static const String report = '/report';
   static const String adminReportList = '/admin/report-list';
 
   // === 커뮤니티 - 서클 ===
+  static const String circle = '/community/circle';           // 메인 서클 피드
   static const String postWrite = '/community/circle/post-write';
-  static const String circle = '/community/circle'; // 메인 서클 피드
 
   // === 커뮤니티 - 체크아웃 ===
-  static const String checkoutPractice = '/community/checkout/practice';
-  static const String checkoutResult = '/community/checkout/result';
-  static const String checkoutCalculator = '/community/checkout/calculator';
+  static const String checkoutHome = '/checkout';                     // 체크아웃 메인 (모드 선택)
+  static const String checkoutCalculator = '/checkout/calculator';    // 계산기 모드
+  static const String checkoutPractice = '/checkout/practice';        // 연습 모드
+  static const String checkoutResult = '/checkout/result';            // 연습 결과
 
   // === 커뮤니티 - 아레나 ===
   static const String arenaDetail = '/community/arena/detail';

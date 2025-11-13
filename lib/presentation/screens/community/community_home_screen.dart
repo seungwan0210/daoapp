@@ -7,7 +7,7 @@ import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_avatar_slider.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_preview.dart';
-import 'package:daoapp/presentation/screens/community/checkout/checkout_trainer_preview.dart';
+import 'package:daoapp/presentation/screens/community/checkout/checkout_home_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/arena_preview.dart';
 
 class CommunityHomeScreen extends ConsumerStatefulWidget {
@@ -17,8 +17,7 @@ class CommunityHomeScreen extends ConsumerStatefulWidget {
   ConsumerState<CommunityHomeScreen> createState() => _CommunityHomeScreenState();
 }
 
-class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
-    with TickerProviderStateMixin {
+class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> with TickerProviderStateMixin {
   late final TabController _tabController;
 
   @override
@@ -37,6 +36,10 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
     Navigator.pushNamed(context, RouteConstants.circle);
   }
 
+  void _goToCheckoutHome() {
+    Navigator.pushNamed(context, RouteConstants.checkoutHome); // 체크아웃 홈으로 이동!
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -50,7 +53,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
             if (user == null) {
               return _buildLoginPrompt(context);
             }
-
             return StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -60,19 +62,16 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
                 final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final hasProfile = data['hasProfile'] as bool? ?? false;
                 final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
-
                 if (!hasProfile || !isPhoneVerified) {
                   return _buildVerificationPrompt(context, hasProfile, isPhoneVerified);
                 }
-
                 return Column(
                   children: [
                     const SizedBox(height: 16),
-                    const CommunityAvatarSlider(), // Done: 변경됨
+                    const CommunityAvatarSlider(),
                     Container(
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surface,
@@ -108,11 +107,52 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
                       child: TabBarView(
                         controller: _tabController,
                         children: [
+                          // 1. 서클
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
-                            child: CommunityPreview(onSeeAllPressed: _goToCircleFull), // Done: 변경됨
+                            child: CommunityPreview(onSeeAllPressed: _goToCircleFull),
                           ),
-                          const CheckoutTrainerPreview(),
+
+                          // 2. 체크아웃 홈 → 클릭 시 전체 계산기 이동!
+                          GestureDetector(
+                            onTap: _goToCheckoutHome, // 수정됨
+                            child: Container(
+                              color: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 50,
+                                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                                    child: Icon(
+                                      Icons.sports_score,
+                                      size: 56,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+                                  Text(
+                                    "체크아웃",
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "계산기, 연습 모드\n통계까지 한 번에!",
+                                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Icon(Icons.touch_app, size: 32, color: theme.colorScheme.primary),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // 3. 아레나
                           const ArenaPreview(),
                         ],
                       ),
@@ -191,10 +231,8 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            if (!hasProfile)
-              Text('• 프로필 등록', style: theme.textTheme.bodyMedium),
-            if (!isPhoneVerified)
-              Text('• 핸드폰 인증', style: theme.textTheme.bodyMedium),
+            if (!hasProfile) Text('• 프로필 등록', style: theme.textTheme.bodyMedium),
+            if (!isPhoneVerified) Text('• 핸드폰 인증', style: theme.textTheme.bodyMedium),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
