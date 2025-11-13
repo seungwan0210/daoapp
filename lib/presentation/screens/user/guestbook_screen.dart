@@ -1,11 +1,11 @@
+// lib/presentation/screens/user/guestbook_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/presentation/widgets/post_item_widget.dart';
+import 'widgets/guestbook_header.dart';
+import 'widgets/guestbook_comment_item.dart';
 
 class GuestbookScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -27,7 +27,6 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     super.dispose();
   }
 
-  // 새 댓글 작성
   Future<void> _sendComment() async {
     if (_commentController.text.trim().isEmpty || _isLoading) return;
     setState(() => _isLoading = true);
@@ -36,12 +35,11 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
 
-      final ref = FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.userId)
-          .collection('guestbook');
-
-      await ref.add({
+          .collection('guestbook')
+          .add({
         'writerId': currentUser.uid,
         'writerName': currentUser.displayName ?? '익명',
         'message': _commentController.text.trim(),
@@ -57,94 +55,6 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
       _showSnackBar('전송 실패: $e', Colors.red);
     } finally {
       setState(() => _isLoading = false);
-    }
-  }
-
-  // 삭제
-  Future<void> _deleteComment(String docId) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('삭제 확인'),
-        content: const Text('이 방명록을 삭제하시겠습니까?\n복구 불가합니다.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .collection('guestbook')
-          .doc(docId)
-          .delete();
-      _showSnackBar('삭제되었습니다', Colors.green);
-    } catch (e) {
-      _showSnackBar('삭제 실패: $e', Colors.red);
-    }
-  }
-
-  // 수정 다이얼로그
-  void _startEdit(String docId, String currentMessage) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final controller = TextEditingController(text: currentMessage);
-        return AlertDialog(
-          title: const Text('방명록 수정'),
-          content: TextField(
-            controller: controller,
-            maxLines: 5,
-            decoration: const InputDecoration(
-              hintText: '메시지를 입력하세요',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('취소'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final newMessage = controller.text.trim();
-                if (newMessage.isNotEmpty) {
-                  await _updateComment(docId, newMessage);
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('수정'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _updateComment(String docId, String message) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .collection('guestbook')
-          .doc(docId)
-          .update({
-        'message': message,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      _showSnackBar('수정되었습니다', Colors.green);
-    } catch (e) {
-      _showSnackBar('수정 실패: $e', Colors.red);
     }
   }
 
@@ -173,45 +83,8 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
       ),
       body: Column(
         children: [
-          // 프로필
-          StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance.collection('users').doc(widget.userId).snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) return const SizedBox(height: 80);
-              final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-              final profileImageUrl = data['profileImageUrl'] as String?;
-              final koreanName = data['koreanName'] ?? '이름 없음';
-              final shopName = data['shopName'] ?? '';
-
-              return Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundImage: profileImageUrl?.isNotEmpty == true
-                          ? NetworkImage(profileImageUrl!)
-                          : null,
-                      child: profileImageUrl?.isNotEmpty != true
-                          ? const Icon(Icons.person, size: 36, color: Colors.grey)
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(koreanName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                          if (shopName.isNotEmpty)
-                            Text('· $shopName', style: TextStyle(color: theme.colorScheme.primary, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
+          // 상단 프로필
+          GuestbookHeader(userId: widget.userId),
 
           const Divider(height: 1),
 
@@ -281,28 +154,13 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                     final message = data['message'] ?? '';
                     final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
 
-                    final currentUser = FirebaseAuth.instance.currentUser;
-                    final isAuthor = writerId == currentUser?.uid;
-                    final isMyGuestbook = widget.userId == currentUser?.uid;
-                    final isAdmin = ref.watch(isAdminProvider).when(
-                      data: (v) => v,
-                      loading: () => false,
-                      error: (_, __) => false,
-                    );
-                    final canEdit = isAuthor;
-                    final canDelete = isAuthor || isMyGuestbook || isAdmin;
-
-                    return PostItemWidget(
-                      title: writerName,
-                      content: message,
-                      authorName: writerName,
+                    return GuestbookCommentItem(
+                      writerId: writerId ?? '',
+                      writerName: writerName,
+                      message: message,
                       timestamp: timestamp,
-                      postId: docId,
-                      collectionPath: 'users/${widget.userId}/guestbook',
-                      authorId: writerId ?? '',
-                      onEdit: canEdit ? () => _startEdit(docId, message) : null,
-                      onDelete: canDelete ? () => _deleteComment(docId) : null,
-                      onTap: null,
+                      docId: docId,
+                      guestbookOwnerId: widget.userId,
                     );
                   },
                 );

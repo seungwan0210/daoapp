@@ -120,7 +120,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
 
         // === 커뮤니티 - 서클 ===
-        RouteConstants.postWrite: (_) => const PostWriteScreen(),
+        RouteConstants.postWrite: (_) => PostWriteScreen(), // 정답
         RouteConstants.circle: (_) => const CircleScreen(),
 
         // === 커뮤니티 - 체크아웃 ===

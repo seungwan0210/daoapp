@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
+import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 
 class CommentBottomSheet extends ConsumerStatefulWidget {
   final String postId;
@@ -35,68 +36,49 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     super.dispose();
   }
 
+  // === 댓글 작성 ===
   Future<void> _sendComment() async {
     final text = _controller.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || text.length > 300) return;
 
     final user = FirebaseAuth.instance.currentUser!;
-    final batch = FirebaseFirestore.instance.batch();
-
     final commentRef = FirebaseFirestore.instance
         .collection('community')
         .doc(widget.postId)
         .collection('comments')
         .doc();
 
-    batch.set(commentRef, {
+    await commentRef.set({
       'userId': user.uid,
-      'displayName': user.displayName ?? 'Unknown',
+      'displayName': user.displayName ?? '익명',
       'content': text,
       'timestamp': FieldValue.serverTimestamp(),
     });
 
-    batch.update(FirebaseFirestore.instance.collection('community').doc(widget.postId), {
-      'comments': FieldValue.increment(1),
-    });
+    // 댓글 수 증가
+    await FirebaseFirestore.instance
+        .collection('community')
+        .doc(widget.postId)
+        .update({'comments': FieldValue.increment(1)});
 
-    await batch.commit();
     _controller.clear();
+    FocusScope.of(context).unfocus();
+
+    // 최신 댓글이 위로 오도록 스크롤
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            0,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
   }
 
-  void _showEditDialog(String commentId, String currentContent) {
-    final editController = TextEditingController(text: currentContent);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('댓글 수정'),
-        content: TextField(
-          controller: editController,
-          maxLines: 3,
-          decoration: const InputDecoration(hintText: '수정할 내용을 입력하세요'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
-          TextButton(
-            onPressed: () async {
-              final newText = editController.text.trim();
-              if (newText.isEmpty) return;
-
-              await FirebaseFirestore.instance
-                  .collection('community')
-                  .doc(widget.postId)
-                  .collection('comments')
-                  .doc(commentId)
-                  .update({'content': newText});
-
-              if (mounted) Navigator.pop(ctx);
-            },
-            child: const Text('수정'),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // === 댓글 삭제 ===
   Future<void> _deleteComment(String commentId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -106,31 +88,44 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
-          ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('삭제', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
 
     if (confirmed != true) return;
 
-    final batch = FirebaseFirestore.instance.batch();
-    batch.delete(FirebaseFirestore.instance
-        .collection('community')
-        .doc(widget.postId)
-        .collection('comments')
-        .doc(commentId));
-    batch.update(FirebaseFirestore.instance.collection('community').doc(widget.postId), {
-      'comments': FieldValue.increment(-1),
-    });
-    await batch.commit();
+    try {
+      await FirebaseFirestore.instance
+          .collection('community')
+          .doc(widget.postId)
+          .collection('comments')
+          .doc(commentId)
+          .delete();
+
+      await FirebaseFirestore.instance
+          .collection('community')
+          .doc(widget.postId)
+          .update({'comments': FieldValue.increment(-1)});
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('댓글이 삭제되었습니다'), duration: Duration(seconds: 1)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('삭제 실패: $e')));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context); // 테마 사용
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final isAdminAsync = ref.watch(isAdminProvider);
+    final isAdmin = ref.watch(isAdminProvider).when(data: (v) => v, loading: () => false, error: (_, __) => false);
 
     return Container(
       decoration: const BoxDecoration(
@@ -138,94 +133,115 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
+        // 핸들바
         Container(
-          margin: const EdgeInsets.only(top: 8),
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
-        ),
+            margin: const EdgeInsets.only(top: 8),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
         const Padding(
-          padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('댓글', style: TextStyle(fontWeight: FontWeight.bold)),
-        ),
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text('댓글', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
         const Divider(height: 1),
-        Flexible(
+
+        // === 댓글 리스트 ===
+        Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('community')
                 .doc(widget.postId)
                 .collection('comments')
-                .orderBy('timestamp', descending: true)
+                .orderBy('timestamp', descending: true) // 최신순
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-              final comments = snapshot.data!.docs;
-              if (comments.isEmpty) {
-                return const Center(child: Text('아직 댓글이 없습니다'));
-              }
+              final docs = snapshot.data!.docs;
+              if (docs.isEmpty) return const Center(child: Text('아직 댓글이 없습니다'));
 
               return ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: comments.length,
+                itemCount: docs.length,
                 itemBuilder: (context, i) {
-                  final doc = comments[i];
+                  final doc = docs[i];
                   final data = doc.data() as Map<String, dynamic>;
                   final commentId = doc.id;
-                  final commentUserId = data['userId'] as String?;
-                  final displayName = data['displayName'] ?? 'Unknown';
-                  final content = data['content'] ?? '';
+                  final userId = data['userId'] as String?;
+                  final displayName = data['displayName'] as String? ?? '익명';
+                  final content = data['content'] as String? ?? '';
                   final timestamp = data['timestamp'] as Timestamp?;
                   final timeStr = timestamp != null ? AppDateUtils.formatRelativeTime(timestamp.toDate()) : '방금 전';
 
-                  final isMyComment = commentUserId == currentUserId;
-                  final isAdmin = isAdminAsync.when(data: (v) => v, loading: () => false, error: (_, __) => false);
-                  final canEditDelete = isMyComment || isAdmin;
+                  final isMyComment = userId == currentUserId;
+                  final canDelete = isMyComment || isAdmin;
+                  final isLong = content.length > 80 || content.contains('\n');
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: Colors.grey[300],
-                          child: Text(displayName.isNotEmpty ? displayName[0] : '?'),
+                        // 아바타 클릭 → 프로필
+                        GestureDetector(
+                          onTap: userId != null ? () => _showProfile(userId) : null,
+                          child: _buildAvatar(userId),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                  if (canEditDelete) ...[
-                                    const Spacer(),
-                                    PopupMenuButton<String>(
-                                      icon: const Icon(Icons.more_horiz, size: 16),
-                                      onSelected: (v) async {
-                                        if (v == 'edit' && isMyComment) {
-                                          _showEditDialog(commentId, content);
-                                        } else if (v == 'delete') {
-                                          await _deleteComment(commentId);
-                                        }
-                                      },
-                                      itemBuilder: (_) => [
-                                        if (isMyComment) const PopupMenuItem(value: 'edit', child: Text('수정')),
-                                        const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
-                                      ],
-                                    ),
-                                  ],
-                                ],
+                              // 이름 클릭 → 프로필
+                              GestureDetector(
+                                onTap: userId != null ? () => _showProfile(userId) : null,
+                                child: Text(
+                                  displayName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
                               ),
                               const SizedBox(height: 2),
-                              Text(content, style: const TextStyle(fontSize: 14)),
-                              const SizedBox(height: 2),
-                              Text(timeStr, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                              // 긴 댓글 → 더보기
+                              GestureDetector(
+                                onTap: isLong ? () => _showFullComment(displayName, content) : null,
+                                child: Text(
+                                  content,
+                                  style: const TextStyle(fontSize: 13, color: Colors.black87),
+                                  maxLines: isLong ? 2 : null,
+                                  overflow: isLong ? TextOverflow.ellipsis : null,
+                                ),
+                              ),
+                              if (isLong)
+                                TextButton(
+                                  onPressed: () => _showFullComment(displayName, content),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    '더보기',
+                                    style: TextStyle(fontSize: 12, color: theme.colorScheme.primary),
+                                  ),
+                                ),
+                              Text(timeStr, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                             ],
                           ),
                         ),
+                        // 삭제 버튼
+                        if (canDelete)
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_horiz, size: 16),
+                            onSelected: (v) => _deleteComment(commentId),
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('삭제', style: TextStyle(color: Colors.red))),
+                            ],
+                          ),
                       ],
                     ),
                   );
@@ -234,7 +250,8 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
             },
           ),
         ),
-        // 입력창
+
+        // === 입력창 ===
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -242,29 +259,133 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
             border: Border(top: BorderSide(color: Colors.grey[300]!)),
           ),
           padding: EdgeInsets.only(
-            left: 16, right: 16, top: 8,
+            left: 16,
+            right: 16,
+            top: 8,
             bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 20,
           ),
-          child: Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                autofocus: true,
-                decoration: const InputDecoration(hintText: '댓글을 입력하세요...', border: InputBorder.none),
-                textInputAction: TextInputAction.send,
-                onSubmitted: (_) => _sendComment(),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  maxLength: 300,
+                  decoration: InputDecoration(
+                    hintText: '댓글을 입력하세요...',
+                    border: InputBorder.none,
+                    counterText: '',
+                    hintStyle: TextStyle(color: Colors.grey[500]),
+                  ),
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: (_) => _sendComment(),
+                ),
               ),
-            ),
-            GestureDetector(
-              onTap: _sendComment,
-              child: const Padding(
-                padding: EdgeInsets.all(8.0),
-                child: Icon(Icons.send, color: Colors.blue, size: 24),
+              GestureDetector(
+                onTap: _sendComment,
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(Icons.send, color: theme.colorScheme.primary, size: 24),
+                ),
               ),
-            ),
-          ]),
+            ],
+          ),
         ),
       ]),
+    );
+  }
+
+  // === 아바타 ===
+  Widget _buildAvatar(String? userId) {
+    if (userId == null) return const CircleAvatar(radius: 16, child: Icon(Icons.person, size: 20));
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+      builder: (context, snapshot) {
+        String? photoUrl;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          photoUrl = snapshot.data!['profileImageUrl'] as String?;
+        }
+        return CircleAvatar(
+          radius: 16,
+          backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+          child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 20, color: Colors.grey) : null,
+        );
+      },
+    );
+  }
+
+  // === 프로필 다이얼로그 (완전 구현!) ===
+  void _showProfile(String userId) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final isMe = currentUid == userId;
+
+    showDialog(
+      context: context,
+      builder: (_) => FutureBuilder<DocumentSnapshot>(
+        future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+          if (!snapshot.data!.exists || snapshot.data!.data() == null) {
+            return UserProfileDialog(koreanName: '프로필 없음', isMe: isMe, userId: userId);
+          }
+
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final hasProfile = data['hasProfile'] == true;
+          if (!hasProfile) {
+            return UserProfileDialog(koreanName: '프로필 미완료', isMe: isMe, userId: userId);
+          }
+
+          final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
+          final englishName = data['englishName']?.toString().trim();
+          final photoUrl = data['profileImageUrl'] as String?;
+          final shopName = data['shopName']?.toString().trim();
+
+          final barrelName = data['barrelName']?.toString().trim() ?? '';
+          final shaft = data['shaft']?.toString().trim() ?? '';
+          final flight = data['flight']?.toString().trim() ?? '';
+          final tip = data['tip']?.toString().trim() ?? '';
+          final barrelImageUrl = data['barrelImageUrl'] as String?;
+
+          final hasBarrelInfo = barrelName.isNotEmpty ||
+              shaft.isNotEmpty ||
+              flight.isNotEmpty ||
+              tip.isNotEmpty ||
+              (barrelImageUrl?.isNotEmpty == true);
+
+          return UserProfileDialog(
+            koreanName: koreanName,
+            englishName: englishName,
+            photoUrl: photoUrl,
+            shopName: shopName,
+            barrelData: hasBarrelInfo
+                ? {
+              'barrelImageUrl': barrelImageUrl,
+              'barrelName': barrelName,
+              'shaft': shaft,
+              'flight': flight,
+              'tip': tip,
+            }
+                : null,
+            isMe: isMe,
+            userId: userId,
+          );
+        },
+      ),
+    );
+  }
+
+  // === 긴 댓글 전체 보기 ===
+  void _showFullComment(String name, String content) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(child: Text(content)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('닫기'))
+        ],
+      ),
     );
   }
 }

@@ -6,7 +6,11 @@ class CommentButton extends StatelessWidget {
   final String postId;
   final int commentsCount;
 
-  const CommentButton({super.key, required this.postId, required this.commentsCount});
+  const CommentButton({
+    super.key,
+    required this.postId,
+    required this.commentsCount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,10 +18,17 @@ class CommentButton extends StatelessWidget {
       onTap: () => CommentBottomSheet.show(context, postId),
       child: Row(
         children: [
-          const Icon(Icons.comment_outlined, size: 24),
+          const Icon(Icons.chat_bubble_outline, size: 24, color: Colors.black87),
           if (commentsCount > 0) ...[
             const SizedBox(width: 4),
-            Text('$commentsCount', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(
+              '$commentsCount',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
           ],
         ],
       ),

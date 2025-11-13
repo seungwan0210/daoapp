@@ -1,7 +1,9 @@
+// lib/presentation/screens/community/circle/widgets/circle_list_view.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/screens/community/circle/widgets/post_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 
 class CircleListView extends StatefulWidget {
   final List<QueryDocumentSnapshot> docs;
@@ -116,6 +118,7 @@ class _CircleListViewState extends State<CircleListView> {
           onHeightCalculated: (height) => _updateCardHeight(postId, height),
           onEdit: () => _editPost(context, postId),
           onDelete: () => _deletePost(postId),
+          // onProfileTap 제거 → PostCard 내부에서 직접 처리
         );
       },
     );

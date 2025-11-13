@@ -28,6 +28,8 @@ lib/
 │   │   │   │   ├── phone_verification_section.dart (전화번호 인증 UI + 로직)
 │   │   │   │   ├── profile_form_fields.dart (기본 정보 입력 폼)
 │   │   │   │   ├── profile_image_widget.dart (프로필 사진 UI)
+│   │   │   │   ├── guestbook_header.dart (방명록 프로필 ui)
+│   │   │   │   ├── guestbook_comment_item.dart (방명록 댓글 ui)
 │   │   │   ├── user_home_screen.dart
 │   │   │   ├── ranking_screen.dart
 │   │   │   ├── calendar_screen.dart
@@ -36,12 +38,12 @@ lib/
 │   │   │   ├── profile_register_screen.dart (프로필 메인 화면)
 │   │   │   ├── notice_list_screen.dart
 │   │   │   ├── member_list_screen.dart
-│   │   │   └── guestbook_screen.dart
+│   │   │   └── guestbook_screen.dart (방명록 메인화면)
 │   │   │   └── report_form_screen
 │   │   ├── community/ 
 │   │   │   ├── community_home_screen.dart
 │   │   │   │   ├── widgets/
-│   │   │   │   │   ├── community_avatar_slider.dart
+│   │   │   │   │   ├── community_avatar_slider.dart (슬러이더 기능 유저 온라인 목록 및 팝업 다이어로그)
 │   │   │   │   │   ├── community_preview.dart
 │   │   │   ├── checkout/
 │   │   │   │   ├── widgets/
@@ -59,7 +61,7 @@ lib/
 │   │   │   │   ├── circle_preview.dart
 │   │   │   │   ├── post_write_screen.dart
 │   │   │   │   └── widgets/                       
-│   │   │   │       ├── post_card.dart
+│   │   │   │       ├── post_card.dart (리스트 뷰 보이는 공간)
 │   │   │   │       ├── post_grid_item.dart
 │   │   │   │       ├── like_button.dart
 │   │   │   │       ├── comment_button.dart
@@ -92,6 +94,7 @@ lib/
 │       ├── common_appbar.dart
 │       ├── more_menu_button.dart
 │       ├── galaxy_settings_section.dart
+│       ├── user_profile_dialog
 ├── data/
 │   ├── repositories/
 │   │   ├── auth_repository.dart
