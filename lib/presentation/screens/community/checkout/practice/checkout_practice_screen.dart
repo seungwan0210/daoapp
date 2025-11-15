@@ -6,7 +6,7 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/widgets/dartboard_widget.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
-/// 이 화면 전용 AppCard (전역 AppCard랑 충돌 안 하게 여기서만 사용)
+/// 이 화면 전용 AppCard
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;
@@ -53,35 +53,42 @@ class CheckoutPracticeScreen extends StatelessWidget {
           builder: (context, provider, _) {
             final problem = provider.currentProblem;
 
-            // ✅ 10문제 끝나면: 요약 만들어서 결과 화면으로 이동
+            // 10문제 끝나면 → 기록 저장 + 결과 화면 이동
             if (provider.isFinished) {
-              Future.microtask(() {
+              // Future.microtask 제거 → 즉시 실행
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (!context.mounted) return;
+
+                // Firestore 저장
+                await provider.finishPractice();
+
                 final summary = PracticeSessionSummary(
                   elapsedSeconds: provider.elapsedSeconds,
                   results: List<PracticeResult>.from(provider.results),
                 );
 
+                // 이동
                 Navigator.pushReplacementNamed(
                   context,
                   RouteConstants.checkoutResult,
                   arguments: summary,
                 );
               });
+
+              return const Center(child: CircularProgressIndicator());
             }
 
-            // 문제 준비 중일 때 로딩
             if (problem == null) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            // 화면 너비 기준으로 보드 크기 계산
             final screenWidth = MediaQuery.of(context).size.width;
             final boardSize = screenWidth - 32;
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // === 다트보드 ===
+                // 다트보드
                 Padding(
                   padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
                   child: SizedBox(
@@ -89,16 +96,14 @@ class CheckoutPracticeScreen extends StatelessWidget {
                     height: boardSize,
                     child: DartboardWidget(
                       size: boardSize,
-                      onSegmentTap: (segment) {
-                        provider.inputDart(segment);
-                      },
+                      onSegmentTap: (segment) => provider.inputDart(segment),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
-                // === 남은 점수 / 이번 턴 / 타이머 / 다트 상태 카드 ===
+                // 점수 + 타이머 카드
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: AppCard(
@@ -107,71 +112,41 @@ class CheckoutPracticeScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
-                          // 왼쪽: 남은 점수 + 이번 턴
                           Expanded(
                             flex: 3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  "남은 점수",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
+                                Text("남은 점수", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                                 const SizedBox(height: 4),
-                                Text(
-                                  "${provider.remainingScore}",
-                                  style: const TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                Text("${provider.remainingScore}", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 12),
-                                Text(
-                                  "이번 턴",
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
+                                Text("이번 턴", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                                 const SizedBox(height: 4),
                                 Text(
-                                  provider.currentDarts.isEmpty
-                                      ? "-"
-                                      : provider.currentDarts.join(", "),
+                                  provider.currentDarts.isEmpty ? "-" : provider.currentDarts.join(", "),
                                   style: const TextStyle(fontSize: 18),
                                 ),
                               ],
                             ),
                           ),
-
-                          // 오른쪽: 타이머 + 다트 3개 상태
                           Expanded(
                             flex: 2,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                // 타이머 뱃지
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 6, horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                                   decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.7),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     _formatTime(provider.elapsedSeconds),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                // 1 / 2 / 3 다트 인디케이터
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: List.generate(3, (i) {
@@ -182,11 +157,8 @@ class CheckoutPracticeScreen extends StatelessWidget {
                                       height: 28,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: isActive
-                                            ? Colors.green
-                                            : Colors.grey[300],
-                                        border:
-                                        Border.all(color: Colors.black26),
+                                        color: isActive ? Colors.green : Colors.grey[300],
+                                        border: Border.all(color: Colors.black26),
                                       ),
                                       child: Center(
                                         child: Text(
@@ -194,9 +166,7 @@ class CheckoutPracticeScreen extends StatelessWidget {
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
-                                            color: isActive
-                                                ? Colors.white
-                                                : Colors.black54,
+                                            color: isActive ? Colors.white : Colors.black54,
                                           ),
                                         ),
                                       ),
@@ -214,44 +184,34 @@ class CheckoutPracticeScreen extends StatelessWidget {
 
                 const SizedBox(height: 8),
 
-                // === 수정 / 확인 버튼 줄 ===
+                // 수정 / 확인 버튼
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     children: [
-                      // 수정 버튼: 이번 턴 전체 리셋
+                      // 되돌리기
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: provider.dartCount > 0
-                              ? provider.clearCurrentTurn
-                              : null,
-                          icon: const Icon(Icons.edit, size: 16),
-                          label: const Text("수정"),
+                          onPressed: provider.dartCount > 0 ? provider.undoLastDart : null,
+                          icon: const Icon(Icons.undo, size: 16),
+                          label: const Text("되돌리기"),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                             foregroundColor: Colors.white,
-                            padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
                       const SizedBox(width: 12),
-
-                      // 확인 버튼: 정답(0점 + 더블 아웃)일 때만 활성화
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: provider.canConfirm
-                              ? provider.confirmCurrentProblem
-                              : null,
+                          onPressed: provider.canConfirm ? provider.confirmCurrentProblem : null,
                           icon: const Icon(Icons.check_circle, size: 16),
                           label: const Text("확인"),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: provider.canConfirm
-                                ? Colors.green
-                                : Colors.grey,
+                            backgroundColor: provider.canConfirm ? Colors.green : Colors.grey,
                             foregroundColor: Colors.white,
-                            padding:
-                            const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                         ),
                       ),
@@ -261,20 +221,16 @@ class CheckoutPracticeScreen extends StatelessWidget {
 
                 const SizedBox(height: 8),
 
-                // === 실시간 최적화율 안내 박스 ===
+                // 최적화율 안내
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: provider.currentEfficiency >= 100
-                          ? Colors.green[50]
-                          : Colors.orange[50],
+                      color: provider.currentEfficiency >= 100 ? Colors.green[50] : Colors.orange[50],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: provider.currentEfficiency >= 100
-                            ? Colors.green
-                            : Colors.orange,
+                        color: provider.currentEfficiency >= 100 ? Colors.green : Colors.orange,
                         width: 2,
                       ),
                     ),
@@ -288,9 +244,7 @@ class CheckoutPracticeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: provider.currentEfficiency >= 100
-                              ? Colors.green[800]
-                              : Colors.orange[800],
+                          color: provider.currentEfficiency >= 100 ? Colors.green[800] : Colors.orange[800],
                         ),
                       ),
                     ),

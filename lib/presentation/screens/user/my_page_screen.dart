@@ -6,7 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/main.dart'; // 이 줄 추가!
+import 'package:daoapp/core/constants/badge_constants.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart';
+import 'package:daoapp/data/models/user_model.dart'; // 추가!
 
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
@@ -22,7 +24,6 @@ class MyPageScreen extends ConsumerWidget {
 class MyPageScreenBody extends ConsumerWidget {
   const MyPageScreenBody({super.key});
 
-  // === hasProfile 판단: Firestore 규칙과 100% 일치 ===
   bool _determineHasProfile(Map<String, dynamic> data) {
     final hasProfile = data['hasProfile'] as bool? ?? false;
     final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
@@ -31,7 +32,6 @@ class MyPageScreenBody extends ConsumerWidget {
     return hasProfile && isPhoneVerified && koreanName != null && koreanName.isNotEmpty;
   }
 
-  // === GridView 아이템 상수 ===
   static const List<_GridItem> _functionItems = [
     _GridItem(Icons.calendar_month, '포인트 달력', RouteConstants.pointCalendar),
     _GridItem(Icons.card_membership, 'KDF 정회원', RouteConstants.memberList),
@@ -77,7 +77,6 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
-  // ==================== 로그인 안 한 경우 ====================
   Widget _buildLoginPrompt(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
@@ -135,14 +134,12 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
-  // ==================== 프로필 미등록 → 인증 유도 + 제한 기능 ====================
   Widget _buildProfilePrompt(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // 등록 유도
           AppCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
@@ -174,17 +171,13 @@ class MyPageScreenBody extends ConsumerWidget {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
-
-          // 기능 + 로그아웃
           _buildFunctionGrid(context, ref),
         ],
       ),
     );
   }
 
-  // ==================== 프로필 등록 완료 → 전체 기능 ====================
   Widget _buildFullProfile(BuildContext context, User user, Map<String, dynamic> data, ThemeData theme, WidgetRef ref) {
     final profileImageUrl = data['profileImageUrl'] as String?;
     final barrelImageUrl = data['barrelImageUrl'] as String?;
@@ -203,8 +196,17 @@ class MyPageScreenBody extends ConsumerWidget {
         tip.isNotEmpty ||
         (barrelImageUrl?.isNotEmpty == true);
 
+    // AppUser 생성 → currentBadgeKey 추출
+    final appUser = AppUser.fromMap(user.uid, data);
+    final currentBadgeKey = appUser.currentMonthlyBadgeKey;
+
     return ListView(
       children: [
+        // === 월간 배지 섹션 ===
+        _buildBadgeSection(context, data, theme),
+
+        const SizedBox(height: 20),
+
         // 프로필 정보
         AppCard(
           child: Padding(
@@ -213,16 +215,38 @@ class MyPageScreenBody extends ConsumerWidget {
               children: [
                 Row(
                   children: [
+                    // === 프로필 사진 + 배지 (우측 상단) ===
                     GestureDetector(
                       onTap: () => _showImageDialog(context, profileImageUrl),
-                      child: CircleAvatar(
-                        radius: 36,
-                        backgroundImage: profileImageUrl?.isNotEmpty == true
-                            ? NetworkImage(profileImageUrl!)
-                            : null,
-                        child: profileImageUrl?.isNotEmpty != true
-                            ? const Icon(Icons.account_circle, size: 44, color: Colors.grey)
-                            : null,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          CircleAvatar(
+                            radius: 36,
+                            backgroundImage: profileImageUrl?.isNotEmpty == true
+                                ? NetworkImage(profileImageUrl!)
+                                : null,
+                            child: profileImageUrl?.isNotEmpty != true
+                                ? const Icon(Icons.account_circle, size: 44, color: Colors.grey)
+                                : null,
+                          ),
+                          if (currentBadgeKey != null)
+                            Positioned(
+                              right: -6,
+                              top: -6,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black12, blurRadius: 3, offset: Offset(0, 1)),
+                                  ],
+                                ),
+                                child: BadgeWidget(badgeKey: currentBadgeKey, size: 28),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -366,7 +390,6 @@ class MyPageScreenBody extends ConsumerWidget {
 
         const SizedBox(height: 20),
 
-        // 기능 + 로그아웃
         _buildFunctionGrid(context, ref),
 
         const SizedBox(height: 32),
@@ -374,7 +397,63 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
-  // ==================== 공통 위젯 ====================
+  Widget _buildBadgeSection(BuildContext context, Map<String, dynamic> data, ThemeData theme) {
+    final badges = data['badges'] as Map<String, dynamic>? ?? {};
+    final monthlyBadges = badges.entries
+        .where((e) => e.key.startsWith('monthly_') && e.value == true)
+        .map((e) => e.key)
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
+    if (monthlyBadges.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final displayBadges = monthlyBadges.take(3).toList();
+    final hasMore = monthlyBadges.length > 3;
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.emoji_events, color: Colors.amber, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  '월간 랭킹 배지',
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: displayBadges.map((key) {
+                return BadgeWidget(badgeKey: key, size: 36);
+              }).toList(),
+            ),
+            if (hasMore) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('배지 갤러리 준비 중...')),
+                    );
+                  },
+                  child: const Text('더보기'),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildFunctionGrid(BuildContext context, WidgetRef ref) {
     return AppCard(
@@ -408,24 +487,15 @@ class MyPageScreenBody extends ConsumerWidget {
       '로그아웃',
       null,
       onTap: () async {
-        // 1. Firebase 로그아웃
         await ref.read(authRepositoryProvider).signOut();
-
-        // 2. Firestore 캐시 정리
         await FirebaseFirestore.instance.clearPersistence();
-
-        // 3. Riverpod 상태 완전 초기화 (Riverpod 2.0+ 방식)
-        // 모든 Provider 상태 초기화
         ProviderScope.containerOf(context).refresh(authStateProvider);
         ProviderScope.containerOf(context).refresh(userHasProfileProvider);
-        // 필요하면 다른 provider도 추가
-        // 예: ProviderScope.containerOf(context).refresh(communityProvider);
 
-        // 4. 로그인 화면으로 이동 + 스택 완전 초기화
         if (context.mounted) {
-          Navigator.pushAndRemoveUntil(
+          Navigator.pushNamedAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => const ProviderScope(child: DaoApp())),
+            RouteConstants.login,
                 (route) => false,
           );
         }
@@ -525,7 +595,6 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 }
 
-// === Grid 아이템 모델 ===
 class _GridItem {
   final IconData icon;
   final String label;

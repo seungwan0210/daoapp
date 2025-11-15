@@ -5,7 +5,7 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
 class CheckoutHomeScreen extends StatelessWidget {
-  const CheckoutHomeScreen({super.key});
+  const CheckoutHomeScreen({super.key}); // ← const 추가!
 
   @override
   Widget build(BuildContext context) {
@@ -54,48 +54,23 @@ class CheckoutHomeScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           child: Row(
             children: [
-              // 아이콘 원형 배경
               CircleAvatar(
                 radius: 30,
                 backgroundColor: color.withOpacity(0.1),
-                child: Icon(
-                  icon,
-                  size: 34,
-                  color: color,
-                ),
+                child: Icon(icon, size: 34, color: color),
               ),
               const SizedBox(width: 20),
-
-              // 텍스트 영역
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
+                    Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                   ],
                 ),
               ),
-
-              // 오른쪽 화살표
-              Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.grey[500],
-                size: 20,
-              ),
+              Icon(Icons.arrow_forward_ios, color: Colors.grey[500], size: 20),
             ],
           ),
         ),

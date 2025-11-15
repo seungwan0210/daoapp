@@ -59,6 +59,18 @@ flutter:
     - assets/images/login_background.png
     - assets/images/google_logo.png
     - assets/images/dartboard.png
+    - assets/badges/pro.png
+    - assets/badges/emerald.png
+    - assets/badges/diamond.png
+    - assets/badges/platinum1.png
+    - assets/badges/platinum2.png
+    - assets/badges/gold1.png
+    - assets/badges/gold2.png
+    - assets/badges/silver1.png
+    - assets/badges/silver2.png
+    - assets/badges/bronze1.png
+    - assets/badges/bronze2.png
+    - assets/badges/bronze3.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

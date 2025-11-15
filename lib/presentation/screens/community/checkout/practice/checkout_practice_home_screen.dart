@@ -1,53 +1,65 @@
+// lib/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'widgets/checkout_ranking_mini.dart';
+import 'widgets/my_recent_record_mini.dart'; // 새로 추가
 
-class CheckoutPracticeHomeScreen extends StatelessWidget {
+class CheckoutPracticeHomeScreen extends StatefulWidget {
   const CheckoutPracticeHomeScreen({super.key});
 
   @override
+  State<CheckoutPracticeHomeScreen> createState() => _CheckoutPracticeHomeScreenState();
+}
+
+class _CheckoutPracticeHomeScreenState extends State<CheckoutPracticeHomeScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // TODO: 나중에 Firestore에서 실제 기록 불러오기
-    final dummyHistory = [
-      {"date": "2025-11-14", "time": "01:23", "successRate": 0.7},
-      {"date": "2025-11-13", "time": "01:45", "successRate": 0.5},
-    ];
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Scaffold(
+        appBar: const CommonAppBar(title: "체크아웃 연습 모드"),
+        body: const Center(child: Text("로그인이 필요합니다.")),
+      );
+    }
 
     return Scaffold(
       appBar: const CommonAppBar(title: "체크아웃 연습 모드"),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            // 연습 시작
             AppCard(
-              margin: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Text(
-                      "랜덤 10문제 체크아웃 연습",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    const Text("랜덤 10문제 체크아웃 연습", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
-                    const Text(
-                      "실제 다트보드를 터치해서 10개의 체크아웃 문제를 풀어보세요.",
-                      style: TextStyle(fontSize: 14),
-                    ),
+                    const Text("실제 다트보드를 터치해서 10개의 체크아웃 문제를 풀어보세요.", style: TextStyle(fontSize: 14)),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            RouteConstants.checkoutPracticePlay,
-                          );
-                        },
+                        onPressed: () => Navigator.pushNamed(context, RouteConstants.checkoutPracticePlay),
                         child: const Text("연습 시작하기"),
                       ),
                     ),
@@ -56,37 +68,52 @@ class CheckoutPracticeHomeScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "최근 연습 기록",
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            Expanded(
-              child: ListView.builder(
-                itemCount: dummyHistory.length,
-                itemBuilder: (context, index) {
-                  final item = dummyHistory[index];
-                  return AppCard(
-                    child: ListTile(
-                      title: Text(item["date"] as String),
-                      subtitle: Text(
-                        "소요 시간: ${item['time']}",
-                      ),
-                      trailing: Text(
-                          "성공률 ${((item['successRate'] as double) * 100).toStringAsFixed(0)}%"
-                      ),
+            // 통합: 랭킹 + 내 기록
+            AppCard(
+              child: Column(
+                children: [
+                  TabBar(
+                    controller: _tabController,
+                    tabs: const [
+                      Tab(text: "실시간 랭킹"),
+                      Tab(text: "내 기록"),
+                    ],
+                  ),
+                  SizedBox(
+                    height: 200,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // 랭킹
+                        Column(
+                          children: [
+                            Expanded(child: CheckoutRankingMiniWidget(limit: 5)),
+                            TextButton(
+                              onPressed: () => Navigator.pushNamed(context, RouteConstants.checkoutRanking),
+                              child: const Text("전체 랭킹 보기"),
+                            ),
+                          ],
+                        ),
+                        // 내 기록 요약
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              const MyRecentRecordMini(),
+                              const Spacer(),
+                              TextButton(
+                                onPressed: () => Navigator.pushNamed(context, RouteConstants.checkoutMyHistory),
+                                child: const Text("전체 기록 보기"),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
             ),
           ],

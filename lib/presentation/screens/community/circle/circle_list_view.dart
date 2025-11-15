@@ -109,16 +109,60 @@ class _CircleListViewState extends State<CircleListView> {
       itemCount: widget.docs.length,
       itemBuilder: (context, index) {
         final doc = widget.docs[index];
+        final data = doc.data() as Map<String, dynamic>;
         final postId = doc.id;
+        final userId = data['userId'] as String?;
 
-        return PostCard(
-          key: ValueKey(postId),
-          doc: doc,
-          currentUserId: widget.currentUserId,
-          onHeightCalculated: (height) => _updateCardHeight(postId, height),
-          onEdit: () => _editPost(context, postId),
-          onDelete: () => _deletePost(postId),
-          // onProfileTap 제거 → PostCard 내부에서 직접 처리
+        // userId로 배럴 정보 실시간 조회
+        return FutureBuilder<DocumentSnapshot>(
+          future: userId != null
+              ? FirebaseFirestore.instance.collection('users').doc(userId).get()
+              : null,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const SizedBox(
+                height: 520,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            Map<String, String?>? barrelData;
+            if (snapshot.data!.exists) {
+              final userData = snapshot.data!.data() as Map<String, dynamic>;
+
+              final barrelName = userData['barrelName']?.toString().trim() ?? '';
+              final shaft = userData['shaft']?.toString().trim() ?? '';
+              final flight = userData['flight']?.toString().trim() ?? '';
+              final tip = userData['tip']?.toString().trim() ?? '';
+              final barrelImageUrl = userData['barrelImageUrl'] as String?;
+
+              final hasBarrelInfo = barrelName.isNotEmpty ||
+                  shaft.isNotEmpty ||
+                  flight.isNotEmpty ||
+                  tip.isNotEmpty ||
+                  (barrelImageUrl?.isNotEmpty == true);
+
+              barrelData = hasBarrelInfo
+                  ? {
+                'barrelImageUrl': barrelImageUrl,
+                'barrelName': barrelName,
+                'shaft': shaft,
+                'flight': flight,
+                'tip': tip,
+              }
+                  : null;
+            }
+
+            return PostCard(
+              key: ValueKey(postId),
+              doc: doc,
+              currentUserId: widget.currentUserId,
+              onHeightCalculated: (height) => _updateCardHeight(postId, height),
+              onEdit: () => _editPost(context, postId),
+              onDelete: () => _deletePost(postId),
+              barrelData: barrelData, // 전달!
+            );
+          },
         );
       },
     );

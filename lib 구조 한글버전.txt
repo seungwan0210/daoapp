@@ -1,19 +1,14 @@
 ﻿lib/
 ├── main.dart
 │   → 앱 진입점, MaterialApp 설정, 초기 라우트
-
 ├── firebase_options.dart
 │   → Firebase 초기화 설정 (자동 생성됨)
-
 ├── services/
 │   └── storage_service.dart
 │       → Firebase Storage 업로드/다운로드 공통 로직 (이미지, 파일)
-
 ├── di/
 │   └── service_locator.dart
 │       → GetIt 또는 Riverpod로 의존성 주입 설정 (싱글톤 관리)
-
----
 ├── presentation/
 │   ├── providers/
 │   │   ├── app_providers.dart
@@ -30,7 +25,6 @@
 │   │       → 체크아웃 계산기 및 연습 모드 상태 관리
 │   │   └── checkout_practice_provider.dart
 │   │       → 연습 모드 전용 (타이머/랜덤10문제/결과)
-
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   │   → 앱 시작 시 로딩 화면
@@ -39,7 +33,6 @@
 │   │   │       → 로그인 UI + 전화번호 인증 시작
 │   │   ├── main_screen.dart
 │   │   │   → 메인 네비게이션 (BottomNavigationBar 포함)
-
 │   │   ├── user/
 │   │   │   ├── services/
 │   │   │   │   ├── image_upload_service.dart
@@ -83,7 +76,6 @@
 │   │   │   │   → 전체 회원 목록 (관리자용)
 │   │   │   └── guestbook_screen.dart
 │   │   │       → 방명록 메인 화면 (댓글 리스트 + 입력창)
-
 │   │   ├── community/
 │   │   │   ├── community_home_screen.dart
 │   │   │   │   → 커뮤니티 메인 피드 (탭: 서클, 체크아웃, 아레나)
@@ -112,6 +104,10 @@
 │   │   │   │       │   →연습 모드 선택/기록 리스트
 │   │   │   │       ├── checkout_result_screen.dart
 │   │   │   │       │   → 연습 종료 후 성공률, 최고 루트 통계
+│   │   │   │       ├──checkout_my_history_screen.dart
+│   │   │   │       │   → 내 기록 확인
+│   │   │   │       ├──checkout_ranking_screen.dart
+│   │   │   │       │   → 랭킹 확인
 │   │   │   │       └── widgets/
 │   │   │   │           ├── dartboard_widget.dart
 │   │   │   │           │   → 다트 보드 위젯
@@ -120,8 +116,9 @@
 │   │   │   │           ├── remaining_score_display.dart
 │   │   │   │           │   → 남은 점수 실시간 표시
 │   │   │   │           └── practice_stats_card.dart
-│   │   │   │               → 연습 통계 카드 (재사용)
-
+│   │   │   │           │    → 연습 통계 카드 (재사용)
+│   │   │   │           └──checkout_ranking_mini.dart
+│   │   │   │           │    → 랭킹 5위 바로보기
 │   │   │   ├── circle/
 │   │   │   │   ├── circle_screen.dart
 │   │   │   │   │   → 서클(그룹) 메인 화면
@@ -146,7 +143,6 @@
 │   │   │   │       │   → 최신 댓글 3개 미리보기
 │   │   │   │       └── comment_bottom_sheet.dart
 │   │   │   │           → 댓글 전체 보기 + 작성 바텀시트
-
 │   │   │   └── arena/
 │   │   │       ├── arena_screen.dart
 │   │   │       │   → 아레나(경기장) 메인
@@ -156,7 +152,6 @@
 │   │   │       │   → 아레나 리뷰 작성
 │   │   │       └── arena_review_detail_screen.dart
 │   │   │           → 아레나 리뷰 상세
-
 │   │   └── admin/
 │   │       ├── admin_dashboard_screen.dart
 │   │       │   → 관리자 대시보드
@@ -185,7 +180,6 @@
 │   │           │   → 스폰서 등록
 │   │           └── member_register_screen.dart
 │   │               → 회원 등록 폼 (재사용)
-
 │   └── widgets/
 │       ├── app_card.dart
 │       │   → 공용 카드 위젯 (그림자, 라운드)
@@ -201,8 +195,8 @@
 │       │   → 갤럭시(특정 기능) 설정 섹션
 │       └── user_profile_dialog.dart
 │           → 유저 프로필 다이얼로그 (사진 확대, 배럴 정보)
-
----
+│       └──badge_widget.dart
+│           →  뱃지 아이탬 
 ├── data/
 │   ├── repositories/
 │   │   ├── auth_repository.dart
@@ -223,14 +217,14 @@
 │       │   → 유저 전체 정보 모델
 │       └── checkout_route_model.dart
 │           → 체크아웃 추천 경로 모델
-
----
 ├── core/
 │   ├── constants/
 │   │   ├── route_constants.dart
 │   │   │   → 라우트 경로 상수
 │   │   └── checkout_table.dart
 │   │       → 체크아웃 테이블 데이터 (2~170 더블 아웃)
+│   │   └── badge_constants.dart
+│   │       → 체크아웃 랭킹 뱃지
 │   │
 │   ├── theme/
 │   │   └── app_theme.dart
@@ -241,3 +235,5 @@
 │       │   → 날짜 포맷팅 (상대시간, 캘린더)
 │       └── segment_utils.dart
 │           → 다트 세그먼트 계산 유틸
+│       └──ranking_utils.dart
+│   │       →

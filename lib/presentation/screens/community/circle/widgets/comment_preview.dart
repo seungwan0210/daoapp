@@ -21,7 +21,7 @@ class CommentPreview extends StatelessWidget {
           .collection('community')
           .doc(postId)
           .collection('comments')
-          .orderBy('timestamp', descending: true)  // 최신순
+          .orderBy('timestamp', descending: true)
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
@@ -37,7 +37,6 @@ class CommentPreview extends StatelessWidget {
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final writerId = data['userId'] as String?;
-              final displayName = data['displayName'] as String? ?? '익명';
               final content = data['content'] as String? ?? '';
 
               return Padding(
@@ -56,14 +55,34 @@ class CommentPreview extends StatelessWidget {
                           style: const TextStyle(fontSize: 12, color: Colors.black87),
                           children: [
                             WidgetSpan(
-                              child: GestureDetector(
-                                onTap: writerId != null ? () => _showProfile(context, writerId) : null,
-                                child: Text(
-                                  displayName,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  ),
+                              child: writerId != null
+                                  ? FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(writerId)
+                                    .get(),
+                                builder: (context, snapshot) {
+                                  String name = '익명';
+                                  if (snapshot.hasData && snapshot.data!.exists) {
+                                    name = snapshot.data!['koreanName']?.toString().trim() ?? '익명';
+                                  }
+                                  return GestureDetector(
+                                    onTap: writerId != null ? () => _showProfile(context, writerId) : null,
+                                    child: Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                                  : const Text(
+                                '익명',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
                                 ),
                               ),
                             ),

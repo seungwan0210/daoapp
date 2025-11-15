@@ -48,9 +48,10 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         .collection('comments')
         .doc();
 
+    // displayName 저장 완전 삭제!
     await commentRef.set({
       'userId': user.uid,
-      'displayName': user.displayName ?? '익명',
+      // 'displayName': user.displayName ?? '익명',  ← 삭제됨!
       'content': text,
       'timestamp': FieldValue.serverTimestamp(),
     });
@@ -123,7 +124,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context); // 테마 사용
+    final theme = Theme.of(context);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isAdmin = ref.watch(isAdminProvider).when(data: (v) => v, loading: () => false, error: (_, __) => false);
 
@@ -144,14 +145,14 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
             child: Text('댓글', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
         const Divider(height: 1),
 
-        // === 댓글 리스트 ===
+        // === 댓글 리스트 (실시간 이름 적용) ===
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('community')
                 .doc(widget.postId)
                 .collection('comments')
-                .orderBy('timestamp', descending: true) // 최신순
+                .orderBy('timestamp', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
@@ -167,7 +168,6 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                   final data = doc.data() as Map<String, dynamic>;
                   final commentId = doc.id;
                   final userId = data['userId'] as String?;
-                  final displayName = data['displayName'] as String? ?? '익명';
                   final content = data['content'] as String? ?? '';
                   final timestamp = data['timestamp'] as Timestamp?;
                   final timeStr = timestamp != null ? AppDateUtils.formatRelativeTime(timestamp.toDate()) : '방금 전';
@@ -181,7 +181,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 아바타 클릭 → 프로필
+                        // 아바타
                         GestureDetector(
                           onTap: userId != null ? () => _showProfile(userId) : null,
                           child: _buildAvatar(userId),
@@ -191,22 +191,43 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 이름 클릭 → 프로필
-                              GestureDetector(
-                                onTap: userId != null ? () => _showProfile(userId) : null,
-                                child: Text(
-                                  displayName,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: theme.colorScheme.primary,
-                                  ),
+                              // 실시간 이름 조회 (FutureBuilder)
+                              userId != null
+                                  ? FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(userId)
+                                    .get(),
+                                builder: (context, snapshot) {
+                                  String name = '익명';
+                                  if (snapshot.hasData && snapshot.data!.exists) {
+                                    name = snapshot.data!['koreanName']?.toString().trim() ?? '익명';
+                                  }
+                                  return GestureDetector(
+                                    onTap: userId != null ? () => _showProfile(userId) : null,
+                                    child: Text(
+                                      name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                                  : const Text(
+                                '익명',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.grey,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               // 긴 댓글 → 더보기
                               GestureDetector(
-                                onTap: isLong ? () => _showFullComment(displayName, content) : null,
+                                onTap: isLong ? () => _showFullComment('이름', content) : null,
                                 child: Text(
                                   content,
                                   style: const TextStyle(fontSize: 13, color: Colors.black87),
@@ -216,7 +237,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                               ),
                               if (isLong)
                                 TextButton(
-                                  onPressed: () => _showFullComment(displayName, content),
+                                  onPressed: () => _showFullComment('이름', content),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
@@ -313,7 +334,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     );
   }
 
-  // === 프로필 다이얼로그 (완전 구현!) ===
+  // === 프로필 다이얼로그 ===
   void _showProfile(String userId) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isMe = currentUid == userId;

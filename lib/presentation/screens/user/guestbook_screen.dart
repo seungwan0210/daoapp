@@ -27,6 +27,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     super.dispose();
   }
 
+  // === 방명록 작성 (writerName 저장 제거!) ===
   Future<void> _sendComment() async {
     if (_commentController.text.trim().isEmpty || _isLoading) return;
     setState(() => _isLoading = true);
@@ -41,7 +42,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
           .collection('guestbook')
           .add({
         'writerId': currentUser.uid,
-        'writerName': currentUser.displayName ?? '익명',
+        // 'writerName': currentUser.displayName ?? '익명',  ← 완전 삭제!
         'message': _commentController.text.trim(),
         'timestamp': FieldValue.serverTimestamp(),
         'likes': 0,
@@ -150,13 +151,13 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                     final data = doc.data() as Map<String, dynamic>;
                     final docId = doc.id;
                     final writerId = data['writerId'] as String?;
-                    final writerName = data['writerName'] ?? '익명';
+                    // final writerName = data['writerName'] ?? '익명';  ← 삭제!
                     final message = data['message'] ?? '';
                     final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
 
                     return GuestbookCommentItem(
                       writerId: writerId ?? '',
-                      writerName: writerName,
+                      // writerName: writerName,  ← 완전 삭제!
                       message: message,
                       timestamp: timestamp,
                       docId: docId,

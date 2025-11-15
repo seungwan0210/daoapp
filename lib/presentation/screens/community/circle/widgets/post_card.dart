@@ -17,6 +17,7 @@ class PostCard extends ConsumerStatefulWidget {
   final void Function(double)? onHeightCalculated;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
+  final Map<String, String?>? barrelData; // 추가!
 
   const PostCard({
     super.key,
@@ -25,6 +26,7 @@ class PostCard extends ConsumerStatefulWidget {
     this.onHeightCalculated,
     this.onEdit,
     this.onDelete,
+    this.barrelData, // 추가!
   });
 
   @override
@@ -34,7 +36,6 @@ class PostCard extends ConsumerStatefulWidget {
 class _PostCardState extends ConsumerState<PostCard> {
   bool _isContentExpanded = false;
   late final GlobalKey _cardKey = GlobalKey();
-
   static final Map<String, String?> _photoCache = {};
 
   @override
@@ -54,18 +55,16 @@ class _PostCardState extends ConsumerState<PostCard> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);  // 이 줄 추가! (오류 해결)
-
+    final theme = Theme.of(context);
     final data = widget.doc.data() as Map<String, dynamic>;
     final postId = widget.doc.id;
     final photoUrl = data['photoUrl'] as String?;
-    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox(); // 수정: shrink → SizedBox
+    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox();
 
-    final displayName = data['displayName'] ?? 'Unknown';
+    final String? postUserId = data['userId'] as String?;
     final content = data['content'] ?? '';
     final likes = data['likes'] as int? ?? 0;
     final comments = data['comments'] as int? ?? 0;
-    final postUserId = data['userId'] as String?;
     final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
     final isAuthor = postUserId == widget.currentUserId;
@@ -76,7 +75,6 @@ class _PostCardState extends ConsumerState<PostCard> {
     );
     final canEdit = isAuthor && widget.onEdit != null;
     final canDelete = isAuthor || isAdmin;
-
     final bool isLongContent = content.length > 100 || content.contains('\n');
 
     return Container(
@@ -85,16 +83,9 @@ class _PostCardState extends ConsumerState<PostCard> {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.colorScheme.primaryContainer,
-          width: 1.5,
-        ),
+        border: Border.all(color: theme.colorScheme.primaryContainer, width: 1.5),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
       child: Column(
@@ -106,9 +97,7 @@ class _PostCardState extends ConsumerState<PostCard> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: postUserId != null
-                      ? () => _showUserProfileDialog(postUserId)
-                      : null,
+                  onTap: postUserId != null ? () => _showUserProfileDialog(postUserId) : null,
                   child: CircleAvatar(
                     radius: 20,
                     backgroundColor: theme.colorScheme.primaryContainer,
@@ -120,19 +109,24 @@ class _PostCardState extends ConsumerState<PostCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        displayName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
+                      // 실시간 이름
+                      postUserId != null
+                          ? FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.collection('users').doc(postUserId).get(),
+                        builder: (context, snapshot) {
+                          String name = 'Unknown';
+                          if (snapshot.hasData && snapshot.data!.exists) {
+                            name = snapshot.data!['koreanName']?.toString().trim() ?? 'Unknown';
+                          }
+                          return Text(
+                            name,
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary),
+                          );
+                        },
+                      )
+                          : const Text('Unknown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
                       if (timestamp != null)
-                        Text(
-                          AppDateUtils.formatRelativeTime(timestamp),
-                          style: const TextStyle(fontSize: 11, color: Colors.grey),
-                        ),
+                        Text(AppDateUtils.formatRelativeTime(timestamp), style: const TextStyle(fontSize: 11, color: Colors.grey)),
                     ],
                   ),
                 ),
@@ -146,9 +140,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     },
                     itemBuilder: (_) => [
                       if (canEdit) const PopupMenuItem(value: 'edit', child: Text('수정')),
-                      if (canDelete)
-                        const PopupMenuItem(
-                            value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
+                      if (canDelete) const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
                     ],
                   ),
               ],
@@ -180,18 +172,14 @@ class _PostCardState extends ConsumerState<PostCard> {
                 const SizedBox(width: 16),
                 CommentButton(postId: postId, commentsCount: comments),
                 const SizedBox(width: 16),
-                IconButton(
-                  icon: const Icon(Icons.send_outlined, size: 24),
-                  onPressed: () => Share.share('$content\n$photoUrl'),
-                  color: theme.colorScheme.primary,
-                ),
+                IconButton(icon: const Icon(Icons.send_outlined, size: 24), onPressed: () => Share.share('$content\n$photoUrl'), color: theme.colorScheme.primary),
                 const Spacer(),
                 const Icon(Icons.bookmark_border, size: 24),
               ],
             ),
           ),
 
-          // === 4. 내용 (펼치기/접기) ===
+          // === 4. 내용 ===
           if (content.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
@@ -205,12 +193,19 @@ class _PostCardState extends ConsumerState<PostCard> {
                       text: TextSpan(
                         style: const TextStyle(color: Colors.black87, fontSize: 13),
                         children: [
-                          TextSpan(
-                            text: '$displayName ',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
+                          WidgetSpan(
+                            child: postUserId != null
+                                ? FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance.collection('users').doc(postUserId).get(),
+                              builder: (context, snapshot) {
+                                String name = 'Unknown';
+                                if (snapshot.hasData && snapshot.data!.exists) {
+                                  name = snapshot.data!['koreanName']?.toString().trim() ?? 'Unknown';
+                                }
+                                return Text('$name ', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary));
+                              },
+                            )
+                                : const Text('Unknown ', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                           TextSpan(text: _isContentExpanded ? content : content),
                         ],
@@ -225,14 +220,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                         setState(() => _isContentExpanded = !_isContentExpanded);
                         Future.delayed(const Duration(milliseconds: 300), _reportHeight);
                       },
-                      child: Text(
-                        _isContentExpanded ? '간략히' : '더 보기',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      child: Text(_isContentExpanded ? '간략히' : '더 보기', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
                     ),
                 ],
               ),
@@ -241,10 +229,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           // === 5. 댓글 미리보기 ===
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-            child: CommentPreview(
-              postId: postId,
-              currentUserId: widget.currentUserId,
-            ),
+            child: CommentPreview(postId: postId, currentUserId: widget.currentUserId),
           ),
         ],
       ),
@@ -275,14 +260,13 @@ class _PostCardState extends ConsumerState<PostCard> {
         return CircleAvatar(
           radius: 18,
           backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
-          child: photoUrl?.isNotEmpty != true
-              ? const Icon(Icons.person, size: 20, color: Colors.white)
-              : null,
+          child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 20, color: Colors.white) : null,
         );
       },
     );
   }
 
+  // 배럴 데이터 포함한 프로필 다이얼로그
   void _showUserProfileDialog(String userId) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isMe = currentUid == userId;
@@ -309,32 +293,28 @@ class _PostCardState extends ConsumerState<PostCard> {
           final photoUrl = data['profileImageUrl'] as String?;
           final shopName = data['shopName']?.toString().trim();
 
-          final barrelName = data['barrelName']?.toString().trim() ?? '';
-          final shaft = data['shaft']?.toString().trim() ?? '';
-          final flight = data['flight']?.toString().trim() ?? '';
-          final tip = data['tip']?.toString().trim() ?? '';
-          final barrelImageUrl = data['barrelImageUrl'] as String?;
-
-          final hasBarrelInfo = barrelName.isNotEmpty ||
-              shaft.isNotEmpty ||
-              flight.isNotEmpty ||
-              tip.isNotEmpty ||
-              (barrelImageUrl?.isNotEmpty == true);
+          // barrelData 우선순위: PostCard에서 전달된 것 > Firestore
+          final barrelData = widget.barrelData ??
+              (data['barrelName']?.toString().isNotEmpty == true ||
+                  data['shaft']?.toString().isNotEmpty == true ||
+                  data['flight']?.toString().isNotEmpty == true ||
+                  data['tip']?.toString().isNotEmpty == true ||
+                  (data['barrelImageUrl'] as String?)?.isNotEmpty == true
+                  ? {
+                'barrelImageUrl': data['barrelImageUrl'] as String?,
+                'barrelName': data['barrelName']?.toString().trim() ?? '',
+                'shaft': data['shaft']?.toString().trim() ?? '',
+                'flight': data['flight']?.toString().trim() ?? '',
+                'tip': data['tip']?.toString().trim() ?? '',
+              }
+                  : null);
 
           return UserProfileDialog(
             koreanName: koreanName,
             englishName: englishName,
             photoUrl: photoUrl,
             shopName: shopName,
-            barrelData: hasBarrelInfo
-                ? {
-              'barrelImageUrl': barrelImageUrl,
-              'barrelName': barrelName,
-              'shaft': shaft,
-              'flight': flight,
-              'tip': tip,
-            }
-                : null,
+            barrelData: barrelData,
             isMe: isMe,
             userId: userId,
           );

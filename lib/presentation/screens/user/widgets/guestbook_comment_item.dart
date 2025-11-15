@@ -8,8 +8,8 @@ import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 
 class GuestbookCommentItem extends ConsumerStatefulWidget {
-  final String writerId;
-  final String writerName;
+  final String writerId;           // 유지
+  // final String writerName;      ← 완전 삭제!
   final String message;
   final DateTime timestamp;
   final String docId;
@@ -18,7 +18,7 @@ class GuestbookCommentItem extends ConsumerStatefulWidget {
   const GuestbookCommentItem({
     super.key,
     required this.writerId,
-    required this.writerName,
+    // required this.writerName,  ← 삭제
     required this.message,
     required this.timestamp,
     required this.docId,
@@ -36,7 +36,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     final isAdminAsync = ref.watch(isAdminProvider);
     final isAdmin = isAdminAsync.when(data: (v) => v, loading: () => false, error: (_, __) => false);
 
-    // null 안전 + 권한 체크
     final bool isMyComment = widget.writerId.isNotEmpty && widget.writerId == currentUserId;
     final bool isMyGuestbook = widget.guestbookOwnerId == currentUserId;
     final bool canEdit = isMyComment || isAdmin;
@@ -59,9 +58,22 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  widget.writerName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                // 실시간 이름 조회 (FutureBuilder)
+                FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(widget.writerId)
+                      .get(),
+                  builder: (context, snapshot) {
+                    String name = 'Unknown';
+                    if (snapshot.hasData && snapshot.data!.exists) {
+                      name = snapshot.data!['koreanName']?.toString().trim() ?? 'Unknown';
+                    }
+                    return Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    );
+                  },
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -180,7 +192,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     );
   }
 
-  // === 수정 바텀시트 (화면 절반 이상 + 키보드 위로) ===
+  // === 수정 바텀시트 ===
   void _showEditBottomSheet(BuildContext context, String currentContent) {
     final controller = TextEditingController(text: currentContent);
     final focusNode = FocusNode();
@@ -193,10 +205,10 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
         final mediaQuery = MediaQuery.of(context);
         final bottomInset = mediaQuery.viewInsets.bottom;
         final screenHeight = mediaQuery.size.height;
-        final targetHeight = screenHeight * 0.8; // 화면의 70%
+        final targetHeight = screenHeight * 0.8;
 
         return Container(
-          height: targetHeight + bottomInset, // 키보드 높이 포함
+          height: targetHeight + bottomInset,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -212,7 +224,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 드래그 핸들
                 Center(
                   child: Container(
                     width: 48,
@@ -224,16 +235,12 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
                     ),
                   ),
                 ),
-
-                // 제목
                 const Text(
                   '방명록 수정',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
-
-                // 입력창
                 Container(
                   constraints: const BoxConstraints(maxHeight: 300),
                   child: TextField(
@@ -260,8 +267,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // 버튼
                 Row(
                   children: [
                     Expanded(
@@ -330,7 +335,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
       focusNode.dispose();
     });
 
-    // 자동 포커스
     Future.delayed(const Duration(milliseconds: 400), () {
       if (mounted) focusNode.requestFocus();
     });

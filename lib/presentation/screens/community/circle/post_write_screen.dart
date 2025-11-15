@@ -82,9 +82,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
         photoUrl = await uploadTask.ref.getDownloadURL();
       }
 
+      // displayName 저장 제거!
       final data = {
         'userId': user.uid,
-        'displayName': appUser.koreanName ?? 'Unknown',
+        // 'displayName': appUser.koreanName ?? 'Unknown',  ← 완전 삭제!
         'userPhotoUrl': appUser.profileImageUrl,
         'photoUrl': photoUrl,
         'content': _contentController.text.trim(),
@@ -125,7 +126,7 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);  // 이 줄 추가! (오류 해결)
+    final theme = Theme.of(context);
     final isEdit = _postId != null;
 
     return Scaffold(
@@ -275,7 +276,7 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
             ),
           ),
         ),
-        // 변경 버튼 (theme 사용!)
+        // 변경 버튼
         Positioned(
           bottom: 12,
           right: 12,

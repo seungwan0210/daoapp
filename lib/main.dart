@@ -38,6 +38,7 @@ import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
+import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart'; // 추가!
 
 // 서클
 import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
@@ -48,7 +49,9 @@ import 'package:daoapp/presentation/screens/community/checkout/checkout_home_scr
 import 'package:daoapp/presentation/screens/community/checkout/calculator/checkout_calculator_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_result_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart'; // ✅ 추가
+import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_ranking_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_my_history_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart';
 
 // 아레나
 import 'package:daoapp/presentation/screens/community/arena/arena_screen.dart';
@@ -60,6 +63,7 @@ void main() async {
   await Firebase.initializeApp();
   setupDependencies();
 
+  // 온라인 상태 관리
   FirebaseAuth.instance.authStateChanges().listen((user) async {
     if (user != null) {
       final ref = FirebaseFirestore.instance.collection('online_users').doc(user.uid);
@@ -113,19 +117,22 @@ class DaoApp extends StatelessWidget {
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
+        RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(), // 추가!
 
         // 서클
         RouteConstants.postWrite: (_) => PostWriteScreen(),
         RouteConstants.circle: (_) => const CircleScreen(),
 
         // 체크아웃
-        RouteConstants.checkoutHome: (_) => CheckoutHomeScreen(),
+        RouteConstants.checkoutHome: (_) => const CheckoutHomeScreen(),
         RouteConstants.checkoutCalculator: (_) => CheckoutCalculatorScreen(),
 
-// ✅ 연습 모드
-        RouteConstants.checkoutPractice: (_) => const CheckoutPracticeHomeScreen(), // 연습 홈
-        RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(), // 실제 플레이
+        // 연습 모드
+        RouteConstants.checkoutPractice: (_) => const CheckoutPracticeHomeScreen(),
+        RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(),
         RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
+        RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
+        RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
 
         // 아레나
         RouteConstants.arenaDetail: (_) => const ArenaScreen(),

@@ -2,6 +2,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/constants/checkout_table.dart';
 import 'package:daoapp/data/models/checkout_route_model.dart';
 
@@ -29,10 +31,10 @@ class PracticeResult {
   });
 }
 
-/// ✅ 연습 1세트(10문제) 요약 데이터
+/// 연습 1세트(10문제) 요약 데이터
 class PracticeSessionSummary {
-  final int elapsedSeconds;           // 전체 소요 시간
-  final List<PracticeResult> results; // 문제별 결과 리스트
+  final int elapsedSeconds;
+  final List<PracticeResult> results;
 
   PracticeSessionSummary({
     required this.elapsedSeconds,
@@ -53,7 +55,7 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   int elapsedSeconds = 0;
   Timer? _timer;
 
-  // 최적 다트 수 테이블 (checkoutTable 파싱)
+  // 최적 다트 수 테이블
   late final Map<int, int> _optimalDartsCount;
 
   CheckoutPracticeProvider() {
@@ -71,7 +73,6 @@ class CheckoutPracticeProvider extends ChangeNotifier {
 
   int getOptimalDarts(int score) => _optimalDartsCount[score] ?? 3;
 
-  /// 전체 연습 결과에서 "정답 + 최적 다트" 비율
   double get optimizationRate {
     final successResults = results.where((r) => r.success).toList();
     if (successResults.isEmpty) return 0.0;
@@ -83,7 +84,6 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     return (optimalCount / successResults.length) * 100;
   }
 
-  /// 현재 턴이 "정답 + 더블 아웃"으로 끝났을 때만 효율 계산
   double get currentEfficiency {
     if (!isCurrentFinished || currentProblem == null) return 0.0;
     final optimal = getOptimalDarts(currentProblem!.targetScore);
@@ -98,18 +98,15 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   PracticeProblem? get currentProblem =>
       currentIndex < problems.length ? problems[currentIndex] : null;
 
-  /// 마지막 다트가 더블 또는 Bull 인지
   bool get isCurrentDoubleOut {
     if (currentDarts.isEmpty) return false;
     final last = currentDarts.last;
     return last.startsWith('D') || last == 'Bull';
   }
 
-  /// “정답” 조건: 점수 0 + 더블 아웃
   bool get isCurrentFinished =>
       currentProblem != null && remainingScore == 0 && isCurrentDoubleOut;
 
-  /// 버튼 활성화 조건: 정답일 때만 확인 가능
   bool get canConfirm => isCurrentFinished && dartCount > 0;
 
   // ===========================================================
@@ -139,9 +136,45 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     _timer = null;
   }
 
-  void finishPractice() {
+  /// Firestore에 기록 저장 + 종료
+  /// notifyListeners() 제거 → dispose 후 호출 방지
+  Future<void> finishPractice() async {
     _stopTimer();
-    notifyListeners();
+
+    if (results.isEmpty) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final successCount = results.where((r) => r.success).length;
+    final successRate = successCount / results.length;
+    final successResults = results.where((r) => r.success).toList();
+    final avgDarts = successResults.isEmpty
+        ? 0.0
+        : successResults.map((r) => r.dartsUsed).reduce((a, b) => a + b) / successResults.length;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('checkout_practice')
+          .add({
+        'timestamp': FieldValue.serverTimestamp(),
+        'elapsedSeconds': elapsedSeconds,
+        'successRate': successRate,
+        'avgDarts': avgDarts,
+        'problemCount': results.length,
+        'problems': results.map((r) => {
+          'targetScore': r.problem.targetScore,
+          'dartsUsed': r.dartsUsed,
+          'success': r.success,
+        }).toList(),
+      });
+    } catch (e) {
+      debugPrint("체크아웃 연습 기록 저장 실패: $e");
+    }
+
+    // notifyListeners() 제거! → 크래시 방지
   }
 
   // ===========================================================
@@ -154,10 +187,19 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     final value = _segmentValue(segment);
     currentDarts.add(segment);
     remainingScore -= value;
-
-    if (remainingScore < 0) remainingScore = 0; // 어버플로우 방지
-
+    if (remainingScore < 0) remainingScore = 0;
     dartCount++;
+    notifyListeners();
+  }
+
+  /// 직전 다트만 되돌리기
+  void undoLastDart() {
+    if (currentDarts.isEmpty || currentProblem == null) return;
+
+    final lastSegment = currentDarts.removeLast();
+    final value = _segmentValue(lastSegment);
+    remainingScore += value;
+    dartCount--;
     notifyListeners();
   }
 
@@ -167,7 +209,6 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ✅ 정답(점수 0 + 더블 아웃)일 때만 호출하도록
   void confirmCurrentProblem() {
     if (!isCurrentFinished || currentProblem == null) return;
 
@@ -184,7 +225,6 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// (선택) 나중에 “포기 / 스킵” 버튼 만들 때 사용할 수 있음
   void failCurrentProblem() {
     if (currentProblem == null) return;
 

@@ -1,11 +1,12 @@
+// lib/presentation/screens/admin/admin_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 추가!
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가!
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -44,7 +45,6 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
-  // 접근 불가 화면
   Widget _buildNoPermissionScaffold(String message) {
     return Scaffold(
       appBar: CommonAppBar(title: '접근 불가', showBackButton: true),
@@ -58,7 +58,6 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
-  // 관리자 대시보드 UI
   Widget _buildAdminDashboard(BuildContext context, ThemeData theme) {
     return Scaffold(
       appBar: CommonAppBar(title: 'ADMIN', showBackButton: true),
@@ -109,13 +108,27 @@ class AdminDashboardScreen extends ConsumerWidget {
               _buildItem(context, icon: Icons.bug_report, title: '신고 내역 확인', subtitle: '사용자 신고 확인 및 처리', route: RouteConstants.adminReportList),
             ],
           ),
+          const SizedBox(height: 16),
+          // === 추가: 회원 관리 섹션 ===
+          _buildSection(
+            context,
+            title: '회원 관리',
+            items: [
+              _buildItem(
+                context,
+                icon: Icons.people,
+                title: '회원 목록 & 배지 부여',
+                subtitle: '모든 회원 확인 및 체크아웃 배지 수동 부여',
+                route: RouteConstants.adminMemberList, // 라우트 추가 필요
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  // 섹션 빌더
   Widget _buildSection(BuildContext context, {required String title, required List<Widget> items}) {
     final theme = Theme.of(context);
 
@@ -125,7 +138,6 @@ class AdminDashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -144,7 +156,6 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
-          // 항목 리스트
           Column(
             children: List.generate(items.length, (i) {
               return Column(
@@ -162,7 +173,6 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
-  // 항목 빌더
   Widget _buildItem(
       BuildContext context, {
         required IconData icon,
