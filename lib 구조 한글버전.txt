@@ -1,4 +1,4 @@
-lib/
+﻿lib/
 ├── main.dart
 │   → 앱 진입점, MaterialApp 설정, 초기 라우트
 
@@ -28,6 +28,8 @@ lib/
 │   │   │   → 서클(그룹) 피드 전용 Provider
 │   │   └── checkout_provider.dart
 │   │       → 체크아웃 계산기 및 연습 모드 상태 관리
+│   │   └── checkout_practice_provider.dart
+│   │       → 연습 모드 전용 (타이머/랜덤10문제/결과)
 
 │   ├── screens/
 │   │   ├── splash_screen.dart
@@ -100,19 +102,19 @@ lib/
 │   │   │   │   │   ├── checkout_calculator_screen.dart
 │   │   │   │   │   │   → 남은 점수 입력 → 추천 마무리 경로 표시
 │   │   │   │   │   └── widgets/
-│   │   │   │   │       ├── score_input_field.dart
-│   │   │   │   │       │   → 점수 입력 필드 (재사용)
-│   │   │   │   │       ├── dart_board_highlight.dart
-│   │   │   │   │       │   → 다트 보드 하이라이트 (옵션)
 │   │   │   │   │       └── route_card.dart
 │   │   │   │   │           → 추천 루트 카드 위젯
 │   │   │   │   │
 │   │   │   │   └── practice/
 │   │   │   │       ├── checkout_practice_screen.dart
 │   │   │   │       │   → 실시간 3다트 입력 + 남은 점수 계산
+│   │   │   │       ├── checkout_practice_home_screen.dart
+│   │   │   │       │   →연습 모드 선택/기록 리스트
 │   │   │   │       ├── checkout_result_screen.dart
 │   │   │   │       │   → 연습 종료 후 성공률, 최고 루트 통계
 │   │   │   │       └── widgets/
+│   │   │   │           ├── dartboard_widget.dart
+│   │   │   │           │   → 다트 보드 위젯
 │   │   │   │           ├── dart_input_panel.dart
 │   │   │   │           │   → 다트 세그먼트 버튼 패널
 │   │   │   │           ├── remaining_score_display.dart

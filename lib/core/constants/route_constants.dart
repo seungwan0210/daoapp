@@ -8,7 +8,7 @@ class RouteConstants {
   // === 유저 ===
   static const String ranking = '/ranking';
   static const String calendar = '/calendar';
-  static const String community = '/community';
+  static const String community = '/community';           // ← community_home_screen.dart
   static const String myPage = '/my-page';
   static const String profileRegister = '/profile-register';
   static const String pointCalendar = '/point-calendar';
@@ -32,14 +32,17 @@ class RouteConstants {
   static const String adminReportList = '/admin/report-list';
 
   // === 커뮤니티 - 서클 ===
-  static const String circle = '/community/circle';           // 메인 서클 피드
+  static const String circle = '/community/circle';
   static const String postWrite = '/community/circle/post-write';
 
   // === 커뮤니티 - 체크아웃 ===
-  static const String checkoutHome = '/checkout';                     // 체크아웃 메인 (모드 선택)
-  static const String checkoutCalculator = '/checkout/calculator';    // 계산기 모드
-  static const String checkoutPractice = '/checkout/practice';        // 연습 모드
-  static const String checkoutResult = '/checkout/result';            // 연습 결과
+  static const String checkoutHome = '/checkout';                     // checkout_home_screen.dart
+  static const String checkoutCalculator = '/checkout/calculator';    // checkout_calculator_screen.dart
+
+  // 연습 모드 세분화
+  static const String checkoutPractice = '/checkout/practice';        // checkout_practice_home_screen.dart
+  static const String checkoutPracticePlay = '/checkout/practice/play'; // checkout_practice_screen.dart
+  static const String checkoutResult = '/checkout/result';            // checkout_result_screen.dart
 
   // === 커뮤니티 - 아레나 ===
   static const String arenaDetail = '/community/arena/detail';

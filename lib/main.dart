@@ -48,6 +48,7 @@ import 'package:daoapp/presentation/screens/community/checkout/checkout_home_scr
 import 'package:daoapp/presentation/screens/community/checkout/calculator/checkout_calculator_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_result_screen.dart';
+import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart'; // ✅ 추가
 
 // 아레나
 import 'package:daoapp/presentation/screens/community/arena/arena_screen.dart';
@@ -120,8 +121,11 @@ class DaoApp extends StatelessWidget {
         // 체크아웃
         RouteConstants.checkoutHome: (_) => CheckoutHomeScreen(),
         RouteConstants.checkoutCalculator: (_) => CheckoutCalculatorScreen(),
-        RouteConstants.checkoutPractice: (_) => CheckoutPracticeScreen(),
-        RouteConstants.checkoutResult: (_) => CheckoutResultScreen(),
+
+// ✅ 연습 모드
+        RouteConstants.checkoutPractice: (_) => const CheckoutPracticeHomeScreen(), // 연습 홈
+        RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(), // 실제 플레이
+        RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
 
         // 아레나
         RouteConstants.arenaDetail: (_) => const ArenaScreen(),

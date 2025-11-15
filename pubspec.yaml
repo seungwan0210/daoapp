@@ -58,6 +58,7 @@ flutter:
     - assets/images/splash_portrait.png
     - assets/images/login_background.png
     - assets/images/google_logo.png
+    - assets/images/dartboard.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

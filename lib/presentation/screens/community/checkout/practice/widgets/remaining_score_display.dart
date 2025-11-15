@@ -1,34 +1,51 @@
-// lib/presentation/screens/community/checkout/practice/widgets/remaining_score_display.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:daoapp/presentation/providers/checkout_provider.dart';
+import 'package:daoapp/presentation/widgets/app_card.dart';
 
 class RemainingScoreDisplay extends StatelessWidget {
-  const RemainingScoreDisplay({super.key});
+  final int remainingScore;
+  final List<String> currentDarts;
+
+  const RemainingScoreDisplay({
+    super.key,
+    required this.remainingScore,
+    required this.currentDarts,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<CheckoutProvider>(
-      builder: (context, p, _) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        color: p.remainingScore <= 50 ? Colors.red[50] : Theme.of(context).primaryColor,
+    final theme = Theme.of(context);
+
+    return AppCard(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "남은 점수",
-              style: TextStyle(
-                color: p.remainingScore <= 50 ? Colors.red[700] : Colors.white70,
-                fontSize: 16,
+              "현재 남은 점수",
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
               ),
             ),
+            const SizedBox(height: 4),
             Text(
-              "${p.remainingScore}",
-              style: TextStyle(
-                color: p.remainingScore <= 50 ? Colors.red[800] : Colors.white,
-                fontSize: 56,
+              "$remainingScore",
+              style: theme.textTheme.headlineMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "이번 턴",
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              currentDarts.isEmpty ? "-" : currentDarts.join(", "),
+              style: theme.textTheme.bodyLarge,
             ),
           ],
         ),

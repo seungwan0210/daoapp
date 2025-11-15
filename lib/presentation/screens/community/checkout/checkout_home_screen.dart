@@ -1,18 +1,18 @@
 // lib/presentation/screens/community/checkout/checkout_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/widgets/app_card.dart';
 
 class CheckoutHomeScreen extends StatelessWidget {
+  const CheckoutHomeScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("체크아웃"),
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: const CommonAppBar(title: "체크아웃"),
       body: Padding(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           children: [
             _buildModeCard(
@@ -23,7 +23,7 @@ class CheckoutHomeScreen extends StatelessWidget {
               color: Colors.blue,
               route: RouteConstants.checkoutCalculator,
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _buildModeCard(
               context,
               title: "연습 모드",
@@ -46,33 +46,56 @@ class CheckoutHomeScreen extends StatelessWidget {
         required Color color,
         required String route,
       }) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return AppCard(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.pushNamed(context, route),
         child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
           child: Row(
             children: [
+              // 아이콘 원형 배경
               CircleAvatar(
                 radius: 30,
                 backgroundColor: color.withOpacity(0.1),
-                child: Icon(icon, size: 34, color: color),
+                child: Icon(
+                  icon,
+                  size: 34,
+                  color: color,
+                ),
               ),
-              SizedBox(width: 20),
+              const SizedBox(width: 20),
+
+              // 텍스트 영역
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 4),
-                    Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, color: Colors.grey[400]),
+
+              // 오른쪽 화살표
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.grey[500],
+                size: 20,
+              ),
             ],
           ),
         ),
