@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/screens/community/circle/widgets/post_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
 
 class CircleListView extends StatefulWidget {
   final List<QueryDocumentSnapshot> docs;
@@ -69,7 +71,6 @@ class _CircleListViewState extends State<CircleListView> {
     _hasScrolled = true;
   }
 
-  // 수정 버튼 클릭
   void _editPost(BuildContext context, String postId) {
     Navigator.pushNamed(
       context,
@@ -78,7 +79,6 @@ class _CircleListViewState extends State<CircleListView> {
     );
   }
 
-  // 삭제 버튼 클릭
   Future<void> _deletePost(String postId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -113,23 +113,23 @@ class _CircleListViewState extends State<CircleListView> {
         final postId = doc.id;
         final userId = data['userId'] as String?;
 
-        // userId로 배럴 정보 실시간 조회
         return FutureBuilder<DocumentSnapshot>(
           future: userId != null
               ? FirebaseFirestore.instance.collection('users').doc(userId).get()
               : null,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const SizedBox(
-                height: 520,
-                child: Center(child: CircularProgressIndicator()),
-              );
+              return const SizedBox(height: 520, child: Center(child: CircularProgressIndicator()));
             }
 
             Map<String, String?>? barrelData;
+            String? monthlyBadge;
+            String? adminBadge;
+
             if (snapshot.data!.exists) {
               final userData = snapshot.data!.data() as Map<String, dynamic>;
 
+              // 배럴 정보
               final barrelName = userData['barrelName']?.toString().trim() ?? '';
               final shaft = userData['shaft']?.toString().trim() ?? '';
               final flight = userData['flight']?.toString().trim() ?? '';
@@ -151,6 +151,11 @@ class _CircleListViewState extends State<CircleListView> {
                 'tip': tip,
               }
                   : null;
+
+              // 배지 추출
+              final badgesMap = BadgeUtils.extractBadges(userData);
+              monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+              adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
             }
 
             return PostCard(
@@ -160,7 +165,9 @@ class _CircleListViewState extends State<CircleListView> {
               onHeightCalculated: (height) => _updateCardHeight(postId, height),
               onEdit: () => _editPost(context, postId),
               onDelete: () => _deletePost(postId),
-              barrelData: barrelData, // 전달!
+              barrelData: barrelData,
+              monthlyBadge: monthlyBadge,   // 전달
+              adminBadge: adminBadge,       // 전달
             );
           },
         );

@@ -147,8 +147,8 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
 
                   // ===================================================
                   // 2. 계산기 화면
-                  //    위: 남은 점수 + 루트 (위쪽에 붙여서)
-                  //    아래: 키패드(AppCard, 전체가 보이게)
+                  //    위: 남은 점수 + 루트
+                  //    아래: 키패드(AppCard)
                   // ===================================================
                   return Column(
                     children: [
@@ -159,17 +159,48 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              // ===== 남은 점수 + 되돌리기 버튼 =====
                               AppCard(
                                 margin: EdgeInsets.zero,
                                 child: Padding(
                                   padding: const EdgeInsets.all(20),
                                   child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.stretch,
                                     children: [
-                                      Text(
-                                        "남은 점수",
-                                        style: TextStyle(
-                                          color: Colors.grey[600],
-                                        ),
+                                      Row(
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "남은 점수",
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          if (provider.canUndo)
+                                            TextButton.icon(
+                                              onPressed: () {
+                                                provider.undoLast();
+                                                setState(() {
+                                                  _currentInput.clear();
+                                                });
+                                              },
+                                              icon: const Icon(
+                                                Icons.undo,
+                                                size: 18,
+                                              ),
+                                              label: const Text("되돌리기"),
+                                              style: TextButton.styleFrom(
+                                                padding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 8),
+                                                tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
@@ -198,6 +229,8 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                 ),
                               ),
                               const SizedBox(height: 10),
+
+                              // ===== 추천 루트 =====
                               if (provider.routes.isNotEmpty)
                                 AppCard(
                                   margin: const EdgeInsets.only(
@@ -231,7 +264,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                         ),
                       ),
 
-                      // 하단 키패드: AppCard + 높이 자동(버튼 4줄이 전부 보이게)
+                      // 하단 키패드: AppCard
                       Padding(
                         padding: EdgeInsets.only(
                           left: 8,

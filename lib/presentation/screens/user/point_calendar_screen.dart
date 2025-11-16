@@ -7,6 +7,9 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
+import 'package:cloud_firestore/cloud_firestore.dart'; // 추가
 
 class PointCalendarScreen extends StatefulWidget {
   const PointCalendarScreen({super.key});
@@ -129,18 +132,12 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                   autofocus: true,
                   decoration: InputDecoration(
                     hintText: '이름 검색 (한글/영어)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     filled: true,
                     fillColor: Colors.white,
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     prefixIcon: const Icon(Icons.search),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: _stopSearch,
-                    ),
+                    suffixIcon: IconButton(icon: const Icon(Icons.clear), onPressed: _stopSearch),
                   ),
                   style: theme.textTheme.titleMedium,
                 ),
@@ -210,15 +207,11 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
             child: StreamBuilder<List<PointRecord>>(
               stream: repo.getAllPointRecords(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 final allRecords = snapshot.data!;
                 final searchResults = _getSearchResults(allRecords);
                 final sortedResults = _sortAndRank(searchResults);
-                if (sortedResults.isEmpty) {
-                  return const Center(child: Text('검색 결과 없음'));
-                }
+                if (sortedResults.isEmpty) return const Center(child: Text('검색 결과 없음'));
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -226,26 +219,22 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                   itemBuilder: (_, i) {
                     final record = sortedResults[i];
                     final rank = record.rank ?? i + 1;
-                    return _buildRecordCard(theme, record, rank);
+                    return _buildRecordCardWithBadge(context, theme, record, rank);
                   },
                 );
               },
             ),
           )
               : _selectedDay == null
-              ? SliverFillRemaining(
-            child: const Center(child: Text('날짜를 선택하세요')),
-          )
+              ? SliverFillRemaining(child: const Center(child: Text('날짜를 선택하세요')))
               : _getEventsForDay(_selectedDay!).isEmpty
-              ? SliverFillRemaining(
-            child: const Center(child: Text('해당 날짜에 포인트 내역 없음')),
-          )
+              ? SliverFillRemaining(child: const Center(child: Text('해당 날짜에 포인트 내역 없음')))
               : SliverList(
             delegate: SliverChildBuilderDelegate(
                   (_, i) {
                 final record = _getEventsForDay(_selectedDay!)[i];
                 final rank = record.rank ?? i + 1;
-                return _buildRecordCard(theme, record, rank);
+                return _buildRecordCardWithBadge(context, theme, record, rank);
               },
               childCount: _getEventsForDay(_selectedDay!).length,
             ),
@@ -255,7 +244,8 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
     );
   }
 
-  Widget _buildRecordCard(ThemeData theme, PointRecord record, int rank) {
+  // 배지 포함 카드
+  Widget _buildRecordCardWithBadge(BuildContext context, ThemeData theme, PointRecord record, int rank) {
     final dateStr = '${record.date.year}.${record.date.month.toString().padLeft(2, '0')}.${record.date.day.toString().padLeft(2, '0')}';
 
     return Padding(
@@ -291,7 +281,41 @@ class _PointCalendarScreenState extends State<PointCalendarScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(record.koreanName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            record.koreanName,
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        // 배지 (이름 옆)
+                        FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance.collection('users').doc(record.userId).get(),
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) return const SizedBox.shrink();
+                            final userData = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                            final badgesMap = BadgeUtils.extractBadges(userData);
+                            final monthly = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                            final admin = BadgeUtils.getLatestAdminBadge(badgesMap);
+                            final badges = <String>[];
+                            if (monthly != null) badges.add(monthly);
+                            if (admin != null) badges.add(admin);
+
+                            return Wrap(
+                              spacing: 2,
+                              children: badges.map((key) => Tooltip(
+                                message: BadgeUtils.getBadgeTooltip(key),
+                                child: BadgeWidget(badgeKey: key, size: 18),
+                              )).toList(),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                     Text(record.englishName, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
                     Text(dateStr, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade500, fontSize: 11)),

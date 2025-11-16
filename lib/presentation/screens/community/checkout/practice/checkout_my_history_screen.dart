@@ -1,11 +1,11 @@
 // lib/presentation/screens/community/checkout/practice/checkout_my_history_screen.dart
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/core/utils/date_utils.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
+import 'checkout_practice_detail_screen.dart';
 
 class CheckoutMyHistoryScreen extends StatelessWidget {
   const CheckoutMyHistoryScreen({super.key});
@@ -13,70 +13,144 @@ class CheckoutMyHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
       return const Scaffold(
-        appBar: CommonAppBar(title: "내 연습 기록"),
-        body: Center(child: Text("로그인이 필요합니다.")),
+        body: Center(child: Text('로그인이 필요합니다.')),
       );
     }
 
+    // ✅ 실제 기록 저장 위치: users/{uid}/checkout_practice
+    final historyRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('checkout_practice');
+
     return Scaffold(
-      appBar: const CommonAppBar(title: "내 연습 기록"),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .collection('checkout_practice')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                "아직 연습 기록이 없습니다.\n연습을 시작해보세요!",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            );
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: snapshot.data!.docs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, i) {
-              final doc = snapshot.data!.docs[i];
-              final data = doc.data() as Map<String, dynamic>;
-              final successRate = (data['successRate'] as num).toDouble();
-              final time = data['elapsedSeconds'] as int;
-              final date = (data['timestamp'] as Timestamp).toDate();
-
-              return AppCard(
-                onTap: () {
-                  // 결과 화면으로 이동 (PracticeSessionSummary 필요 시)
-                },
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: successRate >= 0.7 ? Colors.green : Colors.orange,
-                    child: Text(
-                      "${(successRate * 100).toStringAsFixed(0)}%",
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
+      appBar: const CommonAppBar(title: '내 체크아웃 연습 기록'),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: AppCard(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: historyRef
+                .orderBy('timestamp', descending: true) // ✅ 최신순
+                .limit(10) // ✅ 최근 10개만
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(
+                  child: Text(
+                    '아직 저장된 연습 기록이 없어요.\n체크아웃 연습을 먼저 해보세요!',
+                    textAlign: TextAlign.center,
                   ),
-                  title: Text(AppDateUtils.formatKoreanDate(date)),
-                  subtitle: Text("소요 시간: ${_formatTime(time)}"),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                ),
+                );
+              }
+
+              final docs = snapshot.data!.docs;
+
+              return ListView.separated(
+                itemCount: docs.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final doc = docs[index];
+                  final data =
+                      doc.data() as Map<String, dynamic>? ?? {};
+
+                  // ✅ timestamp / createdAt 둘 다 대응
+                  final ts = (data['timestamp'] ?? data['createdAt'])
+                  as Timestamp?;
+                  final createdAt = ts?.toDate();
+
+                  final elapsed =
+                      (data['elapsedSeconds'] as num?)?.toDouble() ?? 0.0;
+
+                  // successRate 는 0~1 로 저장되어 있음 (새 구조)
+                  final successRate =
+                      (data['successRate'] as num?)?.toDouble() ?? 0.0;
+
+                  final avgDarts =
+                      (data['avgDarts'] as num?)?.toDouble() ?? 0.0;
+
+                  // 새 구조: problemCount
+                  // 옛 구조: totalAttempts
+                  final totalAttempts =
+                      (data['problemCount'] as num?)?.toInt() ??
+                          (data['totalAttempts'] as num?)?.toInt() ??
+                          0;
+
+                  // 새 구조에선 successCount 가 없으니,
+                  // 있으면 쓰고, 없으면 successRate * totalAttempts 로 근사
+                  int successCount =
+                      (data['successCount'] as num?)?.toInt() ?? 0;
+                  if (successCount == 0 && totalAttempts > 0) {
+                    successCount =
+                        (successRate * totalAttempts).round();
+                  }
+
+                  String dateText = '날짜 없음';
+                  if (createdAt != null) {
+                    dateText =
+                    '${createdAt.year}.${createdAt.month.toString().padLeft(2, '0')}.${createdAt.day.toString().padLeft(2, '0')} '
+                        '${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}';
+                  }
+
+                  return ListTile(
+                    title: Text(
+                      dateText,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '시간: ${elapsed.toStringAsFixed(1)}초 · '
+                          '다트: ${avgDarts.toStringAsFixed(1)}개 · '
+                          '성공률: ${(successRate * 100).toStringAsFixed(0)}%',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$successCount / $totalAttempts',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          '성공 / 시도',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CheckoutPracticeDetailScreen(
+                            recordId: doc.id,
+                            data: data,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }
-
-  String _formatTime(int s) => "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
 }

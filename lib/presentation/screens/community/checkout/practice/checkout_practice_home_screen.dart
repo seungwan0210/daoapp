@@ -5,7 +5,7 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'widgets/checkout_ranking_mini.dart';
-import 'widgets/my_recent_record_mini.dart'; // 새로 추가
+import 'widgets/my_recent_record_mini.dart';
 
 class CheckoutPracticeHomeScreen extends StatefulWidget {
   const CheckoutPracticeHomeScreen({super.key});
@@ -46,20 +46,27 @@ class _CheckoutPracticeHomeScreenState extends State<CheckoutPracticeHomeScreen>
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // 연습 시작
+            // 연습 시작 카드
             AppCard(
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const Text("랜덤 10문제 체크아웃 연습", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "랜덤 10문제 체크아웃 연습",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 8),
-                    const Text("실제 다트보드를 터치해서 10개의 체크아웃 문제를 풀어보세요.", style: TextStyle(fontSize: 14)),
+                    const Text(
+                      "실제 다트보드를 터치해서 10개의 체크아웃 문제를 풀어보세요.",
+                      style: TextStyle(fontSize: 14),
+                    ),
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, RouteConstants.checkoutPracticePlay),
+                        onPressed: () => Navigator.pushNamed(
+                            context, RouteConstants.checkoutPracticePlay),
                         child: const Text("연습 시작하기"),
                       ),
                     ),
@@ -70,7 +77,7 @@ class _CheckoutPracticeHomeScreenState extends State<CheckoutPracticeHomeScreen>
 
             const SizedBox(height: 20),
 
-            // 통합: 랭킹 + 내 기록
+            // 통합 카드: 랭킹 + 내 기록
             AppCard(
               child: Column(
                 children: [
@@ -86,25 +93,30 @@ class _CheckoutPracticeHomeScreenState extends State<CheckoutPracticeHomeScreen>
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        // 랭킹
+                        // === 실시간 랭킹 탭 ===
                         Column(
                           children: [
-                            Expanded(child: CheckoutRankingMiniWidget(limit: 5)),
+                            const Expanded(child: CheckoutRankingMiniWidget(limit: 5)),
                             TextButton(
-                              onPressed: () => Navigator.pushNamed(context, RouteConstants.checkoutRanking),
+                              onPressed: () => Navigator.pushNamed(
+                                  context, RouteConstants.checkoutRanking),
                               child: const Text("전체 랭킹 보기"),
                             ),
                           ],
                         ),
-                        // 내 기록 요약
+
+                        // === 내 기록 탭 ===
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
                             children: [
+                              // 최근 기록만 표시 (버튼 없음!)
                               const MyRecentRecordMini(),
                               const Spacer(),
+                              // 여기만 "전체 기록 보기" 버튼
                               TextButton(
-                                onPressed: () => Navigator.pushNamed(context, RouteConstants.checkoutMyHistory),
+                                onPressed: () => Navigator.pushNamed(
+                                    context, RouteConstants.checkoutMyHistory),
                                 child: const Text("전체 기록 보기"),
                               ),
                             ],

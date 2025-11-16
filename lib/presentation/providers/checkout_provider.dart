@@ -10,6 +10,15 @@ class CheckoutProvider extends ChangeNotifier {
   int remainingScore = 0;              // 남은 점수
   List<CheckoutRoute> routes = [];     // 현재 점수에서 추천 루트들
 
+  // === 계산기 전용: 점수 히스토리 (되돌리기용) ===
+  final List<int> _history = [];
+
+  /// 히스토리 읽기 (필요하면 UI에서 사용)
+  List<int> get history => List.unmodifiable(_history);
+
+  /// 되돌리기 가능 여부 (연습 모드가 아닐 때만 사용)
+  bool get canUndo => _history.isNotEmpty && !isPracticing;
+
   // === 연습 모드 전용 ===
   List<String> currentTurn = [];       // 이번 턴에서 던진 다트들 ["T20", "T20", "D20"]
   List<Turn> practiceHistory = [];     // 연습 기록
@@ -22,13 +31,31 @@ class CheckoutProvider extends ChangeNotifier {
   /// 초기 점수 설정 (계산기 진입 시)
   void setInitialScore(int score) {
     remainingScore = score;
+    isPracticing = false;   // 계산기 모드
+    _history.clear();       // 히스토리 초기화
     _updateRoutes();
   }
 
   /// 점수 차감 (키패드 입력 후)
   void subtractScore(int score) {
+    if (score <= 0) return;
+    if (score > remainingScore) return;
+
     remainingScore -= score;
     if (remainingScore < 0) remainingScore = 0;
+
+    // ✅ 히스토리에 기록 (계산기 모드 되돌리기용)
+    _history.add(score);
+
+    _updateRoutes();
+  }
+
+  /// 마지막 입력 되돌리기 (계산기 모드 전용)
+  void undoLast() {
+    if (!canUndo) return;
+
+    final last = _history.removeLast();
+    remainingScore += last;
     _updateRoutes();
   }
 
@@ -42,15 +69,18 @@ class CheckoutProvider extends ChangeNotifier {
     isPracticing = true;
     practiceHistory.clear();
     currentTurn.clear();
+    _history.clear();       // 연습 모드에서는 계산기 히스토리 사용 X
     _updateRoutes();
   }
 
   /// 다트 입력 (세그먼트: T20, D20 등)
   void inputDart(String segment) {
     if (currentTurn.length >= 3 || !isPracticing) return;
+
     currentTurn.add(segment);
     remainingScore -= _segmentValue(segment);
     if (remainingScore < 0) remainingScore = 0;
+
     _updateRoutes();
   }
 
@@ -124,8 +154,7 @@ class CheckoutProvider extends ChangeNotifier {
   /// 세그먼트 → 실제 점수 변환
   int _segmentValue(String s) {
     if (s == 'Bull') return 50;
-    // 과거에 SB(싱글 불, 25)를 썼다면 그대로 유지
-    if (s == 'SB') return 25;
+    if (s == 'SB') return 25; // 싱글 불(25) 옛 데이터 호환
 
     final match = RegExp(r'([STD])(\d+)').firstMatch(s);
     if (match == null) return 0;

@@ -71,6 +71,7 @@ flutter:
     - assets/badges/bronze1.png
     - assets/badges/bronze2.png
     - assets/badges/bronze3.png
+    - assets/badges/tro.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -1,239 +1,318 @@
 ﻿lib/
 ├── main.dart
-│   → 앱 진입점, MaterialApp 설정, 초기 라우트
+│   → 앱 진입점. runApp(), MaterialApp 설정, 초기 라우트/테마/locale 정의
 ├── firebase_options.dart
-│   → Firebase 초기화 설정 (자동 생성됨)
+│   → Firebase 초기화 옵션 (FlutterFire CLI로 자동 생성된 설정값)
+│
 ├── services/
 │   └── storage_service.dart
-│       → Firebase Storage 업로드/다운로드 공통 로직 (이미지, 파일)
+│       → Firebase Storage 업로드/다운로드 공용 서비스
+│         - 이미지/파일 업로드
+│         - 다운로드 URL 반환
+│         - 삭제 등 공통 로직
+│
 ├── di/
 │   └── service_locator.dart
-│       → GetIt 또는 Riverpod로 의존성 주입 설정 (싱글톤 관리)
+│       → 의존성 주입 설정 (GetIt 또는 Riverpod 등)
+│         - Repository, Service, UseCase 등을 싱글톤/팩토리로 등록
+│
 ├── presentation/
 │   ├── providers/
 │   │   ├── app_providers.dart
-│   │   │   → 전역 Provider 정의 (테마, 인증 상태 등)
+│   │   │   → 전역 Provider 모음
+│   │   │     - 로그인 상태, 현재 유저 정보
+│   │   │     - 테마/앱 설정 등 글로벌 상태 관리
 │   │   ├── user_home_provider.dart
-│   │   │   → 유저 홈 화면 상태 관리 (포인트, 출석 등)
+│   │   │   → 유저 홈 화면 상태 관리
+│   │   │     - 오늘 출석 여부
+│   │   │     - 포인트/출석/이벤트 요약
 │   │   ├── ranking_provider.dart
-│   │   │   → 랭킹 데이터 로딩 및 정렬
+│   │   │   → 랭킹 데이터 로딩/필터링/정렬 Provider
+│   │   │     - 연도/시즌/카테고리 필터
+│   │   │     - 랭킹 리스트 상태 캐싱
 │   │   ├── community_provider.dart
-│   │   │   → 커뮤니티 전체 피드 관리
+│   │   │   → 커뮤니티 메인 피드 상태 관리
+│   │   │     - 전체 피드 로딩
+│   │   │     - 정렬/필터(최신순, 인기순 등)
 │   │   ├── circle_feed_provider.dart
-│   │   │   → 서클(그룹) 피드 전용 Provider
-│   │   └── checkout_provider.dart
-│   │       → 체크아웃 계산기 및 연습 모드 상태 관리
+│   │   │   → 서클(그룹)별 피드 전용 Provider
+│   │   │     - 특정 서클의 게시글/댓글 로딩
+│   │   │     - 좋아요/댓글 상태 관리
+│   │   ├── checkout_provider.dart
+│   │   │   → 체크아웃 계산기 전용 상태
+│   │   │     - 남은 점수 입력
+│   │   │     - 추천 마무리 루트 계산/선택
 │   │   └── checkout_practice_provider.dart
-│   │       → 연습 모드 전용 (타이머/랜덤10문제/결과)
+│   │       → 체크아웃 "연습 모드" 상태 관리
+│   │         - 랜덤 10문제 생성
+│   │         - 타이머/경과 시간
+│   │         - 각 문제별 결과(성공/실패, 사용 다트 수)
+│   │         - 연습 종료 시 Firestore 저장 + 요약 데이터 생성
+│   │
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   │   → 앱 시작 시 로딩 화면
+│   │   │     - Firebase 초기화 대기
+│   │   │     - 로그인 여부 확인 후 적절한 화면으로 이동
 │   │   ├── login/
 │   │   │   └── login_screen.dart
-│   │   │       → 로그인 UI + 전화번호 인증 시작
+│   │   │       → 로그인 화면
+│   │   │         - 전화번호 인증 시작/진행
+│   │   │         - 로그인 후 프로필/메인으로 라우팅
 │   │   ├── main_screen.dart
-│   │   │   → 메인 네비게이션 (BottomNavigationBar 포함)
+│   │   │   → 메인 네비게이션 화면
+│   │   │     - BottomNavigationBar 포함
+│   │   │     - 탭: 유저 홈, 커뮤니티, 아레나, 마이페이지, 관리자 등
+│   │   │
 │   │   ├── user/
 │   │   │   ├── services/
 │   │   │   │   ├── image_upload_service.dart
-│   │   │   │   │   → 프로필/배럴 이미지 업로드 전용 로직 (압축, 리사이즈)
+│   │   │   │   │   → 프로필/배럴 이미지 업로드 전용 로직
+│   │   │   │   │     - 리사이즈/압축 후 Storage 업로드
+│   │   │   │   │     - 업로드 경로/파일명 규칙 관리
 │   │   │   │   ├── phone_auth_service.dart
-│   │   │   │   │   → Firebase Phone Auth 인증 흐름 관리
+│   │   │   │   │   → Firebase Phone Auth 흐름 제어
+│   │   │   │   │     - 인증코드 전송/검증
+│   │   │   │   │     - 재전송/에러 처리
 │   │   │   │   └── profile_service.dart
-│   │   │   │       → 유저 프로필 CRUD (Firestore 연동)
+│   │   │   │       → 유저 프로필 CRUD (Firestore)
+│   │   │   │         - 프로필 등록/수정/조회
+│   │   │   │         - 배럴/샵 정보, 연락처, 자기소개 등
 │   │   │   │
 │   │   │   ├── widgets/
 │   │   │   │   ├── barrel_image_widget.dart
-│   │   │   │   │   → 배럴 사진 미리보기 + 클릭 시 확대
+│   │   │   │   │   → 배럴 사진 미리보기 + 탭 시 확대/전체 보기
 │   │   │   │   ├── barrel_setting_section.dart
-│   │   │   │   │   → 배럴 세팅 입력 폼 전체 (BARREL, SHAFT 등)
+│   │   │   │   │   → 배럴 세팅 입력 폼 (배럴/SHAFT/플라이트 등 전체 섹션)
 │   │   │   │   ├── phone_verification_section.dart
-│   │   │   │   │   → 전화번호 입력 + 인증 코드 UI
+│   │   │   │   │   → 전화번호 입력 + 인증코드 입력 UI 묶음
 │   │   │   │   ├── profile_form_fields.dart
-│   │   │   │   │   → 이름, 영문명, 샵명 등 입력 필드
+│   │   │   │   │   → 이름/영문명/샵명/인스타 ID 등 텍스트 필드 모음
 │   │   │   │   ├── profile_image_widget.dart
-│   │   │   │   │   → 프로필 사진 원형 + 변경 버튼
+│   │   │   │   │   → 원형 프로필 사진 + 변경 버튼
 │   │   │   │   ├── guestbook_header.dart
-│   │   │   │   │   → 방명록 상단 프로필 + 방명록 수
+│   │   │   │   │   → 방명록 상단 영역 (프로필, 방명록 개수, 요약 정보)
 │   │   │   │   └── guestbook_comment_item.dart
-│   │   │   │       → 방명록 개별 댓글 UI (아바타 + 이름 + 내용)
+│   │   │   │       → 방명록 댓글 한 줄 UI (아바타/이름/내용/시간)
 │   │   │   │
 │   │   │   ├── user_home_screen.dart
-│   │   │   │   → 유저 홈 (포인트, 출석, 랭킹)
+│   │   │   │   → 유저 홈 화면
+│   │   │   │     - 출석/포인트 요약
+│   │   │   │     - 랭킹 미리보기/공지/이벤트 영역
 │   │   │   ├── ranking_screen.dart
 │   │   │   │   → 전체 랭킹 리스트
+│   │   │   │     - 시즌/카테고리 필터
 │   │   │   ├── calendar_screen.dart
-│   │   │   │   → 출석 캘린더 (포인트 기록)
+│   │   │   │   → 출석 캘린더
+│   │   │   │     - 일자별 출석/포인트 현황
 │   │   │   ├── my_page_screen.dart
-│   │   │   │   → 내 정보 + 설정
+│   │   │   │   → 내 정보/설정 화면
+│   │   │   │     - 프로필 수정, 로그아웃, 앱 설정
 │   │   │   ├── point_calendar_screen.dart
-│   │   │   │   → 포인트 적립 내역 캘린더
+│   │   │   │   → 포인트 적립 내역을 날짜별로 보여주는 캘린더
 │   │   │   ├── profile_register_screen.dart
-│   │   │   │   → 프로필 최초 등록 화면 (모든 입력 통합)
+│   │   │   │   → 프로필 처음 등록 시 사용하는 통합 폼
 │   │   │   ├── notice_list_screen.dart
-│   │   │   │   → 공지사항 리스트
+│   │   │   │   → 공지사항 목록
 │   │   │   ├── member_list_screen.dart
-│   │   │   │   → 전체 회원 목록 (관리자용)
+│   │   │   │   → 전체 회원 목록 (관리자 권한일 때 주로 사용)
 │   │   │   └── guestbook_screen.dart
 │   │   │       → 방명록 메인 화면 (댓글 리스트 + 입력창)
+│   │   │
 │   │   ├── community/
 │   │   │   ├── community_home_screen.dart
-│   │   │   │   → 커뮤니티 메인 피드 (탭: 서클, 체크아웃, 아레나)
+│   │   │   │   → 커뮤니티 메인
+│   │   │   │     - 탭: 서클(Circle), 체크아웃(Practice/Calculator), 아레나(Arena)
 │   │   │   │
 │   │   │   ├── widgets/
 │   │   │   │   ├── community_avatar_slider.dart
-│   │   │   │   │   → 온라인 유저 아바타 슬라이더 + 클릭 시 프로필 팝업
+│   │   │   │   │   → 온라인 유저 아바타 슬라이더
+│   │   │   │   │     - 탭 시 프로필 다이얼로그/프로필 화면 이동
 │   │   │   │   └── community_preview.dart
-│   │   │   │       → 커뮤니티 카드 미리보기
+│   │   │   │       → 커뮤니티 섹션 미리보기 카드 (서클/아레나/체크아웃 등)
 │   │   │   │
 │   │   │   ├── checkout/
 │   │   │   │   ├── checkout_home_screen.dart
-│   │   │   │   │   → 체크아웃 메인 (계산기/연습 모드 선택)
+│   │   │   │   │   → 체크아웃 기능 전체 허브
+│   │   │   │   │     - 계산기/연습 모드/랭킹 등으로 진입하는 메인 메뉴
 │   │   │   │   │
 │   │   │   │   ├── calculator/
 │   │   │   │   │   ├── checkout_calculator_screen.dart
-│   │   │   │   │   │   → 남은 점수 입력 → 추천 마무리 경로 표시
+│   │   │   │   │   │   → 남은 점수 입력 → 추천 체크아웃 루트 보여주는 계산기
 │   │   │   │   │   └── widgets/
 │   │   │   │   │       └── route_card.dart
-│   │   │   │   │           → 추천 루트 카드 위젯
+│   │   │   │   │           → 추천 루트(예: T20 → T20 → D20) 카드 UI
 │   │   │   │   │
 │   │   │   │   └── practice/
 │   │   │   │       ├── checkout_practice_screen.dart
-│   │   │   │       │   → 실시간 3다트 입력 + 남은 점수 계산
+│   │   │   │       │   → 실제 다트보드를 터치해서 10문제 푸는 연습 화면
+│   │   │   │       │     - 타이머 / 남은 점수 / 현재 턴 다트 표시
+│   │   │   │       │     - 되돌리기/확인 버튼
 │   │   │   │       ├── checkout_practice_home_screen.dart
-│   │   │   │       │   →연습 모드 선택/기록 리스트
+│   │   │   │       │   → 연습 모드 메인
+│   │   │   │       │     - "연습 시작하기" 버튼
+│   │   │   │       │     - 실시간 랭킹 미니뷰 + 내 최근 기록 요약
 │   │   │   │       ├── checkout_result_screen.dart
-│   │   │   │       │   → 연습 종료 후 성공률, 최고 루트 통계
-│   │   │   │       ├──checkout_my_history_screen.dart
-│   │   │   │       │   → 내 기록 확인
-│   │   │   │       ├──checkout_ranking_screen.dart
-│   │   │   │       │   → 랭킹 확인
+│   │   │   │       │   → 한 세션(10문제) 종료 후 결과 요약 화면
+│   │   │   │       │     - 총 시간/성공률/평균 다트
+│   │   │   │       │     - 문제별 피드백 + 최적 루트 안내
+│   │   │   │       ├── checkout_my_history_screen.dart
+│   │   │   │       │   → 내가 저장한 연습 세션 전체 리스트
+│   │   │   │       │     - 날짜별 기록/성공률/평균 다트 등
+│   │   │   │       ├── checkout_ranking_screen.dart
+│   │   │   │       │   → 이번 달 TOP 12 체크아웃 연습 랭킹 화면
+│   │   │   │       │     - Cloud Functions가 만든 월별 랭킹 컬렉션 기반
+│   │   │   │       ├── checkout_practice_detail_screen.dart
+│   │   │   │       │   → 특정 연습 세션의 상세 내용
+│   │   │   │       │     - 총 통계 + 문제별(타겟, 사용 다트, 성공 여부, 루트)
 │   │   │   │       └── widgets/
 │   │   │   │           ├── dartboard_widget.dart
-│   │   │   │           │   → 다트 보드 위젯
+│   │   │   │           │   → 터치 가능한 다트보드 UI
+│   │   │   │           │     - 세그먼트별 onTap 콜백 제공
 │   │   │   │           ├── dart_input_panel.dart
-│   │   │   │           │   → 다트 세그먼트 버튼 패널
+│   │   │   │           │   → 1/2/3다트 성공, 실패, 되돌리기 버튼 묶음 (UI 전용)
 │   │   │   │           ├── remaining_score_display.dart
-│   │   │   │           │   → 남은 점수 실시간 표시
-│   │   │   │           └── practice_stats_card.dart
-│   │   │   │           │    → 연습 통계 카드 (재사용)
-│   │   │   │           └──checkout_ranking_mini.dart
-│   │   │   │           │    → 랭킹 5위 바로보기
-│   │   │   ├── circle/
-│   │   │   │   ├── circle_screen.dart
-│   │   │   │   │   → 서클(그룹) 메인 화면
-│   │   │   │   ├── circle_grid_view.dart
-│   │   │   │   │   → 서클 그리드 뷰
-│   │   │   │   ├── circle_list_view.dart
-│   │   │   │   │   → 서클 리스트 뷰
-│   │   │   │   ├── circle_preview.dart
-│   │   │   │   │   → 서클 카드 미리보기
-│   │   │   │   ├── post_write_screen.dart
-│   │   │   │   │   → 게시물 작성/수정 화면
-│   │   │   │   └── widgets/
-│   │   │   │       ├── post_card.dart
-│   │   │   │       │   → 커뮤니티 피드 카드 (사진 + 내용 + 좋아요/댓글)
-│   │   │   │       ├── post_grid_item.dart
-│   │   │   │       │   → 그리드 뷰용 포스트 아이템
-│   │   │   │       ├── like_button.dart
-│   │   │   │       │   → 좋아요 버튼 + 카운트
-│   │   │   │       ├── comment_button.dart
-│   │   │   │       │   → 댓글 버튼 + 카운트
-│   │   │   │       ├── comment_preview.dart
-│   │   │   │       │   → 최신 댓글 3개 미리보기
-│   │   │   │       └── comment_bottom_sheet.dart
-│   │   │   │           → 댓글 전체 보기 + 작성 바텀시트
-│   │   │   └── arena/
-│   │   │       ├── arena_screen.dart
-│   │   │       │   → 아레나(경기장) 메인
-│   │   │       ├── arena_preview.dart
-│   │   │       │   → 아레나 카드 미리보기
-│   │   │       ├── arena_review_write_screen.dart
-│   │   │       │   → 아레나 리뷰 작성
-│   │   │       └── arena_review_detail_screen.dart
-│   │   │           → 아레나 리뷰 상세
-│   │   └── admin/
-│   │       ├── admin_dashboard_screen.dart
-│   │       │   → 관리자 대시보드
-│   │       ├── admin_report_list_screen.dart
-│   │       │   → 신고 내역 리스트
-│   │       ├── event_create_screen.dart
-│   │       │   → 이벤트 생성
-│   │       ├── event_list_screen.dart
-│   │       │   → 이벤트 리스트
-│   │       ├── point_award_screen.dart
-│   │       │   → 포인트 지급
-│   │       ├── point_award_list_screen.dart
-│   │       │   → 포인트 지급 내역
-│   │       ├── member_register_screen.dart
-│   │       │   → 회원 직접 등록
-│   │       ├── point_edit_screen.dart
-│   │       │   → 포인트 수정
-│   │       ├── event_edit_screen.dart
-│   │       │   → 이벤트 수정
-│   │       └── forms/
-│   │           ├── notice_form_screen.dart
-│   │           │   → 공지사항 작성
-│   │           ├── news_form_screen.dart
-│   │           │   → 뉴스 작성
-│   │           ├── sponsor_form_screen.dart
-│   │           │   → 스폰서 등록
-│   │           └── member_register_screen.dart
-│   │               → 회원 등록 폼 (재사용)
-│   └── widgets/
-│       ├── app_card.dart
-│       │   → 공용 카드 위젯 (그림자, 라운드)
-│       ├── admin_delete_button.dart
-│       │   → 관리자용 삭제 버튼
-│       ├── post_item_widget.dart
-│       │   → 포스트 아이템 재사용 위젯
-│       ├── common_appbar.dart
-│       │   → 공용 AppBar (뒤로가기, 타이틀)
-│       ├── more_menu_button.dart
-│       │   → 더보기 메뉴 (수정/삭제)
-│       ├── galaxy_settings_section.dart
-│       │   → 갤럭시(특정 기능) 설정 섹션
-│       └── user_profile_dialog.dart
-│           → 유저 프로필 다이얼로그 (사진 확대, 배럴 정보)
-│       └──badge_widget.dart
-│           →  뱃지 아이탬 
+│   │   │   │           │   → 남은 점수 + 이번 턴에 던진 다트 표시 카드
+│   │   │   │           ├── practice_stats_card.dart
+│   │   │   │           │   → 간단한 통계(성공률/평균 다트 등)를 예쁘게 보여주는 카드
+│   │   │   │           ├── checkout_ranking_mini.dart
+│   │   │   │           │   → 실시간 랭킹 상위 N명 미니 리스트 (홈용)
+│   │   │   │           └── my_recent_record_mini.dart
+│   │   │   │               → 내 최근 연습 1회 기록 요약 + "전체 기록 보기" 버튼
+│   │   │
+│   │   ├── circle/
+│   │   │   ├── circle_screen.dart
+│   │   │   │   → 서클 메인 화면 (그룹 리스트/피드)
+│   │   │   ├── circle_grid_view.dart
+│   │   │   │   → 서클 그리드 레이아웃
+│   │   │   ├── circle_list_view.dart
+│   │   │   │   → 서클 리스트 레이아웃
+│   │   │   ├── circle_preview.dart
+│   │   │   │   → 서클 카드 미리보기 (썸네일/제목/설명)
+│   │   │   ├── post_write_screen.dart
+│   │   │   │   → 서클 게시글 작성/수정 화면
+│   │   │   └── widgets/
+│   │   │       ├── post_card.dart
+│   │   │       │   → 피드에 보여지는 게시글 카드 (사진, 내용, 좋아요/댓글)
+│   │   │       ├── post_grid_item.dart
+│   │   │       │   → 그리드용 게시글 아이템
+│   │   │       ├── like_button.dart
+│   │   │       │   → 좋아요 버튼 + 카운트
+│   │   │       ├── comment_button.dart
+│   │   │       │   → 댓글 버튼 + 개수 표시
+│   │   │       ├── comment_preview.dart
+│   │   │       │   → 최신 댓글 몇 개 미리보기
+│   │   │       └── comment_bottom_sheet.dart
+│   │   │           → 댓글 전체 보기 + 댓글 작성 바텀시트
+│   │   │
+│   │   └── arena/
+│   │       ├── arena_screen.dart
+│   │       │   → 아레나(샵/경기장) 메인 화면
+│   │       ├── arena_preview.dart
+│   │       │   → 아레나 카드 미리보기 (사진/평점/위치 등)
+│   │       ├── arena_review_write_screen.dart
+│   │       │   → 아레나 리뷰 작성 화면
+│   │       └── arena_review_detail_screen.dart
+│   │           → 아레나 리뷰 상세 보기
+│   │
+│   └── admin/
+│       ├── admin_dashboard_screen.dart
+│       │   → 관리자 대시보드
+│       │     - 주요 통계/알림/바로가기
+│       ├── admin_report_list_screen.dart
+│       │   → 신고 내역 리스트
+│       ├── event_create_screen.dart
+│       │   → 이벤트 생성 폼
+│       ├── event_list_screen.dart
+│       │   → 이벤트 목록
+│       ├── point_award_screen.dart
+│       │   → 포인트 수동 지급 화면
+│       ├── point_award_list_screen.dart
+│       │   → 포인트 지급 내역 조회
+│       ├── member_register_screen.dart
+│       │   → 관리자용 회원 직접 등록
+│       ├── point_edit_screen.dart
+│       │   → 특정 유저 포인트 수정
+│       ├── event_edit_screen.dart
+│       │   → 이벤트 수정 화면
+│       └── forms/
+│           ├── notice_form_screen.dart
+│           │   → 공지사항 작성/수정 폼
+│           ├── news_form_screen.dart
+│           │   → 뉴스/소식 작성 폼
+│           ├── sponsor_form_screen.dart
+│           │   → 스폰서 등록/수정 폼
+│           └── member_register_screen.dart
+│               → 회원 등록 폼 (다른 화면에서 재사용)
+│
+├── presentation/widgets/
+│   ├── app_card.dart
+│   │   → 공용 카드 위젯 (라운드 모서리 + 그림자 + InkWell)
+│   ├── admin_delete_button.dart
+│   │   → 관리자용 삭제 버튼 (경고/확인 UX 포함)
+│   ├── post_item_widget.dart
+│   │   → 커뮤니티 포스트 아이템 공용 위젯
+│   ├── common_appbar.dart
+│   │   → 공용 AppBar
+│   │     - 타이틀/뒤로가기/옵션 버튼 등 일관된 스타일 제공
+│   ├── more_menu_button.dart
+│   │   → ... 더보기 메뉴 버튼
+│   │     - 수정/삭제/관리자 기능 진입 등
+│   ├── galaxy_settings_section.dart
+│   │   → 특정 "갤럭시" 기능에 대한 설정 섹션 (토글/설명)
+│   ├── user_profile_dialog.dart
+│   │   → 유저 프로필 다이얼로그 (사진 확대, 배럴/프로필 정보)
+│   └── badge_widget.dart
+│       → 체크아웃 랭킹/기타 배지 보여주는 위젯
+│         - 배지 타입별 아이콘/색상 매핑
+│
 ├── data/
 │   ├── repositories/
 │   │   ├── auth_repository.dart
-│   │   │   → 인증 인터페이스
+│   │   │   → 인증 관련 추상 인터페이스
 │   │   ├── auth_repository_impl.dart
-│   │   │   → Firebase Auth 구현체
+│   │   │   → Firebase Auth 기반 구현체
 │   │   ├── point_record_repository.dart
 │   │   │   → 포인트 기록 인터페이스
 │   │   └── point_record_repository_impl.dart
-│   │       → Firestore 포인트 기록 구현체
+│   │       → Firestore 기반 포인트 기록 구현체
 │   │
 │   └── models/
 │       ├── point_record_model.dart
-│       │   → 포인트 기록 데이터 모델
+│       │   → 포인트 적립/사용 기록 데이터 모델
 │       ├── ranking_user.dart
-│       │   → 랭킹 유저 모델
+│       │   → 랭킹 유저 정보 모델 (닉네임/포인트/순위 등)
 │       ├── user_model.dart
-│       │   → 유저 전체 정보 모델
+│       │   → 앱에서 사용하는 유저 전체 정보 모델
 │       └── checkout_route_model.dart
 │           → 체크아웃 추천 경로 모델
+│             - targetScore, 권장 루트 리스트 등
+│
 ├── core/
 │   ├── constants/
 │   │   ├── route_constants.dart
-│   │   │   → 라우트 경로 상수
-│   │   └── checkout_table.dart
-│   │       → 체크아웃 테이블 데이터 (2~170 더블 아웃)
+│   │   │   → 라우트 네임 상수 정의
+│   │   ├── checkout_table.dart
+│   │   │   → 2~170 더블 아웃 기준 체크아웃 테이블 데이터
 │   │   └── badge_constants.dart
-│   │       → 체크아웃 랭킹 뱃지
+│   │       → 체크아웃 랭킹/성취도 등에서 사용하는 배지 설정
+│   │         - 랭킹 → 배지 키 매핑
 │   │
 │   ├── theme/
 │   │   └── app_theme.dart
-│   │       → Material3 테마 설정
+│   │       → Material 3 테마 설정
+│   │         - 색상 팔레트/폰트/버튼 스타일/카드 스타일 등
 │   │
 │   └── utils/
 │       ├── date_utils.dart
-│       │   → 날짜 포맷팅 (상대시간, 캘린더)
-│       └── segment_utils.dart
-│           → 다트 세그먼트 계산 유틸
-│       └──ranking_utils.dart
-│   │       →
+│       │   → 날짜/시간 유틸
+│       │     - 한국형 날짜 포맷
+│       │     - 상대 시간("5분 전") 등
+│       ├── segment_utils.dart
+│       │   → 다트 세그먼트 계산 유틸
+│       │     - 점수/세그먼트 변환
+│       │     - 더블/트리플 판정 등
+│       └── ranking_utils.dart
+│           → 랭킹 관련 유틸 함수
+│             - 정렬/타이브레이크 로직
+│             - 포인트/승률 기반 스코어 계산 등

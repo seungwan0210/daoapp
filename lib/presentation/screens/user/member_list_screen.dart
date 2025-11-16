@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
 
 class MemberListScreen extends StatefulWidget {
   const MemberListScreen({super.key});
@@ -41,7 +43,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
       ),
       body: Column(
         children: [
-          // 검색창 (여백 줄임)
+          // 검색창
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: TextField(
@@ -53,18 +55,9 @@ class _MemberListScreenState extends State<MemberListScreen> {
                 filled: true,
                 fillColor: Colors.grey[100],
                 contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5)),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                   icon: const Icon(Icons.clear, color: Colors.grey),
@@ -97,10 +90,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const Center(
-            child: Text(
-              '등록된 정회원이 없습니다.',
-              style: TextStyle(fontSize: 15, color: Colors.grey),
-            ),
+            child: Text('등록된 정회원이 없습니다.', style: TextStyle(fontSize: 15, color: Colors.grey)),
           );
         }
 
@@ -125,38 +115,63 @@ class _MemberListScreenState extends State<MemberListScreen> {
             final data = doc.data() as Map<String, dynamic>;
             final imageUrl = data['profileImageUrl'] as String?;
 
+            // 배지 추출
+            final badgesMap = BadgeUtils.extractBadges(data);
+            final monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+            final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+            final badgesToShow = <String>[];
+            if (monthlyBadge != null) badgesToShow.add(monthlyBadge);
+            if (adminBadge != null) badgesToShow.add(adminBadge);
+
             return AppCard(
               margin: const EdgeInsets.only(bottom: 10),
               elevation: 6,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                leading: CircleAvatar(
-                  radius: 28,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage: imageUrl != null && imageUrl.isNotEmpty
-                      ? NetworkImage(imageUrl)
-                      : null,
-                  child: imageUrl == null || imageUrl.isEmpty
-                      ? Text(
-                    data['koreanName']?[0] ?? '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                leading: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: imageUrl != null && imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                      child: imageUrl == null || imageUrl.isEmpty
+                          ? Text(
+                        data['koreanName']?[0] ?? '?',
+                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      )
+                          : null,
                     ),
-                  )
-                      : null,
+                    // 배지 (최대 2개, 사진 위에)
+                    ...badgesToShow.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final key = entry.value;
+                      return Positioned(
+                        left: -8 - (index * 18),
+                        top: -8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
+                          ),
+                          child: Tooltip(
+                            message: BadgeUtils.getBadgeTooltip(key),
+                            child: BadgeWidget(badgeKey: key, size: 20),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ],
                 ),
                 title: Row(
                   children: [
                     Expanded(
                       child: Text(
                         data['koreanName'] ?? '이름 없음',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -198,11 +213,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     ),
                   ],
                 ),
-                trailing: const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 24,
-                ),
+                trailing: const Icon(Icons.check_circle, color: Colors.green, size: 24),
               ),
             );
           },

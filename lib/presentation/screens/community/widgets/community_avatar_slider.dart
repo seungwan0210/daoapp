@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../widgets/user_profile_dialog.dart'; // 정확한 경로!
+import '../../../widgets/user_profile_dialog.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
 
 class CommunityAvatarSlider extends ConsumerWidget {
   const CommunityAvatarSlider({super.key});
@@ -63,7 +65,7 @@ class CommunityAvatarSlider extends ConsumerWidget {
                   width: 70,
                   child: Column(
                     children: [
-                      _buildRealtimeAvatar(uid),
+                      _buildRealtimeAvatarWithBadge(uid),
                       const SizedBox(height: 6),
                       _buildRealtimeName(uid),
                     ],
@@ -77,22 +79,56 @@ class CommunityAvatarSlider extends ConsumerWidget {
     );
   }
 
-  Widget _buildRealtimeAvatar(String userId) {
+  // 배지 포함 아바타
+  Widget _buildRealtimeAvatarWithBadge(String userId) {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
       builder: (context, snapshot) {
         String? photoUrl;
+        Map<String, dynamic> userData = {};
         if (snapshot.hasData && snapshot.data!.exists) {
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          photoUrl = data['profileImageUrl'] as String?;
+          userData = snapshot.data!.data() as Map<String, dynamic>;
+          photoUrl = userData['profileImageUrl'] as String?;
         }
 
-        return CircleAvatar(
-          radius: 28,
-          backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
-          child: photoUrl?.isNotEmpty != true
-              ? const Icon(Icons.person, size: 32, color: Colors.grey)
-              : null,
+        // 배지 추출
+        final badgesMap = BadgeUtils.extractBadges(userData);
+        final monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+        final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+        final badgesToShow = <String>[];
+        if (monthlyBadge != null) badgesToShow.add(monthlyBadge);
+        if (adminBadge != null) badgesToShow.add(adminBadge);
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            CircleAvatar(
+              radius: 28,
+              backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+              child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 32, color: Colors.grey) : null,
+            ),
+            // 배지 (최대 2개, 사진 위에)
+            ...badgesToShow.asMap().entries.map((entry) {
+              final index = entry.key;
+              final key = entry.value;
+              return Positioned(
+                left: -8 - (index * 18),
+                top: -8,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
+                  ),
+                  child: Tooltip(
+                    message: BadgeUtils.getBadgeTooltip(key),
+                    child: BadgeWidget(badgeKey: key, size: 20),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
         );
       },
     );

@@ -3,107 +3,174 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/constants/badge_constants.dart';
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
 
 class CheckoutRankingScreen extends StatelessWidget {
   const CheckoutRankingScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: const CommonAppBar(title: "전체 랭킹"),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collectionGroup('checkout_practice').get().asStream(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-          final Map<String, Map<String, dynamic>> bestRecords = {};
-          for (var doc in snapshot.data!.docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final uid = doc.reference.parent.parent!.id;
-            final time = data['elapsedSeconds'] as int;
-            final successRate = (data['successRate'] as num).toDouble();
-            final avgDarts = (data['avgDarts'] as num).toDouble();
-
-            if (!bestRecords.containsKey(uid) ||
-                time < bestRecords[uid]!['elapsedSeconds'] ||
-                (time == bestRecords[uid]!['elapsedSeconds'] && successRate > bestRecords[uid]!['successRate'])) {
-              bestRecords[uid] = {...data, 'uid': uid, 'avgDarts': avgDarts};
-            }
-          }
-
-          final ranked = bestRecords.values.toList()
-            ..sort((a, b) {
-              final timeA = a['elapsedSeconds'] as int;
-              final timeB = b['elapsedSeconds'] as int;
-              if (timeA != timeB) return timeA.compareTo(timeB);
-              return (b['successRate'] as num).compareTo(a['successRate'] as num);
-            });
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: ranked.length,
-            itemBuilder: (context, i) {
-              final r = ranked[i];
-              final rank = i + 1;
-              final badgeKey = _getMonthlyBadgeKey(rank);
-
-              return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('users').doc(r['uid']).get(),
-                builder: (context, snap) {
-                  if (!snap.hasData) return const ListTile();
-                  final name = snap.data!['koreanName'] ?? '이름 없음';
-                  final englishName = snap.data!['englishName'] ?? '';
-
-                  return AppCard(
-                    child: ListTile(
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            child: Text("$rank", style: const TextStyle(fontSize: 12)),
-                          ),
-                          if (badgeKey != null) ...[
-                            const SizedBox(width: 4),
-                            BadgeWidget(badgeKey: badgeKey),
-                          ],
-                        ],
-                      ),
-                      title: Text("$name ($englishName)"),
-                      subtitle: Text(
-                        "시간: ${_formatTime(r['elapsedSeconds'] as int)} · "
-                            "최적율: ${(r['avgDarts'] as num).toStringAsFixed(1)}다트 · "
-                            "성공률: ${((r['successRate'] as num) * 100).toStringAsFixed(0)}%",
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
+  String _getMonthlyRankingCollection() {
+    final nowKst = DateTime.now().toUtc().add(const Duration(hours: 9));
+    final year = nowKst.year;
+    final month = nowKst.month.toString().padLeft(2, '0');
+    return 'checkout_practice_rankings_${year}_$month';
   }
 
-  String _formatTime(int s) => "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
+  double _asDouble(dynamic value, [double defaultValue = 0.0]) {
+    if (value == null) return defaultValue;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    return defaultValue;
+  }
 
-  String? _getMonthlyBadgeKey(int rank) {
-    // 현재 월 기준 (KST)
-    final now = DateTime.now().toUtc().add(const Duration(hours: 9));
-    final year = now.year;
-    final month = now.month.toString().padLeft(2, '0');
-    final badgeNames = [
-      null,
-      'pro', 'emerald', 'diamond',
-      'platinum1', 'platinum2',
-      'gold1', 'gold2',
-      'silver1', 'silver2',
-      'bronze1', 'bronze2', 'bronze3'
-    ];
-    final badge = badgeNames.length > rank ? badgeNames[rank] : null;
-    return badge != null ? 'monthly_${year}_${month}_$badge' : null;
+  @override
+  Widget build(BuildContext context) {
+    final collectionName = _getMonthlyRankingCollection();
+
+    return Scaffold(
+      appBar: const CommonAppBar(title: "체크아웃 전체 랭킹"),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text("이번 달 실시간 상위 12명", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  "시간·성공률·최적다트율·정석루트율을 종합한 점수 기준입니다.\n"
+                      "1~12위 배지는 전월 기록 기준으로 매월 1일 새벽에 자동 갱신됩니다.",
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Divider(height: 1),
+
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection(collectionName)
+                      .orderBy('score', descending: true)
+                      .orderBy('elapsedSeconds')
+                      .limit(12)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text("아직 랭킹 데이터가 없어요."));
+                    }
+
+                    final docs = snapshot.data!.docs;
+
+                    return ListView.separated(
+                      itemCount: docs.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final doc = docs[index];
+                        final data = doc.data() as Map<String, dynamic>? ?? {};
+                        final rank = index + 1;
+                        final uid = data['uid'] as String?;
+                        final name = data['koreanName']?.toString() ?? '이름 없음';
+
+                        final elapsedSeconds = _asDouble(data['elapsedSeconds']);
+                        final successRate = _asDouble(data['successRate']);
+                        final avgDarts = _asDouble(data['avgDarts']);
+                        final optimizationRate = _asDouble(data['optimizationRate']);
+                        final routeAccuracy = _asDouble(data['routeAccuracy']);
+                        final score = _asDouble(data['score']);
+
+                        final badgeKey = BadgeConstants.badgeKeyForRank(rank);
+
+                        return ListTile(
+                          leading: badgeKey != null
+                              ? Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              BadgeWidget(badgeKey: badgeKey, size: 32),
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
+                                child: Text('$rank', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          )
+                              : CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.grey[300],
+                            child: Text('$rank', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              // 배지 (이름 옆)
+                              if (uid != null)
+                                FutureBuilder<DocumentSnapshot>(
+                                  future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+                                  builder: (context, snapshot) {
+                                    if (!snapshot.hasData) return const SizedBox.shrink();
+                                    final userData = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                                    final badgesMap = BadgeUtils.extractBadges(userData);
+                                    final monthly = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                                    final admin = BadgeUtils.getLatestAdminBadge(badgesMap);
+                                    final badges = <String>[];
+                                    if (monthly != null) badges.add(monthly);
+                                    if (admin != null) badges.add(admin);
+
+                                    return Wrap(
+                                      spacing: 2,
+                                      children: badges.map((key) => Tooltip(
+                                        message: BadgeUtils.getBadgeTooltip(key),
+                                        child: BadgeWidget(badgeKey: key, size: 18),
+                                      )).toList(),
+                                    );
+                                  },
+                                ),
+                            ],
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '점수: ${score.toStringAsFixed(1)}  ·  시간: ${elapsedSeconds.toStringAsFixed(1)}초  ·  평균 다트: ${avgDarts.toStringAsFixed(1)}개',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '성공률: ${(successRate * 100).toStringAsFixed(0)}%  ·  최적 다트율: ${(optimizationRate * 100).toStringAsFixed(0)}%  ·  정석 루트율: ${(routeAccuracy * 100).toStringAsFixed(0)}%',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

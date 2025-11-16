@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
+import 'package:daoapp/core/constants/badge_constants.dart';
+import 'package:daoapp/core/utils/badge_utils.dart';
 
 class AdminMemberListScreen extends StatefulWidget {
   const AdminMemberListScreen({super.key});
@@ -12,73 +13,83 @@ class AdminMemberListScreen extends StatefulWidget {
   State<AdminMemberListScreen> createState() => _AdminMemberListScreenState();
 }
 
-class _AdminMemberListScreenState extends State<AdminMemberListScreen> {
+class _AdminMemberListScreenState extends State<AdminMemberListScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final _searchController = TextEditingController();
   String _searchQuery = '';
-  String _filterType = 'all'; // all, phone_yes, phone_no
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CommonAppBar(title: "회원 관리", showBackButton: true),
+      appBar: AppBar(
+        leading: const BackButton(),
+        title: const Text("회원 관리"),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: "전체"),
+            Tab(text: "폰번호 있음"),
+            Tab(text: "관리자 지정"),
+          ],
+        ),
+      ),
       body: Column(
         children: [
-          _buildSearchFilter(),
-          const SizedBox(height: 8),
-          Expanded(child: _buildUserList()),
-        ],
-      ),
-    );
-  }
-
-  // ==================== 검색 + 필터 ====================
-  Widget _buildSearchFilter() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Theme.of(context).colorScheme.surface,
-      child: Column(
-        children: [
-          // 검색창 (이름 + 이메일)
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: '이름 또는 이메일 검색',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          _buildSearchBar(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildUserList(filter: 'all'),
+                _buildUserList(filter: 'phone_yes'),
+                _buildUserList(filter: 'admin_reg'),
+              ],
             ),
-            onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
-          ),
-          const SizedBox(height: 8),
-          // 필터: 전체 / 폰번호 있음 / 폰번호 없음
-          Row(
-            children: [
-              _filterChip('전체', 'all'),
-              const SizedBox(width: 8),
-              _filterChip('폰번호 있음', 'phone_yes'),
-              const SizedBox(width: 8),
-              _filterChip('폰번호 없음', 'phone_no'),
-            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _filterChip(String label, String value) {
-    final isSelected = _filterType == value;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => setState(() => _filterType = value),
-      backgroundColor: Colors.grey[200],
-      selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-      checkmarkColor: Theme.of(context).colorScheme.primary,
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: '이름 또는 이메일 검색',
+          prefixIcon: const Icon(Icons.search),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () {
+              _searchController.clear();
+              setState(() => _searchQuery = '');
+            },
+          )
+              : null,
+        ),
+        onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+      ),
     );
   }
 
-  // ==================== 유저 리스트 ====================
-  Widget _buildUserList() {
+  Widget _buildUserList({required String filter}) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
@@ -89,256 +100,343 @@ class _AdminMemberListScreenState extends State<AdminMemberListScreen> {
           return const Center(child: Text("회원이 없습니다."));
         }
 
-        var docs = snapshot.data!.docs;
-
-        // 필터링
-        docs = docs.where((doc) {
+        var docs = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final name = (data['koreanName'] ?? '').toString().toLowerCase();
           final email = (data['email'] ?? '').toString().toLowerCase();
-          final phoneNumber = (data['phoneNumber'] ?? '').toString().trim();
-          final hasPhone = phoneNumber.isNotEmpty;
+          final phone = (data['phoneNumber'] ?? '').toString().trim();
+          final gender = data['gender'];
 
-          // 검색어 (이름 / 이메일)
-          if (_searchQuery.isNotEmpty &&
-              !name.contains(_searchQuery) &&
-              !email.contains(_searchQuery)) {
+          if (_searchQuery.isNotEmpty && !name.contains(_searchQuery) && !email.contains(_searchQuery)) {
             return false;
           }
 
-          // 폰번호 필터
-          if (_filterType == 'phone_yes' && !hasPhone) return false;
-          if (_filterType == 'phone_no' && hasPhone) return false;
+          if (filter == 'phone_yes' && phone.isEmpty) return false;
+          if (filter == 'admin_reg' && gender == null) return false;
 
           return true;
         }).toList();
 
-        // 이름순 정렬
         docs.sort((a, b) {
-          final aData = a.data() as Map<String, dynamic>;
-          final bData = b.data() as Map<String, dynamic>;
-          final aName = (aData['koreanName'] ?? '').toString();
-          final bName = (bData['koreanName'] ?? '').toString();
+          final aName = (a['koreanName'] ?? '').toString();
+          final bName = (b['koreanName'] ?? '').toString();
           return aName.compareTo(bName);
         });
 
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           itemCount: docs.length,
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, i) {
             final doc = docs[i];
             final data = doc.data() as Map<String, dynamic>;
             final uid = doc.id;
-
-            final name = data['koreanName'] ?? '이름 없음';
-            final email = (data['email'] ?? '').toString();
-            final phoneNumber = (data['phoneNumber'] ?? '').toString().trim();
-            final hasPhone = phoneNumber.isNotEmpty;
-            final photoUrl = data['profileImageUrl'] as String?;
-            final isAdminReg = data['adminRegistered'] == true;
-
-            // === 관리자 수동 배지: badges.admin_XXX 중 하나 ===
-            final badgesMap = data['badges'] as Map<String, dynamic>? ?? {};
-            String? adminBadgeKey;
-            if (badgesMap.isNotEmpty) {
-              final adminKeys = badgesMap.entries
-                  .where((e) => e.key.startsWith('admin_') && e.value == true)
-                  .map((e) => e.key)
-                  .toList();
-              if (adminKeys.isNotEmpty) {
-                adminBadgeKey = adminKeys.first; // 일단 한 개만 사용
-              }
-            }
-
-            return AppCard(
-              child: ListTile(
-                leading: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundImage: photoUrl?.isNotEmpty == true
-                          ? NetworkImage(photoUrl!)
-                          : null,
-                      child: photoUrl?.isNotEmpty != true
-                          ? const Icon(Icons.person, size: 28)
-                          : null,
-                    ),
-                    if (adminBadgeKey != null)
-                      Positioned(
-                        right: -4,
-                        top: -4,
-                        child: BadgeWidget(badgeKey: adminBadgeKey, size: 24),
-                      ),
-                  ],
-                ),
-                title: Row(
-                  children: [
-                    Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(width: 6),
-                    if (isAdminReg)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[100],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          '관리자 등록',
-                          style: TextStyle(fontSize: 10, color: Colors.blue),
-                        ),
-                      ),
-                  ],
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(email.isNotEmpty ? email : '이메일 없음'),
-                    if (hasPhone) ...[
-                      const SizedBox(height: 2),
-                      Text('폰번호: $phoneNumber', style: const TextStyle(fontSize: 11)),
-                    ],
-                    const SizedBox(height: 2),
-                    if (adminBadgeKey != null)
-                      Text(
-                        '현재 배지(관리자): ${_badgeLabelFromAdminKey(adminBadgeKey)}',
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      )
-                    else
-                      const Text(
-                        '현재 배지(관리자): 없음',
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                  ],
-                ),
-                trailing: PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  onSelected: (action) {
-                    if (action.startsWith('badge_')) {
-                      final badge = action.substring('badge_'.length);
-                      _grantAdminBadge(context, uid, badge);
-                    } else if (action == 'remove_badge') {
-                      _removeAdminBadge(context, uid);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    ..._adminBadgeMenuItems(),
-                    if (adminBadgeKey != null)
-                      const PopupMenuItem(
-                        value: 'remove_badge',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete, size: 20),
-                            SizedBox(width: 8),
-                            Text('관리자 배지 삭제'),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
+            return _buildUserCard(uid: uid, data: data);
           },
         );
       },
     );
   }
 
-  // ==================== 관리자 수동 배지 관련 ====================
+  Widget _buildUserCard({required String uid, required Map<String, dynamic> data}) {
+    final name = data['koreanName'] ?? '이름 없음';
+    final email = (data['email'] ?? '').toString();
+    final phone = (data['phoneNumber'] ?? '').toString().trim();
+    final photoUrl = data['profileImageUrl'] as String?;
 
-  /// 관리자가 수동으로 줄 수 있는 배지 목록
-  /// 키 형식: badges.admin_pro, badges.admin_emerald ...
-  List<PopupMenuEntry<String>> _adminBadgeMenuItems() {
-    const badges = [
-      'pro', 'emerald', 'diamond',
-      'platinum1', 'platinum2',
-      'gold1', 'gold2',
-      'silver1', 'silver2',
-      'bronze1', 'bronze2', 'bronze3',
-    ];
+    final badgesMap = BadgeUtils.extractBadges(data);
+    final monthlyKey = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+    final adminKey = BadgeUtils.getLatestAdminBadge(badgesMap);
 
-    return badges.map((b) {
-      final key = 'admin_$b';
-      return PopupMenuItem(
-        value: 'badge_$b',
+    final hasMonthly = monthlyKey != null;
+    final hasAdmin = adminKey != null;
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            BadgeWidget(badgeKey: key, size: 20),
-            const SizedBox(width: 8),
-            Text(_badgeLabel(b)),
+            CircleAvatar(
+              radius: 28,
+              backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+              child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 32) : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                  if (email.isNotEmpty) Text(email, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  if (phone.isNotEmpty) Text(phone, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      if (monthlyKey != null) _buildBadgeChip(context, uid, monthlyKey, isMonthly: true),
+                      if (adminKey != null) _buildBadgeChip(context, uid, adminKey, isMonthly: false),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.emoji_events_outlined),
+              tooltip: '배지 관리',
+              onPressed: () => _openBadgeManageSheet(context, uid: uid, hasMonthly: hasMonthly, hasAdmin: hasAdmin),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBadgeChip(BuildContext context, String uid, String key, {required bool isMonthly}) {
+    final label = isMonthly ? '월간' : '관리자';
+    final tooltip = BadgeUtils.getBadgeTooltip(key);
+
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: () => _showBadgeMenu(context, uid, key, isMonthly),
+        child: Chip(
+          avatar: BadgeWidget(badgeKey: key, size: 16),
+          label: Text('$label: ${tooltip.split(' ').last}', style: const TextStyle(fontSize: 11)),
+          backgroundColor: Colors.grey[100],
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ),
+    );
+  }
+
+  void _showBadgeMenu(BuildContext context, String uid, String key, bool isMonthly) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('수정'),
+              onTap: () {
+                Navigator.pop(ctx);
+                if (isMonthly) {
+                  _showEditMonthlyBadgeDialog(context, uid);
+                } else {
+                  _showEditAdminBadgeDialog(context, uid);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('삭제', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _removeBadge(context, uid, key, isMonthly);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openBadgeManageSheet(BuildContext context, {required String uid, required bool hasMonthly, required bool hasAdmin}) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.emoji_events),
+              title: const Text('월간 배지 부여/수정'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditMonthlyBadgeDialog(context, uid);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.star),
+              title: const Text('관리자 배지 부여/수정'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showEditAdminBadgeDialog(context, uid);
+              },
+            ),
+            if (hasMonthly)
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('월간 배지 모두 삭제', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removeAllMonthlyBadges(context, uid);
+                },
+              ),
+            if (hasAdmin)
+              ListTile(
+                leading: const Icon(Icons.delete_forever, color: Colors.red),
+                title: const Text('관리자 배지 모두 삭제', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _removeAllAdminBadges(context, uid);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _removeBadge(BuildContext context, String uid, String key, bool isMonthly) async {
+    try {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final batch = FirebaseFirestore.instance.batch();
+      batch.update(userRef, {'badges.$key': FieldValue.delete()});
+      if (isMonthly) {
+        batch.update(userRef, {'lastMonthlyBadge': FieldValue.delete()});
+      }
+      await batch.commit();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('배지 삭제 완료!'), backgroundColor: Colors.orange),
       );
-    }).toList();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('삭제 실패: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
-  /// admin_pro → Pro 같은 라벨
-  String _badgeLabelFromAdminKey(String key) {
-    // key: admin_pro
-    if (!key.startsWith('admin_')) return key;
-    final badge = key.substring('admin_'.length);
-    return _badgeLabel(badge);
+  Future<void> _removeAllMonthlyBadges(BuildContext context, String uid) async {
+    try {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final snap = await userRef.get();
+      final data = snap.data() ?? {};
+      final badges = data['badges'] as Map<String, dynamic>? ?? {};
+      final batch = FirebaseFirestore.instance.batch();
+      badges.forEach((k, _) {
+        if (k.startsWith('monthly_')) {
+          batch.update(userRef, {'badges.$k': FieldValue.delete()});
+        }
+      });
+      batch.update(userRef, {'lastMonthlyBadge': FieldValue.delete()});
+      await batch.commit();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('월간 배지 삭제 완료!'), backgroundColor: Colors.orange),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('삭제 실패: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
-  String _badgeLabel(String badge) {
-    const map = {
-      'pro': 'Pro',
-      'emerald': 'Emerald',
-      'diamond': 'Diamond',
-      'platinum1': 'Platinum 1',
-      'platinum2': 'Platinum 2',
-      'gold1': 'Gold 1',
-      'gold2': 'Gold 2',
-      'silver1': 'Silver 1',
-      'silver2': 'Silver 2',
-      'bronze1': 'Bronze 1',
-      'bronze2': 'Bronze 2',
-      'bronze3': 'Bronze 3',
-    };
-    return map[badge] ?? badge;
+  Future<void> _removeAllAdminBadges(BuildContext context, String uid) async {
+    try {
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final snap = await userRef.get();
+      final data = snap.data() ?? {};
+      final badges = data['badges'] as Map<String, dynamic>? ?? {};
+      final batch = FirebaseFirestore.instance.batch();
+      badges.forEach((k, _) {
+        if (k.startsWith('admin_')) {
+          batch.update(userRef, {'badges.$k': FieldValue.delete()});
+        }
+      });
+      await batch.commit();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('관리자 배지 삭제 완료!'), backgroundColor: Colors.orange),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('삭제 실패: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
-  /// 관리자 수동 배지 부여
-  /// → badges.admin_* 만 건드림 (월간 배지는 건드리지 않음)
+  void _showEditMonthlyBadgeDialog(BuildContext context, String uid) {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 9));
+    final year = now.year;
+    final month = now.month.toString().padLeft(2, '0');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('$year년 $month월 배지 수정'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: BadgeConstants.allBadges.map((b) {
+              final key = 'monthly_${year}_${month}_$b';
+              return ListTile(
+                leading: BadgeWidget(badgeKey: key, size: 24),
+                title: Text(BadgeUtils.getBadgeTooltip(key).split(' ').last),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _grantMonthlyBadge(context, uid, b);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+        ],
+      ),
+    );
+  }
+
+  void _showEditAdminBadgeDialog(BuildContext context, String uid) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('관리자 배지 수정'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView(
+            shrinkWrap: true,
+            children: BadgeConstants.allBadges.map((b) {
+              final key = 'admin_$b';
+              return ListTile(
+                leading: BadgeWidget(badgeKey: key, size: 24),
+                title: Text(BadgeUtils.getBadgeTooltip(key).split(' ').last),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _grantAdminBadge(context, uid, b);
+                },
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+        ],
+      ),
+    );
+  }
+
   Future<void> _grantAdminBadge(BuildContext context, String uid, String badge) async {
     final key = 'admin_$badge';
-
     try {
       final batch = FirebaseFirestore.instance.batch();
       final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-
-      // 1. 기존 관리자 배지 삭제 (admin_ 로 시작하는 키만)
       final snap = await userRef.get();
       final data = snap.data() ?? {};
       final badges = data['badges'] as Map<String, dynamic>? ?? {};
       badges.forEach((k, _) {
         if (k.startsWith('admin_')) {
-          batch.set(
-            userRef,
-            {'badges.$k': FieldValue.delete()},
-            SetOptions(merge: true),
-          );
+          batch.update(userRef, {'badges.$k': FieldValue.delete()});
         }
       });
-
-      // 2. 새 관리자 배지 부여
-      batch.set(
-        userRef,
-        {'badges.$key': true},
-        SetOptions(merge: true),
-      );
-
+      batch.update(userRef, {'badges.$key': true});
       await batch.commit();
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${_badgeLabel(badge)} 배지(관리자) 부여 완료!'),
-          backgroundColor: Colors.green,
-        ),
+        SnackBar(content: Text('$badge 배지 부여 완료!'), backgroundColor: Colors.green),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -347,36 +445,34 @@ class _AdminMemberListScreenState extends State<AdminMemberListScreen> {
     }
   }
 
-  /// 관리자 수동 배지 삭제 (admin_ 로 시작하는 키만)
-  Future<void> _removeAdminBadge(BuildContext context, String uid) async {
+  Future<void> _grantMonthlyBadge(BuildContext context, String uid, String badge) async {
+    final now = DateTime.now().toUtc().add(const Duration(hours: 9));
+    final year = now.year;
+    final month = now.month.toString().padLeft(2, '0');
+    final key = 'monthly_${year}_${month}_$badge';
+
     try {
       final batch = FirebaseFirestore.instance.batch();
       final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-
       final snap = await userRef.get();
       final data = snap.data() ?? {};
       final badges = data['badges'] as Map<String, dynamic>? ?? {};
       badges.forEach((k, _) {
-        if (k.startsWith('admin_')) {
-          batch.set(
-            userRef,
-            {'badges.$k': FieldValue.delete()},
-            SetOptions(merge: true),
-          );
+        if (k.startsWith('monthly_')) {
+          batch.update(userRef, {'badges.$k': FieldValue.delete()});
         }
       });
-
+      batch.update(userRef, {
+        'badges.$key': true,
+        'lastMonthlyBadge': '$year년 $month월 ${BadgeUtils.getBadgeTooltip(key).split(' ').last}(수동)',
+      });
       await batch.commit();
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('관리자 배지 삭제 완료!'),
-          backgroundColor: Colors.orange,
-        ),
+        SnackBar(content: Text('$badge 월간 배지 부여 완료!'), backgroundColor: Colors.green),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('삭제 실패: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('월간 배지 부여 실패: $e'), backgroundColor: Colors.red),
       );
     }
   }

@@ -22,12 +22,14 @@ class PracticeResult {
   final int dartsUsed;
   final bool success;
   final int originalScore;
+  final List<String> usedSegments; // 실제로 던진 세그먼트 기록
 
   PracticeResult({
     required this.problem,
     required this.dartsUsed,
     required this.success,
     required this.originalScore,
+    required this.usedSegments,
   });
 }
 
@@ -73,19 +75,71 @@ class CheckoutPracticeProvider extends ChangeNotifier {
 
   int getOptimalDarts(int score) => _optimalDartsCount[score] ?? 3;
 
+  /// 최적 다트 비율 (0.0 ~ 1.0) – 성공한 문제 중에서,
+  /// "최적 다트 수"로 끝낸 비율
   double get optimizationRate {
     final successResults = results.where((r) => r.success).toList();
     if (successResults.isEmpty) return 0.0;
 
-    final optimalCount = successResults.where(
-          (r) => r.dartsUsed == getOptimalDarts(r.originalScore),
-    ).length;
+    final optimalCount = successResults
+        .where((r) => r.dartsUsed == getOptimalDarts(r.originalScore))
+        .length;
 
-    return (optimalCount / successResults.length) * 100;
+    return optimalCount / successResults.length;
   }
 
+  /// 정석 루트 비율 (0.0 ~ 1.0)
+  /// - checkout_table 의 primary + alts 중 하나를
+  ///   "순서까지 정확히" 따라간 비율
+  double get routeMatchRate {
+    final successResults = results.where((r) => r.success).toList();
+    if (successResults.isEmpty) return 0.0;
+
+    int matchedCount = 0;
+
+    for (final r in successResults) {
+      final score = r.originalScore;
+      final routeData = checkoutTable[score.toString()];
+      if (routeData == null) continue;
+
+      final candidates = <List<String>>[
+        routeData.primary,
+        ...routeData.alts,
+      ];
+
+      bool problemMatched = false;
+
+      for (final route in candidates) {
+        if (route.length != r.usedSegments.length) continue;
+
+        bool allMatch = true;
+        for (int i = 0; i < route.length; i++) {
+          if (route[i] != r.usedSegments[i]) {
+            allMatch = false;
+            break;
+          }
+        }
+
+        if (allMatch) {
+          problemMatched = true;
+          break;
+        }
+      }
+
+      if (problemMatched) {
+        matchedCount++;
+      }
+    }
+
+    return matchedCount / successResults.length;
+  }
+
+  /// 현재 문제에서의 효율 (예전 UI용)
+  /// - 최적 다트 수 / 실제 사용 다트 수 * 100 (%)
   double get currentEfficiency {
-    if (!isCurrentFinished || currentProblem == null) return 0.0;
+    if (!isCurrentFinished || currentProblem == null || dartCount == 0) {
+      return 0.0;
+    }
     final optimal = getOptimalDarts(currentProblem!.targetScore);
     return (optimal / dartCount) * 100;
   }
@@ -136,8 +190,26 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     _timer = null;
   }
 
+  /// Flutter 쪽에서도 점수 계산해서 저장 (UI, 히스토리용)
+  /// Cloud Functions 의 calculateCheckoutScore 와 같은 로직
+  double _calculateScoreRatio({
+    required int elapsedSeconds,
+    required double optimizationRate,
+    required double routeMatchRate,
+  }) {
+    const int maxTimeSeconds = 600; // 10분 기준
+    double timeScore = 1 - (elapsedSeconds / maxTimeSeconds);
+    if (timeScore < 0) timeScore = 0;
+    if (timeScore > 1) timeScore = 1;
+
+    return timeScore * 0.4 +
+        optimizationRate * 0.3 +
+        routeMatchRate * 0.3;
+  }
+
   /// Firestore에 기록 저장 + 종료
-  /// notifyListeners() 제거 → dispose 후 호출 방지
+  /// - users/{uid}/checkout_practice           : 랭킹용 (Cloud Functions 트리거)
+  /// - users/{uid}/checkout_practice_history  : 히스토리/디테일 화면용
   Future<void> finishPractice() async {
     _stopTimer();
 
@@ -146,35 +218,82 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    final totalAttempts = results.length;
     final successCount = results.where((r) => r.success).length;
-    final successRate = successCount / results.length;
+    final successRate = totalAttempts > 0 ? successCount / totalAttempts : 0.0;
+
     final successResults = results.where((r) => r.success).toList();
     final avgDarts = successResults.isEmpty
         ? 0.0
-        : successResults.map((r) => r.dartsUsed).reduce((a, b) => a + b) / successResults.length;
+        : successResults
+        .map((r) => r.dartsUsed)
+        .reduce((a, b) => a + b) /
+        successResults.length;
+
+    final optRate = optimizationRate; // 0.0 ~ 1.0
+    final routeRate = routeMatchRate; // 0.0 ~ 1.0
+
+    final scoreRatio = _calculateScoreRatio(
+      elapsedSeconds: elapsedSeconds,
+      optimizationRate: optRate,
+      routeMatchRate: routeRate,
+    );
+    final score = (scoreRatio * 10000).round(); // 0 ~ 10000
 
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('checkout_practice')
-          .add({
+      final userRef =
+      FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      // 1) 랭킹용 원본 기록 (Cloud Functions 트리거 대상)
+      await userRef.collection('checkout_practice').add({
         'timestamp': FieldValue.serverTimestamp(),
         'elapsedSeconds': elapsedSeconds,
         'successRate': successRate,
         'avgDarts': avgDarts,
-        'problemCount': results.length,
-        'problems': results.map((r) => {
-          'targetScore': r.problem.targetScore,
-          'dartsUsed': r.dartsUsed,
-          'success': r.success,
+        'problemCount': totalAttempts,
+        // 새 점수/지표
+        'optimizationRate': optRate,
+        'routeMatchRate': routeRate,
+        'scoreRatio': scoreRatio,
+        'score': score,
+        // 문제별 기록
+        'problems': results.map((r) {
+          return {
+            'targetScore': r.problem.targetScore,
+            'dartsUsed': r.dartsUsed,
+            'success': r.success,
+            'usedSegments': r.usedSegments,
+            'recommendedRoute': r.problem.recommendedRoute,
+          };
+        }).toList(),
+      });
+
+      // 2) 내 히스토리용 요약 기록
+      await userRef.collection('checkout_practice_history').add({
+        'createdAt': FieldValue.serverTimestamp(),
+        'elapsedSeconds': elapsedSeconds,
+        'successRate': successRate,
+        'avgDarts': avgDarts,
+        'totalAttempts': totalAttempts,
+        'successCount': successCount,
+        'optimizationRate': optRate,
+        'routeMatchRate': routeRate,
+        'scoreRatio': scoreRatio,
+        'score': score,
+        // 디테일 화면에서 문제별 기록도 보고 싶다면 그대로 저장
+        'problems': results.map((r) {
+          return {
+            'targetScore': r.problem.targetScore,
+            'dartsUsed': r.dartsUsed,
+            'success': r.success,
+            'usedSegments': r.usedSegments,
+            'recommendedRoute': r.problem.recommendedRoute,
+          };
         }).toList(),
       });
     } catch (e) {
       debugPrint("체크아웃 연습 기록 저장 실패: $e");
     }
-
-    // notifyListeners() 제거! → 크래시 방지
   }
 
   // ===========================================================
@@ -212,12 +331,15 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   void confirmCurrentProblem() {
     if (!isCurrentFinished || currentProblem == null) return;
 
-    results.add(PracticeResult(
-      problem: currentProblem!,
-      dartsUsed: dartCount,
-      success: true,
-      originalScore: currentProblem!.targetScore,
-    ));
+    results.add(
+      PracticeResult(
+        problem: currentProblem!,
+        dartsUsed: dartCount,
+        success: true,
+        originalScore: currentProblem!.targetScore,
+        usedSegments: List<String>.from(currentDarts),
+      ),
+    );
 
     currentIndex++;
     _resetCurrentTurn();
@@ -228,12 +350,16 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   void failCurrentProblem() {
     if (currentProblem == null) return;
 
-    results.add(PracticeResult(
-      problem: currentProblem!,
-      dartsUsed: 3,
-      success: false,
-      originalScore: currentProblem!.targetScore,
-    ));
+    results.add(
+      PracticeResult(
+        problem: currentProblem!,
+        dartsUsed: 3,
+        success: false,
+        originalScore: currentProblem!.targetScore,
+        usedSegments:
+        const [], // 실패는 정석루트율 계산에 포함 X (routeMatchRate에서 success=false 필터됨)
+      ),
+    );
 
     currentIndex++;
     _resetCurrentTurn();

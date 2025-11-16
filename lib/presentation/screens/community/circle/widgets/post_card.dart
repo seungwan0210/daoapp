@@ -10,6 +10,8 @@ import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
 
 class PostCard extends ConsumerStatefulWidget {
   final QueryDocumentSnapshot doc;
@@ -17,7 +19,9 @@ class PostCard extends ConsumerStatefulWidget {
   final void Function(double)? onHeightCalculated;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
-  final Map<String, String?>? barrelData; // 추가!
+  final Map<String, String?>? barrelData;
+  final String? monthlyBadge;   // 추가
+  final String? adminBadge;     // 추가
 
   const PostCard({
     super.key,
@@ -26,7 +30,9 @@ class PostCard extends ConsumerStatefulWidget {
     this.onHeightCalculated,
     this.onEdit,
     this.onDelete,
-    this.barrelData, // 추가!
+    this.barrelData,
+    this.monthlyBadge,
+    this.adminBadge,
   });
 
   @override
@@ -41,9 +47,7 @@ class _PostCardState extends ConsumerState<PostCard> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _reportHeight();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _reportHeight());
   }
 
   void _reportHeight() {
@@ -68,11 +72,7 @@ class _PostCardState extends ConsumerState<PostCard> {
     final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
     final isAuthor = postUserId == widget.currentUserId;
-    final isAdmin = ref.watch(isAdminProvider).when(
-      data: (v) => v,
-      loading: () => false,
-      error: (_, __) => false,
-    );
+    final isAdmin = ref.watch(isAdminProvider).when(data: (v) => v, loading: () => false, error: (_, __) => false);
     final canEdit = isAuthor && widget.onEdit != null;
     final canDelete = isAuthor || isAdmin;
     final bool isLongContent = content.length > 100 || content.contains('\n');
@@ -84,14 +84,12 @@ class _PostCardState extends ConsumerState<PostCard> {
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.colorScheme.primaryContainer, width: 1.5),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === 1. 프로필 + 더보기 ===
+          // === 1. 프로필 + 더보기 + 배지 ===
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 12, 8, 8),
             child: Row(
@@ -109,18 +107,40 @@ class _PostCardState extends ConsumerState<PostCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 실시간 이름
+                      // 실시간 이름 + 배지
                       postUserId != null
                           ? FutureBuilder<DocumentSnapshot>(
                         future: FirebaseFirestore.instance.collection('users').doc(postUserId).get(),
                         builder: (context, snapshot) {
                           String name = 'Unknown';
+                          String? monthlyBadge;
+                          String? adminBadge;
+
                           if (snapshot.hasData && snapshot.data!.exists) {
-                            name = snapshot.data!['koreanName']?.toString().trim() ?? 'Unknown';
+                            final userData = snapshot.data!.data() as Map<String, dynamic>;
+                            name = userData['koreanName']?.toString().trim() ?? 'Unknown';
+
+                            final badgesMap = BadgeUtils.extractBadges(userData);
+                            monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                            adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
                           }
-                          return Text(
-                            name,
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary),
+
+                          return Row(
+                            children: [
+                              Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary)),
+                              const SizedBox(width: 4),
+                              // 배지
+                              if (monthlyBadge != null)
+                                Tooltip(
+                                  message: BadgeUtils.getBadgeTooltip(monthlyBadge),
+                                  child: BadgeWidget(badgeKey: monthlyBadge, size: 18),
+                                ),
+                              if (adminBadge != null)
+                                Tooltip(
+                                  message: BadgeUtils.getBadgeTooltip(adminBadge),
+                                  child: BadgeWidget(badgeKey: adminBadge, size: 18),
+                                ),
+                            ],
                           );
                         },
                       )
@@ -155,11 +175,7 @@ class _PostCardState extends ConsumerState<PostCard> {
               width: double.infinity,
               height: 300,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                height: 300,
-                color: Colors.grey[200],
-                child: const Icon(Icons.error, color: Colors.red),
-              ),
+              errorBuilder: (_, __, ___) => Container(height: 300, color: Colors.grey[200], child: const Icon(Icons.error, color: Colors.red)),
             ),
           ),
 
@@ -266,7 +282,6 @@ class _PostCardState extends ConsumerState<PostCard> {
     );
   }
 
-  // 배럴 데이터 포함한 프로필 다이얼로그
   void _showUserProfileDialog(String userId) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isMe = currentUid == userId;
@@ -277,7 +292,6 @@ class _PostCardState extends ConsumerState<PostCard> {
         future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
           if (!snapshot.data!.exists || snapshot.data!.data() == null) {
             return UserProfileDialog(koreanName: '프로필 없음', isMe: isMe, userId: userId);
           }
@@ -293,7 +307,6 @@ class _PostCardState extends ConsumerState<PostCard> {
           final photoUrl = data['profileImageUrl'] as String?;
           final shopName = data['shopName']?.toString().trim();
 
-          // barrelData 우선순위: PostCard에서 전달된 것 > Firestore
           final barrelData = widget.barrelData ??
               (data['barrelName']?.toString().isNotEmpty == true ||
                   data['shaft']?.toString().isNotEmpty == true ||

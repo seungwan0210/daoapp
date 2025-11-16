@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/data/models/ranking_user.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
+import 'package:cloud_firestore/cloud_firestore.dart'; // 추가
 
 class RankingScreen extends ConsumerStatefulWidget {
   const RankingScreen({super.key});
@@ -27,11 +30,7 @@ class _RankingScreenState extends ConsumerState<RankingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // CommonAppBar 직접 사용 → 중복 제거!
-      appBar: CommonAppBar(
-        title: '랭킹',
-        showBackButton: false,
-      ),
+      appBar: CommonAppBar(title: '랭킹', showBackButton: false),
       body: const RankingScreenBody(),
     );
   }
@@ -46,54 +45,31 @@ class RankingScreenBody extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return SafeArea(
-      top: false, // AppBar가 있으므로 top: false
+      top: false,
       child: Column(
         children: [
-          // 필터 섹션 (갤럭시 스타일)
+          // 필터 섹션
           AppCard(
             margin: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 헤더
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.08),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
                   ),
-                  child: Text(
-                    '필터',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
+                  child: Text('필터', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
                 ),
-                // 드롭다운
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(child: _buildYearDropdown(ref)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildPhaseDropdown(ref)),
-                        ],
-                      ),
+                      Row(children: [Expanded(child: _buildYearDropdown(ref)), const SizedBox(width: 8), Expanded(child: _buildPhaseDropdown(ref))]),
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(child: _buildGenderDropdown(ref)),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildTop9Dropdown(ref)),
-                        ],
-                      ),
+                      Row(children: [Expanded(child: _buildGenderDropdown(ref)), const SizedBox(width: 8), Expanded(child: _buildTop9Dropdown(ref))]),
                     ],
                   ),
                 ),
@@ -107,11 +83,7 @@ class RankingScreenBody extends ConsumerWidget {
               data: (rankings) {
                 if (rankings.isEmpty) {
                   return Center(
-                    child: Text(
-                      '랭킹 데이터가 없습니다.\n포인트를 부여해 보세요!',
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                    ),
+                    child: Text('랭킹 데이터가 없습니다.\n포인트를 부여해 보세요!', textAlign: TextAlign.center, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
                   );
                 }
                 return ListView.builder(
@@ -127,14 +99,7 @@ class RankingScreenBody extends ConsumerWidget {
                           leading: CircleAvatar(
                             radius: 22,
                             backgroundColor: _getRankColor(user.rank),
-                            child: Text(
-                              '${user.rank}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
+                            child: Text('${user.rank}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                           ),
                           title: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,20 +123,36 @@ class RankingScreenBody extends ConsumerWidget {
                                     ),
                                     child: Text(
                                       user.gender == 'male' ? '남자' : '여자',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: user.gender == 'male' ? Colors.blue[700] : Colors.pink[700],
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: TextStyle(fontSize: 12, color: user.gender == 'male' ? Colors.blue[700] : Colors.pink[700], fontWeight: FontWeight.w600),
                                     ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  // 배지 (이름 + 성별 옆)
+                                  FutureBuilder<DocumentSnapshot>(
+                                    future: FirebaseFirestore.instance.collection('users').doc(user.userId).get(),
+                                    builder: (context, snapshot) {
+                                      if (!snapshot.hasData) return const SizedBox.shrink();
+                                      final userData = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                                      final badgesMap = BadgeUtils.extractBadges(userData);
+                                      final monthly = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                                      final admin = BadgeUtils.getLatestAdminBadge(badgesMap);
+                                      final badges = <String>[];
+                                      if (monthly != null) badges.add(monthly);
+                                      if (admin != null) badges.add(admin);
+
+                                      return Wrap(
+                                        spacing: 2,
+                                        children: badges.map((key) => Tooltip(
+                                          message: BadgeUtils.getBadgeTooltip(key),
+                                          child: BadgeWidget(badgeKey: key, size: 18),
+                                        )).toList(),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
                               const SizedBox(height: 4),
-                              Text(
-                                user.englishName,
-                                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
-                              ),
+                              Text(user.englishName, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700])),
                             ],
                           ),
                           subtitle: Padding(
@@ -181,12 +162,7 @@ class RankingScreenBody extends ConsumerWidget {
                                 Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
                                 Expanded(
-                                  child: Text(
-                                    user.shopName,
-                                    style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                  child: Text(user.shopName, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[700]), maxLines: 1, overflow: TextOverflow.ellipsis),
                                 ),
                               ],
                             ),
@@ -195,19 +171,9 @@ class RankingScreenBody extends ConsumerWidget {
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text(
-                                '${user.displayPoints} pt',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                  color: theme.colorScheme.primary,
-                                ),
-                              ),
+                              Text('${user.displayPoints} pt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: theme.colorScheme.primary)),
                               if (user.top9Points != null && user.top9Points != user.totalPoints)
-                                Text(
-                                  '전체: ${user.totalPoints}',
-                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
+                                Text('전체: ${user.totalPoints}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
                             ],
                           ),
                         ),
@@ -225,19 +191,12 @@ class RankingScreenBody extends ConsumerWidget {
     );
   }
 
-  // 드롭다운 (갤럭시 스타일)
   static Widget _buildYearDropdown(WidgetRef ref) {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<String>(
       value: notifier.selectedYear,
-      decoration: InputDecoration(
-        labelText: '연도',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      items: ['2026', '2027', '2028']
-          .map((y) => DropdownMenuItem(value: y, child: Text(y)))
-          .toList(),
+      decoration: InputDecoration(labelText: '연도', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+      items: ['2026', '2027', '2028'].map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
       onChanged: (v) => notifier.updateFilters(v!, notifier.selectedPhase, notifier.selectedGender),
     );
   }
@@ -246,11 +205,7 @@ class RankingScreenBody extends ConsumerWidget {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<String>(
       value: notifier.selectedPhase,
-      decoration: InputDecoration(
-        labelText: '시즌',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
+      decoration: InputDecoration(labelText: '시즌', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
       items: const [
         DropdownMenuItem(value: 'total', child: Text('통합')),
         DropdownMenuItem(value: 'season1', child: Text('시즌1')),
@@ -265,11 +220,7 @@ class RankingScreenBody extends ConsumerWidget {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<String>(
       value: notifier.selectedGender,
-      decoration: InputDecoration(
-        labelText: '성별',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
+      decoration: InputDecoration(labelText: '성별', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
       items: const [
         DropdownMenuItem(value: 'all', child: Text('전체')),
         DropdownMenuItem(value: 'male', child: Text('남자')),
@@ -283,15 +234,10 @@ class RankingScreenBody extends ConsumerWidget {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<bool>(
       value: notifier.selectedPhase == 'total' ? false : notifier.top9Mode,
-      decoration: InputDecoration(
-        labelText: '종합',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
+      decoration: InputDecoration(labelText: '종합', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
       items: [
         const DropdownMenuItem(value: false, child: Text('종합')),
-        if (notifier.selectedPhase != 'total')
-          const DropdownMenuItem(value: true, child: Text('상위 9개')),
+        if (notifier.selectedPhase != 'total') const DropdownMenuItem(value: true, child: Text('상위 9개')),
       ],
       onChanged: notifier.selectedPhase == 'total' ? null : (v) => notifier.toggleTop9Mode(),
     );

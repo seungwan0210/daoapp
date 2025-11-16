@@ -6,23 +6,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
 
 class GuestbookCommentItem extends ConsumerStatefulWidget {
-  final String writerId;           // 유지
-  // final String writerName;      ← 완전 삭제!
+  final String writerId;
   final String message;
   final DateTime timestamp;
   final String docId;
   final String guestbookOwnerId;
+  final String? monthlyBadge;   // 추가
+  final String? adminBadge;     // 추가
 
   const GuestbookCommentItem({
     super.key,
     required this.writerId,
-    // required this.writerName,  ← 삭제
     required this.message,
     required this.timestamp,
     required this.docId,
     required this.guestbookOwnerId,
+    this.monthlyBadge,
+    this.adminBadge,
   });
 
   @override
@@ -58,20 +62,39 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 실시간 이름 조회 (FutureBuilder)
+                // 실시간 이름 + 배지
                 FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(widget.writerId)
-                      .get(),
+                  future: FirebaseFirestore.instance.collection('users').doc(widget.writerId).get(),
                   builder: (context, snapshot) {
                     String name = 'Unknown';
+                    String? monthlyBadge;
+                    String? adminBadge;
+
                     if (snapshot.hasData && snapshot.data!.exists) {
-                      name = snapshot.data!['koreanName']?.toString().trim() ?? 'Unknown';
+                      final userData = snapshot.data!.data() as Map<String, dynamic>;
+                      name = userData['koreanName']?.toString().trim() ?? 'Unknown';
+
+                      final badgesMap = BadgeUtils.extractBadges(userData);
+                      monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                      adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
                     }
-                    return Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+
+                    return Row(
+                      children: [
+                        Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(width: 4),
+                        // 배지
+                        if (monthlyBadge != null)
+                          Tooltip(
+                            message: BadgeUtils.getBadgeTooltip(monthlyBadge),
+                            child: BadgeWidget(badgeKey: monthlyBadge, size: 16),
+                          ),
+                        if (adminBadge != null)
+                          Tooltip(
+                            message: BadgeUtils.getBadgeTooltip(adminBadge),
+                            child: BadgeWidget(badgeKey: adminBadge, size: 16),
+                          ),
+                      ],
                     );
                   },
                 ),
@@ -112,7 +135,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     );
   }
 
-  // === 아바타 ===
   Widget _buildAvatar(String writerId) {
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(writerId).snapshots(),
@@ -131,7 +153,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     );
   }
 
-  // === 프로필 다이얼로그 ===
   void _showWriterProfile(BuildContext context, String writerId) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isMe = currentUid == writerId;
@@ -192,7 +213,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     );
   }
 
-  // === 수정 바텀시트 ===
   void _showEditBottomSheet(BuildContext context, String currentContent) {
     final controller = TextEditingController(text: currentContent);
     final focusNode = FocusNode();
@@ -214,12 +234,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: bottomInset + 20,
-            ),
+            padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: bottomInset + 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -229,17 +244,10 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
                     width: 48,
                     height: 5,
                     margin: const EdgeInsets.only(bottom: 20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(3),
-                    ),
+                    decoration: BoxDecoration(color: Colors.grey[400], borderRadius: BorderRadius.circular(3)),
                   ),
                 ),
-                const Text(
-                  '방명록 수정',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                const Text('방명록 수정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                 const SizedBox(height: 20),
                 Container(
                   constraints: const BoxConstraints(maxHeight: 300),
@@ -251,14 +259,8 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
                     minLines: 4,
                     decoration: InputDecoration(
                       hintText: '수정할 내용을 입력하세요...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Colors.grey[300]!),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2),
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2)),
                       contentPadding: const EdgeInsets.all(16),
                       filled: true,
                       fillColor: Colors.grey[50],
@@ -272,10 +274,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
                     Expanded(
                       child: TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
+                        style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                         child: const Text('취소', style: TextStyle(fontSize: 16, color: Colors.grey)),
                       ),
                     ),
@@ -299,16 +298,12 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
 
                             if (mounted) {
                               Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('수정되었습니다'), duration: Duration(seconds: 1)),
-                              );
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('수정되었습니다'), duration: Duration(seconds: 1)));
                             }
                           } catch (e) {
                             if (mounted) {
                               print("방명록 수정 실패: $e");
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('수정 실패: $e')),
-                              );
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('수정 실패: $e')));
                             }
                           }
                         },
@@ -340,7 +335,6 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     });
   }
 
-  // === 삭제 ===
   Future<void> _deleteComment(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -349,10 +343,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
         content: const Text('이 방명록을 삭제하시겠습니까?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -368,16 +359,12 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
           .delete();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('삭제되었습니다'), duration: Duration(seconds: 1)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('삭제되었습니다'), duration: Duration(seconds: 1)));
       }
     } catch (e) {
       if (mounted) {
         print("방명록 삭제 실패: $e");
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('삭제 실패: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('삭제 실패: $e')));
       }
     }
   }

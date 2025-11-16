@@ -10,6 +10,46 @@ function getMonthlyRankingCollection(date = new Date()) {
   return `checkout_practice_rankings_${year}_${month}`;
 }
 
+// === 헬퍼: 체크아웃 연습 점수 계산 ===
+// data 에서:
+// - elapsedSeconds: 숫자 (필수)
+// - optimizationRate: 0~1 (선택, 없으면 0)
+// - routeMatchRate: 0~1 (선택, 없으면 0)
+function calculateCheckoutScore(data) {
+  const elapsedSeconds =
+    typeof data.elapsedSeconds === 'number' ? data.elapsedSeconds : 0;
+
+  const optimizationRate =
+    typeof data.optimizationRate === 'number' ? data.optimizationRate : 0;
+
+  const routeMatchRate =
+    typeof data.routeMatchRate === 'number' ? data.routeMatchRate : 0;
+
+  // 시간 점수 (0~1, 높을수록 좋음)
+  // 0초일 때 1.0, 600초(10분) 이상이면 0
+  const MAX_TIME_SECONDS = 600;
+  const timeScore = Math.max(
+    0,
+    1 - elapsedSeconds / MAX_TIME_SECONDS
+  );
+
+  // 최종 점수: 시간 40% + 최적다트율 30% + 정석루트율 30%
+  const finalScoreRatio =
+    timeScore * 0.4 +
+    optimizationRate * 0.3 +
+    routeMatchRate * 0.3;
+
+  // Firestore에는 0~10000 정수로 저장
+  const score = Math.round(finalScoreRatio * 10000);
+
+  return {
+    score,
+    timeScore,
+    optimizationRate,
+    routeMatchRate,
+  };
+}
+
 // === 1. 프로필 인증 완료 시 Custom Claims 설정 ===
 exports.setHasProfile = functions.https.onCall(async (data, context) => {
   if (!context.auth) {
@@ -73,13 +113,32 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
       const rankingRef = admin.firestore().collection(collectionName).doc(uid);
       const rankingSnap = await rankingRef.get();
 
+      // 새 기록의 점수 계산
+      const {
+        score,
+        timeScore,
+        optimizationRate,
+        routeMatchRate,
+      } = calculateCheckoutScore(data);
+
+      const successRate =
+        typeof data.successRate === 'number' ? data.successRate : 0;
+      const avgDarts =
+        typeof data.avgDarts === 'number' ? data.avgDarts : 0;
+
       let shouldUpdate = false;
       const newBest = {
         uid,
         koreanName,
-        elapsedSeconds: data.elapsedSeconds,
-        successRate: data.successRate,
-        avgDarts: data.avgDarts,
+        // 랭킹 기준 필드
+        score,             // 최종 점수 (0~10000)
+        elapsedSeconds: data.elapsedSeconds || 0,
+        successRate,
+        avgDarts,
+        // 참고용 세부 지표
+        timeScore,
+        optimizationRate,
+        routeMatchRate,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       };
 
@@ -87,10 +146,16 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
         shouldUpdate = true;
       } else {
         const old = rankingSnap.data();
+        const oldScore =
+          typeof old.score === 'number' ? old.score : 0;
+        const oldElapsed =
+          typeof old.elapsedSeconds === 'number' ? old.elapsedSeconds : Number.MAX_SAFE_INTEGER;
+
+        // 1) 점수가 더 크면 갱신
+        // 2) 점수가 같으면 시간이 더 빠르면 갱신
         if (
-          data.elapsedSeconds < old.elapsedSeconds ||
-          (data.elapsedSeconds === old.elapsedSeconds &&
-            data.successRate > old.successRate)
+          score > oldScore ||
+          (score === oldScore && newBest.elapsedSeconds < oldElapsed)
         ) {
           shouldUpdate = true;
         }
@@ -98,7 +163,7 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
 
       if (shouldUpdate) {
         await rankingRef.set(newBest, { merge: true });
-        console.log(`[월별랭킹 갱신] ${collectionName} - ${koreanName}`);
+        console.log(`[월별랭킹 갱신] ${collectionName} - ${koreanName} (score: ${score})`);
       }
 
       return null;
@@ -136,7 +201,8 @@ exports.grantMonthlyBadges = functions.pubsub
     try {
       const snapshot = await admin.firestore()
         .collection(collectionName)
-        .orderBy('elapsedSeconds')
+        // 점수 높은 순으로 상위 12명
+        .orderBy('score', 'desc')
         .limit(12)
         .get();
 
@@ -171,7 +237,11 @@ exports.grantMonthlyBadges = functions.pubsub
           }
         });
 
-        batch.set(userRef, { lastMonthlyBadge: admin.firestore.FieldValue.delete() }, { merge: true });
+        batch.set(
+          userRef,
+          { lastMonthlyBadge: admin.firestore.FieldValue.delete() },
+          { merge: true }
+        );
       });
 
       // === 이번 달 상위 12명에게 배지 부여 ===

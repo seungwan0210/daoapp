@@ -166,8 +166,8 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
+  // 다음 경기 카드 (요일 버그 완전 해결!)
   static Widget _buildNextEventCard(BuildContext context) {
-    // 여기서 now를 미리 정의 (StreamBuilder 밖!)
     final now = Timestamp.fromDate(DateTime.now().subtract(const Duration(minutes: 5)));
 
     return StreamBuilder<QuerySnapshot>(
@@ -178,7 +178,6 @@ class UserHomeScreenBody extends ConsumerWidget {
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
-        // 디버깅 로그
         print('NextEvent - State: ${snapshot.connectionState}, '
             'HasData: ${snapshot.hasData}, '
             'Docs: ${snapshot.data?.docs.length}, '
@@ -214,10 +213,19 @@ class UserHomeScreenBody extends ConsumerWidget {
             const SizedBox(height: 8),
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final date = (data['eventDateTime'] as Timestamp).toDate();
+              final timestamp = data['eventDateTime'] as Timestamp;
+              final date = timestamp.toDate(); // 원본 시간 (시간 표시용)
+
+              // 시간대 오차 제거: 날짜만 추출
+              final normalizedDate = DateTime(date.year, date.month, date.day);
+
+              // 시간은 원본 date에서 정확히 가져옴
               final timeStr = data['time'] as String? ??
                   '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-              final formatted = '${date.month}/${date.day}(${_getWeekday(date.weekday)}) $timeStr';
+
+              // 요일은 normalizedDate 기준 (정확!)
+              final formatted =
+                  '${normalizedDate.month}/${normalizedDate.day}(${_getWeekday(normalizedDate.weekday)}) $timeStr';
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 6),
@@ -497,8 +505,8 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 유틸
-  static String _getWeekday(int weekday) => ['일', '월', '화', '수', '목', '금', '토'][weekday - 1];
+  // 요일 계산 (정상)
+  static String _getWeekday(int weekday) => ['월', '화', '수', '목', '금', '토', '일'][weekday - 1];
 
   static Widget _buildEmptyCard(BuildContext context, String msg) {
     return AppCard(
