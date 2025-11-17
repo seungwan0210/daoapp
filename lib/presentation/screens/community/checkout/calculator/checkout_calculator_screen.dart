@@ -4,13 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:daoapp/presentation/providers/checkout_provider.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/core/constants/checkout_table.dart'; // 추가!
 
 class CheckoutCalculatorScreen extends StatefulWidget {
   const CheckoutCalculatorScreen({super.key});
 
   @override
-  State<CheckoutCalculatorScreen> createState() =>
-      _CheckoutCalculatorScreenState();
+  State<CheckoutCalculatorScreen> createState() => _CheckoutCalculatorScreenState();
 }
 
 class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
@@ -24,7 +24,6 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
     super.dispose();
   }
 
-  /// 시작 점수 설정
   void _startWithScore(BuildContext context) {
     final score = int.tryParse(_initialController.text);
     if (score == null || score < 2 || score > 170) {
@@ -37,7 +36,6 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
     context.read<CheckoutProvider>().setInitialScore(score);
   }
 
-  /// 키패드 입력 처리
   void _onKeyPressed(BuildContext context, String key) {
     setState(() {
       if (key == 'backspace') {
@@ -46,7 +44,6 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
         if (_currentInput.isNotEmpty) {
           final score = int.parse(_currentInput.join());
           final provider = context.read<CheckoutProvider>();
-
           if (score <= provider.remainingScore) {
             provider.subtractScore(score);
             _currentInput.clear();
@@ -57,7 +54,6 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
           }
         }
       } else {
-        // 숫자 0~9
         if (_currentInput.length < 3) {
           _currentInput.add(int.parse(key));
         }
@@ -78,19 +74,12 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
             body: SafeArea(
               child: Consumer<CheckoutProvider>(
                 builder: (ctx, provider, _) {
-                  final currentInputStr =
-                  _currentInput.isEmpty ? '' : _currentInput.join();
+                  final currentInputStr = _currentInput.isEmpty ? '' : _currentInput.join();
                   final bottomInset = MediaQuery.of(ctx).padding.bottom;
 
-                  // ===================================================
-                  // 1. 시작 점수 입력 화면 (위쪽 정렬)
-                  // ===================================================
                   if (_initialScore == null) {
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       child: Align(
                         alignment: Alignment.topCenter,
                         child: AppCard(
@@ -100,40 +89,25 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  "시작 점수를 입력하세요",
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                                Text("시작 점수를 입력하세요", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 12),
                                 TextField(
                                   controller: _initialController,
                                   keyboardType: TextInputType.number,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                                   decoration: InputDecoration(
                                     hintText: "남은 숫자 2~170",
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    contentPadding:
-                                    const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                                   ),
-                                  onSubmitted: (_) =>
-                                      _startWithScore(innerContext),
+                                  onSubmitted: (_) => _startWithScore(innerContext),
                                 ),
                                 const SizedBox(height: 12),
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: () =>
-                                        _startWithScore(innerContext),
+                                    onPressed: () => _startWithScore(innerContext),
                                     child: const Text("시작하기"),
                                   ),
                                 ),
@@ -145,60 +119,37 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                     );
                   }
 
-                  // ===================================================
-                  // 2. 계산기 화면
-                  //    위: 남은 점수 + 루트
-                  //    아래: 키패드(AppCard)
-                  // ===================================================
+                  // 계산기 화면
                   return Column(
                     children: [
-                      // 상단 영역: 남은 점수 + 추천 루트
+                      // 상단: 남은 점수 + 추천 루트
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // ===== 남은 점수 + 되돌리기 버튼 =====
+                              // 남은 점수 + 되돌리기
                               AppCard(
                                 margin: EdgeInsets.zero,
                                 child: Padding(
                                   padding: const EdgeInsets.all(20),
                                   child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.stretch,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
                                       Row(
-                                        mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            "남은 점수",
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
+                                          Text("남은 점수", style: TextStyle(color: Colors.grey[600])),
                                           if (provider.canUndo)
                                             TextButton.icon(
                                               onPressed: () {
                                                 provider.undoLast();
-                                                setState(() {
-                                                  _currentInput.clear();
-                                                });
+                                                setState(() => _currentInput.clear());
                                               },
-                                              icon: const Icon(
-                                                Icons.undo,
-                                                size: 18,
-                                              ),
+                                              icon: const Icon(Icons.undo, size: 18),
                                               label: const Text("되돌리기"),
-                                              style: TextButton.styleFrom(
-                                                padding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 8),
-                                                tapTargetSize:
-                                                MaterialTapTargetSize
-                                                    .shrinkWrap,
-                                              ),
+                                              style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
                                             ),
                                         ],
                                       ),
@@ -208,21 +159,12 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                         style: TextStyle(
                                           fontSize: 48,
                                           fontWeight: FontWeight.bold,
-                                          color: provider.remainingScore <= 50
-                                              ? Colors.red[700]
-                                              : theme.colorScheme.primary,
+                                          color: provider.remainingScore <= 50 ? Colors.red[700] : theme.colorScheme.primary,
                                         ),
                                       ),
                                       if (currentInputStr.isNotEmpty) ...[
                                         const SizedBox(height: 12),
-                                        Text(
-                                          "이번 턴: $currentInputStr",
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.orange[700],
-                                          ),
-                                        ),
+                                        Text("이번 턴: $currentInputStr", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.orange[700])),
                                       ],
                                     ],
                                   ),
@@ -230,31 +172,37 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                               ),
                               const SizedBox(height: 10),
 
-                              // ===== 추천 루트 =====
+                              // 추천 루트 (PDC 최적 + 모든 대안 전부 표시!)
                               if (provider.routes.isNotEmpty)
                                 AppCard(
-                                  margin: const EdgeInsets.only(
-                                      left: 0, right: 0, bottom: 0),
+                                  margin: const EdgeInsets.only(left: 0, right: 0, bottom: 0),
                                   child: Padding(
                                     padding: const EdgeInsets.all(16),
-                                    child: Row(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Icon(
-                                          Icons.lightbulb,
-                                          color: Colors.amber,
-                                          size: 26,
+                                        Row(
+                                          children: const [
+                                            Icon(Icons.lightbulb, color: Colors.amber, size: 26),
+                                            SizedBox(width: 10),
+                                            Text("추천 체크아웃 루트", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                          ],
                                         ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            provider.routes.first.primary
-                                                .join(" → "),
-                                            style: const TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                        const SizedBox(height: 12),
+                                        // 최적 루트
+                                        Text(
+                                          provider.routes.first.primary.join(" → "),
+                                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                         ),
+                                        // 대안 루트들 (전부 표시!)
+                                        if (provider.routes.first.alts.isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          const Text("대안 루트:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                                          ...provider.routes.first.alts.map((alt) => Padding(
+                                            padding: const EdgeInsets.only(left: 16, top: 4),
+                                            child: Text("• ${alt.join(" → ")}", style: const TextStyle(fontSize: 15)),
+                                          )),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -264,14 +212,9 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                         ),
                       ),
 
-                      // 하단 키패드: AppCard
+                      // 하단 키패드
                       Padding(
-                        padding: EdgeInsets.only(
-                          left: 8,
-                          right: 8,
-                          top: 4,
-                          bottom: bottomInset > 0 ? bottomInset : 4,
-                        ),
+                        padding: EdgeInsets.only(left: 8, right: 8, top: 4, bottom: bottomInset > 0 ? bottomInset : 4),
                         child: AppCard(
                           margin: EdgeInsets.zero,
                           padding: const EdgeInsets.all(12),
@@ -310,14 +253,8 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
     );
   }
 
-  Widget _buildKey(
-      BuildContext context,
-      String label, {
-        bool isBackspace = false,
-        bool isConfirm = false,
-      }) {
+  Widget _buildKey(BuildContext context, String label, {bool isBackspace = false, bool isConfirm = false}) {
     final theme = Theme.of(context);
-
     return GestureDetector(
       onTap: () => _onKeyPressed(context, label),
       child: Container(
@@ -325,9 +262,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
           color: isBackspace
               ? Colors.red[50]
               : isConfirm
-              ? (_currentInput.isEmpty
-              ? Colors.grey[300]
-              : theme.colorScheme.primary)
+              ? (_currentInput.isEmpty ? Colors.grey[300] : theme.colorScheme.primary)
               : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey[300]!),
@@ -336,21 +271,10 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
           child: isBackspace
               ? const Icon(Icons.backspace_outlined, color: Colors.red)
               : isConfirm
-              ? Icon(
-            Icons.check,
-            color: _currentInput.isNotEmpty
-                ? Colors.white
-                : Colors.grey[700],
-          )
+              ? Icon(Icons.check, color: _currentInput.isNotEmpty ? Colors.white : Colors.grey[700])
               : Text(
             label,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: isConfirm && _currentInput.isNotEmpty
-                  ? Colors.white
-                  : null,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isConfirm && _currentInput.isNotEmpty ? Colors.white : null),
           ),
         ),
       ),

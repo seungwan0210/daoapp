@@ -122,7 +122,6 @@ class CheckoutProvider extends ChangeNotifier {
   void _updateRoutes() {
     routes.clear();
 
-    // 체크아웃 가능한 범위만 (2~170점)
     if (remainingScore < 2 || remainingScore > 170) {
       notifyListeners();
       return;
@@ -130,19 +129,15 @@ class CheckoutProvider extends ChangeNotifier {
 
     final data = checkoutTable[remainingScore.toString()];
     if (data != null) {
-      // ① 메인 루트
-      routes.add(
-        CheckoutRoute(
-          primary: data.primary,
-        ),
-      );
+      // 수정 전 (대안 루트 안 보임)
+      // routes.add(CheckoutRoute(primary: data.primary));
+      // routes.addAll(data.alts.map((alt) => CheckoutRoute(primary: alt)));
 
-      // ② 대체 루트들 각각을 별도 CheckoutRoute로 추가
-      routes.addAll(
-        data.alts.map(
-              (alt) => CheckoutRoute(primary: alt),
-        ),
-      );
+      // 수정 후 (대안 루트 전부 보임!)
+      routes.add(CheckoutRoute(
+        primary: data.primary,
+        alts: data.alts,   // ← 이 한 줄만 추가!
+      ));
     }
 
     notifyListeners();
