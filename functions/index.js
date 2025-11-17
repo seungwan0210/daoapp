@@ -53,7 +53,7 @@ exports.cleanupOnlineUsers = functions.pubsub
     return null;
   });
 
-// ====================== 3. 체크아웃 연습 기록 → 실시간 월별 랭킹 업데이트 ======================
+// ====================== 3. 체크아웃 연습 기록 → 실시간 월별 랭킹 업데이트 (최고 총점 세션 보존) ======================
 exports.updateMonthlyCheckoutRanking = functions.firestore
   .document('users/{userId}/checkout_practice/{recordId}')
   .onCreate(async (snap, context) => {
@@ -69,22 +69,38 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
       const rankingRef = admin.firestore().collection(collectionName).doc(uid);
 
       const { score } = calculateCheckoutScore(data);
-      const newBest = {
+
+      // 이 세션의 모든 정보 그대로
+      const newRecord = {
         uid,
         koreanName,
         score,
-        elapsedSeconds: data.elapsedSeconds || 0,
+        elapsedSeconds: data.elapsedSeconds || 999999,
         successRate: data.successRate || 0,
-        avgDarts: data.avgDarts || 0,
+        avgDarts: data.avgDarts || 99.9,
         optimizationRate: data.optimizationRate || 0,
         routeMatchRate: data.routeMatchRate || 0,
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        sessionId: snap.id, // 디버깅용
       };
 
-      const snapRanking = await rankingRef.get();
-      if (!snapRanking.exists || snapRanking.data().score < score) {
-        await rankingRef.set(newBest, { merge: true });
-        console.log(`[랭킹 갱신] ${koreanName} → ${score}점`);
+      const rankingSnap = await rankingRef.get();
+
+      if (!rankingSnap.exists) {
+        // 처음 기록 → 저장
+        await rankingRef.set(newRecord);
+        console.log(`[랭킹 등록] ${koreanName} → ${score}점`);
+      } else {
+        const oldScore = rankingSnap.data()?.score || 0;
+
+        if (score > oldScore) {
+          // 진짜 더 높은 총점 → 교체
+          await rankingRef.set(newRecord);
+          console.log(`[랭킹 갱신] ${koreanName} → ${score}점 (신기록!)`);
+        } else {
+          // 총점이 같거나 낮으면 → 절대 건드리지 말 것!
+          console.log(`[랭킹 유지] ${koreanName} → ${oldScore}점 (최고 총점 세션 보존)`);
+        }
       }
     } catch (e) {
       console.error('랭킹 업데이트 실패:', e);
@@ -92,7 +108,7 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
     return null;
   });
 
-// ====================== 4. 매월 1일 00:05 → 월간 배지 완전 리셋 + 새 1~12위 부여 (비용 폭탄 0원) ======================
+// ====================== 4. 매월 1일 00:05 → 월간 배지 완전 리셋 + 새 1~12위 부여 (비용 0원) ======================
 exports.grantMonthlyBadges = functions.pubsub
   .schedule('5 0 1 * *')
   .timeZone('Asia/Seoul')
@@ -105,7 +121,6 @@ exports.grantMonthlyBadges = functions.pubsub
       const top12 = await admin.firestore()
         .collection(collectionName)
         .orderBy('score', 'desc')
-        .orderBy('elapsedSeconds', 'asc')
         .limit(12)
         .get();
 
@@ -120,7 +135,6 @@ exports.grantMonthlyBadges = functions.pubsub
 
       const batch = admin.firestore().batch();
 
-      // 이번 달 상위 12명에게만 새 배지 부여
       top12.docs.forEach((doc, i) => {
         const rank = i + 1;
         const badgeKey = BADGE_MAP[rank];
@@ -134,7 +148,7 @@ exports.grantMonthlyBadges = functions.pubsub
       });
 
       await batch.commit();
-      console.log(`월간 배지 리셋 & 부여 완료: ${year}-${month} (${top12.size}명)`);
+      console.log(`월간 배지 부여 완료: ${year}-${month} (${top12.size}명)`);
       return null;
     } catch (e) {
       console.error('월간 배지 작업 실패:', e);

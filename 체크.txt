@@ -1,1888 +1,1036 @@
+// === 170 ~ 130 ===
+"170": CheckoutRoute(
+  primary: ["T20", "T20", "Bull"], // PDC
+  alts: [
+  ],
+),
+
+"167": CheckoutRoute(
+  primary: ["T20", "T19", "Bull"], // PDC
+  alts: [
+  ],
+),
+
+"164": CheckoutRoute(
+  primary: ["T20", "T18", "Bull"], // PDC
+  alts: [
+  ],
+),
+
+"161": CheckoutRoute(
+  primary: ["T20", "T17", "Bull"], // PDC
+  alts: [
+  ],
+),
+
+"160": CheckoutRoute(
+  primary: ["T20", "T20", "D20"], // PDC
+  alts: [
+    ["T20", "Bull", "Bull"], // 기존 alts
+  ],
+),
+
+
+"158": CheckoutRoute(
+  primary: ["T20", "T20", "D19"], // PDC
+  alts: [
+    ["T20", "T16", "Bull"],
+  ],
+),
+
+"157": CheckoutRoute(
+  primary: ["T20", "T19", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"156": CheckoutRoute(
+  primary: ["T20", "T20", "D18"], // PDC
+  alts: [
+  ],
+),
+
+"155": CheckoutRoute(
+  primary: ["T20", "T19", "D19"], // PDC
+  alts: [
+    ["T20", "T15", "Bull"], // 기존 primary
+  ],
+),
+
+"154": CheckoutRoute(
+  primary: ["T20", "T18", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"153": CheckoutRoute(
+  primary: ["T20", "T19", "D18"], // PDC
+  alts: [
+  ],
+),
+
+"152": CheckoutRoute(
+  primary: ["T20", "T20", "D16"], // PDC
+  alts: [
+  ],
+),
+
+"151": CheckoutRoute(
+  primary: ["T20", "T17", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"150": CheckoutRoute(
+  primary: ["T20", "T18", "D18"], // PDC
+  alts: [
+    ["T20", "Bull", "D20"], // 기존 alts
+["Bull", "Bull", "Bull"]
+  ],
+),
+
+"149": CheckoutRoute(
+  primary: ["T20", "T19", "D16"], // PDC
+  alts: [
+  ],
+),
+
+"148": CheckoutRoute(
+  primary: ["T20", "T20", "D14"], // PDC
+  alts: [
+    ["T20", "T16", "D20"], // 기존 primary
+  ],
+),
+
+"147": CheckoutRoute(
+  primary: ["T20", "T17", "D18"], // PDC
+  alts: [
+  ],
+),
+
+"146": CheckoutRoute(
+  primary: ["T20", "T18", "D16"], // PDC
+  alts: [
+    ["T20", "T20", "D13"], // 기존 primary
+  ],
+),
+
+"145": CheckoutRoute(
+  primary: ["T20", "T15", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"144": CheckoutRoute(
+  primary: ["T20", "T20", "D12"], // PDC
+  alts: [
+  ],
+),
+
+"143": CheckoutRoute(
+  primary: ["T20", "T17", "D16"], // PDC
+  alts: [
+  ],
+),
+
+"142": CheckoutRoute(
+  primary: ["T20", "T14", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"141": CheckoutRoute(
+  primary: ["T20", "T19", "D12"], // PDC
+  alts: [
+  ],
+),
+
+"140": CheckoutRoute(
+  primary: ["T20", "T20", "D10"], // PDC
+  alts: [
+    ["T20", "Bull", "D15"], // 기존 alts
+  ],
+),
+
+"139": CheckoutRoute(
+  primary: ["T19", "T14", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"138": CheckoutRoute(
+  primary: ["T20", "T18", "D12"], // PDC
+  alts: [
+  ],
+),
+
+"137": CheckoutRoute(
+  primary: ["T20", "T19", "D10"], // PDC
+  alts: [
+    ["T19", "T18", "D13"], // 기존 primary
+  ],
+),
+
+"136": CheckoutRoute(
+  primary: ["T20", "T20", "D8"], // PDC
+  alts: [
+  ],
+),
+
+"135": CheckoutRoute(
+  primary: ["Bull", "T20", "Bull"], // PDC
+  alts: [
+    ["T20", "T15", "D15"], // 기존 primary
+["T20", "T17", "D12"]
+  ],
+),
+
+"134": CheckoutRoute(
+  primary: ["T20", "T14", "D16"], // PDC
+  alts: [
+  ],
+),
+
+"133": CheckoutRoute(
+  primary: ["T20", "T19", "D8"], // PDC
+  alts: [
+  ],
+),
+
+"132": CheckoutRoute(
+  primary: ["Bull", "T19", "D8"], // PDC
+  alts: [
+    ["Bull", "T14", "D20"], // 기존 primary
+    ["Bull", "Bull", "D16"], // 기존 alts
+  ],
+),
+
+"131": CheckoutRoute(
+  primary: ["T20", "T13", "D16"], // PDC
+  alts: [
+    ["T20", "T17", "D10"], // 기존 primary
+  ],
+),
+
+"130": CheckoutRoute(
+  primary: ["T20", "S20", "Bull"], // PDC
+  alts: [
+    ["Bull", "T20", "D10"], // 기존 alts
+  ],
+),
+
+// === 129 ~ 100 ===
+
+"129": CheckoutRoute(
+  primary: ["S19", "T20", "Bull"], // PDC
+  alts: [
+    ["T19", "T16", "D12"], // 기존 primary
+  ],
+),
+
+"128": CheckoutRoute(
+  primary: ["S18", "T20", "Bull"], // PDC
+  alts: [
+    ["T20", "T16", "D10"], // 기존 primary
+  ],
+),
+
+"127": CheckoutRoute(
+  primary: ["T20", "S17", "Bull"], // PDC
+  alts: [
+    ["T20", "T17", "D8"], // 기존 primary 동일
+  ],
+),
+
+"126": CheckoutRoute(
+  primary: ["T19", "S19", "Bull"], // 
+  alts: [
+    ["T20", "T10", "D18"], // 기존 primary
+  ],
+),
+
+"125": CheckoutRoute(
+  primary: ["Bull", "T20", "D20"], // PDC
+  alts: [
+    ["T20", "T15", "D10"], // 기존 primary
+  ],
+),
+
+"124": CheckoutRoute(
+  primary: ["T20", "S14", "Bull"], // PDC
+  alts: [
+    ["T20", "T16", "D8"], // 기존 primary 동일
+  ],
+),
+
+"123": CheckoutRoute(
+  primary: ["T19", "S16", "Bull"], // 
+  alts: [
+    ["T19", "T16", "D9"],
+  ],
+),
+
+"122": CheckoutRoute(
+  primary: ["T18", "S18", "Bull"], // 
+  alts: [
+    ["T20", "T14", "D10"], // 기존 primary
+  ],
+),
+
+"121": CheckoutRoute(
+  primary: ["T20", "S11", "Bull"], // PDC
+  alts: [
+    ["T20", "S11", "D20"], // 기존 primary
+  ],
+),
+
+"120": CheckoutRoute(
+  primary: ["T20", "S20", "D20"], // 
+  alts: [
+    ["Bull", "Bull", "D20"], // 기존 alts
+  ],
+),
+
+"119": CheckoutRoute(
+  primary: ["T19", "S12", "Bull"], // 
+  alts: [
+  ],
+),
+
+"118": CheckoutRoute(
+  primary: ["T20", "S18", "D20"], // PDC
+  alts: [
+    ["T20", "T18", "D2"], // 기존 primary
+  ],
+),
+
+"117": CheckoutRoute(
+  primary: ["T20", "S17", "D20"], // PDC
+  alts: [
+    ["T20", "T11", "D12"], // 기존 primary
+["T19", "T10", "Bull"]
+  ],
+),
+
+"116": CheckoutRoute(
+  primary: ["T20", "S16", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"115": CheckoutRoute(
+  primary: ["T20", "S15", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"114": CheckoutRoute(
+  primary: ["T20", "S14", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"113": CheckoutRoute(
+  primary: ["T19", "S16", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"112": CheckoutRoute(
+  primary: ["T20", "S12", "D20"], // 
+  alts: [
+  ],
+),
+
+"111": CheckoutRoute(
+  primary: ["T19", "S14", "D20"], // PDC
+  alts: [
+    ["T20", "S11", "D20"], // 기존 primary
+  ],
+),
+
+"110": CheckoutRoute(
+  primary: ["T20", "S10", "D20"], // 
+  alts: [
+    ["T20,","Bull"], // 기존 alts
+  ],
+),
+
+"109": CheckoutRoute(
+  primary: ["T20", "S9", "D20"], //
+  alts: [
+  ],
+),
+
+"108": CheckoutRoute(
+  primary: ["T20", "T16", "D16"], // PDC
+  alts: [
+  ],
+),
+
+"107": CheckoutRoute(
+  primary: ["T19", "S10", "D20"], // PDC (T19 + 10 + D20)
+  alts: [
+  ],
+),
+
+"106": CheckoutRoute(
+  primary: ["T20", "S6", "D20"], // PDC (6 → S6)
+  alts: [
+    ["T20", "T14", "D2"], // 기존 primary
+  ],
+),
+
+"105": CheckoutRoute(
+  primary: ["T20", "S5", "D20"], // PDC
+  alts: [
+    ["T20", "T13", "D3"], // 기존 primary
+  ],
+),
+
+"104": CheckoutRoute(
+  primary: ["T18", "S18", "D16"], // PDC
+  alts: [
+    ["T18", Bull"], // 기존 primary
+  ],
+),
+
+"103": CheckoutRoute(
+  primary: ["T19", "S6", "D20"], // PDC (6→S6)
+  alts: [
+    ["T19", "S14", "D16"], // 기존 primary
+  ],
+),
+
+"102": CheckoutRoute(
+  primary: ["T16", "S14", "D20"], // PDC
+  alts: [
+    ["T18", "S16", "D16"], // 기존 primary
+  ],
+),
+
+"101": CheckoutRoute(
+  primary: ["T20", "S9", "D16"], // PDC
+  alts: [
+    ["T17", ["Bull"], // 기존 alts
+  ],
+),
+
+"100": CheckoutRoute(
+  primary: ["T20", "D20"], // PDC (기존 primary 동일)
+  alts: [
+    ["Bull", "Bull"], // 기존 alts
+  ],
+),
+
+// === 99 ~ 70 ===
+
+"99": CheckoutRoute(
+  primary: [["T19", "S10", "D16"], // PDC
+  alts: [
+    ["S19", "T16", "D16"],   // 기존 primary
+  ],
+),
+
+"98": CheckoutRoute(
+  primary: ["T20", "D19"], // PDC
+  alts: [
+    ["T16", "Bull"],         // 기존 alts
+  ],
+),
+
+"97": CheckoutRoute(
+  primary: ["T19", "D20"], // PDC
+  alts: [
+
+  ],
+),
+
+"96": CheckoutRoute(
+  primary: ["T20", "D18"], // PDC
+  alts: [
+
+  ],
+),
+
+"95": CheckoutRoute(
+  primary: ["T19", "D19"], // PDC
+  alts: [
+ 
+  ],
+),
+
+"94": CheckoutRoute(
+  primary: ["T18", "D20"], // PDC
+  alts: [
+    ["T20", "D17"], // 기존 primary
+  ],
+),
+
+"93": CheckoutRoute(
+  primary: ["T19", "D18"], // PDC
+  alts: [
+
+  ],
+),
+
+"92": CheckoutRoute(
+  primary: ["T20", "D16"], // PDC
+  alts: [
+
+  ],
+),
+
+"91": CheckoutRoute(
+  primary: ["T17", "D20"], // PDC
+  alts: [
+  
+  ],
+),
+
+"90": CheckoutRoute(
+  primary: ["T18", "D18"], // PDC
+  alts: [
+    ["T20", "D15"], // 기존 primary
+    ["Bull", "D20"], // 기존 alts
+  ],
+),
+
+"89": CheckoutRoute(
+  primary: ["T19", "D16"], // PDC
+  alts: [
+
+  ],
+),
+
+"88": CheckoutRoute(
+  primary: ["T16", "D20"], // PDC
+  alts: [
+    ["T20", "D14"], // 기존 primary
+  ],
+),
+
+"87": CheckoutRoute(
+  primary: ["T17", "D18"], // PDC
+  alts: [
+    ["T19", "D15"], // 기존 primary
+  ],
+),
+
+"86": CheckoutRoute(
+  primary: ["T18", "D16"], // PDC
+  alts: [
+    ["T20", "D13"], // 기존 primary
+  ],
+),
+
+"85": CheckoutRoute(
+  primary: ["T15", "D20"], // PDC
+  alts: [
+ 
+  ],
+),
+
+"84": CheckoutRoute(
+  primary: ["T16", "D18"], // PDC
+  alts: [
+    ["T20", "D12"], // 기존 primary
+  ],
+),
+
+"83": CheckoutRoute(
+  primary: ["T17", "D16"], // PDC
+  alts: [
+    ["T19", "D13"], // 기존 primary
+  ],
+),
+
+"82": CheckoutRoute(
+  primary: ["Bull", "D16"], // PDC
+  alts: [
+    ["T14", "D20"], // 기존 primary
+
+  ],
+),
+
+"81": CheckoutRoute(
+  primary: ["T15", "D18"], // PDC
+  alts: [
+  ],
+),
+
+"80": CheckoutRoute(
+  primary: ["T20", "D10"], // PDC
+  alts: [
+    ["S20", "D20"], // 기존 alts
+  ],
+),
+
+"79": CheckoutRoute(
+  primary: ["T13", "D20"], // PDC
+  alts: [
+    ["T19", "D11"], // 기존 primary
+  ],
+),
+
+"78": CheckoutRoute(
+  primary: ["T18", "D12"], // PDC
+  alts: [
+  ],
+),
+
+"77": CheckoutRoute(
+  primary: ["T19", "D10"], // PDC
+  alts: [
+
+  ],
+),
+
+"76": CheckoutRoute(
+  primary: ["T20", "D8"], // PDC
+  alts: [
+    ["T16", "D14"], // 기존 primary
+  ],
+),
+
+"75": CheckoutRoute(
+  primary: ["T17", "D12"], // PDC
+  alts: [
+    ["T15", "D15"], // 기존 primary
+  ],
+),
+
+"74": CheckoutRoute(
+  primary: ["T14", "D16"], // PDC
+  alts: [
+
+    ["Bull", "D12"], // 기존 alts
+  ],
+),
+
+"73": CheckoutRoute(
+  primary: ["T19", "D8"], // PDC
+  alts: [
+
+  ],
+),
+
+"72": CheckoutRoute(
+  primary: ["T16", "D12"], // PDC
+  alts: [
+
+  ],
+),
+
+"71": CheckoutRoute(
+  primary: ["T13", "D16"], // PDC
+  alts: [
+
+  ],
+),
+
+"70": CheckoutRoute(
+  primary: ["T20", "D5"], // PDC
+  alts: [
+    ["Bull", "D10"], // 기존 alts
+  ],
+),
+
+// === 69 ~ 40 ===
+
+"69": CheckoutRoute(
+  primary: ["T19", "D6"], // PDC
+  alts: [
+  ],
+),
+
+"68": CheckoutRoute(
+  primary: ["T18", "D7"], // PDC
+  alts: [
+    ["T16", "D10"], // 기존 primary
+  ],
+),
+
+"67": CheckoutRoute(
+  primary: ["T17", "D8"], // PDC
+  alts: [
+  ],
+),
+
+"66": CheckoutRoute(
+  primary: ["T16", "D9"], // PDC
+  alts: [
+    ["T18", "D6"], // 기존 primary
+  ],
+),
+
+"65": CheckoutRoute(
+  primary: ["T15", "D10"], // PDC
+  alts: [
+  ],
+),
+
+"64": CheckoutRoute(
+  primary: ["T16", "D8"], // PDC
+  alts: [
+  ],
+),
+
+"63": CheckoutRoute(
+  primary: ["T13", "D12"], // PDC
+  alts: [
+  ],
+),
+
+"62": CheckoutRoute(
+  primary: ["T10", "D16"], // PDC
+  alts: [
+    ["S12", "Bull"], // 기존 alts
+  ],
+),
+
+"61": CheckoutRoute(
+  primary: ["Bull", "D18"], // PDC (25 = Bull)
+  alts: [
+    ["T11", "D14"], // 기존 primary
+  ],
+),
+
+"60": CheckoutRoute(
+  primary: ["S20", "D20"], // PDC
+  alts: [
+ 
+  ],
+),
+
+"59": CheckoutRoute(
+  primary: ["T13", "D10"], // PDC
+  alts: [
+
+  ],
+),
+
+"58": CheckoutRoute(
+  primary: ["S18", "D20"], // PDC
+  alts: [
+    ["S18", "D20"], // 기존 primary
+  ],
+),
+
+"57": CheckoutRoute(
+  primary: ["S17", "D20"], // PDC
+  alts: [
+  ],
+),
+
+"56": CheckoutRoute(
+  primary: ["S16", "D20"], // PDC
+  alts: [
+
+  ],
+),
+
+"55": CheckoutRoute(
+  primary: ["S15", "D20"], // PDC
+  alts: [
+
+  ],
+),
+
+"54": CheckoutRoute(
+  primary: ["S14", "D20"], // PDC
+  alts: [
+
+  ],
+),
+
+"53": CheckoutRoute(
+  primary: ["S13", "D20"], // PDC
+  alts: [
+
+  ],
+),
+
+"52": CheckoutRoute(
+  primary: ["S20", "D16"], // PDC (20 + D16)
+  alts: [
+    ["S12", "D20"], // 기존 primary
+  ],
+),
+
+"51": CheckoutRoute(
+  primary: ["S19", "D16"], // PDC (19 + D16)
+  alts: [
+    ["S11", "D20"], // 기존 primary
+  ],
+),
+
+"50": CheckoutRoute(
+  primary: ["S18", "D16"], // PDC (18 + D16)
+  alts: [
+    ["Bull"], // 기존 primary
+    ["S10", "D20"], // 기존 alts
+  ],
+),
+
+"49": CheckoutRoute(
+  primary: ["S17", "D16"], // PDC
+  alts: [
+    ["S9", "D20"], // 기존 primary
+  ],
+),
+
+"48": CheckoutRoute(
+  primary: ["S16", "D16"], // PDC
+  alts: [
+    ["S8", "D20"], // 기존 primary
+  ],
+),
+
+"47": CheckoutRoute(
+  primary: ["S15", "D16"], // PDC
+  alts: [
+    ["S7", "D20"], // 기존 primary
+  ],
+),
+
+"46": CheckoutRoute(
+  primary: ["S6", "D20"], // PDC
+  alts: [
+   
+  ],
+),
+
+"45": CheckoutRoute(
+  primary: ["S5", "D20"], // PDC
+  alts: [
+   
+  ],
+),
+
+"44": CheckoutRoute(
+  primary: ["S4", "D20"], // PDC
+  alts: [
+
+  ],
+),
+
+"43": CheckoutRoute(
+  primary: ["S3", "D20"], // PDC
+  alts: [
+ 
+  ],
+),
+
+"42": CheckoutRoute(
+  primary: ["S10", "D16"], // PDC
+  alts: [
+
+  ],
+),
+
+"41": CheckoutRoute(
+  primary: ["S9", "D16"], // PDC
+  alts: [
+    ["S1", "D20"], // 기존 primary
+  ],
+),
+
+"40": CheckoutRoute(
+  primary: ["D20"], // PDC 공식 루트도 D20
+  alts: [
+  ],
+),
+
+// === 39 ~ 2 ===
+
+"39": CheckoutRoute(
+  primary: ["S7", "D16"], // 기존 primary 활용 (PDC 목록엔 39 없음)
+  alts: [],
+),
+
+"38": CheckoutRoute(
+  primary: ["D19"], // 기존 그대로 유지 (PDC 없음)
+  alts: [],
+),
+
+"37": CheckoutRoute(
+  primary: ["S5", "D16"], // 기존 그대로
+  alts: [],
+),
+
+"36": CheckoutRoute(
+  primary: ["D18"], // 기존 그대로
+  alts: [],
+),
+
+"35": CheckoutRoute(
+  primary: ["S3", "D16"], // 기존 그대로
+  alts: [],
+),
+
+"34": CheckoutRoute(
+  primary: ["D17"], // 기존 그대로
+  alts: [],
+),
+
+"33": CheckoutRoute(
+  primary: ["S1", "D16"], // 기존 그대로
+  alts: [],
+),
+
+"32": CheckoutRoute(
+  primary: ["D16"], // 기존 그대로
+  alts: [],
+),
+
+"31": CheckoutRoute(
+  primary: ["S15", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"30": CheckoutRoute(
+  primary: ["D15"], // 기존 그대로
+  alts: [],
+),
+
+"29": CheckoutRoute(
+  primary: ["S13", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"28": CheckoutRoute(
+  primary: ["D14"], // 기존 그대로
+  alts: [],
+),
+
+"27": CheckoutRoute(
+  primary: ["S11", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"26": CheckoutRoute(
+  primary: ["D13"], // 기존 그대로
+  alts: [],
+),
+
+"25": CheckoutRoute(
+  primary: ["S5", "D10"], // 기존 그대로
+  alts: [],
+),
+
+"24": CheckoutRoute(
+  primary: ["D12"], // 기존 그대로
+  alts: [],
+),
+
+"23": CheckoutRoute(
+  primary: ["S7", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"22": CheckoutRoute(
+  primary: ["D11"], // 기존 그대로
+  alts: [],
+),
+
+"21": CheckoutRoute(
+  primary: ["S5", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"20": CheckoutRoute(
+  primary: ["D10"], // 기존 그대로
+  alts: [],
+),
+
+"19": CheckoutRoute(
+  primary: ["S3", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"18": CheckoutRoute(
+  primary: ["D9"], // 기존 그대로
+  alts: [],
+),
+
+"17": CheckoutRoute(
+  primary: ["S1", "D8"], // 기존 그대로
+  alts: [],
+),
+
+"16": CheckoutRoute(
+  primary: ["D8"], // 기존 그대로
+  alts: [],
+),
+
+"15": CheckoutRoute(
+  primary: ["S7", "D4"], // 기존 그대로
+  alts: [],
+),
+
+"14": CheckoutRoute(
+  primary: ["D7"], // 기존 그대로
+  alts: [],
+),
+
+"13": CheckoutRoute(
+  primary: ["S5", "D4"], // 기존 그대로
+  alts: [],
+),
+
+"12": CheckoutRoute(
+  primary: ["D6"], // 기존 그대로
+  alts: [],
+),
+
+"11": CheckoutRoute(
+  primary: ["S3", "D4"], // 기존 그대로
+  alts: [],
+),
+
+"10": CheckoutRoute(
+  primary: ["D5"], // 기존 그대로
+  alts: [],
+),
+
+"9": CheckoutRoute(
+  primary: ["S1", "D4"], // 기존 그대로
+  alts: [],
+),
+
+"8": CheckoutRoute(
+  primary: ["D4"], // 기존 그대로
+  alts: [],
+),
+
+"7": CheckoutRoute(
+  primary: ["S3", "D2"], // 기존 그대로
+  alts: [],
+),
+
+"6": CheckoutRoute(
+  primary: ["D3"], // 기존 그대로
+  alts: [],
+),
+
+"5": CheckoutRoute(
+  primary: ["S1", "D2"], // 기존 그대로
+  alts: [],
+),
+
+"4": CheckoutRoute(
+  primary: ["D2"], // 기존 그대로
+  alts: [],
+),
+
+"3": CheckoutRoute(
+  primary: ["S1", "D1"], // 기존 그대로
+  alts: [],
+),
+
+"2": CheckoutRoute(
+  primary: ["D1"], // 기존 그대로
+  alts: [],
+),
 
-
-154
-
-T19 T19 D20
-
-153
-
-T20 T19 D18 
-
-152
-
-T20 T20 D16
-
-151
-
-T20 T17 D20
-
-T19 T18 D20
-
-
-150
-
-Bull bull bull
-
-T20 Bull D20
-
-
-// === 170 ~ 151 ===
-  "170": CheckoutRoute(primary: ["T20", "T20", "Bull"], alts: []),
-  "167": CheckoutRoute(primary: ["T20", "T19", "Bull"], alts: []),
-  "164": CheckoutRoute(primary: ["T20", "T18", "Bull"], alts: []),
-  "161": CheckoutRoute(primary: ["T20", "T17", "Bull"], alts: []),
-  "160": CheckoutRoute(primary: ["T20", "T20", "D20"], alts: [
-    ["T19", "T19", "D16"],
-  ]),
-  "158": CheckoutRoute(primary: ["T20", "T20", "D19"], alts: []),
-  "157": CheckoutRoute(primary: ["T20", "T19", "D20"], alts: []),
-  "156": CheckoutRoute(primary: ["T20", "T20", "D18"], alts: []),
-  "155": CheckoutRoute(primary: ["T20", "T19", "D18"], alts: []),
-  "154": CheckoutRoute(primary: ["T20", "T18", "D20"], alts: []),
-  "153": CheckoutRoute(primary: ["T20", "T19", "D17"], alts: []),
-  "152": CheckoutRoute(primary: ["T20", "T20", "D16"], alts: []),
-  "151": CheckoutRoute(primary: ["T20", "T17", "D20"], alts: []),
-  "150": CheckoutRoute(
-    primary: ["T20", "T18", "D18"],
-    alts: [
-      ["T20", "Bull", "D20"],
-    ],
-  ),
-
-
-
-149
-
-T20 T19 D16
-
-T19 T20 D16
-
-148
-
-T18 T18 D20
-
-T20 T16 D20
-
-T19 T17 D20
-
-147
-
-T20 T17 D18 
-
-146
-
-T20 T18 D16
-
-T18 T20 D16
-
-T19 T17 D16
-
-T17 T19 D16
-
-145
-
-T20 T15 D20
-
-T15 T20 D20
-
-T19 T16 D20
-
-144
-
-Bull T18 D20
-
-T18 Bull D20
-
-143
-
-T18 T19 D16
-
-T19 T18 D16
-
-T20 T17 D16
-
-
-142
-
-T18 T16 D20
-
-T19 T15 D20
-
-T17 T17 D20
-
-141
-
-T17 Bull D20
-
-Bull T17 D20
-
-140
-
-Bull Bull D20
-
-T18 T18 D16
-
-T19 T17 D16
-
-T20 T16 D16
-
-139
-
-T18 T15 D20
-
-T19 T14 D20
-
-T17 T16 D20
-
-138
-
-Bull T16 D20
-
-T16 Bull D20
-
-137
-
-T19 T16 D16
-
-T20 T15 D16
-
-T18 T17 D16
-
-T17 T18 D16
-
-136
-
-T20 T12 D20
-
-T19 T13 D20
-
-T18 T14 D20
-
-T17 T15 D20
-
-135
-
-Bull T15 D20
-
-T15 Bull D20
-
-134
-
-T18 T16 D16
-
-T19 T15 D16
-
-T20 T14 D16
-
-133
-
-T16 T15 D20
-
-T18 T13 D20
-
-T19 T12 D20
-
-132
-
-Bull T14 D20
-
-T14 Bull D20
-
-Bull Bull D16
-
-131
-
-T18 T15 D16
-
-T19 T14 D16
-
-T20 T13 D16
-
-
-130
-
-T15 T15 D20
-
-T18 T12 D20
-
-T19 T11 D20
-
-// === 149 ~ 130 ===
-  "149": CheckoutRoute(primary: ["T20", "T19", "D16"], alts: []),
-  "148": CheckoutRoute(primary: ["T20", "T16", "D20"], alts: []),
-  "147": CheckoutRoute(primary: ["T20", "T17", "D18"], alts: []),
-  "146": CheckoutRoute(primary: ["T20", "T18", "D16"], alts: []),
-  "145": CheckoutRoute(primary: ["T20", "T15", "D20"], alts: []),
-  "144": CheckoutRoute(primary: ["T20", "T20", "D12"], alts: []),
-  "143": CheckoutRoute(primary: ["T20", "T17", "D16"], alts: []),
-  "142": CheckoutRoute(primary: ["T20", "T14", "D20"], alts: []),
-  "141": CheckoutRoute(primary: ["T20", "T19", "D12"], alts: []),
-  "140": CheckoutRoute(
-    primary: ["T20", "T20", "D10"],
-    alts: [
-      ["T20", "Bull", "D10"],
-    ],
-  ),
-  "139": CheckoutRoute(primary: ["T19", "T19", "D12"], alts: []),
-  "138": CheckoutRoute(primary: ["T20", "T18", "D12"], alts: []),
-  "137": CheckoutRoute(primary: ["T19", "T18", "D13"], alts: []),
-  "136": CheckoutRoute(primary: ["T20", "T20", "D8"], alts: []),
-  "135": CheckoutRoute(primary: ["T20", "T15", "D15"], alts: []),
-  "134": CheckoutRoute(primary: ["T20", "T14", "D16"], alts: []),
-  "133": CheckoutRoute(primary: ["T20", "T19", "D8"], alts: []),
-  "132": CheckoutRoute(
-    primary: ["T20", "T12", "D18"],
-    alts: [
-      ["Bull", "Bull", "D16"],
-    ],
-  ),
-  "131": CheckoutRoute(primary: ["T20", "T17", "D10"], alts: []),
-  "130": CheckoutRoute(
-    primary: ["T20", "T18", "D10"],
-    alts: [
-      ["Bull", "T20", "D10"],
-    ],
-  ),
-
-129
-
-T18 T15 D18 
-
-128
-
-T20 T16 D16
-
-T18 T14 D16
-
-127
-
-T20 T15 D16
-
-T19 T14 D16
-
-126
-
-T20 T14 D16
-
-T18 T12 D16
-
-T19 T13 D16
-
-125
-
-T20 SB D20
-
-T15 Bull D20
-
-124
-
-T20 T12 D16
-
-T19 T11 D16
-
-123
-
-T20 T11 D16
-
-T19 T10 D16
-
-122
-
-T20 T10 D16
-
-T17 T15 D16
-
-121
-
-T20 S11 D20
-
-T19 S14 D20
-
-T17 S18 D20
-
-120
-
-Bull T10 D20
-
-T20 S20 D20
-
-Bull T18 D8 
-
-Bull  Bull  D20
-
-
-
-
-?? 118점
-
-T20 → T18 → D2
-
-Bull → T14 → D20
-
-?? 117점
-
-T20 → T17 → D8
-
-T19 → T20 → D8
-
-T17 → T20 → D10
-
-T15 → Bull → D16
-
-
-?? 116점
-
-T20 → T16 → D4
-
-T19 → T17 → D16
-
-T18 → T18 → D16
-
-T16 → T20 → D16
-
-?? 115점
-
-T20 → T15 → D5
-
-T19 → T18 → D16
-
-T18 → T19 → D16
-
-T15 → T20 → D20
-
-Bull → T17 → D12
-
-?? 114점
-
-T20 → T14 → D6
-
-T18 → T18 → D6
-
-T14 → T20 → D20
-
-Bull → T16 → D16
-
-?? 113점
-
-T20 → T13 → D12
-
-T18 → T17 → D16
-
-T17 → T18 → D16
-
-T15 → Bull → D16
-
-?? 112점
-
-T20 → T20 → D6
-
-T19 → T17 → D16
-
-T18 → T18 → D16
-
-T16 → T20 → D16
-
-Bull → T16 → D16
-
-?? 111점
-
-T20 → S11 → D20
-
-T19 → S14 → D20
-
-T17 → S18 → D20
-
-T18 → T17 → D20
-
-Bull → T17 → D20
-
-?? 110점
-
-T20 → D20
-
-Bull → D20
-
-T19 → S11 → D16
-
-T18 → S14 → D16
-
-T16 → S14 → D16
-
-?? 109점
-
-T19 → T18 → D7
-
-T20 → T17 → D16
-
-T18 → T19 → D16
-
-T17 → T20 → D16
-
-Bull → T17 → D16
-
-?? 108점
-
-T20 → T16 → D6
-
-T16 → T20 → D16
-
-T14 → T20 → D20
-
-?? 107점
-
-T19 → T16 → D7
-
-T20 → T17 → D16
-
-T17 → T20 → D16
-
-T18 → T17 → D16
-
-?? 106점
-
-T20 → T14 → D2
-
-T18 → T16 → D10
-
-T16 → T18 → D10
-
-Bull → T16 → D20
-
-T19 → T15 → D16
-
-?? 105점
-
-T19 → T14 → D16
-
-T17 → T16 → D20
-
-T18 → T15 → D20
-
-Bull → T15 → D20
-
-?? 104점
-
-T20 → T12 → D4
-
-T18 → T14 → D16
-
-T16 → T20 → D16
-
-Bull → T14 → D20
-
-?? 103점
-
-T19 → T16 → D3
-
-T20 → T13 → D16
-
-T18 → T17 → D16
-
-T17 → T18 → D16
-
-Bull → T15 → D16
-
-?? 102점
-
-
-?? 101점
-
-T20 → S13 → D20
-
-T19 → S14 → D20
-
-T17 → S18 → D20
-
-T18 → S17 → D20
-
-Bull → T17 → D20
-
-?? 100점
-
-T20 → D20
-
-S20 → S20 → D20
-
-Bull → S20 → D20
-
-Bull → Bull → D20
-
-T19 → S11 → D16 (실전 가능)
-
-?? 99점
-
-T19 → T18 → D3
-→ 실전 확장:
-
-T20 → T13 → D16
-
-T18 → T17 → D16
-
-T17 → T18 → D16
-
-Bull → T15 → D16
-
-?? 98점
-
-T20 → D19 (D19 = 비표준)
-→ 실전 전환:
-
-T18 → D16
-
-T20 → D16
-
-T14 → T20 → D16
-
-Bull → T14 → D16
-
-S20 → T20 → D18
-
-?? 97점
-
-T19 → D20
-→ 실전 확장:
-
-T17 → T16 → D16
-
-T20 → T15 → D16
-
-T15 → T20 → D16
-
-Bull → T17 → D16
-
-?? 96점
-
-T20 → D18 (비표준 더블)
-→ 정석계 기준으로 실전 루트 정리:
-
-T18 → D16
-
-S20 → S20 → D16
-
-Bull → T16 → D16
-
-T16 → T16 → D16
-
-T12 → T20 → D12
-
-?? 95점
-
-T19 → D19 (비표준)
-→ 실전 전형:
-
-T15 → T16 → D16
-
-T17 → T14 → D16
-
-Bull → T17 → D16
-
-T20 → T15 → D16
-
-T16 → T15 → D16
-
-?? 94점
-
-T20 → D17 (비표준)
-→ 실전 전형:
-
-T18 → D20
-
-T16 → D16
-
-T14 → D20
-
-T19 → D18
-
-Bull → T14 → D16
-
-?? 93점
-
-T19 → D18 (비표준)
-→ 실제 선수들이 많이 쓰는 건:
-
-T15 → D24(with setup) → 하지만 우리는 “40/32/16/8” 체계라 제외
-
-T17 → D16
-
-T13 → T14 → D16
-
-T18 → T15 → D16
-
-Bull → T13 → D16
-
-?? 92점
-
-T20 → D16
-(정석 그대로 유지)
-
-추가 루트:
-
-T18 → D20
-
-Bull → D16
-
-T12 → T20 → D10
-
-T16 → T12 → D16
-
-T14 → T14 → D16
-
-?? 91점
-
-T17 → D20 (정석)
-추가 실전 루트:
-
-T15 → T16 → D16
-
-T13 → T18 → D16
-
-T19 → S12 → D20
-
-Bull → S17 → D20
-
-T18 → S17 → D20
-
-?? 90점
-
-정석:
-
-T20 → D15
-
-실전 정석 + 많이 쓰는 루트:
-
-Bull → D20
-
-T18 → D18 (비표준이지만 실제로 종종 사용)
-
-T14 → D24(with setup) → 표준 더블 체계 밖이라 제외
-
-T19 → D16
-
-T17 → D19(비표준)
-
-실전에서 가장 의미 있는 40/32/16 계열 루트:
-
-T19 → D16
-
-Bull → D20
-
-
-90점
-
-정석: T20 → D15
-
-실전에서 많이 쓰는 루트:
-
-T20 → D15
-
-T19 → D16
-
-Bull → D20
-
-T18 → D18
-
-T17 → D19 (비표준) → 필요하면 제외 가능
-
-89점
-
-정석: T19 → D16
-
-추가 가능 루트:
-
-T19 → D16
-
-T15 → D22 (비표준) → 제외하는 것이 좋음
-
-T17 → D19(비표준)
-
-T13 → T16 → D16
-
-Bull → T13 → D16
-
-→ 실전에서 유효한 건 사실상 T19→D16 하나
-(89는 루트 꽤 제한적)
-
-88점
-
-정석: T20 → D14
-
-추가 후보:
-
-T20 → D14
-
-T16 → D20
-
-T18 → D17 (비표준)
-
-Bull → D19 (비표준)
-
-T12 → T16 → D16
-
-→ 실전에서 가장 합리적 대안:
-T16 → D20
-
-87점
-
-정석: T19 → D14?
-하지만 실전은 대부분 T17 → D18 혹은 T15 → D21(비표준)
-
-정리하면:
-
-T17 → D18 (실전 주력)
-
-T19 → D16 → D6? (불가능)
-
-T19 → D14 (기록상은 있지만 비표준)
-
-T13 → T18 → D16
-
-Bull → T13 → D16
-
-86점
-
-정석: T18 → D16
-
-실전 루트:
-
-T18 → D16
-
-T20 → D13 (D13 비표준)
-
-T14 → D22(비표준→제외)
-
-T10 → T18 → D16
-
-Bull → T16 → D16
-
-85점
-
-정석: T15 → D20
-
-추가 실전 루트:
-
-T15 → D20
-
-T19 → D14
-
-T17 → D17(비표준)
-
-Bull → T15 → D20
-
-T13 → T16 → D16
-
-84점
-
-정석: T20 → D12
-
-추가 실전 루트:
-
-T20 → D12
-
-T16 → D18
-
-T12 → D18
-
-T18 → D15
-
-Bull → D17 (비표준)
-
-83점
-
-정석: T19 → D13 (비표준이지만 유명)
-
-실전 루트:
-
-T17 → D16 ← 이게 훨씬 많이 쓰임!
-
-T19 → D13
-
-T15 → D19(비표준)
-
-Bull → T13 → D16
-
-T13 → T18 → D16
-
-추천 primary 후보: T17→D16
-
-82점
-
-정석: T14 → D20
-
-추가 실전:
-
-T14 → D20
-
-Bull → D16
-
-T18 → D14
-
-T10 → T20 → D16
-
-T12 → T18 → D16
-
-81점
-
-정석: T15 → D18
-
-추가 가능:
-
-T15 → D18
-
-T17 → D15
-
-T19 → D12
-
-T13 → D20
-
-Bull → T15 → D18
-
-80점
-
-정석: T20 → D10
-
-추가 루트:
-
-S20 → D20
-
-T16 → D16
-
-Bull → D20
-
-T12 → T20 → D4
-
-T19 → D11
-
-79점
-
-정석: T19 → D11
-
-실전 루트:
-
-T17 → D16
-
-T13 → T16 → D16
-
-Bull → T13 → D16
-
-T19 → D11
-
-T15 → D22 (비표준)
-
-78점
-
-정석: T18 → D12
-
-실전:
-
-T18 → D12
-
-T14 → D16
-
-Bull → D14
-
-T10 → T20 → D14
-
-T12 → T18 → D12
-
-77점
-
-정석: T19 → D10
-
-추가 실전 루트:
-
-T17 → D13
-
-T13 → T18 → D12
-
-Bull → T13 → D12
-
-T19 → D10
-
-T15 → D16
-
-76점
-
-정석: T16 → D14
-
-추가 실전:
-
-T16 → D14
-
-T20 → D8
-
-T12 → D20
-
-Bull → D13
-
-T18 → D11
-
-75점
-
-정석: T15 → D15 (비표준)
-
-실전 추천:
-
-T17 → D12
-
-T13 → D18
-
-T19 → D8
-
-T15 → D15
-
-Bull → T15 → D15
-
-74점
-
-정석: T14 → D16
-
-추가 루트:
-
-Bull → D12
-
-T18 → D10
-
-T10 → T20 → D12
-
-T16 → D13
-
-T14 → D16
-
-73점
-
-정석: T19 → D8
-
-추가 루트:
-
-T17 → D11
-
-T13 → D20
-
-Bull → T13 → D12
-
-T15 → T14 → D16
-
-T19 → D8
-
-72점
-
-정석: T16 → D12
-
-추가 루트:
-
-T18 → D9
-
-T12 → D18
-
-Bull → D16
-
-T20 → S12 → D20
-
-T16 → D12
-
-71점
-
-정석: T13 → D16
-
-실전:
-
-T17 → D10
-
-T19 → D7 (비표준)
-
-T15 → D13
-
-Bull → D16
-
-T13 → D16
-
-70점
-
-정석: T20 → D5
-
-실전에서 훨씬 많이 쓰는 루트는 아래:
-
-T18 → D8 ← 선수들 대부분의 선택
-
-T20 → D5
-
-T10 → T20 → D10
-
-Bull → D10
-
-T16 → D11
-
-70점
-
-정석 primary: T20 → D5
-
-실전에서 더 많이 쓰는 루트 포함 ↓
-추천 루트:
-
-T18 → D8 ← 실제 경기에서 가장 많이 씀
-
-T20 → D5
-
-Bull → D10
-
-T16 → D11
-
-T10 → T20 → D10
-
-69점
-
-정석: T19 → D6
-
-추가 실전:
-
-T19 → D6
-
-T15 → D12
-
-T17 → D9
-
-T13 → D15
-
-Bull → T13 → D16
-
-68점
-
-정석: T16 → D10
-
-추가 실전:
-
-T16 → D10
-
-T20 → D4
-
-T12 → D16
-
-Bull → D9
-
-T18 → D7
-
-67점
-
-정석: T17 → D8
-
-추가 실전:
-
-T17 → D8
-
-T19 → D5
-
-T15 → D11
-
-Bull → D8
-
-T13 → D14
-
-66점
-
-정석: T18 → D6
-
-실전 가능 루트:
-
-T18 → D6
-
-T20 → D3
-
-T16 → D9
-
-T10 → D18
-
-Bull → D8
-
-65점
-
-정석: T15 → D10
-
-추가 실전:
-
-T15 → D10
-
-T19 → D4
-
-T17 → D7
-
-T13 → D12
-
-Bull → D7
-
-64점
-
-정석: T16 → D8
-
-실전:
-
-T16 → D8
-
-T20 → D4
-
-T12 → D16
-
-Bull → D14
-
-T18 → D5
-
-63점
-
-정석: T13 → D12
-
-추가 실전:
-
-T13 → D12
-
-T19 → D3
-
-T17 → D6
-
-T15 → D9
-
-Bull → D13
-
-62점
-
-정석: T10 → D16
-
-추가 실전:
-
-T10 → D16
-
-S12 → Bull
-
-T14 → D10
-
-T18 → D4
-
-Bull → D12
-
-61점
-
-정석: T11 → D14
-
-추가 실전:
-
-T11 → D14
-
-T15 → D8
-
-T17 → D5
-
-T13 → D10
-
-Bull → D11
-
-60점
-
-정석 primary: S20 → D20
-
-실전(프로 경기에서도 다양함):
-
-S20 → D20
-
-T20 → D10 ← 가장 많이 쓰는 루트
-
-T12 → D12
-
-Bull → D20
-
-S15 → D15
-
-59점
-
-정석: T13 → D10
-
-추가 실전:
-
-T13 → D10
-
-T19 → D1
-
-T17 → D4
-
-T11 → D14
-
-Bull → D9
-
-58점
-
-정석: S18 → D20
-
-실전 루트:
-
-S18 → D20
-
-T20 → D19(비표준)
-
-T14 → D16
-
-T10 → D24
-
-Bull → D9
-
-57점
-
-정석: S17 → D20
-
-실전 루트:
-
-S17 → D20
-
-T19 → D10
-
-T17 → D13
-
-T15 → D12
-
-Bull → D7
-
-56점
-
-정석: S16 → D20
-
-실전 루트:
-
-S16 → D20
-
-T20 → D8
-
-T12 → D16
-
-Bull → D6
-
-T16 → D10
-
-55점
-
-정석: S15 → D20
-
-추가 실전:
-
-S15 → D20
-
-T19 → D9
-
-T17 → D11
-
-T13 → D16
-
-Bull → D5
-
-54점
-
-정석: S14 → D20
-
-실전:
-
-S14 → D20
-
-T18 → D10
-
-T14 → D16
-
-Bull → D4
-
-T20 → D7
-
-53점
-
-정석: S13 → D20
-
-실전:
-
-S13 → D20
-
-T19 → D8
-
-T17 → D9
-
-T15 → D14
-
-Bull → D3
-
-52점
-
-정석: S12 → D20
-
-실전:
-
-S12 → D20
-
-T20 → D16
-
-T16 → D12
-
-T12 → D16
-
-Bull → D2
-
-51점
-
-정석: S11 → D20
-
-실전:
-
-S11 → D20
-
-T17 → D10
-
-T15 → D18
-
-T13 → D16
-
-Bull → D1
-
-50점
-
-정석: Bull
-
-실전:
-
-Bull
-
-S10 → D20
-
-S18 → D16
-
-S14 → D18
-
-T10 → D10
-
-49점
-
-정석: S9 → D20
-
-실전:
-
-S9 → D20
-
-T13 → D10
-
-T17 → D8
-
-T19 → D6
-
-Bull → S9 → D20
-
-48점
-
-정석: S8 → D20
-
-실전:
-
-S8 → D20
-
-T16 → D16
-
-T12 → D12
-
-T20 → D4
-
-Bull → D9
-
-47점
-
-정석: S7 → D20
-
-실전:
-
-S7 → D20
-
-T15 → D16
-
-T17 → D13
-
-T19 → D5
-
-Bull → D7
-
-46점
-
-정석: S6 → D20
-
-실전:
-
-S6 → D20
-
-T10 → D8
-
-T18 → D16
-
-T20 → D3
-
-Bull → D8
-
-45점
-
-정석: S5 → D20
-
-실전:
-
-S5 → D20
-
-T15 → D15
-
-T17 → D12
-
-T19 → D4
-
-Bull → D5
-
-44점
-
-정석: S4 → D20
-
-실전:
-
-S4 → D20
-
-T12 → D8
-
-T16 → D14
-
-T20 → D2
-
-Bull → D3
-
-43점
-
-정석: S3 → D20
-
-실전:
-
-S3 → D20
-
-T19 → D3
-
-T17 → D4
-
-T15 → D14
-
-Bull → D1
-
-42점
-
-정석: S10 → D16
-
-실전:
-
-S10 → D16
-
-T14 → D10
-
-T18 → D14
-
-Bull → D16
-
-T20 → D11
-
-41점
-
-정석: S1 → D20
-
-실전:
-
-S1 → D20
-
-T17 → D10
-
-T13 → D16
-
-Bull → D15
-
-T19 → D2
-
-40점
-
-정석: D20
-
-실전:
-
-D20
-
-S20 → D10
-
-S8 → D16
-
-S16 → D12
-
-T20 → D5
-
-40 → D20
-
-39 → S7 → D16
-
-38 → D19
-
-37 → S5 → D16
-
-36 → D18
-
-35 → S3 → D16
-
-34 → D17
-
-33 → S1 → D16
-
-32 → D16
-
-31 → S15 → D8
-
-30 → D15
-
-?? 29점 ~ 20점
-
-29 → S13 → D8
-
-28 → D14
-
-27 → S11 → D8
-
-26 → D13
-
-25 → S5 → D10
-
-24 → D12
-
-23 → S7 → D8
-
-22 → D11
-
-21 → S5 → D8
-
-20 → D10
-
-?? 19점 ~ 10점
-
-19 → S3 → D8
-
-18 → D9
-
-17 → S1 → D8
-
-16 → D8
-
-15 → S7 → D4
-
-14 → D7
-
-13 → S5 → D4
-
-12 → D6
-
-11 → S3 → D4
-
-10 → D5
-
-?? 9점 ~ 2점
-
-9 → S1 → D4
-
-8 → D4
-
-7 → S3 → D2
-
-6 → D3
-
-5 → S1 → D2
-
-4 → D2
-
-3 → S1 → D1
-
-2 → D1
-
-
-// lib/core/constants/checkout_table.dart
-import 'package:daoapp/data/models/checkout_route_model.dart';
-
-/// 점수별 추천 체크아웃 루트 테이블
-/// key: 남은 점수 (String)
-/// value: CheckoutRoute (primary + alts)
-final Map<String, CheckoutRoute> checkoutTable = {
-  // === 170 ~ 151 ===
-  "170": CheckoutRoute(primary: ["T20", "T20", "Bull"], alts: []),
-  "167": CheckoutRoute(primary: ["T20", "T19", "Bull"], alts: []),
-  "164": CheckoutRoute(primary: ["T20", "T18", "Bull"], alts: []),
-  "161": CheckoutRoute(primary: ["T20", "T17", "Bull"], alts: []),
-  "160": CheckoutRoute(primary: ["T20", "T20", "D20"], alts: [
-    ["T19", "T19", "D16"],
-  ]),
-  "158": CheckoutRoute(primary: ["T20", "T20", "D19"], alts: []),
-  "157": CheckoutRoute(primary: ["T20", "T19", "D20"], alts: []),
-  "156": CheckoutRoute(primary: ["T20", "T20", "D18"], alts: []),
-  "155": CheckoutRoute(primary: ["T20", "T19", "D18"], alts: []),
-  "154": CheckoutRoute(primary: ["T20", "T18", "D20"], alts: []),
-  "153": CheckoutRoute(primary: ["T20", "T19", "D17"], alts: []),
-  "152": CheckoutRoute(primary: ["T20", "T20", "D16"], alts: []),
-  "151": CheckoutRoute(primary: ["T20", "T17", "D20"], alts: []),
-  "150": CheckoutRoute(
-    primary: ["T20", "T18", "D18"],
-    alts: [
-      ["T20", "Bull", "D20"],
-    ],
-  ),
-
-  // === 149 ~ 130 ===
-  "149": CheckoutRoute(primary: ["T20", "T19", "D16"], alts: []),
-  "148": CheckoutRoute(primary: ["T20", "T16", "D20"], alts: []),
-  "147": CheckoutRoute(primary: ["T20", "T17", "D18"], alts: []),
-  "146": CheckoutRoute(primary: ["T20", "T18", "D16"], alts: []),
-  "145": CheckoutRoute(primary: ["T20", "T15", "D20"], alts: []),
-  "144": CheckoutRoute(primary: ["T20", "T20", "D12"], alts: []),
-  "143": CheckoutRoute(primary: ["T20", "T17", "D16"], alts: []),
-  "142": CheckoutRoute(primary: ["T20", "T14", "D20"], alts: []),
-  "141": CheckoutRoute(primary: ["T20", "T19", "D12"], alts: []),
-  "140": CheckoutRoute(
-    primary: ["T20", "T20", "D10"],
-    alts: [
-      ["T20", "Bull", "D10"],
-    ],
-  ),
-  "139": CheckoutRoute(primary: ["T19", "T19", "D12"], alts: []),
-  "138": CheckoutRoute(primary: ["T20", "T18", "D12"], alts: []),
-  "137": CheckoutRoute(primary: ["T19", "T18", "D13"], alts: []),
-  "136": CheckoutRoute(primary: ["T20", "T20", "D8"], alts: []),
-  "135": CheckoutRoute(primary: ["T20", "T15", "D15"], alts: []),
-  "134": CheckoutRoute(primary: ["T20", "T14", "D16"], alts: []),
-  "133": CheckoutRoute(primary: ["T20", "T19", "D8"], alts: []),
-  "132": CheckoutRoute(
-    primary: ["T20", "T12", "D18"],
-    alts: [
-      ["Bull", "Bull", "D16"],
-    ],
-  ),
-  "131": CheckoutRoute(primary: ["T20", "T17", "D10"], alts: []),
-  "130": CheckoutRoute(
-    primary: ["T20", "T18", "D10"],
-    alts: [
-      ["Bull", "T20", "D10"],
-    ],
-  ),
-
-  // === 129 ~ 110 ===
-  "129": CheckoutRoute(primary: ["T19", "T19", "D6"], alts: []),
-  "128": CheckoutRoute(primary: ["T20", "T16", "D10"], alts: []),
-  "127": CheckoutRoute(primary: ["T20", "T17", "D8"], alts: []),
-  "126": CheckoutRoute(
-    primary: ["T20", "T10", "D18"],
-    alts: [
-      ["Bull", "T18", "D12"],
-    ],
-  ),
-  "125": CheckoutRoute(
-    primary: ["T20", "T15", "D10"],
-    alts: [
-      ["Bull", "T17", "D9"],
-    ],
-  ),
-  "124": CheckoutRoute(primary: ["T20", "T16", "D8"], alts: []),
-  "123": CheckoutRoute(primary: ["T19", "T16", "D9"], alts: []),
-  "122": CheckoutRoute(primary: ["T20", "T14", "D10"], alts: []),
-  "121": CheckoutRoute(
-    primary: ["T20", "S11", "D20"],
-    alts: [
-      ["T19", "S14", "D20"],
-    ],
-  ),
-  "120": CheckoutRoute(
-    primary: ["T20", "S20", "D20"],
-    alts: [
-      ["Bull", "Bull", "D20"],
-    ],
-  ),
-  "119": CheckoutRoute(primary: ["T19", "T18", "D7"], alts: []),
-  "118": CheckoutRoute(primary: ["T20", "T18", "D2"], alts: []),
-  "117": CheckoutRoute(primary: ["T20", "T11", "D12"], alts: []),
-  "116": CheckoutRoute(primary: ["T20", "T16", "D4"], alts: []),
-  "115": CheckoutRoute(primary: ["T20", "T15", "D5"], alts: []),
-  "114": CheckoutRoute(primary: ["T20", "T14", "D6"], alts: []),
-  "113": CheckoutRoute(primary: ["T19", "T16", "D7"], alts: []),
-  "112": CheckoutRoute(primary: ["T20", "T20", "D6"], alts: []),
-  "111": CheckoutRoute(
-    primary: ["T20", "S11", "D20"],
-    alts: [
-      ["Bull", "T20", "D16"],
-    ],
-  ),
-  "110": CheckoutRoute(
-    primary: ["T20", "D20"],
-    alts: [
-      ["Bull", "D20"],
-    ],
-  ),
-
-  // === 109 ~ 90 ===
-  "109": CheckoutRoute(primary: ["T19", "T18", "D7"], alts: []),
-  "108": CheckoutRoute(primary: ["T20", "T16", "D6"], alts: []),
-  "107": CheckoutRoute(primary: ["T19", "T16", "D7"], alts: []),
-  "106": CheckoutRoute(primary: ["T20", "T14", "D2"], alts: []),
-  "105": CheckoutRoute(primary: ["T20", "T13", "D3"], alts: []),
-  "104": CheckoutRoute(primary: ["T20", "T12", "D4"], alts: []),
-  "103": CheckoutRoute(primary: ["T19", "T16", "D3"], alts: []),
-  "102": CheckoutRoute(primary: ["T20", "T14", "D2"], alts: []),
-  "101": CheckoutRoute(
-    primary: ["T20", "S13", "D20"],
-    alts: [
-      ["T17", "S18", "D20"],
-    ],
-  ),
-  "100": CheckoutRoute(
-    primary: ["T20", "D20"],
-    alts: [
-      ["S20", "S20", "D20"],
-    ],
-  ),
-  "99": CheckoutRoute(primary: ["T19", "T18", "D3"], alts: []),
-  "98": CheckoutRoute(
-    primary: ["T20", "D19"],
-    alts: [
-      ["T18", "D12"],
-    ],
-  ),
-  "97": CheckoutRoute(primary: ["T19", "D20"], alts: []),
-  "96": CheckoutRoute(
-    primary: ["T20", "D18"],
-    alts: [
-      ["S20", "S20", "D18"],
-    ],
-  ),
-  "95": CheckoutRoute(primary: ["T19", "D19"], alts: []),
-  "94": CheckoutRoute(primary: ["T20", "D17"], alts: []),
-  "93": CheckoutRoute(primary: ["T19", "D18"], alts: []),
-  "92": CheckoutRoute(primary: ["T20", "D16"], alts: []),
-  "91": CheckoutRoute(primary: ["T17", "D20"], alts: []),
-  "90": CheckoutRoute(
-    primary: ["T20", "D15"],
-    alts: [
-      ["Bull", "D20"],
-    ],
-  ),
-
-  // === 89 ~ 70 ===
-  "89": CheckoutRoute(primary: ["T19", "D16"], alts: []),
-  "88": CheckoutRoute(primary: ["T20", "D14"], alts: []),
-  "87": CheckoutRoute(primary: ["T19", "D15"], alts: []),
-  "86": CheckoutRoute(primary: ["T20", "D13"], alts: []),
-  "85": CheckoutRoute(primary: ["T15", "D20"], alts: []),
-  "84": CheckoutRoute(primary: ["T20", "D12"], alts: []),
-  "83": CheckoutRoute(primary: ["T19", "D13"], alts: []),
-  "82": CheckoutRoute(
-    primary: ["T14", "D20"],
-    alts: [
-      ["Bull", "D16"],
-    ],
-  ),
-  "81": CheckoutRoute(primary: ["T15", "D18"], alts: []),
-  "80": CheckoutRoute(
-    primary: ["T20", "D10"],
-    alts: [
-      ["S20", "D20"],
-    ],
-  ),
-  "79": CheckoutRoute(primary: ["T19", "D11"], alts: []),
-  "78": CheckoutRoute(primary: ["T18", "D12"], alts: []),
-  "77": CheckoutRoute(primary: ["T19", "D10"], alts: []),
-  "76": CheckoutRoute(primary: ["T16", "D14"], alts: []),
-  "75": CheckoutRoute(primary: ["T15", "D15"], alts: []),
-  "74": CheckoutRoute(
-    primary: ["T14", "D16"],
-    alts: [
-      ["Bull", "D12"],
-    ],
-  ),
-  "73": CheckoutRoute(primary: ["T19", "D8"], alts: []),
-  "72": CheckoutRoute(primary: ["T16", "D12"], alts: []),
-  "71": CheckoutRoute(primary: ["T13", "D16"], alts: []),
-  "70": CheckoutRoute(
-    primary: ["T20", "D5"],
-    alts: [
-      ["Bull", "D10"],
-    ],
-  ),
-
-  // === 69 ~ 50 ===
-  "69": CheckoutRoute(primary: ["T19", "D6"], alts: []),
-  "68": CheckoutRoute(primary: ["T16", "D10"], alts: []),
-  "67": CheckoutRoute(primary: ["T17", "D8"], alts: []),
-  "66": CheckoutRoute(primary: ["T18", "D6"], alts: []),
-  "65": CheckoutRoute(primary: ["T15", "D10"], alts: []),
-  "64": CheckoutRoute(primary: ["T16", "D8"], alts: []),
-  "63": CheckoutRoute(primary: ["T13", "D12"], alts: []),
-  "62": CheckoutRoute(
-    primary: ["T10", "D16"],
-    alts: [
-      ["S12", "Bull"],
-    ],
-  ),
-  "61": CheckoutRoute(primary: ["T11", "D14"], alts: []),
-  "60": CheckoutRoute(primary: ["S20", "D20"], alts: []),
-  "59": CheckoutRoute(primary: ["T13", "D10"], alts: []),
-  "58": CheckoutRoute(primary: ["S18", "D20"], alts: []),
-  "57": CheckoutRoute(primary: ["S17", "D20"], alts: []),
-  "56": CheckoutRoute(primary: ["S16", "D20"], alts: []),
-  "55": CheckoutRoute(primary: ["S15", "D20"], alts: []),
-  "54": CheckoutRoute(primary: ["S14", "D20"], alts: []),
-  "53": CheckoutRoute(primary: ["S13", "D20"], alts: []),
-  "52": CheckoutRoute(primary: ["S12", "D20"], alts: []),
-  "51": CheckoutRoute(primary: ["S11", "D20"], alts: []),
-  "50": CheckoutRoute(
-    primary: ["Bull"],
-    alts: [
-      ["S10", "D20"],
-    ],
-  ),
-
-  // === 49 ~ 30 ===
-  "49": CheckoutRoute(primary: ["S9", "D20"], alts: []),
-  "48": CheckoutRoute(primary: ["S8", "D20"], alts: []),
-  "47": CheckoutRoute(primary: ["S7", "D20"], alts: []),
-  "46": CheckoutRoute(primary: ["S6", "D20"], alts: []),
-  "45": CheckoutRoute(primary: ["S5", "D20"], alts: []),
-  "44": CheckoutRoute(primary: ["S4", "D20"], alts: []),
-  "43": CheckoutRoute(primary: ["S3", "D20"], alts: []),
-  "42": CheckoutRoute(primary: ["S10", "D16"], alts: []),
-  "41": CheckoutRoute(primary: ["S1", "D20"], alts: []),
-  "40": CheckoutRoute(primary: ["D20"], alts: []),
-  "39": CheckoutRoute(primary: ["S7", "D16"], alts: []),
-  "38": CheckoutRoute(primary: ["D19"], alts: []),
-  "37": CheckoutRoute(primary: ["S5", "D16"], alts: []),
-  "36": CheckoutRoute(primary: ["D18"], alts: []),
-  "35": CheckoutRoute(primary: ["S3", "D16"], alts: []),
-  "34": CheckoutRoute(primary: ["D17"], alts: []),
-  "33": CheckoutRoute(primary: ["S1", "D16"], alts: []),
-  "32": CheckoutRoute(primary: ["D16"], alts: []),
-  "31": CheckoutRoute(primary: ["S15", "D8"], alts: []),
-  "30": CheckoutRoute(primary: ["D15"], alts: []),
-
-  // === 29 ~ 2 ===
-  "29": CheckoutRoute(primary: ["S13", "D8"], alts: []),
-  "28": CheckoutRoute(primary: ["D14"], alts: []),
-  "27": CheckoutRoute(primary: ["S11", "D8"], alts: []),
-  "26": CheckoutRoute(primary: ["D13"], alts: []),
-  "25": CheckoutRoute(primary: ["S5", "D10"], alts: []),
-  "24": CheckoutRoute(primary: ["D12"], alts: []),
-  "23": CheckoutRoute(primary: ["S7", "D8"], alts: []),
-  "22": CheckoutRoute(primary: ["D11"], alts: []),
-  "21": CheckoutRoute(primary: ["S5", "D8"], alts: []),
-  "20": CheckoutRoute(primary: ["D10"], alts: []),
-  "19": CheckoutRoute(primary: ["S3", "D8"], alts: []),
-  "18": CheckoutRoute(primary: ["D9"], alts: []),
-  "17": CheckoutRoute(primary: ["S1", "D8"], alts: []),
-  "16": CheckoutRoute(primary: ["D8"], alts: []),
-  "15": CheckoutRoute(primary: ["S7", "D4"], alts: []),
-  "14": CheckoutRoute(primary: ["D7"], alts: []),
-  "13": CheckoutRoute(primary: ["S5", "D4"], alts: []),
-  "12": CheckoutRoute(primary: ["D6"], alts: []),
-  "11": CheckoutRoute(primary: ["S3", "D4"], alts: []),
-  "10": CheckoutRoute(primary: ["D5"], alts: []),
-  "9": CheckoutRoute(primary: ["S1", "D4"], alts: []),
-  "8": CheckoutRoute(primary: ["D4"], alts: []),
-  "7": CheckoutRoute(primary: ["S3", "D2"], alts: []),
-  "6": CheckoutRoute(primary: ["D3"], alts: []),
-  "5": CheckoutRoute(primary: ["S1", "D2"], alts: []),
-  "4": CheckoutRoute(primary: ["D2"], alts: []),
-  "3": CheckoutRoute(primary: ["S1", "D1"], alts: []),
-  "2": CheckoutRoute(primary: ["D1"], alts: []),
-};

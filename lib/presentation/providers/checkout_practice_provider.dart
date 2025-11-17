@@ -11,10 +11,7 @@ class PracticeProblem {
   final int targetScore;
   final List<String> recommendedRoute;
 
-  PracticeProblem({
-    required this.targetScore,
-    required this.recommendedRoute,
-  });
+  PracticeProblem({required this.targetScore, required this.recommendedRoute});
 }
 
 class PracticeResult {
@@ -37,10 +34,7 @@ class PracticeSessionSummary {
   final int elapsedSeconds;
   final List<PracticeResult> results;
 
-  PracticeSessionSummary({
-    required this.elapsedSeconds,
-    required this.results,
-  });
+  PracticeSessionSummary({required this.elapsedSeconds, required this.results});
 }
 
 class CheckoutPracticeProvider extends ChangeNotifier {
@@ -60,6 +54,7 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     _optimalDartsCount = _buildOptimalDartsFromTable();
   }
 
+  // 최적 다트 수 테이블
   Map<int, int> _buildOptimalDartsFromTable() {
     final map = <int, int>{};
     checkoutTable.forEach((scoreStr, route) {
@@ -71,44 +66,37 @@ class CheckoutPracticeProvider extends ChangeNotifier {
 
   int getOptimalDarts(int score) => _optimalDartsCount[score] ?? 3;
 
+  // 통계 계산
   double get optimizationRate {
-    final successResults = results.where((r) => r.success).toList();
-    if (successResults.isEmpty) return 0.0;
-    final optimalCount = successResults
-        .where((r) => r.dartsUsed == getOptimalDarts(r.originalScore))
-        .length;
-    return optimalCount / successResults.length;
+    final success = results.where((r) => r.success).toList();
+    if (success.isEmpty) return 0.0;
+    final optimal = success.where((r) => r.dartsUsed == getOptimalDarts(r.originalScore)).length;
+    return optimal / success.length;
   }
 
   double get routeMatchRate {
-    final successResults = results.where((r) => r.success).toList();
-    if (successResults.isEmpty) return 0.0;
+    final success = results.where((r) => r.success).toList();
+    if (success.isEmpty) return 0.0;
 
-    int matchedCount = 0;
-    for (final r in successResults) {
-      final routeData = checkoutTable[r.originalScore.toString()];
-      if (routeData == null) continue;
-
-      final candidates = <List<String>>[
-        routeData.primary,
-        ...routeData.alts,
-      ];
-
+    int matched = 0;
+    for (final r in success) {
+      final data = checkoutTable[r.originalScore.toString()];
+      if (data == null) continue;
+      final candidates = [data.primary, ...data.alts];
       for (final route in candidates) {
-        if (route.length != r.usedSegments.length) continue;
-        if (listEquals(route, r.usedSegments)) {
-          matchedCount++;
+        if (route.length == r.usedSegments.length && listEquals(route, r.usedSegments)) {
+          matched++;
           break;
         }
       }
     }
-    return matchedCount / successResults.length;
+    return matched / success.length;
   }
 
   double get currentEfficiency {
     if (dartCount == 0 || currentProblem == null) return 0.0;
     final optimal = getOptimalDarts(currentProblem!.targetScore);
-    return (optimal / dartCount).clamp(0.0, 2.0) * 100; // 200% 이상도 허용 (3다트로 2다트 문제 풀면 150% 등)
+    return (optimal / dartCount).clamp(0.0, 2.0) * 100;
   }
 
   int get currentOptimalDarts =>
@@ -122,6 +110,17 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     if (currentDarts.isEmpty) return false;
     final last = currentDarts.last;
     return last.startsWith('D') || last == 'Bull';
+  }
+
+  // 확인 버튼 활성화 조건
+  bool get canConfirm => remainingScore == 0 && isCurrentDoubleOut && dartCount > 0;
+
+  // BUST 여부 (UI 피드백용)
+  bool get isBust {
+    if (remainingScore <= 0) return false;
+    if (remainingScore == 1) return true; // 1점 남기기
+    if (remainingScore == 0 && !isCurrentDoubleOut) return true; // 더블 아닌데 0점
+    return false;
   }
 
   // 시작 / 종료
@@ -154,15 +153,13 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     required double optimizationRate,
     required double routeMatchRate,
   }) {
-    const int maxTimeSeconds = 600;
-    double timeScore = 1 - (elapsedSeconds / maxTimeSeconds);
-    if (timeScore < 0) timeScore = 0;
+    const maxTime = 600;
+    final timeScore = (1 - elapsedSeconds / maxTime).clamp(0.0, 1.0);
     return timeScore * 0.4 + optimizationRate * 0.3 + routeMatchRate * 0.3;
   }
 
   Future<void> finishPractice() async {
     _stopTimer();
-
     if (results.isEmpty) return;
 
     final user = FirebaseAuth.instance.currentUser;
@@ -186,87 +183,76 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     );
     final score = (scoreRatio * 10000).round();
 
-    try {
-      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final recordData = {
+      'timestamp': FieldValue.serverTimestamp(),
+      'elapsedSeconds': elapsedSeconds,
+      'successRate': successRate,
+      'avgDarts': avgDarts,
+      'problemCount': totalAttempts,
+      'optimizationRate': optRate,
+      'routeMatchRate': routeRate,
+      'scoreRatio': scoreRatio,
+      'score': score,
+      'problems': results.map((r) => {
+        'targetScore': r.problem.targetScore,
+        'dartsUsed': r.dartsUsed,
+        'success': r.success,
+        'usedSegments': r.usedSegments,
+        'recommendedRoute': r.problem.recommendedRoute,
+      }).toList(),
+    };
 
-      final recordData = {
-        'timestamp': FieldValue.serverTimestamp(),
-        'elapsedSeconds': elapsedSeconds,
-        'successRate': successRate,
-        'avgDarts': avgDarts,
-        'problemCount': totalAttempts,
-        'optimizationRate': optRate,
-        'routeMatchRate': routeRate,
-        'scoreRatio': scoreRatio,
-        'score': score,
-        'problems': results.map((r) => {
-          'targetScore': r.problem.targetScore,
-          'dartsUsed': r.dartsUsed,
-          'success': r.success,
-          'usedSegments': r.usedSegments,
-          'recommendedRoute': r.problem.recommendedRoute,
-        }).toList(),
-      };
-
-      // 두 컬렉션에 동일하게 저장
-      await Future.wait([
-        userRef.collection('checkout_practice').add(recordData),
-        userRef.collection('checkout_practice_history').add({
-          ...recordData,
-          'createdAt': FieldValue.serverTimestamp(),
-          'successCount': successCount,
-          'totalAttempts': totalAttempts,
-        }),
-      ]);
-    } catch (e) {
-      debugPrint("체크아웃 연습 기록 저장 실패: $e");
-    }
+    final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    await Future.wait([
+      userRef.collection('checkout_practice').add(recordData),
+      userRef.collection('checkout_practice_history').add({
+        ...recordData,
+        'createdAt': FieldValue.serverTimestamp(),
+        'successCount': successCount,
+        'totalAttempts': totalAttempts,
+      }),
+    ]);
   }
 
-  // 핵심 수정: Bust + 자동 성공
+  // 다트 입력 (BUST 자동 처리)
   void inputDart(String segment) {
     if (isFinished || currentProblem == null || dartCount >= 3) return;
     if (segment == "0") return;
 
     final value = _segmentValue(segment);
     final nextScore = remainingScore - value;
-
-    // BUST 조건 (실제 다트 규칙 완벽 반영)
     final isDoubleOrBull = segment.startsWith('D') || segment == 'Bull';
 
-    if (nextScore < 0 ||                     // 오버
-        nextScore == 1 ||                     // 1점 남기기
-        (nextScore == 0 && !isDoubleOrBull)) {// 더블 아닌데 0점
+    // BUST 조건
+    if (nextScore < 0 || nextScore == 1 || (nextScore == 0 && !isDoubleOrBull)) {
       failCurrentProblem();
       notifyListeners();
       return;
     }
 
-    // 정상 입력
     currentDarts.add(segment);
     remainingScore = nextScore;
     dartCount++;
 
-    // 정확히 0점 + 더블/불로 끝 → 자동 성공
+    // 정확히 0점 + 더블/불 → 자동 성공 (확인 버튼은 UI에 남겨둠)
     if (remainingScore == 0 && isDoubleOrBull) {
-      Future.microtask(() => confirmCurrentProblem());
+      // 자동 성공은 하지 않고, 확인 버튼만 활성화
+      notifyListeners();
+    } else {
+      notifyListeners();
     }
-
-    notifyListeners();
   }
 
   void undoLastDart() {
-    if (currentDarts.isEmpty || currentProblem == null) return;
-
-    final lastSegment = currentDarts.removeLast();
-    final value = _segmentValue(lastSegment);
-    remainingScore += value;
+    if (currentDarts.isEmpty) return;
+    final last = currentDarts.removeLast();
+    remainingScore += _segmentValue(last);
     dartCount--;
     notifyListeners();
   }
 
   void confirmCurrentProblem() {
-    if (!isCurrentDoubleOut || remainingScore != 0 || currentProblem == null) return;
+    if (!canConfirm) return;
 
     results.add(PracticeResult(
       problem: currentProblem!,
@@ -283,14 +269,12 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   }
 
   void failCurrentProblem() {
-    if (currentProblem == null) return;
-
     results.add(PracticeResult(
       problem: currentProblem!,
       dartsUsed: dartCount,
       success: false,
       originalScore: currentProblem!.targetScore,
-      usedSegments: List<String>.from(currentDarts), // 실패해도 기록 남김 (피드백용)
+      usedSegments: List<String>.from(currentDarts),
     ));
 
     currentIndex++;
@@ -310,20 +294,11 @@ class CheckoutPracticeProvider extends ChangeNotifier {
 
   List<PracticeProblem> _generateRandomProblems(int count) {
     final rnd = Random();
-    final keys = checkoutTable.keys
-        .map(int.parse)
-        .where((v) => v >= 61 && v <= 170)
-        .toList();
-
+    final keys = checkoutTable.keys.map(int.parse).where((v) => v >= 61 && v <= 170).toList();
     keys.shuffle(rnd);
-    final selected = keys.take(count).toList();
-
-    return selected.map((score) {
+    return keys.take(count).map((score) {
       final data = checkoutTable[score.toString()]!;
-      return PracticeProblem(
-        targetScore: score,
-        recommendedRoute: data.primary,
-      );
+      return PracticeProblem(targetScore: score, recommendedRoute: data.primary);
     }).toList();
   }
 
@@ -334,12 +309,7 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     if (match == null) return 0;
     final type = match.group(1);
     final num = int.parse(match.group(2)!);
-    return switch (type) {
-      'S' => num,
-      'D' => num * 2,
-      'T' => num * 3,
-      _ => 0,
-    };
+    return switch (type) { 'S' => num, 'D' => num * 2, 'T' => num * 3, _ => 0 };
   }
 
   @override
@@ -349,12 +319,9 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   }
 }
 
-// Dart의 List == 비교를 위한 헬퍼 (routeMatchRate에서 사용)
 bool listEquals<T>(List<T>? a, List<T>? b) {
   if (a == null || b == null) return a == b;
   if (a.length != b.length) return false;
-  for (int i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
+  for (int i = 0; i < a.length; i++) if (a[i] != b[i]) return false;
   return true;
 }

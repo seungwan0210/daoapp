@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/badge_constants.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart';
 
 class CheckoutRankingMiniWidget extends StatelessWidget {
   final int limit;
@@ -16,7 +16,6 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
     return 'checkout_practice_rankings_${year}_${month}';
   }
 
-  /// 다양한 타입(double/int/num/String)을 안전하게 double로 변환
   double _asDouble(dynamic value, [double defaultValue = 0.0]) {
     if (value == null) return defaultValue;
     if (value is num) return value.toDouble();
@@ -27,17 +26,13 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
     return defaultValue;
   }
 
-  /// 0.0~1.0 또는 0~100 둘 다 대응
   double _asPercent(dynamic value) {
     final v = _asDouble(value, 0.0);
-    if (v <= 1.0) {
-      // 0.2 → 20%
-      return v * 100;
-    } else {
-      // 이미 퍼센트 값(20)으로 저장된 경우
-      return v;
-    }
+    return v <= 1.0 ? v * 100 : v;
   }
+
+  String _formatTime(int s) =>
+      "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +42,6 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection(collectionName)
           .orderBy('score', descending: true)
-          .orderBy('elapsedSeconds')
           .limit(limit)
           .snapshots(),
       builder: (context, snapshot) {
@@ -78,18 +72,16 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
             final data = doc.data() as Map<String, dynamic>? ?? {};
             final rank = i + 1;
             final uid = data['uid'] as String?;
-
             final koreanName = (data['koreanName'] ?? '이름 없음').toString();
             final badgeKey = BadgeConstants.badgeKeyForRank(rank);
 
-            // 랭킹 컬렉션에 저장된 기본 값 (fallback용)
-            final fallbackElapsedSeconds =
-            _asDouble(data['elapsedSeconds']).toInt();
-            final fallbackAvgDarts = _asDouble(data['avgDarts']);
-            final fallbackSuccessRate = data['successRate'];
-            final fallbackOptimizationRate = data['optimizationRate'];
-            final fallbackRouteAccuracy = data['routeAccuracy'];
+            // 랭킹 컬렉션 데이터만 사용 → 최고 점수 세션의 정확한 모든 정보!
             final score = _asDouble(data['score']);
+            final elapsedSeconds = _asDouble(data['elapsedSeconds']).toInt();
+            final avgDarts = _asDouble(data['avgDarts']);
+            final successRate = data['successRate'];
+            final optimizationRate = data['optimizationRate'];
+            final routeAccuracy = data['routeMatchRate'] ?? data['routeAccuracy'];
 
             return ListTile(
               dense: true,
@@ -117,42 +109,27 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
               )
                   : CircleAvatar(
                 radius: 14,
-                child: Text(
-                  "$rank",
-                  style: const TextStyle(fontSize: 12),
-                ),
+                child: Text("$rank", style: const TextStyle(fontSize: 12)),
               ),
               title: Row(
                 children: [
                   Expanded(
                     child: Text(
                       koreanName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  // 배지 (이름 옆)
+                  // 배지 표시
                   if (uid != null)
                     FutureBuilder<DocumentSnapshot>(
-                      future: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(uid)
-                          .get(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const SizedBox.shrink();
-                        }
-                        final userData =
-                            snapshot.data!.data() as Map<String, dynamic>? ??
-                                {};
+                      future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+                      builder: (context, userSnap) {
+                        if (!userSnap.hasData) return const SizedBox.shrink();
+                        final userData = userSnap.data!.data() as Map<String, dynamic>? ?? {};
                         final badgesMap = BadgeUtils.extractBadges(userData);
-                        final monthly =
-                        BadgeUtils.getLatestMonthlyBadge(badgesMap);
-                        final admin =
-                        BadgeUtils.getLatestAdminBadge(badgesMap);
+                        final monthly = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                        final admin = BadgeUtils.getLatestAdminBadge(badgesMap);
                         final badges = <String>[];
                         if (monthly != null) badges.add(monthly);
                         if (admin != null) badges.add(admin);
@@ -160,107 +137,30 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
                         return Wrap(
                           spacing: 2,
                           children: badges
-                              .map(
-                                (key) => Tooltip(
-                              message: BadgeUtils.getBadgeTooltip(key),
-                              child: BadgeWidget(
-                                badgeKey: key,
-                                size: 16,
-                              ),
-                            ),
-                          )
+                              .map((key) => Tooltip(
+                            message: BadgeUtils.getBadgeTooltip(key),
+                            child: BadgeWidget(badgeKey: key, size: 16),
+                          ))
                               .toList(),
                         );
                       },
                     ),
                 ],
               ),
-              subtitle: uid == null
-              // uid 없으면 그냥 기존 랭킹 값으로 표시
-                  ? Column(
+              subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "점수 ${score.toStringAsFixed(1)} · ${_formatTime(fallbackElapsedSeconds)} · ${fallbackAvgDarts.toStringAsFixed(1)}다트",
-                    style: const TextStyle(
-                        fontSize: 12, color: Colors.black87),
+                    "점수 ${score.toStringAsFixed(1)} · ${_formatTime(elapsedSeconds)} · ${avgDarts.toStringAsFixed(1)}다트",
+                    style: const TextStyle(fontSize: 12, color: Colors.black87),
                   ),
                   Text(
-                    "성공 ${_asPercent(fallbackSuccessRate).toStringAsFixed(0)}% · "
-                        "최적 ${_asPercent(fallbackOptimizationRate).toStringAsFixed(0)}% · "
-                        "정석 ${_asPercent(fallbackRouteAccuracy).toStringAsFixed(0)}%",
-                    style: const TextStyle(
-                        fontSize: 11, color: Colors.grey),
+                    "성공 ${_asPercent(successRate).toStringAsFixed(0)}% · "
+                        "최적 ${_asPercent(optimizationRate).toStringAsFixed(0)}% · "
+                        "정석 ${_asPercent(routeAccuracy).toStringAsFixed(0)}%",
+                    style: const TextStyle(fontSize: 11, color: Colors.grey),
                   ),
                 ],
-              )
-              // ✅ uid 있으면: 해당 유저의 "마지막 기록"을 다시 읽어서 표시 (내 기록과 동일 기준)
-                  : FutureBuilder<QuerySnapshot>(
-                future: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(uid)
-                    .collection('checkout_practice')
-                    .orderBy('timestamp', descending: true)
-                    .limit(1)
-                    .get(),
-                builder: (context, snap) {
-                  if (!snap.hasData || snap.data!.docs.isEmpty) {
-                    // 최근 기록이 없으면 fallback 사용
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "점수 ${score.toStringAsFixed(1)} · ${_formatTime(fallbackElapsedSeconds)} · ${fallbackAvgDarts.toStringAsFixed(1)}다트",
-                          style: const TextStyle(
-                              fontSize: 12, color: Colors.black87),
-                        ),
-                        Text(
-                          "성공 ${_asPercent(fallbackSuccessRate).toStringAsFixed(0)}% · "
-                              "최적 ${_asPercent(fallbackOptimizationRate).toStringAsFixed(0)}% · "
-                              "정석 ${_asPercent(fallbackRouteAccuracy).toStringAsFixed(0)}%",
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey),
-                        ),
-                      ],
-                    );
-                  }
-
-                  final lastData = snap.data!.docs.first.data()
-                  as Map<String, dynamic>? ??
-                      {};
-
-                  final elapsedSeconds =
-                  _asDouble(lastData['elapsedSeconds'],
-                      fallbackElapsedSeconds.toDouble())
-                      .toInt();
-                  final avgDarts =
-                  _asDouble(lastData['avgDarts'], fallbackAvgDarts);
-                  final successRate = lastData['successRate'] ??
-                      fallbackSuccessRate;
-                  final optimizationRate =
-                      lastData['optimizationRate'] ??
-                          fallbackOptimizationRate;
-                  final routeAccuracy =
-                      lastData['routeAccuracy'] ?? fallbackRouteAccuracy;
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "점수 ${score.toStringAsFixed(1)} · ${_formatTime(elapsedSeconds)} · ${avgDarts.toStringAsFixed(1)}다트",
-                        style: const TextStyle(
-                            fontSize: 12, color: Colors.black87),
-                      ),
-                      Text(
-                        "성공 ${_asPercent(successRate).toStringAsFixed(0)}% · "
-                            "최적 ${_asPercent(optimizationRate).toStringAsFixed(0)}% · "
-                            "정석 ${_asPercent(routeAccuracy).toStringAsFixed(0)}%",
-                        style: const TextStyle(
-                            fontSize: 11, color: Colors.grey),
-                      ),
-                    ],
-                  );
-                },
               ),
             );
           },
@@ -268,7 +168,4 @@ class CheckoutRankingMiniWidget extends StatelessWidget {
       },
     );
   }
-
-  String _formatTime(int s) =>
-      "${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}";
 }

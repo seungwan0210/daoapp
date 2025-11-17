@@ -7,11 +7,18 @@ import 'package:daoapp/core/constants/route_constants.dart';
 import 'widgets/dartboard_widget.dart';
 import 'widgets/remaining_score_display.dart';
 
-/// 연습 플레이 화면 전용 AppCard (전역 AppCard와 충돌 방지)
-class _LocalAppCard extends StatelessWidget {
+/// 이 화면 전용 AppCard (기존 그대로 유지)
+class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? margin;
-  const _LocalAppCard({required this.child, this.margin});
+  final VoidCallback? onTap;
+
+  const AppCard({
+    super.key,
+    required this.child,
+    this.margin,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +26,11 @@ class _LocalAppCard extends StatelessWidget {
       margin: margin ?? const EdgeInsets.symmetric(vertical: 6),
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: child,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: child,
+      ),
     );
   }
 }
@@ -27,7 +38,6 @@ class _LocalAppCard extends StatelessWidget {
 class CheckoutPracticeScreen extends StatelessWidget {
   const CheckoutPracticeScreen({super.key});
 
-  // 연습 종료 후 결과 화면 이동을 딱 한 번만 하게 하는 플래그
   static bool _navigatedToResult = false;
 
   String _formatTime(int seconds) {
@@ -40,46 +50,31 @@ class CheckoutPracticeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) {
-        _navigatedToResult = false; // 새 연습 시작 시 반드시 리셋
+        _navigatedToResult = false;
         return CheckoutPracticeProvider()..startNewPractice();
       },
       child: Scaffold(
         appBar: const CommonAppBar(title: "체크아웃 연습"),
         body: Consumer<CheckoutPracticeProvider>(
           builder: (context, provider, _) {
-            // ==================== 연습 종료 처리 (핵심 패치) ====================
+            // 연습 종료 처리
             if (provider.isFinished && !_navigatedToResult) {
               _navigatedToResult = true;
-
               Future(() async {
-                await provider.finishPractice(); // 저장 완료까지 기다림
-
+                await provider.finishPractice();
                 if (!context.mounted) return;
-
                 final summary = PracticeSessionSummary(
                   elapsedSeconds: provider.elapsedSeconds,
                   results: List<PracticeResult>.from(provider.results),
                 );
-
                 Navigator.pushReplacementNamed(
                   context,
                   RouteConstants.checkoutResult,
                   arguments: summary,
                 );
               });
-
-              return const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 20),
-                    Text("기록을 저장하고 있어요...", style: TextStyle(fontSize: 16)),
-                  ],
-                ),
-              );
+              return const Center(child: CircularProgressIndicator());
             }
-            // =================================================================
 
             if (provider.currentProblem == null) {
               return const Center(child: CircularProgressIndicator());
@@ -89,10 +84,11 @@ class CheckoutPracticeScreen extends StatelessWidget {
             final boardSize = screenWidth - 32;
 
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 다트보드
                 Padding(
-                  padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+                  padding: const EdgeInsets.only(top: 8, left: 16, right: 16),
                   child: SizedBox(
                     width: boardSize,
                     height: boardSize,
@@ -103,21 +99,33 @@ class CheckoutPracticeScreen extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
 
-                // 점수 + 타이머 + 이번 턴 다트
+                // 점수 + 타이머 카드 (당신이 좋아했던 그 크기 그대로!)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _LocalAppCard(
+                  child: AppCard(
+                    margin: EdgeInsets.zero,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
                         children: [
                           Expanded(
                             flex: 3,
-                            child: RemainingScoreDisplay(
-                              remainingScore: provider.remainingScore,
-                              currentDarts: provider.currentDarts,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("남은 점수", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                                const SizedBox(height: 4),
+                                Text("${provider.remainingScore}", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 12),
+                                Text("이번 턴", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                                const SizedBox(height: 4),
+                                Text(
+                                  provider.currentDarts.isEmpty ? "-" : provider.currentDarts.join(", "),
+                                  style: const TextStyle(fontSize: 18),
+                                ),
+                              ],
                             ),
                           ),
                           Expanded(
@@ -128,29 +136,37 @@ class CheckoutPracticeScreen extends StatelessWidget {
                                 Container(
                                   padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.black87,
+                                    color: Colors.black.withOpacity(0.7),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     _formatTime(provider.elapsedSeconds),
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                                   ),
                                 ),
                                 const SizedBox(height: 16),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: List.generate(3, (i) {
-                                    final active = provider.dartCount > i;
+                                    final isActive = provider.dartCount > i;
                                     return Container(
                                       margin: const EdgeInsets.only(left: 6),
                                       width: 28,
                                       height: 28,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: active ? Colors.green : Colors.grey[300],
+                                        color: isActive ? Colors.green : Colors.grey[300],
+                                        border: Border.all(color: Colors.black26),
                                       ),
                                       child: Center(
-                                        child: Text("${i + 1}", style: TextStyle(color: active ? Colors.white : Colors.black54, fontWeight: FontWeight.bold)),
+                                        child: Text(
+                                          "${i + 1}",
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: isActive ? Colors.white : Colors.black54,
+                                          ),
+                                        ),
                                       ),
                                     );
                                   }),
@@ -166,57 +182,88 @@ class CheckoutPracticeScreen extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // 되돌리기 버튼
+                // 되돌리기 + 확인 버튼 (당신이 좋아했던 위치 그대로!)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: provider.dartCount > 0 ? provider.undoLastDart : null,
-                      icon: const Icon(Icons.undo),
-                      label: const Text("되돌리기"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange[600],
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: provider.dartCount > 0 ? provider.undoLastDart : null,
+                          icon: const Icon(Icons.undo, size: 16),
+                          label: const Text("되돌리기"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: provider.canConfirm ? provider.confirmCurrentProblem : null,
+                          icon: const Icon(Icons.check_circle, size: 16),
+                          label: const Text("확인"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: provider.canConfirm ? Colors.green : Colors.grey,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
-                // 최적화율 안내
+                // 최적화율 + BUST 피드백 (당신이 좋아했던 스타일 그대로 + BUST 추가)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: provider.currentEfficiency >= 100 ? Colors.green[50] : Colors.orange[50],
+                      color: provider.isBust
+                          ? Colors.red[50]
+                          : provider.currentEfficiency >= 100
+                          ? Colors.green[50]
+                          : Colors.orange[50],
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: provider.currentEfficiency >= 100 ? Colors.green : Colors.orange,
+                        color: provider.isBust
+                            ? Colors.red
+                            : provider.currentEfficiency >= 100
+                            ? Colors.green
+                            : Colors.orange,
                         width: 2,
                       ),
                     ),
                     child: Center(
                       child: Text(
-                        provider.dartCount == 0
+                        provider.isBust
+                            ? "BUST! 다음 문제로 넘어갑니다..."
+                            : provider.dartCount == 0
                             ? "다트를 던져보세요"
                             : provider.currentEfficiency >= 100
-                            ? "최적 루트 완료! (${provider.currentOptimalDarts}다트)"
-                            : "최적 ${provider.currentOptimalDarts}다트 → 현재 ${provider.dartCount}다트 (${provider.currentEfficiency.toStringAsFixed(0)}%)",
+                            ? "최적! ${provider.currentOptimalDarts}다트 완료"
+                            : "최적: ${provider.currentOptimalDarts}다트 (현재: ${provider.dartCount}다트 → ${provider.currentEfficiency.toStringAsFixed(0)}%)",
                         style: TextStyle(
-                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: provider.currentEfficiency >= 100 ? Colors.green[800] : Colors.orange[800],
+                          fontSize: 16,
+                          color: provider.isBust
+                              ? Colors.red[800]
+                              : provider.currentEfficiency >= 100
+                              ? Colors.green[800]
+                              : Colors.orange[800],
                         ),
                       ),
                     ),
                   ),
                 ),
 
-                const Spacer(),
+                // 하단 여유 공간 확보 (제스처 바 침범 방지)
+                const SizedBox(height: 40),
               ],
             );
           },
