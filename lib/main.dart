@@ -1,4 +1,6 @@
 // lib/main.dart
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +40,7 @@ import 'package:daoapp/presentation/screens/admin/forms/sponsor_form_screen.dart
 import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
-import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart'; // 추가!
+import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart';
 
 // 서클
 import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
@@ -63,19 +65,58 @@ void main() async {
   await Firebase.initializeApp();
   setupDependencies();
 
-  // 온라인 상태 관리
-  FirebaseAuth.instance.authStateChanges().listen((user) async {
+  // ==================== 온라인 상태 완벽 관리 ====================
+  FirebaseAuth.instance.authStateChanges().listen((user) {
     if (user != null) {
-      final ref = FirebaseFirestore.instance.collection('online_users').doc(user.uid);
-      await ref.set({
-        'uid': user.uid,
-        'name': user.displayName ?? '이름 없음',
-        'lastSeen': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      OnlineStatusManager.start(user);
+    } else {
+      OnlineStatusManager.stop();
     }
   });
 
   runApp(const ProviderScope(child: DaoApp()));
+}
+
+/// 백그라운드에서도 계속 온라인 유지 (25초마다 자동 갱신)
+class OnlineStatusManager {
+  static Timer? _timer;
+  static User? _currentUser;
+
+  static void _update() {
+    if (_currentUser == null) return;
+
+    FirebaseFirestore.instance
+        .collection('online_users')
+        .doc(_currentUser!.uid)
+        .set(
+      {
+        'uid': _currentUser!.uid,
+        'name': _currentUser!.displayName ?? '이름 없음',
+        'lastSeen': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    )
+        .catchError((e) => debugPrint('Online status update error: $e'));
+  }
+
+  static void start(User user) {
+    if (_currentUser?.uid == user.uid) return; // 중복 방지
+
+    _currentUser = user;
+    _timer?.cancel();
+
+    // 즉시 한 번 업데이트
+    _update();
+
+    // 25초마다 자동 갱신 → cleanup이 60초 기준이므로 충분히 여유
+    _timer = Timer.periodic(const Duration(seconds: 25), (_) => _update());
+  }
+
+  static void stop() {
+    _timer?.cancel();
+    _timer = null;
+    _currentUser = null;
+  }
 }
 
 class DaoApp extends StatelessWidget {
@@ -117,7 +158,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
-        RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(), // 추가!
+        RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(),
 
         // 서클
         RouteConstants.postWrite: (_) => PostWriteScreen(),

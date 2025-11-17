@@ -22,7 +22,7 @@ class PracticeResult {
   final int dartsUsed;
   final bool success;
   final int originalScore;
-  final List<String> usedSegments; // 실제로 던진 세그먼트 기록
+  final List<String> usedSegments;
 
   PracticeResult({
     required this.problem,
@@ -33,7 +33,6 @@ class PracticeResult {
   });
 }
 
-/// 연습 1세트(10문제) 요약 데이터
 class PracticeSessionSummary {
   final int elapsedSeconds;
   final List<PracticeResult> results;
@@ -45,7 +44,6 @@ class PracticeSessionSummary {
 }
 
 class CheckoutPracticeProvider extends ChangeNotifier {
-  // 문제/결과
   List<PracticeProblem> problems = [];
   int currentIndex = 0;
   int remainingScore = 0;
@@ -53,11 +51,9 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   int dartCount = 0;
   List<PracticeResult> results = [];
 
-  // 타이머
   int elapsedSeconds = 0;
   Timer? _timer;
 
-  // 최적 다트 수 테이블
   late final Map<int, int> _optimalDartsCount;
 
   CheckoutPracticeProvider() {
@@ -75,31 +71,22 @@ class CheckoutPracticeProvider extends ChangeNotifier {
 
   int getOptimalDarts(int score) => _optimalDartsCount[score] ?? 3;
 
-  /// 최적 다트 비율 (0.0 ~ 1.0) – 성공한 문제 중에서,
-  /// "최적 다트 수"로 끝낸 비율
   double get optimizationRate {
     final successResults = results.where((r) => r.success).toList();
     if (successResults.isEmpty) return 0.0;
-
     final optimalCount = successResults
         .where((r) => r.dartsUsed == getOptimalDarts(r.originalScore))
         .length;
-
     return optimalCount / successResults.length;
   }
 
-  /// 정석 루트 비율 (0.0 ~ 1.0)
-  /// - checkout_table 의 primary + alts 중 하나를
-  ///   "순서까지 정확히" 따라간 비율
   double get routeMatchRate {
     final successResults = results.where((r) => r.success).toList();
     if (successResults.isEmpty) return 0.0;
 
     int matchedCount = 0;
-
     for (final r in successResults) {
-      final score = r.originalScore;
-      final routeData = checkoutTable[score.toString()];
+      final routeData = checkoutTable[r.originalScore.toString()];
       if (routeData == null) continue;
 
       final candidates = <List<String>>[
@@ -107,48 +94,27 @@ class CheckoutPracticeProvider extends ChangeNotifier {
         ...routeData.alts,
       ];
 
-      bool problemMatched = false;
-
       for (final route in candidates) {
         if (route.length != r.usedSegments.length) continue;
-
-        bool allMatch = true;
-        for (int i = 0; i < route.length; i++) {
-          if (route[i] != r.usedSegments[i]) {
-            allMatch = false;
-            break;
-          }
-        }
-
-        if (allMatch) {
-          problemMatched = true;
+        if (listEquals(route, r.usedSegments)) {
+          matchedCount++;
           break;
         }
       }
-
-      if (problemMatched) {
-        matchedCount++;
-      }
     }
-
     return matchedCount / successResults.length;
   }
 
-  /// 현재 문제에서의 효율 (예전 UI용)
-  /// - 최적 다트 수 / 실제 사용 다트 수 * 100 (%)
   double get currentEfficiency {
-    if (!isCurrentFinished || currentProblem == null || dartCount == 0) {
-      return 0.0;
-    }
+    if (dartCount == 0 || currentProblem == null) return 0.0;
     final optimal = getOptimalDarts(currentProblem!.targetScore);
-    return (optimal / dartCount) * 100;
+    return (optimal / dartCount).clamp(0.0, 2.0) * 100; // 200% 이상도 허용 (3다트로 2다트 문제 풀면 150% 등)
   }
 
   int get currentOptimalDarts =>
       currentProblem != null ? getOptimalDarts(currentProblem!.targetScore) : 3;
 
   bool get isFinished => currentIndex >= problems.length;
-
   PracticeProblem? get currentProblem =>
       currentIndex < problems.length ? problems[currentIndex] : null;
 
@@ -158,14 +124,7 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     return last.startsWith('D') || last == 'Bull';
   }
 
-  bool get isCurrentFinished =>
-      currentProblem != null && remainingScore == 0 && isCurrentDoubleOut;
-
-  bool get canConfirm => isCurrentFinished && dartCount > 0;
-
-  // ===========================================================
-  //                      시작 / 종료
-  // ===========================================================
+  // 시작 / 종료
   void startNewPractice({int problemCount = 10}) {
     _stopTimer();
     problems = _generateRandomProblems(problemCount);
@@ -190,26 +149,17 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     _timer = null;
   }
 
-  /// Flutter 쪽에서도 점수 계산해서 저장 (UI, 히스토리용)
-  /// Cloud Functions 의 calculateCheckoutScore 와 같은 로직
   double _calculateScoreRatio({
     required int elapsedSeconds,
     required double optimizationRate,
     required double routeMatchRate,
   }) {
-    const int maxTimeSeconds = 600; // 10분 기준
+    const int maxTimeSeconds = 600;
     double timeScore = 1 - (elapsedSeconds / maxTimeSeconds);
     if (timeScore < 0) timeScore = 0;
-    if (timeScore > 1) timeScore = 1;
-
-    return timeScore * 0.4 +
-        optimizationRate * 0.3 +
-        routeMatchRate * 0.3;
+    return timeScore * 0.4 + optimizationRate * 0.3 + routeMatchRate * 0.3;
   }
 
-  /// Firestore에 기록 저장 + 종료
-  /// - users/{uid}/checkout_practice           : 랭킹용 (Cloud Functions 트리거)
-  /// - users/{uid}/checkout_practice_history  : 히스토리/디테일 화면용
   Future<void> finishPractice() async {
     _stopTimer();
 
@@ -225,93 +175,86 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     final successResults = results.where((r) => r.success).toList();
     final avgDarts = successResults.isEmpty
         ? 0.0
-        : successResults
-        .map((r) => r.dartsUsed)
-        .reduce((a, b) => a + b) /
-        successResults.length;
+        : successResults.map((r) => r.dartsUsed).reduce((a, b) => a + b) / successResults.length;
 
-    final optRate = optimizationRate; // 0.0 ~ 1.0
-    final routeRate = routeMatchRate; // 0.0 ~ 1.0
-
+    final optRate = optimizationRate;
+    final routeRate = routeMatchRate;
     final scoreRatio = _calculateScoreRatio(
       elapsedSeconds: elapsedSeconds,
       optimizationRate: optRate,
       routeMatchRate: routeRate,
     );
-    final score = (scoreRatio * 10000).round(); // 0 ~ 10000
+    final score = (scoreRatio * 10000).round();
 
     try {
-      final userRef =
-      FirebaseFirestore.instance.collection('users').doc(user.uid);
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
 
-      // 1) 랭킹용 원본 기록 (Cloud Functions 트리거 대상)
-      await userRef.collection('checkout_practice').add({
+      final recordData = {
         'timestamp': FieldValue.serverTimestamp(),
         'elapsedSeconds': elapsedSeconds,
         'successRate': successRate,
         'avgDarts': avgDarts,
         'problemCount': totalAttempts,
-        // 새 점수/지표
         'optimizationRate': optRate,
         'routeMatchRate': routeRate,
         'scoreRatio': scoreRatio,
         'score': score,
-        // 문제별 기록
-        'problems': results.map((r) {
-          return {
-            'targetScore': r.problem.targetScore,
-            'dartsUsed': r.dartsUsed,
-            'success': r.success,
-            'usedSegments': r.usedSegments,
-            'recommendedRoute': r.problem.recommendedRoute,
-          };
+        'problems': results.map((r) => {
+          'targetScore': r.problem.targetScore,
+          'dartsUsed': r.dartsUsed,
+          'success': r.success,
+          'usedSegments': r.usedSegments,
+          'recommendedRoute': r.problem.recommendedRoute,
         }).toList(),
-      });
+      };
 
-      // 2) 내 히스토리용 요약 기록
-      await userRef.collection('checkout_practice_history').add({
-        'createdAt': FieldValue.serverTimestamp(),
-        'elapsedSeconds': elapsedSeconds,
-        'successRate': successRate,
-        'avgDarts': avgDarts,
-        'totalAttempts': totalAttempts,
-        'successCount': successCount,
-        'optimizationRate': optRate,
-        'routeMatchRate': routeRate,
-        'scoreRatio': scoreRatio,
-        'score': score,
-        // 디테일 화면에서 문제별 기록도 보고 싶다면 그대로 저장
-        'problems': results.map((r) {
-          return {
-            'targetScore': r.problem.targetScore,
-            'dartsUsed': r.dartsUsed,
-            'success': r.success,
-            'usedSegments': r.usedSegments,
-            'recommendedRoute': r.problem.recommendedRoute,
-          };
-        }).toList(),
-      });
+      // 두 컬렉션에 동일하게 저장
+      await Future.wait([
+        userRef.collection('checkout_practice').add(recordData),
+        userRef.collection('checkout_practice_history').add({
+          ...recordData,
+          'createdAt': FieldValue.serverTimestamp(),
+          'successCount': successCount,
+          'totalAttempts': totalAttempts,
+        }),
+      ]);
     } catch (e) {
       debugPrint("체크아웃 연습 기록 저장 실패: $e");
     }
   }
 
-  // ===========================================================
-  //                      다트 입력 / 수정 / 확인
-  // ===========================================================
+  // 핵심 수정: Bust + 자동 성공
   void inputDart(String segment) {
     if (isFinished || currentProblem == null || dartCount >= 3) return;
     if (segment == "0") return;
 
     final value = _segmentValue(segment);
+    final nextScore = remainingScore - value;
+
+    // BUST 조건 (실제 다트 규칙 완벽 반영)
+    final isDoubleOrBull = segment.startsWith('D') || segment == 'Bull';
+
+    if (nextScore < 0 ||                     // 오버
+        nextScore == 1 ||                     // 1점 남기기
+        (nextScore == 0 && !isDoubleOrBull)) {// 더블 아닌데 0점
+      failCurrentProblem();
+      notifyListeners();
+      return;
+    }
+
+    // 정상 입력
     currentDarts.add(segment);
-    remainingScore -= value;
-    if (remainingScore < 0) remainingScore = 0;
+    remainingScore = nextScore;
     dartCount++;
+
+    // 정확히 0점 + 더블/불로 끝 → 자동 성공
+    if (remainingScore == 0 && isDoubleOrBull) {
+      Future.microtask(() => confirmCurrentProblem());
+    }
+
     notifyListeners();
   }
 
-  /// 직전 다트만 되돌리기
   void undoLastDart() {
     if (currentDarts.isEmpty || currentProblem == null) return;
 
@@ -322,24 +265,16 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void clearCurrentTurn() {
-    _resetCurrentTurn();
-    _updateRemainingScore();
-    notifyListeners();
-  }
-
   void confirmCurrentProblem() {
-    if (!isCurrentFinished || currentProblem == null) return;
+    if (!isCurrentDoubleOut || remainingScore != 0 || currentProblem == null) return;
 
-    results.add(
-      PracticeResult(
-        problem: currentProblem!,
-        dartsUsed: dartCount,
-        success: true,
-        originalScore: currentProblem!.targetScore,
-        usedSegments: List<String>.from(currentDarts),
-      ),
-    );
+    results.add(PracticeResult(
+      problem: currentProblem!,
+      dartsUsed: dartCount,
+      success: true,
+      originalScore: currentProblem!.targetScore,
+      usedSegments: List<String>.from(currentDarts),
+    ));
 
     currentIndex++;
     _resetCurrentTurn();
@@ -350,16 +285,13 @@ class CheckoutPracticeProvider extends ChangeNotifier {
   void failCurrentProblem() {
     if (currentProblem == null) return;
 
-    results.add(
-      PracticeResult(
-        problem: currentProblem!,
-        dartsUsed: 3,
-        success: false,
-        originalScore: currentProblem!.targetScore,
-        usedSegments:
-        const [], // 실패는 정석루트율 계산에 포함 X (routeMatchRate에서 success=false 필터됨)
-      ),
-    );
+    results.add(PracticeResult(
+      problem: currentProblem!,
+      dartsUsed: dartCount,
+      success: false,
+      originalScore: currentProblem!.targetScore,
+      usedSegments: List<String>.from(currentDarts), // 실패해도 기록 남김 (피드백용)
+    ));
 
     currentIndex++;
     _resetCurrentTurn();
@@ -376,9 +308,6 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     remainingScore = currentProblem?.targetScore ?? 0;
   }
 
-  // ===========================================================
-  //                      문제 생성
-  // ===========================================================
   List<PracticeProblem> _generateRandomProblems(int count) {
     final rnd = Random();
     final keys = checkoutTable.keys
@@ -398,9 +327,6 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     }).toList();
   }
 
-  // ===========================================================
-  //                      유틸
-  // ===========================================================
   int _segmentValue(String s) {
     if (s == 'Bull') return 50;
     if (s == 'SB') return 25;
@@ -421,4 +347,14 @@ class CheckoutPracticeProvider extends ChangeNotifier {
     _stopTimer();
     super.dispose();
   }
+}
+
+// Dart의 List == 비교를 위한 헬퍼 (routeMatchRate에서 사용)
+bool listEquals<T>(List<T>? a, List<T>? b) {
+  if (a == null || b == null) return a == b;
+  if (a.length != b.length) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
