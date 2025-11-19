@@ -7,9 +7,7 @@
 ├── services/
 │   └── storage_service.dart
 │       → Firebase Storage 업로드/다운로드 공용 서비스
-│         - 이미지/파일 업로드
-│         - 다운로드 URL 반환
-│         - 삭제 등 공통 로직
+│       → 포스터 업로드용
 │
 ├── di/
 │   └── service_locator.dart
@@ -48,6 +46,8 @@
 │   │         - 타이머/경과 시간
 │   │         - 각 문제별 결과(성공/실패, 사용 다트 수)
 │   │         - 연습 종료 시 Firestore 저장 + 요약 데이터 생성
+│   │   └── arena_provider.dart
+│   │       →아레나 전체 상태 관리 (완성됨)
 │   │
 │   ├── screens/
 │   │   ├── splash_screen.dart
@@ -203,18 +203,33 @@
 │   │   │       ├── comment_preview.dart
 │   │   │       │   → 최신 댓글 몇 개 미리보기
 │   │   │       └── comment_bottom_sheet.dart
-│   │   │           → 댓글 전체 보기 + 댓글 작성 바텀시트
+│   │   │             → 댓글 전체 보기 + 댓글 작성 바텀시트
 │   │   │
-│   │   └── arena/
-│   │       ├── arena_screen.dart
-│   │       │   → 아레나(샵/경기장) 메인 화면
-│   │       ├── arena_preview.dart
-│   │       │   → 아레나 카드 미리보기 (사진/평점/위치 등)
-│   │       ├── arena_review_write_screen.dart
-│   │       │   → 아레나 리뷰 작성 화면
-│   │       └── arena_review_detail_screen.dart
-│   │           → 아레나 리뷰 상세 보기
-│   │
+│   │   ├── arena/
+│   │   │   ├──  arena_home_screen.dart   
+│   │   │   │   → 메인 리스트 + 필터 + FAB
+│   │   │   ├──  tournament_create_screen.dart       
+│   │   │   │   → 대회 개설 (포스터 + 공동주최자)
+│   │   │   ├──  tournament_detail_screen.dart        
+│   │   │   │   → 상세 + 참가하기 버튼
+│   │   │   ├──  tournament_entry_form_screen.dart    
+│   │   │   │   → 참가 신청 폼
+│   │   │   ├──  tournament_participant_list_screen.dart 
+│   │   │   │   → 주최자용 명단 + CSV 공유
+│   │   │   ├──  my_hosted_tournaments_screen.dart    
+│   │   │   │   → 내가 주최한 대회 전용 화면 (옵션)
+│   │   │   └── widgets/
+│   │   │       ├── tournament_card.dart             
+│   │   │       │   → 카드 (상태 뱃지 + 참가자 수)
+│   │   │       ├── tournament_filter_chips.dart     
+│   │   │       │   → 필터 칩 (전체/오픈/예정/마감/내가 주최)
+│   │   │       ├── entry_status_badge.dart          
+│   │   │       │   → 재사용 뱃지 위젯
+│   │   │       ├── participant_list_item.dart       
+│   │   │       │   → 참가자 리스트 한 줄 위젯
+│   │   │       ├── organizer_email_input_field.dart 
+│   │   │       │   → 공동주최자 이메일 입력 위젯
+│   │   │
 │   └── admin/
 │       ├── admin_dashboard_screen.dart
 │       │   → 관리자 대시보드
@@ -276,6 +291,9 @@
 │   │   │   → 포인트 기록 인터페이스
 │   │   └── point_record_repository_impl.dart
 │   │       → Firestore 기반 포인트 기록 구현체
+│   │   ├── arena_repository.dart
+│   │   ├── arena_repository_impl.dart
+│   │       →Firestore 구현 + 내가 주최 OR 쿼리 완벽
 │   │
 │   └── models/
 │       ├── point_record_model.dart
@@ -285,9 +303,12 @@
 │       ├── user_model.dart
 │       │   → 앱에서 사용하는 유저 전체 정보 모델
 │       └── checkout_route_model.dart
-│           → 체크아웃 추천 경로 모델
+│             → 체크아웃 추천 경로 모델
 │             - targetScore, 권장 루트 리스트 등
-│
+│       ├── tournament_model.dart   
+│             → freezed 적용 완료
+│       ├── tournament_entry_model.dart 
+│             → freezed 적용 완료
 ├── core/
 │   ├── constants/
 │   │   ├── route_constants.dart
@@ -316,3 +337,5 @@
 │           → 랭킹 관련 유틸 함수
 │             - 정렬/타이브레이크 로직
 │             - 포인트/승률 기반 스코어 계산 등
+│       └── arena_utils.dart
+│           → 상태 계산, D-Day, 색상 (완성됨

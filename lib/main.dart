@@ -55,17 +55,20 @@ import 'package:daoapp/presentation/screens/community/checkout/practice/checkout
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_my_history_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart';
 
-// 아레나
-import 'package:daoapp/presentation/screens/community/arena/arena_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/arena_review_write_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/arena_review_detail_screen.dart';
+// 아레나 (토너먼트)
+import 'package:daoapp/presentation/screens/community/arena/arena_home_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/tournament_create_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/tournament_detail_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/tournament_entry_form_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/tournament_participant_list_screen.dart';
+
+import 'package:daoapp/data/models/tournament_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   setupDependencies();
 
-  // ==================== 온라인 상태 완벽 관리 ====================
   FirebaseAuth.instance.authStateChanges().listen((user) {
     if (user != null) {
       OnlineStatusManager.start(user);
@@ -77,7 +80,6 @@ void main() async {
   runApp(const ProviderScope(child: DaoApp()));
 }
 
-/// 백그라운드에서도 계속 온라인 유지 (25초마다 자동 갱신)
 class OnlineStatusManager {
   static Timer? _timer;
   static User? _currentUser;
@@ -100,15 +102,10 @@ class OnlineStatusManager {
   }
 
   static void start(User user) {
-    if (_currentUser?.uid == user.uid) return; // 중복 방지
-
+    if (_currentUser?.uid == user.uid) return;
     _currentUser = user;
     _timer?.cancel();
-
-    // 즉시 한 번 업데이트
     _update();
-
-    // 25초마다 자동 갱신 → cleanup이 60초 기준이므로 충분히 여유
     _timer = Timer.periodic(const Duration(seconds: 25), (_) => _update());
   }
 
@@ -130,7 +127,6 @@ class DaoApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: RouteConstants.splash,
       routes: {
-        // 공통
         RouteConstants.splash: (_) => const SplashScreen(),
         RouteConstants.login: (_) => const LoginScreen(),
         RouteConstants.main: (_) => const MainScreen(),
@@ -167,23 +163,22 @@ class DaoApp extends StatelessWidget {
         // 체크아웃
         RouteConstants.checkoutHome: (_) => const CheckoutHomeScreen(),
         RouteConstants.checkoutCalculator: (_) => CheckoutCalculatorScreen(),
-
-        // 연습 모드
         RouteConstants.checkoutPractice: (_) => const CheckoutPracticeHomeScreen(),
         RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(),
         RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
         RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
         RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
 
-        // 아레나
-        RouteConstants.arenaDetail: (_) => const ArenaScreen(),
-        RouteConstants.arenaReviewWrite: (_) => const ArenaReviewWriteScreen(),
+        // 아레나 토너먼트
+        RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
+        RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RouteConstants.guestbook) {
           final userId = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => GuestbookScreen(userId: userId));
         }
+
         if (settings.name == RouteConstants.eventEdit) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
@@ -193,10 +188,37 @@ class DaoApp extends StatelessWidget {
             ),
           );
         }
-        if (settings.name == RouteConstants.arenaReviewDetail) {
-          final reviewId = settings.arguments as String;
-          return MaterialPageRoute(builder: (_) => ArenaReviewDetailScreen(reviewId: reviewId));
+
+        // 토너먼트 상세
+        if (settings.name == RouteConstants.tournamentDetail) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => TournamentDetailScreen(
+              tournament: args['tournament'] as TournamentModel,
+              isOrganizer: args['isOrganizer'] as bool,
+            ),
+          );
         }
+
+        // 참가 폼
+        if (settings.name == RouteConstants.tournamentEntryForm) {
+          final tournamentId = settings.arguments as String;
+          return MaterialPageRoute(builder: (_) => TournamentEntryFormScreen(tournamentId: tournamentId));
+        }
+
+        // 참가자 명단
+        if (settings.name == RouteConstants.tournamentParticipantList) {
+          final args = settings.arguments as Map<String, dynamic>?;
+          final tournamentId = args?['tournamentId'] as String ?? settings.arguments as String;
+          final tournamentTitle = args?['tournamentTitle'] as String ?? '참가자 명단';
+          return MaterialPageRoute(
+            builder: (_) => TournamentParticipantListScreen(
+              tournamentId: tournamentId,
+              tournamentTitle: tournamentTitle,
+            ),
+          );
+        }
+
         return null;
       },
       onUnknownRoute: (_) => MaterialPageRoute(builder: (_) => const SplashScreen()),

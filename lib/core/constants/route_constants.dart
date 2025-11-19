@@ -45,10 +45,18 @@ class RouteConstants {
   static const String checkoutPracticePlay = '/checkout/practice/play'; // checkout_practice_screen.dart
   static const String checkoutResult = '/checkout/result';            // checkout_result_screen.dart
   static const String checkoutRanking = '/checkout_ranking';          // checkout_ranking_screen.dart
-  static const String checkoutMyHistory = '/checkout_my_history';  // checkout_my_history_screen.dart
+  static const String checkoutMyHistory = '/checkout_my_history';    // checkout_my_history_screen.dart
 
-  // === 커뮤니티 - 아레나 ===
-  static const String arenaDetail = '/community/arena/detail';           // arena_screen.dart
+  // === 커뮤니티 - 아레나 (기존 샵 리뷰) ===
+  static const String arenaDetail = '/community/arena/detail';           // arena_screen.dart (기존 샵 상세)
   static const String arenaReviewWrite = '/community/arena/review-write'; // arena_review_write_screen.dart
   static const String arenaReviewDetail = '/community/arena/review-detail'; // arena_review_detail_screen.dart (onGenerateRoute)
+
+  // ==================== 아레나 토너먼트 (신규!!!) ====================
+  static const String arenaHome = '/arena/home';                                      // 아레나 메인 리스트
+  static const String tournamentCreate = '/arena/tournament/create';                  // 대회 개설
+  static const String tournamentDetail = '/arena/tournament/detail';                 // 대회 상세 (onGenerateRoute)
+  static const String tournamentEntryForm = '/arena/tournament/entry';               // 참가 신청 폼 (onGenerateRoute)
+  static const String tournamentParticipantList = '/arena/tournament/participants'; // 참가자 명단 (onGenerateRoute)
+  static const String myHostedTournaments = '/arena/my-hosted';                       // 내가 주최한 대회 (옵션)
 }

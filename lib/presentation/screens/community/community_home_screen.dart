@@ -8,7 +8,9 @@ import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_avatar_slider.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_preview.dart';
 import 'package:daoapp/presentation/screens/community/checkout/checkout_home_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/arena_preview.dart';
+
+// ★★★ Arena 완전 풀스크린으로 변경 ★★★
+import 'package:daoapp/presentation/screens/community/arena/arena_home_screen.dart';  // ← 이거 추가!
 
 class CommunityHomeScreen extends ConsumerStatefulWidget {
   const CommunityHomeScreen({super.key});
@@ -37,7 +39,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> with 
   }
 
   void _goToCheckoutHome() {
-    Navigator.pushNamed(context, RouteConstants.checkoutHome); // 체크아웃 홈으로 이동!
+    Navigator.pushNamed(context, RouteConstants.checkoutHome);
   }
 
   @override
@@ -107,15 +109,15 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> with 
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          // 1. 서클
+                          // 1. 서클 프리뷰
                           Padding(
                             padding: const EdgeInsets.only(top: 8),
                             child: CommunityPreview(onSeeAllPressed: _goToCircleFull),
                           ),
 
-                          // 2. 체크아웃 홈 → 클릭 시 전체 계산기 이동!
+                          // 2. 체크아웃 프리뷰 (탭 시 전체로 이동)
                           GestureDetector(
-                            onTap: _goToCheckoutHome, // 수정됨
+                            onTap: _goToCheckoutHome,
                             child: Container(
                               color: Colors.transparent,
                               padding: const EdgeInsets.symmetric(vertical: 40),
@@ -152,8 +154,8 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> with 
                             ),
                           ),
 
-                          // 3. 아레나
-                          const ArenaPreview(),
+                          // ★★★ 3. 아레나 풀스크린 리스트 + FAB ★★★
+                          const ArenaHomeScreen(),  // ← 여기만 바꿨습니다!
                         ],
                       ),
                     ),

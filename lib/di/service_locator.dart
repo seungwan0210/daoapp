@@ -7,7 +7,13 @@ import 'package:daoapp/data/repositories/auth_repository_impl.dart';
 import 'package:daoapp/data/repositories/auth_repository.dart';
 import 'package:daoapp/data/repositories/point_record_repository_impl.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
-// import 'package:daoapp/presentation/providers/ranking_provider.dart'; // 삭제!
+
+// ★★★★★ Arena 추가 ★★★★★
+import 'package:daoapp/data/repositories/arena_repository.dart';
+import 'package:daoapp/data/repositories/arena_repository_impl.dart';
+
+// ★★★★★ StorageService 추가 (포스터 업로드 때문에 필수!!) ★★★★★
+import 'package:daoapp/services/storage_service.dart';
 
 final sl = GetIt.instance;
 
@@ -24,7 +30,11 @@ void setupDependencies() {
   ));
 
   // === Point & Ranking ===
-  sl.registerLazySingleton<PointRecordRepository>(() => PointRecordRepositoryImpl()); // 파라미터 제거!
+  sl.registerLazySingleton<PointRecordRepository>(() => PointRecordRepositoryImpl());
 
-  // sl.registerFactory(() => RankingProvider(sl<PointRecordRepository>())); // 삭제!
+  // ★★★★★ Arena Repository 등록 ★★★★★
+  sl.registerLazySingleton<ArenaRepository>(() => ArenaRepositoryImpl());
+
+  // ★★★★★ StorageService 등록 (포스터 업로드용!!) ★★★★★
+  sl.registerLazySingleton<StorageService>(() => StorageService());
 }
