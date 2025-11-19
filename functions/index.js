@@ -14,11 +14,9 @@ const transporter = nodemailer.createTransport({
 });
 
 // ====================== 헬퍼 함수 ======================
-// 한국 시간 정확히 구하기 (서머타임 걱정 없음!)
-function getKoreaNow() {
-  const now = new Date();
-  const kstOffset = 9 * 60 * 60 * 1000; // UTC+9
-  return new Date(now.getTime() + kstOffset);
+// 한국 시간 정확하게 가져오기 (가장 안전한 방법)
+function getKoreaNowTimestamp() {
+  return admin.firestore.Timestamp.fromMillis(Date.now() + 9 * 60 * 60 * 1000);
 }
 
 function getMonthlyRankingCollection(date = new Date()) {
@@ -47,14 +45,13 @@ const BADGE_MAP = [
   'silver1', 'silver2', 'bronze1', 'bronze2', 'bronze3'
 ];
 
-// ====================== 1. 프로필 인증 Custom Claims ======================
+// ====================== 기존 함수들 (변경 없음) ======================
 exports.setHasProfile = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인 필요');
   await admin.auth().setCustomUserClaims(context.auth.uid, { hasProfile: true });
   return { success: true };
 });
 
-// ====================== 2. 온라인 유저 정리 (5분마다) ======================
 exports.cleanupOnlineUsers = functions.pubsub
   .schedule('every 5 minutes')
   .onRun(async () => {
@@ -71,7 +68,6 @@ exports.cleanupOnlineUsers = functions.pubsub
     return null;
   });
 
-// ====================== 3. 체크아웃 연습 기록 → 실시간 월별 랭킹 업데이트 ======================
 exports.updateMonthlyCheckoutRanking = functions.firestore
   .document('users/{userId}/checkout_practice/{recordId}')
   .onCreate(async (snap, context) => {
@@ -122,7 +118,6 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
     return null;
   });
 
-// ====================== 4. 매월 1일 00:05 → 월간 배지 부여 ======================
 exports.grantMonthlyBadges = functions.pubsub
   .schedule('5 0 1 * *')
   .timeZone('Asia/Seoul')
@@ -170,22 +165,13 @@ exports.grantMonthlyBadges = functions.pubsub
     }
   });
 
-
-// ====================== 5. Arena – 엔트리 카운트 관리 ======================
 exports.onTournamentEntryCreated = functions.firestore
   .document('tournaments/{tournamentId}/entries/{entryId}')
   .onCreate(async (snap, context) => {
     const { tournamentId } = context.params;
     const tournamentRef = admin.firestore().collection('tournaments').doc(tournamentId);
-
-    try {
-      await tournamentRef.update({
-        entryCount: admin.firestore.FieldValue.increment(1),
-      });
-      console.log(`[Arena] 엔트리 생성 → ${tournamentId} entryCount +1`);
-    } catch (e) {
-      console.error('[Arena] entryCount 증가 실패:', e);
-    }
+    await tournamentRef.update({ entryCount: admin.firestore.FieldValue.increment(1) })
+      .catch(e => console.error('[Arena] entryCount 증가 실패:', e));
     return null;
   });
 
@@ -194,29 +180,20 @@ exports.onTournamentEntryDeleted = functions.firestore
   .onDelete(async (snap, context) => {
     const { tournamentId } = context.params;
     const tournamentRef = admin.firestore().collection('tournaments').doc(tournamentId);
-
-    try {
-      await tournamentRef.update({
-        entryCount: admin.firestore.FieldValue.increment(-1),
-      });
-      console.log(`[Arena] 엔트리 삭제 → ${tournamentId} entryCount -1`);
-    } catch (e) {
-      console.error('[Arena] entryCount 감소 실패:', e);
-    }
+    await tournamentRef.update({ entryCount: admin.firestore.FieldValue.increment(-1) })
+      .catch(e => console.error('[Arena] entryCount 감소 실패:', e));
     return null;
   });
 
-// ====================== 6. Arena – 엔트리 마감 후 CSV 메일 발송 ======================
+// ====================== 완전 수정된 아레나 메일 발송 부분 ======================
 function buildEntriesCsv(entriesSnap) {
-  let csv = 'nameKo,nameEn,phone,email,rating,homeShop,createdAt\n';
-
+  let csv = '\uFEFFnameKo,nameEn,phone,email,rating,homeShop,createdAt\n';
   entriesSnap.forEach(doc => {
     const e = doc.data();
     const createdAt = e.createdAt ? e.createdAt.toDate().toISOString() : '';
     const line = `"${e.nameKo || ''}","${e.nameEn || ''}","${e.phone || ''}","${e.email || ''}","${e.rating || ''}","${e.homeShop || ''}","${createdAt}"\n`;
     csv += line;
   });
-
   return csv;
 }
 
@@ -228,32 +205,35 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
     .orderBy('createdAt', 'asc')
     .get();
 
-  const organizerEmails = tournamentData.organizerEmails || [];
+  // 안전한 이메일 처리
+  let organizerEmails = Array.isArray(tournamentData.organizerEmails)
+    ? tournamentData.organizerEmails.filter(e => typeof e === 'string' && e.includes('@'))
+    : [];
+
   if (organizerEmails.length === 0) {
-    console.log(`[Arena] ${tournamentId} 주최자 이메일 없음 → 스킵`);
-    await db.collection('tournaments').doc(tournamentId).update({ entrySummarySent: true });
+    console.log(`[Arena] ${tournamentId} 유효한 주최자 이메일 없음 → 스킵`);
     return;
   }
 
+  const rawTitle = (tournamentData.title || '토너먼트').substring(0, 80);
+  const safeTitle = rawTitle.replace(/[^a-zA-Z0-9가-힣\s]/g, '_');
   const csv = buildEntriesCsv(entriesSnap);
-  const title = tournamentData.title || '토너먼트';
-  const subject = `[DAO Arena] ${title} 참가자 명단`;
-  const textBody = `아래는 "${title}" 대회의 참가자 명단입니다.\n\n참가자 수: ${entriesSnap.size}명\n\n첨부된 CSV 파일을 엑셀/구글 시트 등에서 열어 확인해주세요.\n`;
 
-  await transporter.sendMail({
-    from: `"DAO Arena" <${functions.config().email.user}>`,
-    to: organizerEmails.join(','),
-    subject,
-    text: textBody,
-    attachments: [{
-      filename: `${title}_참가자명단.csv`,
-      content: Buffer.from('\uFEFF' + csv, 'utf8'),
-      contentType: 'text/csv; charset=utf-8',
-    }],
-  });
-
-  await db.collection('tournaments').doc(tournamentId).update({ entrySummarySent: true });
-  console.log(`[Arena] ${tournamentId} 참가자 명단 메일 발송 완료 → ${organizerEmails.join(',')}`);
+  try {
+    await transporter.sendMail({
+      from: `"DAO Arena" <${functions.config().email.user}>`,
+      to: organizerEmails.join(','),
+      subject: `[DAO Arena] ${rawTitle} 참가자 명단`,
+      text: `"${rawTitle}" 대회의 참가자 명단입니다.\n\n참가자 수: ${entriesSnap.size}명\n첨부된 CSV 파일을 확인해주세요!`,
+      attachments: [{
+        filename: `${safeTitle}_참가자명단.csv`,
+        content: Buffer.from(csv, 'utf-8'),
+      }],
+    });
+    console.log(`[Arena] ${tournamentId} 메일 발송 성공 → ${organizerEmails.join(', ')}`);
+  } catch (error) {
+    console.error(`[Arena] ${tournamentId} 메일 발송 실패:`, error.message);
+  }
 }
 
 exports.sendTournamentEntrySummary = functions.pubsub
@@ -261,21 +241,34 @@ exports.sendTournamentEntrySummary = functions.pubsub
   .timeZone('Asia/Seoul')
   .onRun(async () => {
     const db = admin.firestore();
-    const now = admin.firestore.Timestamp.fromDate(getKoreaNow());  // 정확한 한국 시간!
+    const now = getKoreaNowTimestamp();  // 정확한 한국시간!
 
     const snap = await db
       .collection('tournaments')
       .where('entryEndDate', '<=', now)
-      .where('entrySummarySent', '==', false)
+      .where('entrySummarySent', '!=', true)  // false 또는 없어도 잡힘
       .get();
 
     if (snap.empty) {
-      console.log('[Arena] 보낼 요약 메일 대상 토너먼트 없음');
+      console.log('[Arena] 처리할 마감 대회 없음');
       return null;
     }
 
-    const tasks = snap.docs.map(doc => sendSummaryForTournament(db, doc.id, doc.data()));
+    const tasks = snap.docs.map(async (doc) => {
+      const tournamentId = doc.id;
+      try {
+        await sendSummaryForTournament(db, tournamentId, doc.data());
+      } catch (e) {
+        console.error('개별 메일 처리 실패:', e);
+      } finally {
+        // 성공/실패 무조건 플래그 켜기 → 무한 재시도 방지!!
+        await db.collection('tournaments').doc(tournamentId)
+          .update({ entrySummarySent: true })
+          .catch(() => {});
+      }
+    });
+
     await Promise.all(tasks);
-    console.log(`[Arena] 참가자 요약 메일 처리 완료: ${snap.size}개 토너먼트`);
+    console.log(`[Arena] 마감 대회 ${snap.size}개 처리 완료`);
     return null;
   });
