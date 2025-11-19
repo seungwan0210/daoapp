@@ -19,32 +19,31 @@ class TournamentFilterChips extends ConsumerWidget {
     ];
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
-          children: filters.map((filter) {
-            final key = filter.$1;
-            final label = filter.$2;
-            final isSelected = selectedFilter == key;
+          children: filters.map((f) {
+            final key = f.$1;
+            final label = f.$2;
+            final selected = selectedFilter == key;
 
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
                 label: Text(label),
-                selected: isSelected,
+                selected: selected,
                 onSelected: (_) => ref.read(arenaProvider.notifier).changeFilter(key),
-                selectedColor: Theme.of(context).primaryColor,
-                checkmarkColor: Colors.white,
+                selectedColor: Theme.of(context).colorScheme.primary,
+                backgroundColor: Colors.grey[100],
+                side: BorderSide(color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent, width: 1.5),
                 labelStyle: TextStyle(
-                  color: isSelected ? Colors.white : null,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? Colors.white : Colors.black87,
+                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
                 ),
-                backgroundColor: isSelected ? null : Colors.grey[200],
-                side: BorderSide(color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade300),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
             );
           }).toList(),

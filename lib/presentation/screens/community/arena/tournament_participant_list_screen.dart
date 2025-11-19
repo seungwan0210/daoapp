@@ -1,4 +1,5 @@
 // lib/presentation/screens/arena/tournament_participant_list_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:daoapp/data/models/tournament_entry_model.dart';
 import 'package:daoapp/data/repositories/arena_repository.dart';
@@ -8,13 +9,13 @@ import 'package:share_plus/share_plus.dart';
 
 class TournamentParticipantListScreen extends StatefulWidget {
   final String tournamentId;
-  final String tournamentTitle; // 선택사항: 화면 상단에 제목 표시용
+  final String tournamentTitle;
 
   const TournamentParticipantListScreen({
-    Key? key,
+    super.key,
     required this.tournamentId,
     this.tournamentTitle = '참가자 명단',
-  }) : super(key: key);
+  });
 
   @override
   State<TournamentParticipantListScreen> createState() => _TournamentParticipantListScreenState();
@@ -27,15 +28,17 @@ class _TournamentParticipantListScreenState extends State<TournamentParticipantL
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.tournamentTitle),
+        title: Text(widget.tournamentTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share),
-            tooltip: 'CSV 공유',
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'CSV로 공유',
             onPressed: _shareAsCsv,
           ),
           IconButton(
-            icon: const Icon(Icons.copy),
+            icon: const Icon(Icons.copy_all),
             tooltip: '전체 복사',
             onPressed: _copyAllToClipboard,
           ),
@@ -45,7 +48,7 @@ class _TournamentParticipantListScreenState extends State<TournamentParticipantL
         stream: _repository.getEntries(widget.tournamentId),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('오류: ${snapshot.error}'));
+            return Center(child: Text('오류가 발생했습니다', style: TextStyle(color: Colors.red[600])));
           }
 
           if (!snapshot.hasData) {
@@ -55,46 +58,29 @@ class _TournamentParticipantListScreenState extends State<TournamentParticipantL
           final entries = snapshot.data!;
 
           if (entries.isEmpty) {
-            return const Center(
-              child: Text('아직 참가자가 없어요', style: TextStyle(fontSize: 18, color: Colors.grey)),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 100, color: Colors.grey[400]),
+                  const SizedBox(height: 24),
+                  Text(
+                    '아직 참가자가 없어요',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('참가 신청을 기다리고 있어요!', style: TextStyle(color: Colors.grey[600])),
+                ],
+              ),
             );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             itemCount: entries.length,
             itemBuilder: (context, index) {
               final entry = entries[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    child: Text(
-                      '${index + 1}',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  title: Text('${entry.nameKo} (${entry.nameEn})'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (entry.rating != null && entry.rating!.isNotEmpty)
-                        Text('레이팅: ${entry.rating}'),
-                      if (entry.homeShop != null && entry.homeShop!.isNotEmpty)
-                        Text('홈샵: ${entry.homeShop}'),
-                      Text('연락처: ${entry.phone}'),
-                      if (entry.email != null && entry.email!.isNotEmpty)
-                        Text('이메일: ${entry.email}'),
-                    ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.copy, size: 20),
-                    tooltip: '이 참가자 정보 복사',
-                    onPressed: () => _copyEntryToClipboard(entry),
-                  ),
-                ),
-              );
+              return _buildParticipantCard(context, entry, index + 1);
             },
           );
         },
@@ -102,64 +88,156 @@ class _TournamentParticipantListScreenState extends State<TournamentParticipantL
     );
   }
 
-  // 참가자 한 명 정보 복사
+  Widget _buildParticipantCard(BuildContext context, TournamentEntryModel entry, int rank) {
+    return Card(
+      elevation: 4,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 순위 아바타 (고급스럽게!)
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: rank <= 3
+                      ? [Colors.amber[600]!, Colors.orange[700]!]
+                      : [Theme.of(context).primaryColor, Theme.of(context).primaryColor.withOpacity(0.8)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  '$rank',
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 16),
+
+            // 참가자 정보
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${entry.nameKo} (${entry.nameEn})',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  if (entry.rating?.isNotEmpty == true)
+                    _infoRow(Icons.star, '레이팅', entry.rating!),
+                  if (entry.homeShop?.isNotEmpty == true)
+                    _infoRow(Icons.store, '홈샵', entry.homeShop!),
+                  _infoRow(Icons.phone, '연락처', entry.phone),
+                  if (entry.email?.isNotEmpty == true)
+                    _infoRow(Icons.email, '이메일', entry.email!),
+                ],
+              ),
+            ),
+
+            // 개별 복사 버튼
+            IconButton(
+              icon: const Icon(Icons.copy, color: Colors.deepPurple),
+              tooltip: '이 참가자 정보 복사',
+              onPressed: () => _copyEntryToClipboard(entry),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: Colors.grey[600]),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 15))),
+        ],
+      ),
+    );
+  }
+
+  // 개별 참가자 복사
   void _copyEntryToClipboard(TournamentEntryModel entry) {
     final text = '''
 ${entry.nameKo} (${entry.nameEn})
 연락처: ${entry.phone}
-${entry.email != null ? '이메일: ${entry.email}' : ''}
-${entry.rating != null ? '레이팅: ${entry.rating}' : ''}
-${entry.homeShop != null ? '홈샵: ${entry.homeShop}' : ''}
-''';
-    Clipboard.setData(ClipboardData(text: text.trim()));
+${entry.email != null ? '이메일: ${entry.email}\n' : ''}${entry.rating != null ? '레이팅: ${entry.rating}\n' : ''}${entry.homeShop != null ? '홈샵: ${entry.homeShop}' : ''}'''.trim();
+
+    Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('참가자 정보가 복사되었습니다!')),
+      SnackBar(
+        content: Row(
+          children: const [
+            Icon(Icons.check, color: Colors.white),
+            SizedBox(width: 12),
+            Text('참가자 정보가 복사되었습니다!'),
+          ],
+        ),
+        backgroundColor: Colors.green[600],
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 
-  // 전체 참가자 CSV 생성 후 공유
+  // CSV 공유
   Future<void> _shareAsCsv() async {
-    final snapshot = await _repository.getEntries(widget.tournamentId).first;
-    if (snapshot.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('참가자가 없어요')));
-      return;
-    }
+    final entries = await _repository.getEntries(widget.tournamentId).first;
+    if (entries.isEmpty) return;
 
     final buffer = StringBuffer();
     buffer.writeln('순번,한글이름,영문이름,연락처,이메일,레이팅,홈샵');
-
-    for (int i = 0; i < snapshot.length; i++) {
-      final e = snapshot[i];
-      buffer.writeln(
-        '${i + 1},${e.nameKo},${e.nameEn},${e.phone},${e.email ?? ''},${e.rating ?? ''},${e.homeShop ?? ''}',
-      );
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      buffer.writeln('${i + 1},${e.nameKo},${e.nameEn},${e.phone},${e.email ?? ''},${e.rating ?? ''},${e.homeShop ?? ''}');
     }
 
-    final csvContent = buffer.toString();
-
-    // share_plus로 공유 (카톡, 텔레그램, 이메일 등)
-    Share.share(
-      csvContent,
-      subject: '${widget.tournamentTitle} 참가자 명단',
-    );
+    Share.share(buffer.toString(), subject: '${widget.tournamentTitle} 참가자 명단 (CSV)');
   }
 
-  // 전체 텍스트로 복사
+  // 전체 복사
   Future<void> _copyAllToClipboard() async {
-    final snapshot = await _repository.getEntries(widget.tournamentId).first;
-    if (snapshot.isEmpty) return;
+    final entries = await _repository.getEntries(widget.tournamentId).first;
+    if (entries.isEmpty) return;
 
     final buffer = StringBuffer();
-    buffer.writeln('${widget.tournamentTitle} 참가자 명단 (${snapshot.length}명)\n');
-
-    for (int i = 0; i < snapshot.length; i++) {
-      final e = snapshot[i];
+    buffer.writeln('${widget.tournamentTitle} 참가자 명단 (${entries.length}명)\n');
+    for (int i = 0; i < entries.length; i++) {
+      final e = entries[i];
       buffer.writeln('${i + 1}. ${e.nameKo} (${e.nameEn}) | ${e.phone} | ${e.rating ?? '-'} | ${e.homeShop ?? '-'}');
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('전체 명단이 복사되었습니다!')),
+      SnackBar(
+        content: Row(
+          children: const [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Text('전체 명단이 복사되었습니다!'),
+          ],
+        ),
+        backgroundColor: Colors.deepPurple,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     );
   }
 }
