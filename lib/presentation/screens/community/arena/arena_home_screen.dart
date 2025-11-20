@@ -2,135 +2,186 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/arena_provider.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'widgets/tournament_card.dart';
-import 'widgets/tournament_filter_chips.dart';
+import 'package:daoapp/presentation/screens/community/arena/widgets/tournament_card.dart';
+import 'package:daoapp/presentation/screens/community/arena/widgets/tournament_filter_chips.dart';
+import 'package:daoapp/presentation/screens/community/arena/tournament_create_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/tournament_detail_screen.dart';
+import 'package:daoapp/presentation/screens/community/arena/my_tournaments_screen.dart';
 
-class ArenaHomeScreen extends ConsumerWidget {
+class ArenaHomeScreen extends ConsumerStatefulWidget {
   const ArenaHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 필터 바뀔 때마다 자동 리로드
-    ref.listen(arenaProvider.select((state) => state.selectedFilter), (_, __) {
-      ref.read(arenaProvider.notifier).loadMore(reset: true);
-    });
+  ConsumerState<ArenaHomeScreen> createState() => _ArenaHomeScreenState();
+}
 
-    // 첫 진입 시 강제 로드 (필터 기본값 기준)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ref.read(arenaProvider).tournaments.isEmpty) {
-        ref.read(arenaProvider.notifier).loadMore(reset: true);
-      }
-    });
+// 여기서 State → ConsumerState 로 변경! (이게 핵심!)
+class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final arenaState = ref.watch(arenaProvider);
-    final tournaments = arenaState.tournaments;
+    final notifier = ref.read(arenaProvider.notifier);
+
+    // 검색어로 필터링
+    final filteredTournaments = arenaState.tournaments.where((t) {
+      return t.title.toLowerCase().contains(_searchQuery.toLowerCase());
+    }).toList();
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: CommonAppBar(
-        title: '아레나',
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: const Text('아레나', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+        centerTitle: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
             onPressed: () {
-              // TODO: 알림 화면 연결
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TournamentCreateScreen()),
+              ).then((_) => notifier.refresh());
             },
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: '대회 만들기',
+            iconSize: 28,
           ),
           IconButton(
-            icon: const Icon(Icons.add_circle_outline, size: 28),
-            tooltip: '대회 개설',
             onPressed: () {
-              Navigator.pushNamed(context, RouteConstants.tournamentCreate);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyTournamentsScreen()),
+              );
             },
+            icon: const Icon(Icons.emoji_events),
+            tooltip: '내가 주최한 대회',
+            iconSize: 28,
+            color: Theme.of(context).colorScheme.primary,
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(arenaProvider.notifier).loadMore(reset: true);
-        },
-        color: Theme.of(context).colorScheme.primary,
+        onRefresh: notifier.refresh,
         child: CustomScrollView(
           slivers: [
-            // 필터 칩
-            const SliverPadding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-              sliver: SliverToBoxAdapter(
-                child: TournamentFilterChips(),
+            const SliverToBoxAdapter(child: TournamentFilterChips()),
+
+            // 검색바 (칩 바로 아래!)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: '대회명을 검색하세요',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => _searchController.clear(),
+                    )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  ),
+                ),
               ),
             ),
 
-            // 빈 상태
-            if (tournaments.isEmpty && !arenaState.isLoading)
-              SliverFillRemaining(
-                hasScrollBody: false,
+            // 리스트
+            SliverPadding(
+              padding: const EdgeInsets.only(bottom: 100),
+              sliver: filteredTournaments.isEmpty && !arenaState.isLoading
+                  ? SliverToBoxAdapter(
                 child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.emoji_events_outlined,
-                        size: 90,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        arenaState.selectedFilter == 'my_hosted'
-                            ? '아직 주최한 대회가 없어요\n직접 만들어보세요!'
-                            : '등록된 대회가 없어요',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                          height: 1.5,
+                  child: Padding(
+                    padding: const EdgeInsets.all(60),
+                    child: Column(
+                      children: [
+                        Icon(
+                          _searchQuery.isEmpty ? Icons.sports_esports_outlined : Icons.search_off,
+                          size: 100,
+                          color: Colors.grey[400],
                         ),
-                      ),
-                      const SizedBox(height: 32),
-                      OutlinedButton.icon(
-                        onPressed: () => ref.read(arenaProvider.notifier).loadMore(reset: true),
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('새로고침'),
-                      ),
-                    ],
+                        const SizedBox(height: 24),
+                        Text(
+                          _searchQuery.isEmpty
+                              ? '등록된 대회가 없어요'
+                              : '검색 결과가 없어요',
+                          style: TextStyle(fontSize: 20, color: Colors.grey[600], fontWeight: FontWeight.w600),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          _searchQuery.isEmpty
+                              ? '새로운 대회를 기다려주세요!'
+                              : '"$_searchQuery"에 맞는 대회가 없어요',
+                          style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               )
-            else
-            // 대회 리스트
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                      // 무한 스크롤 로딩
-                      if (index >= tournaments.length) {
-                        if (arenaState.hasMore && !arenaState.isLoading) {
-                          ref.read(arenaProvider.notifier).loadMore();
-                        }
-                        return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 20),
-                          child: Center(child: CircularProgressIndicator()),
+                  : SliverList(
+                delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                    if (index >= filteredTournaments.length) {
+                      if (arenaState.hasMore) {
+                        notifier.loadTournaments();
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
                         );
                       }
+                      return const SizedBox.shrink();
+                    }
 
-                      final tournament = tournaments[index];
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: TournamentCard(tournament: tournament),
-                      );
-                    },
-                    childCount: tournaments.length + (arenaState.hasMore ? 1 : 0),
-                  ),
+                    final tournament = filteredTournaments[index];
+                    return TournamentCard(
+                      tournament: tournament,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TournamentDetailScreen(tournamentId: tournament.id!),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  childCount: filteredTournaments.length + (arenaState.hasMore ? 1 : 0),
                 ),
               ),
-
-            // 하단 여백 (키보드나 FAB 없어도 안전하게)
-            const SliverPadding(padding: EdgeInsets.only(bottom: 100)),
+            ),
           ],
         ),
       ),

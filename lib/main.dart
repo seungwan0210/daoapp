@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // 공통
 import 'package:daoapp/presentation/screens/splash_screen.dart';
@@ -55,14 +56,12 @@ import 'package:daoapp/presentation/screens/community/checkout/practice/checkout
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_my_history_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart';
 
-// 아레나 (토너먼트)
+// 아레나 (토너먼트) - 신규
 import 'package:daoapp/presentation/screens/community/arena/arena_home_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/tournament_detail_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/tournament_entry_form_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/tournament_participant_list_screen.dart';
-
-import 'package:daoapp/data/models/tournament_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,14 +89,11 @@ class OnlineStatusManager {
     FirebaseFirestore.instance
         .collection('online_users')
         .doc(_currentUser!.uid)
-        .set(
-      {
-        'uid': _currentUser!.uid,
-        'name': _currentUser!.displayName ?? '이름 없음',
-        'lastSeen': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    )
+        .set({
+      'uid': _currentUser!.uid,
+      'name': _currentUser!.displayName ?? '이름 없음',
+      'lastSeen': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true))
         .catchError((e) => debugPrint('Online status update error: $e'));
   }
 
@@ -169,7 +165,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
         RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
 
-        // 아레나 토너먼트
+        // 아레나 토너먼트 (신규)
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
         RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
       },
@@ -191,26 +187,25 @@ class DaoApp extends StatelessWidget {
 
         // 토너먼트 상세
         if (settings.name == RouteConstants.tournamentDetail) {
-          final args = settings.arguments as Map<String, dynamic>;
+          final tournamentId = settings.arguments as String;
           return MaterialPageRoute(
-            builder: (_) => TournamentDetailScreen(
-              tournament: args['tournament'] as TournamentModel,
-              isOrganizer: args['isOrganizer'] as bool,
-            ),
+            builder: (_) => TournamentDetailScreen(tournamentId: tournamentId),
           );
         }
 
-        // 참가 폼
+        // 참가 신청 폼
         if (settings.name == RouteConstants.tournamentEntryForm) {
           final tournamentId = settings.arguments as String;
-          return MaterialPageRoute(builder: (_) => TournamentEntryFormScreen(tournamentId: tournamentId));
+          return MaterialPageRoute(
+            builder: (_) => TournamentEntryFormScreen(tournamentId: tournamentId),
+          );
         }
 
         // 참가자 명단
         if (settings.name == RouteConstants.tournamentParticipantList) {
-          final args = settings.arguments as Map<String, dynamic>?;
-          final tournamentId = args?['tournamentId'] as String ?? settings.arguments as String;
-          final tournamentTitle = args?['tournamentTitle'] as String ?? '참가자 명단';
+          final args = settings.arguments as Map<String, dynamic>;
+          final tournamentId = args['tournamentId'] as String;
+          final tournamentTitle = args['tournamentTitle'] as String? ?? '참가자 명단';
           return MaterialPageRoute(
             builder: (_) => TournamentParticipantListScreen(
               tournamentId: tournamentId,

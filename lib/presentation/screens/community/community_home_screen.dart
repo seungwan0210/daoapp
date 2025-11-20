@@ -129,8 +129,11 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
                             ),
                           ),
 
-                          // 3. 아레나 - 사진만 쭉!
-                          ArenaPreview(onSeeAllPressed: _goToArenaFull),
+                          // 아레나 ← 이거만 바꿔!
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8), // ← vertical → top만!
+                            child: ArenaPreview(onSeeAllPressed: _goToArenaFull),
+                          ),
                         ],
                       ),
                     ),

@@ -1,220 +1,164 @@
 // lib/presentation/screens/community/arena/widgets/tournament_card.dart
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:daoapp/core/utils/arena_utils.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/core/utils/arena_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/screens/community/arena/widgets/entry_status_badge.dart';
 
 class TournamentCard extends StatelessWidget {
   final TournamentModel tournament;
+  final VoidCallback onTap;
 
-  const TournamentCard({super.key, required this.tournament});
+  const TournamentCard({
+    super.key,
+    required this.tournament,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final status = ArenaUtils.getEntryStatus(
-      eventDate: tournament.eventDate,
       entryStartDate: tournament.entryStartDate,
       entryEndDate: tournament.entryEndDate,
+      eventDate: tournament.eventDate,
     );
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final isOrganizer = currentUser != null &&
-        (tournament.createdByUid == currentUser.uid ||
-            (currentUser.email != null && tournament.organizerEmails.contains(currentUser.email)));
-
     return AppCard(
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          RouteConstants.tournamentDetail,
-          arguments: {
-            'tournament': tournament,
-            'isOrganizer': isOrganizer,
-          },
-        );
-      },
-      child: SizedBox(
-        height: 380, // ← CarouselSlider에 딱 맞는 고정 높이 (필수!)
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 포스터 영역 (고정 180)
-            Stack(
+      onTap: onTap,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 포스터 이미지
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: tournament.posterUrl != null && tournament.posterUrl!.isNotEmpty
+                ? CachedNetworkImage(
+              imageUrl: tournament.posterUrl!,
+              height: 160,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              placeholder: (_, __) => Container(
+                color: Colors.grey[200],
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+              errorWidget: (_, __, ___) => Container(
+                color: Colors.grey[300],
+                child: const Icon(Icons.image_not_supported, size: 60, color: Colors.white70),
+              ),
+            )
+                : Container(
+              height: 160,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.indigo, Colors.purple],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: const Center(
+                child: Icon(Icons.emoji_events, size: 80, color: Colors.white),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: tournament.imageUrl?.isNotEmpty == true
-                      ? Image.network(
-                    tournament.imageUrl!,
-                    height: 180,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) => progress == null
-                        ? child
-                        : Container(color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
-                    errorBuilder: (_, __, ___) => Container(
-                      height: 180,
-                      color: Colors.grey[300],
-                      child: const Icon(Icons.sports_esports, size: 60, color: Colors.grey),
-                    ),
-                  )
-                      : Container(
-                    height: 180,
-                    color: Colors.grey[200],
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.emoji_events, size: 60, color: Colors.grey),
-                          SizedBox(height: 8),
-                          Text('포스터 없음', style: TextStyle(color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // 제목 오버레이
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
-                        colors: [Colors.black87, Colors.transparent],
-                      ),
-                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-                    ),
-                    child: Text(
-                      tournament.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        shadows: [Shadow(blurRadius: 10, color: Colors.black54)],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-
-                // 상태 뱃지
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: ArenaUtils.getStatusColor(status, context),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          ArenaUtils.getStatusText(status),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                        ),
-                        if (status == EntryStatus.open) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            ArenaUtils.getEntryDday(tournament.entryEndDate),
-                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-
-                // 주최자 뱃지
-                if (isOrganizer)
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                // 상태 뱃지 + 참가 인원
+                Row(
+                  children: [
+                    EntryStatusBadge(tournament: tournament),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple.withOpacity(0.9),
+                        color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6)],
                       ),
-                      child: const Text('주최 중', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                      child: Text(
+                        '${tournament.entryCount}/${tournament.maxParticipants}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // 대회명
+                Text(
+                  tournament.title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+
+                const SizedBox(height: 10),
+
+                // 장소
+                Row(
+                  children: [
+                    Icon(Icons.location_on_outlined, size: 18, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        tournament.location,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // 참가비 (0원일 때 "무료" 표시!)
+                Row(
+                  children: [
+                    Icon(Icons.paid_outlined, size: 18, color: theme.colorScheme.primary),
+                    const SizedBox(width: 6),
+                    Text(
+                      tournament.entryFee > 0
+                          ? '${tournament.entryFee.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원'
+                          : '무료 입장',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: tournament.entryFee > 0 ? theme.colorScheme.primary : Colors.green[700],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // 진행중/예정일 때만 D-Day 표시
+                if (status == EntryStatus.open || status == EntryStatus.upcoming)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      ArenaUtils.entryDday(tournament.entryEndDate),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: status == EntryStatus.open ? Colors.red[600] : Colors.orange[700],
+                      ),
                     ),
                   ),
               ],
             ),
-
-            // 하단 정보 영역 → Expanded + Clip으로 overflow 완벽 방지
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 설명 (넘치면 자름)
-                    Expanded(
-                      child: Text(
-                        tournament.description,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.4),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // 날짜 + 참가 정보
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${tournament.eventDate.toDate().month}/${tournament.eventDate.toDate().day}(${_getWeekday(tournament.eventDate.toDate().weekday)})',
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              ArenaUtils.getEventDday(tournament.eventDate),
-                              style: TextStyle(fontSize: 14, color: Colors.deepOrange[700], fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${tournament.entryCount}명 참가',
-                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              tournament.entryFee == 0 ? '무료' : '${tournament.entryFee}원',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  String _getWeekday(int weekday) => ['월', '화', '수', '목', '금', '토', '일'][weekday - 1];
 }

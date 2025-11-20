@@ -1,4 +1,5 @@
 // lib/presentation/screens/community/arena/widgets/tournament_filter_chips.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/providers/arena_provider.dart';
@@ -8,46 +9,67 @@ class TournamentFilterChips extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedFilter = ref.watch(arenaProvider.select((p) => p.selectedFilter));
+    final currentFilter = ref.watch(arenaProvider.select((s) => s.currentFilter));
 
     final filters = [
-      ('all', '전체'),
-      ('open', '엔트리 오픈'),
-      ('upcoming', '엔트리 예정'),
-      ('closed', '마감'),
-      ('my_hosted', '내가 주최'),
+      ('전체', 'all'),
+      ('진행중', 'open'),
+      ('예정', 'upcoming'),
+      ('마감', 'closed'),
     ];
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: filters.map((f) {
-            final key = f.$1;
-            final label = f.$2;
-            final selected = selectedFilter == key;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: filters.asMap().entries.map((entry) {
+          final index = entry.key;
+          final (label, value) = entry.value;
+          final isSelected = currentFilter == value;
 
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(label),
-                selected: selected,
-                onSelected: (_) => ref.read(arenaProvider.notifier).changeFilter(key),
-                selectedColor: Theme.of(context).colorScheme.primary,
-                backgroundColor: Colors.grey[100],
-                side: BorderSide(color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent, width: 1.5),
-                labelStyle: TextStyle(
-                  color: selected ? Colors.white : Colors.black87,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index < filters.length - 1 ? 12 : 0,
+              left: index == 0 ? 4 : 0,
+            ),
+            child: FilterChip(
+              label: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  letterSpacing: 0.3,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
               ),
-            );
-          }).toList(),
-        ),
+              selected: isSelected,
+              onSelected: (_) {
+                ref.read(arenaProvider.notifier).changeFilter(value);
+              },
+              backgroundColor: Colors.transparent,
+              selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.15),
+              showCheckmark: false,
+              side: BorderSide(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.grey.shade300,
+                width: isSelected ? 2.2 : 1.5,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              labelStyle: TextStyle(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.8),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              ),
+              elevation: isSelected ? 4 : 0,
+              pressElevation: 8,
+              shadowColor: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.3) : Colors.transparent,
+            ),
+          );
+        }).toList(),
       ),
     );
   }

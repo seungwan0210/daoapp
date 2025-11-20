@@ -206,29 +206,25 @@
 │   │   │             → 댓글 전체 보기 + 댓글 작성 바텀시트
 │   │   │
 │   │   ├── arena/
-│   │   │   ├──  arena_home_screen.dart   
-│   │   │   │   → 메인 리스트 + 필터 + FAB
-│   │   │   ├──  tournament_create_screen.dart       
-│   │   │   │   → 대회 개설 (포스터 + 공동주최자)
-│   │   │   ├──  tournament_detail_screen.dart        
-│   │   │   │   → 상세 + 참가하기 버튼
-│   │   │   ├──  tournament_entry_form_screen.dart    
-│   │   │   │   → 참가 신청 폼
-│   │   │   ├──  tournament_participant_list_screen.dart 
-│   │   │   │   → 주최자용 명단 + CSV 공유
-│   │   │   ├──  my_hosted_tournaments_screen.dart    
-│   │   │   │   → 내가 주최한 대회 전용 화면 (옵션)
+│   │   │   ├──  aarena_home_screen.dart
+│   │   │             → 아레나 홈 화면 (전체 대회 리스트)
+│   │   │   ├── my_tournaments_screen.dart
+│   │   │             → 내가 주최한 대회 목록
+│   │   │   ├── tournament_create_screen.dart
+│   │   │             → 대회 개설 화면
+│   │   │   ├── tournament_detail_screen.dart
+│   │   │             → 대회 상세 화면
+│   │   │   ├── tournament_entry_form_screen.dart
+│   │   │             → 참가 신청 폼 화면
+│   │   │   ├── tournament_participant_list_screen.dart
+│   │   │             → 참가자 명단 화면
 │   │   │   └── widgets/
-│   │   │       ├── tournament_card.dart             
-│   │   │       │   → 카드 (상태 뱃지 + 참가자 수)
-│   │   │       ├── tournament_filter_chips.dart     
-│   │   │       │   → 필터 칩 (전체/오픈/예정/마감/내가 주최)
-│   │   │       ├── entry_status_badge.dart          
-│   │   │       │   → 재사용 뱃지 위젯
-│   │   │       ├── participant_list_item.dart       
-│   │   │       │   → 참가자 리스트 한 줄 위젯
-│   │   │       ├── organizer_email_input_field.dart 
-│   │   │       │   → 공동주최자 이메일 입력 위젯
+│   │   │       ├── entry_status_badge.dart
+│   │   │       │   → 참가 상태 뱃지 (진행중/예정/마감)
+│   │   │       ├──tournament_card.dart
+│   │   │       │   → 대회 카드 위젯
+│   │   │       ├──tournament_filter_chips.dart
+│   │   │       │   →필터 칩 (전체·진행중·예정·마감)
 │   │   │
 │   └── admin/
 │       ├── admin_dashboard_screen.dart
