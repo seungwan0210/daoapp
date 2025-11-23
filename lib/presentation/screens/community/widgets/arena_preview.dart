@@ -29,31 +29,35 @@ class ArenaPreview extends StatelessWidget {
             _buildUpcomingTournaments(context),
             const SizedBox(height: 12),
             _buildArenaEntryButton(context), // 항상 보이는 버튼
-            const SizedBox(height: 0), // 안전 여백
+            const SizedBox(height: 0),
           ],
         ),
       ),
     );
   }
 
-  // 지금 참가 가능한 대회
+  // 지금 참가 가능한 대회 (엔트리 진행 중)
   Widget _buildOpenTournaments(BuildContext context) {
-    final now = Timestamp.now();
-    final threeDaysAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 3)));
+    final now = nowKst();
+    final nowTs = Timestamp.fromDate(now);
+    final threeDaysAgoTs =
+    Timestamp.fromDate(now.subtract(const Duration(days: 3)));
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('tournaments')
-          .where('entryStartDate', isLessThanOrEqualTo: now)
-          .where('entryEndDate', isGreaterThanOrEqualTo: now)
-          .where('eventDate', isGreaterThanOrEqualTo: threeDaysAgo)
+          .where('entryStartDate', isLessThanOrEqualTo: nowTs)
+          .where('entryEndDate', isGreaterThanOrEqualTo: nowTs)
+          .where('eventDate', isGreaterThanOrEqualTo: threeDaysAgoTs)
           .orderBy('entryEndDate')
           .limit(8)
           .snapshots(),
       builder: (context, snapshot) {
         final tournaments = snapshot.hasData
             ? snapshot.data!.docs
-            .map((doc) => TournamentModel.fromJson(doc.data() as Map<String, dynamic>).copyWith(id: doc.id))
+            .map((doc) => TournamentModel.fromJson(
+          doc.data() as Map<String, dynamic>,
+        ).copyWith(id: doc.id))
             .toList()
             : <TournamentModel>[];
 
@@ -69,23 +73,27 @@ class ArenaPreview extends StatelessWidget {
     );
   }
 
-  // 예정된 대회
+  // 예정된 대회 (엔트리 시작 전)
   Widget _buildUpcomingTournaments(BuildContext context) {
-    final now = Timestamp.now();
-    final threeDaysAgo = Timestamp.fromDate(DateTime.now().subtract(const Duration(days: 3)));
+    final now = nowKst();
+    final nowTs = Timestamp.fromDate(now);
+    final threeDaysAgoTs =
+    Timestamp.fromDate(now.subtract(const Duration(days: 3)));
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('tournaments')
-          .where('entryStartDate', isGreaterThan: now)
-          .where('eventDate', isGreaterThanOrEqualTo: threeDaysAgo)
+          .where('entryStartDate', isGreaterThan: nowTs)
+          .where('eventDate', isGreaterThanOrEqualTo: threeDaysAgoTs)
           .orderBy('entryStartDate')
           .limit(8)
           .snapshots(),
       builder: (context, snapshot) {
         final tournaments = snapshot.hasData
             ? snapshot.data!.docs
-            .map((doc) => TournamentModel.fromJson(doc.data() as Map<String, dynamic>).copyWith(id: doc.id))
+            .map((doc) => TournamentModel.fromJson(
+          doc.data() as Map<String, dynamic>,
+        ).copyWith(id: doc.id))
             .toList()
             : <TournamentModel>[];
 
@@ -122,10 +130,16 @@ class ArenaPreview extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
               ),
               if (showSeeAll && hasData)
-                TextButton(onPressed: onSeeAllPressed, child: const Text('전체 보기')),
+                TextButton(
+                  onPressed: onSeeAllPressed,
+                  child: const Text('전체 보기'),
+                ),
             ],
           ),
         ),
@@ -147,7 +161,8 @@ class ArenaPreview extends StatelessWidget {
               : Center(
             child: Text(
               '아직 $title가 없어요',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+              style:
+              TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
           ),
         ),
@@ -167,20 +182,35 @@ class ArenaPreview extends StatelessWidget {
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: Theme.of(context).colorScheme.primary,
-          side: BorderSide(color: Theme.of(context).colorScheme.primary.withOpacity(0.5)),
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+          ),
+          padding:
+          const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
         ),
       ),
     );
   }
 
+  /// ✅ 여기서 D-Day 로직 정리:
+  /// - 엔트리 시작 전  → entryStartDate 기준 D-표시
+  /// - 엔트리 진행 중 → entryEndDate 기준 D-표시
   Widget _buildCard(TournamentModel t, {required bool showDday}) {
-    final dday = showDday
-        ? (t.entryStartDate.toDate().isAfter(DateTime.now())
-        ? ArenaUtils.entryDday(t.entryStartDate)
-        : ArenaUtils.entryDday(t.entryEndDate))
-        : '';
+    String dday = '';
+
+    if (showDday) {
+      final now = nowKst();
+      final entryStart = t.entryStartDate.toDate();
+
+      final bool isBeforeStart = entryStart.isAfter(now);
+
+      dday = isBeforeStart
+          ? ArenaUtils.entryDday(t.entryStartDate) // 엔트리 예정: 시작일 기준
+          : ArenaUtils.entryDday(t.entryEndDate);  // 엔트리 중: 마감일 기준
+    }
 
     return Container(
       width: 100,
@@ -204,7 +234,8 @@ class ArenaPreview extends StatelessWidget {
             left: 4,
             right: 4,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.black54,
                 borderRadius: BorderRadius.circular(8),
@@ -215,15 +246,26 @@ class ArenaPreview extends StatelessWidget {
                   if (dday.isNotEmpty) ...[
                     Text(
                       dday,
-                      style: const TextStyle(color: Colors.orange, fontSize: 9, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(width: 4),
                   ],
-                  const Icon(Icons.people, size: 11, color: Colors.white),
+                  const Icon(
+                    Icons.people,
+                    size: 11,
+                    color: Colors.white,
+                  ),
                   const SizedBox(width: 3),
                   Text(
                     '${t.entryCount}/${t.maxParticipants}',
-                    style: const TextStyle(color: Colors.white, fontSize: 10),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                    ),
                   ),
                 ],
               ),
@@ -239,7 +281,11 @@ class ArenaPreview extends StatelessWidget {
       width: 100,
       height: 100,
       color: Colors.grey[300],
-      child: const Icon(Icons.emoji_events, size: 36, color: Colors.white70),
+      child: const Icon(
+        Icons.emoji_events,
+        size: 36,
+        color: Colors.white70,
+      ),
     );
   }
 }

@@ -216,6 +216,8 @@
 │   │   │             → 대회 상세 화면
 │   │   │   ├── tournament_entry_form_screen.dart
 │   │   │             → 참가 신청 폼 화면
+│   │   │   ├── tournament_edit_screen.dart
+│   │   │             → 참가 수정 삭제 폼 화면
 │   │   │   ├── tournament_participant_list_screen.dart
 │   │   │             → 참가자 명단 화면
 │   │   │   └── widgets/

@@ -20,11 +20,16 @@ class TournamentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    // 상태 (엔트리 예정/중/마감/진행중/종료)
     final status = ArenaUtils.getEntryStatus(
       entryStartDate: tournament.entryStartDate,
       entryEndDate: tournament.entryEndDate,
       eventDate: tournament.eventDate,
     );
+
+    // 👇 아래쪽에 보여줄 "대회일 기준" D-DAY
+    final eventDday = ArenaUtils.eventDday(tournament.eventDate);
 
     return AppCard(
       onTap: onTap,
@@ -36,7 +41,8 @@ class TournamentCard extends StatelessWidget {
           // 포스터 이미지
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: tournament.posterUrl != null && tournament.posterUrl!.isNotEmpty
+            child: tournament.posterUrl != null &&
+                tournament.posterUrl!.isNotEmpty
                 ? CachedNetworkImage(
               imageUrl: tournament.posterUrl!,
               height: 160,
@@ -44,11 +50,16 @@ class TournamentCard extends StatelessWidget {
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(
                 color: Colors.grey[200],
-                child: const Center(child: CircularProgressIndicator()),
+                child:
+                const Center(child: CircularProgressIndicator()),
               ),
               errorWidget: (_, __, ___) => Container(
                 color: Colors.grey[300],
-                child: const Icon(Icons.image_not_supported, size: 60, color: Colors.white70),
+                child: const Icon(
+                  Icons.image_not_supported,
+                  size: 60,
+                  color: Colors.white70,
+                ),
               ),
             )
                 : Container(
@@ -61,7 +72,11 @@ class TournamentCard extends StatelessWidget {
                 ),
               ),
               child: const Center(
-                child: Icon(Icons.emoji_events, size: 80, color: Colors.white),
+                child: Icon(
+                  Icons.emoji_events,
+                  size: 80,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -77,14 +92,18 @@ class TournamentCard extends StatelessWidget {
                     EntryStatusBadge(tournament: tournament),
                     const Spacer(),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         '${tournament.entryCount}/${tournament.maxParticipants}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ],
@@ -108,12 +127,17 @@ class TournamentCard extends StatelessWidget {
                 // 장소
                 Row(
                   children: [
-                    Icon(Icons.location_on_outlined, size: 18, color: Colors.grey[600]),
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 18,
+                      color: Colors.grey[600],
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         tournament.location,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                        style: theme.textTheme.bodyMedium
+                            ?.copyWith(color: Colors.grey[700]),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -123,37 +147,49 @@ class TournamentCard extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // 참가비 (0원일 때 "무료" 표시!)
+                // 참가비
                 Row(
                   children: [
-                    Icon(Icons.paid_outlined, size: 18, color: theme.colorScheme.primary),
+                    Icon(
+                      Icons.paid_outlined,
+                      size: 18,
+                      color: theme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       tournament.entryFee > 0
-                          ? '${tournament.entryFee.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}원'
+                          ? '${tournament.entryFee.toString().replaceAllMapped(
+                        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+                            (m) => '${m[1]},',
+                      )}원'
                           : '무료 입장',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
-                        color: tournament.entryFee > 0 ? theme.colorScheme.primary : Colors.green[700],
+                        color: tournament.entryFee > 0
+                            ? theme.colorScheme.primary
+                            : Colors.green[700],
                       ),
                     ),
                   ],
                 ),
 
-                // 진행중/예정일 때만 D-Day 표시
-                if (status == EntryStatus.open || status == EntryStatus.upcoming)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      ArenaUtils.entryDday(tournament.entryEndDate),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: status == EntryStatus.open ? Colors.red[600] : Colors.orange[700],
-                      ),
+                // 🔥 항상 "대회일 기준 D-day" 표시
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    eventDday,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: eventDday.startsWith('D-')
+                          ? Colors.orange[700]
+                          : (eventDday == '오늘!'
+                          ? Colors.red[600]
+                          : Colors.grey[600]),
                     ),
                   ),
+                ),
               ],
             ),
           ),
