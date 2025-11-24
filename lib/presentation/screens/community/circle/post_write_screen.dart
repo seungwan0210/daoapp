@@ -9,7 +9,15 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:daoapp/data/models/user_model.dart';
 
 class PostWriteScreen extends ConsumerStatefulWidget {
-  PostWriteScreen({super.key}); // const 제거!
+  // 추가: 마이로그에서 넘어올 때 사용할 초기값
+  final String? initialContent;
+  final File? initialImageFile;
+
+  const PostWriteScreen({
+    super.key,
+    this.initialContent,
+    this.initialImageFile,
+  });
 
   @override
   ConsumerState<PostWriteScreen> createState() => _PostWriteScreenState();
@@ -25,8 +33,18 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   String? _existingPhotoUrl;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
+  void initState() {
+    super.initState();
+
+    // 마이로그에서 넘어온 경우 → 자동으로 내용 + 사진 채우기
+    if (widget.initialContent != null) {
+      _contentController.text = widget.initialContent!;
+    }
+    if (widget.initialImageFile != null) {
+      _image = widget.initialImageFile;
+    }
+
+    // 기존 게시물 수정인 경우 (서클에서 직접 수정)
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null && args['postId'] != null && _postId == null) {
       _postId = args['postId'] as String;
@@ -82,10 +100,8 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
         photoUrl = await uploadTask.ref.getDownloadURL();
       }
 
-      // displayName 저장 제거!
       final data = {
         'userId': user.uid,
-        // 'displayName': appUser.koreanName ?? 'Unknown',  ← 완전 삭제!
         'userPhotoUrl': appUser.profileImageUrl,
         'photoUrl': photoUrl,
         'content': _contentController.text.trim(),
@@ -135,7 +151,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(isEdit ? "게시물 수정" : "게시물 작성", style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          isEdit ? "게시물 수정" : "서클에 공유하기",
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           AnimatedOpacity(
             opacity: _canPost ? 1.0 : 0.5,
@@ -170,7 +189,9 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
                 maxLines: null,
                 style: const TextStyle(fontSize: 16, height: 1.5),
                 decoration: InputDecoration(
-                  hintText: "무슨 생각을 하고 계신가요?",
+                  hintText: widget.initialContent != null
+                      ? "마이로그를 다듬어서 공유해 보세요"
+                      : "무슨 생각을 하고 계신가요?",
                   hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
                   border: InputBorder.none,
                   focusedBorder: UnderlineInputBorder(

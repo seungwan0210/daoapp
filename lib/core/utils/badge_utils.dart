@@ -8,7 +8,9 @@ class BadgeUtils {
   /// 모든 활성화된 배지 키 (monthly_*, admin_*) → 최신순 정렬
   static List<String> extractActiveBadges(Map<String, dynamic> badgesMap) {
     final active = badgesMap.entries
-        .where((e) => e.value == true && (e.key.startsWith('monthly_') || e.key.startsWith('admin_')))
+        .where((e) =>
+    e.value == true &&
+        (e.key.startsWith('monthly_') || e.key.startsWith('admin_')))
         .map((e) => e.key)
         .toList();
 
@@ -48,19 +50,23 @@ class BadgeUtils {
     return badgesMap[badgeKey] == true;
   }
 
-  /// 툴팁용 텍스트 생성 (예: "2025년 11월 Pro")
+  /// 툴팁용 텍스트 생성
+  /// - monthly_2025_11_pro → "2025년 11월 Pro"
+  /// - admin_pro → "관리자 배지: Pro"
   static String getBadgeTooltip(String key) {
     if (key.startsWith('monthly_')) {
       final parts = key.split('_');
       if (parts.length < 4) return key;
       final year = parts[1];
-      final month = int.tryParse(parts[2])?.toString().padLeft(2, '0') ?? parts[2];
+      final month =
+          int.tryParse(parts[2])?.toString().padLeft(2, '0') ?? parts[2];
       final rank = _formatRank(parts[3]);
       return '$year년 $month월 $rank';
     } else if (key.startsWith('admin_')) {
       final rank = _formatRank(key.substring('admin_'.length));
       return '관리자 배지: $rank';
     }
+    // 그 외(직접 키를 넣은 경우)는 raw 키 그대로
     return key;
   }
 
@@ -80,6 +86,12 @@ class BadgeUtils {
       'bronze2': 'Bronze 2',
       'bronze3': 'Bronze 3',
       'tro': '야미 트로피',
+
+      // 🔥 시즌 배지 표시 이름
+      'season': 'Season Champion', // 시즌 챔피언
+      'season1': 'Season 1st',     // 시즌 1위
+      'season2': 'Season 2nd',     // 시즌 2위
+      'season3': 'Season 3rd',     // 시즌 3위
     };
     return map[raw] ?? raw.toUpperCase();
   }

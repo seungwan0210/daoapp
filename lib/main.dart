@@ -9,7 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/date_symbol_data_local.dart'; // 추가
 
 // 공통
 import 'package:daoapp/presentation/screens/splash_screen.dart';
@@ -27,6 +27,9 @@ import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
 import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
 import 'package:daoapp/presentation/screens/user/report_form_screen.dart';
+
+// 마이로그 (신규 추가!)
+import 'package:daoapp/presentation/screens/user/my_log/my_log_home_screen.dart'; // 마이로그 홈
 
 // 관리자
 import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
@@ -56,7 +59,7 @@ import 'package:daoapp/presentation/screens/community/checkout/practice/checkout
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_my_history_screen.dart';
 import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart';
 
-// 아레나 (토너먼트) - 신규
+// 아레나 (토너먼트)
 import 'package:daoapp/presentation/screens/community/arena/arena_home_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/community/arena/tournament_detail_screen.dart';
@@ -66,6 +69,7 @@ import 'package:daoapp/presentation/screens/community/arena/tournament_participa
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await initializeDateFormatting('ko_KR', null); // ← 이거 추가!!
   setupDependencies();
 
   FirebaseAuth.instance.authStateChanges().listen((user) {
@@ -139,6 +143,9 @@ class DaoApp extends StatelessWidget {
         RouteConstants.report: (_) => const ReportFormScreen(),
         RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
 
+        // 마이로그 (신규 추가!)
+        RouteConstants.myLogHome: (_) => const MyLogHomeScreen(), // 마이로그 홈
+
         // 관리자
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
@@ -165,7 +172,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
         RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
 
-        // 아레나 토너먼트 (신규)
+        // 아레나 토너먼트
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
         RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
       },

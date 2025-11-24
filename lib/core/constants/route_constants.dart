@@ -19,6 +19,9 @@ class RouteConstants {
   static const String report = '/report';
   static const String adminReportList = '/admin/report-list';
 
+  // === 마이로그 (신규 추가!) ===
+  static const String myLogHome = '/my-log/home'; // 마이로그 홈 화면
+
   // === 관리자 ===
   static const String adminDashboard = '/admin/dashboard';
   static const String pointAward = '/admin/point-award';

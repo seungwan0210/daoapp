@@ -27,9 +27,6 @@ class ArenaPreview extends StatelessWidget {
             _buildOpenTournaments(context),
             const SizedBox(height: 12),
             _buildUpcomingTournaments(context),
-            const SizedBox(height: 12),
-            _buildArenaEntryButton(context), // 항상 보이는 버튼
-            const SizedBox(height: 0),
           ],
         ),
       ),
@@ -55,9 +52,11 @@ class ArenaPreview extends StatelessWidget {
       builder: (context, snapshot) {
         final tournaments = snapshot.hasData
             ? snapshot.data!.docs
-            .map((doc) => TournamentModel.fromJson(
-          doc.data() as Map<String, dynamic>,
-        ).copyWith(id: doc.id))
+            .map(
+              (doc) => TournamentModel.fromJson(
+            doc.data() as Map<String, dynamic>,
+          ).copyWith(id: doc.id),
+        )
             .toList()
             : <TournamentModel>[];
 
@@ -65,7 +64,7 @@ class ArenaPreview extends StatelessWidget {
           context: context,
           title: "지금 참가 가능한 대회",
           tournaments: tournaments,
-          showSeeAll: true,
+          showSeeAll: true, // ✅ 여기서 '전체 보기' 항상 노출
           showDday: true,
           onCardTap: () => _goToArenaHome(context),
         );
@@ -91,9 +90,11 @@ class ArenaPreview extends StatelessWidget {
       builder: (context, snapshot) {
         final tournaments = snapshot.hasData
             ? snapshot.data!.docs
-            .map((doc) => TournamentModel.fromJson(
-          doc.data() as Map<String, dynamic>,
-        ).copyWith(id: doc.id))
+            .map(
+              (doc) => TournamentModel.fromJson(
+            doc.data() as Map<String, dynamic>,
+          ).copyWith(id: doc.id),
+        )
             .toList()
             : <TournamentModel>[];
 
@@ -101,7 +102,7 @@ class ArenaPreview extends StatelessWidget {
           context: context,
           title: "예정된 대회",
           tournaments: tournaments,
-          showSeeAll: false,
+          showSeeAll: false, // 여기엔 전체보기 X
           showDday: true,
           onCardTap: () => _goToArenaHome(context),
         );
@@ -123,6 +124,7 @@ class ArenaPreview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 제목 + 전체 보기
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
@@ -135,8 +137,9 @@ class ArenaPreview extends StatelessWidget {
                     .titleMedium
                     ?.copyWith(fontWeight: FontWeight.bold),
               ),
-              if (showSeeAll && hasData)
+              if (showSeeAll)
                 TextButton(
+                  // ✅ 커뮤니티 프리뷰처럼 콜백으로 처리
                   onPressed: onSeeAllPressed,
                   child: const Text('전체 보기'),
                 ),
@@ -161,37 +164,11 @@ class ArenaPreview extends StatelessWidget {
               : Center(
             child: Text(
               '아직 $title가 없어요',
-              style:
-              TextStyle(color: Colors.grey[600], fontSize: 14),
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  // 항상 보이는 "아레나 바로가기" 버튼
-  Widget _buildArenaEntryButton(BuildContext context) {
-    return Center(
-      child: OutlinedButton.icon(
-        onPressed: () => _goToArenaHome(context),
-        icon: const Icon(Icons.emoji_events_outlined, size: 16),
-        label: const Text(
-          '아레나 바로가기',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Theme.of(context).colorScheme.primary,
-          side: BorderSide(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
-          ),
-          padding:
-          const EdgeInsets.symmetric(horizontal: 4, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(30),
-          ),
-        ),
-      ),
     );
   }
 
@@ -209,7 +186,7 @@ class ArenaPreview extends StatelessWidget {
 
       dday = isBeforeStart
           ? ArenaUtils.entryDday(t.entryStartDate) // 엔트리 예정: 시작일 기준
-          : ArenaUtils.entryDday(t.entryEndDate);  // 엔트리 중: 마감일 기준
+          : ArenaUtils.entryDday(t.entryEndDate); // 엔트리 중: 마감일 기준
     }
 
     return Container(
@@ -234,40 +211,44 @@ class ArenaPreview extends StatelessWidget {
             left: 4,
             right: 4,
             child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.black54,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (dday.isNotEmpty) ...[
+              // ✅ FittedBox로 Row 전체를 살짝 줄여서 오버플로우 방지
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (dday.isNotEmpty) ...[
+                      Text(
+                        dday,
+                        style: const TextStyle(
+                          color: Colors.orange,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    const Icon(
+                      Icons.people,
+                      size: 11,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 3),
                     Text(
-                      dday,
+                      '${t.entryCount}/${t.maxParticipants}',
                       style: const TextStyle(
-                        color: Colors.orange,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 10,
                       ),
                     ),
-                    const SizedBox(width: 4),
                   ],
-                  const Icon(
-                    Icons.people,
-                    size: 11,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    '${t.entryCount}/${t.maxParticipants}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

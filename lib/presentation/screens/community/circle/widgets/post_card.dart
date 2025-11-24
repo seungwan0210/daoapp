@@ -62,8 +62,28 @@ class _PostCardState extends ConsumerState<PostCard> {
     final theme = Theme.of(context);
     final data = widget.doc.data() as Map<String, dynamic>;
     final postId = widget.doc.id;
-    final photoUrl = data['photoUrl'] as String?;
-    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox();
+
+    // 🔹 1) 이미 MyLog → Feed 공유: imageUrls 배열 우선 사용
+    // 🔹 2) 기존 피드 글: photoUrl 단일 필드 사용
+    String? photoUrl;
+
+    final dynamic images = data['imageUrls'];
+    if (images is List && images.isNotEmpty) {
+      final first = images.first;
+      if (first is String && first.isNotEmpty) {
+        photoUrl = first;
+      }
+    } else if (data['photoUrl'] is String) {
+      final p = data['photoUrl'] as String;
+      if (p.isNotEmpty) {
+        photoUrl = p;
+      }
+    }
+
+    // 이미지가 아예 없으면 이 카드는 안 보여줌 (그리드/피드 컨셉이 “사진 기반”이라서)
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return const SizedBox();
+    }
 
     final String? postUserId = data['userId'] as String?;
     final content = data['content'] ?? '';
@@ -72,7 +92,9 @@ class _PostCardState extends ConsumerState<PostCard> {
     final timestamp = (data['timestamp'] as Timestamp?)?.toDate();
 
     final isAuthor = postUserId == widget.currentUserId;
-    final isAdmin = ref.watch(isAdminProvider).when(data: (v) => v, loading: () => false, error: (_, __) => false);
+    final isAdmin = ref
+        .watch(isAdminProvider)
+        .when(data: (v) => v, loading: () => false, error: (_, __) => false);
     final canEdit = isAuthor && widget.onEdit != null;
     final canDelete = isAuthor || isAdmin;
     final bool isLongContent = content.length > 100 || content.contains('\n');
@@ -83,8 +105,17 @@ class _PostCardState extends ConsumerState<PostCard> {
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.primaryContainer, width: 1.5),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+        border: Border.all(
+          color: theme.colorScheme.primaryContainer,
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,11 +126,16 @@ class _PostCardState extends ConsumerState<PostCard> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: postUserId != null ? () => _showUserProfileDialog(postUserId) : null,
+                  onTap: postUserId != null
+                      ? () => _showUserProfileDialog(postUserId)
+                      : null,
                   child: CircleAvatar(
                     radius: 20,
                     backgroundColor: theme.colorScheme.primaryContainer,
-                    child: _buildProfileAvatar(postUserId, data['userPhotoUrl'] as String?),
+                    child: _buildProfileAvatar(
+                      postUserId,
+                      data['userPhotoUrl'] as String?,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -110,57 +146,114 @@ class _PostCardState extends ConsumerState<PostCard> {
                       // 실시간 이름 + 배지
                       postUserId != null
                           ? FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection('users').doc(postUserId).get(),
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(postUserId)
+                            .get(),
                         builder: (context, snapshot) {
                           String name = 'Unknown';
                           String? monthlyBadge;
                           String? adminBadge;
 
-                          if (snapshot.hasData && snapshot.data!.exists) {
-                            final userData = snapshot.data!.data() as Map<String, dynamic>;
-                            name = userData['koreanName']?.toString().trim() ?? 'Unknown';
+                          if (snapshot.hasData &&
+                              snapshot.data!.exists) {
+                            final userData = snapshot.data!.data()
+                            as Map<String, dynamic>;
+                            name = userData['koreanName']
+                                ?.toString()
+                                .trim() ??
+                                'Unknown';
 
-                            final badgesMap = BadgeUtils.extractBadges(userData);
-                            monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
-                            adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+                            final badgesMap =
+                            BadgeUtils.extractBadges(userData);
+                            monthlyBadge =
+                                BadgeUtils.getLatestMonthlyBadge(
+                                    badgesMap);
+                            adminBadge =
+                                BadgeUtils.getLatestAdminBadge(
+                                    badgesMap);
                           }
 
                           return Row(
                             children: [
-                              Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary)),
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                               const SizedBox(width: 4),
-                              // 배지
                               if (monthlyBadge != null)
                                 Tooltip(
-                                  message: BadgeUtils.getBadgeTooltip(monthlyBadge),
-                                  child: BadgeWidget(badgeKey: monthlyBadge, size: 18),
+                                  message: BadgeUtils.getBadgeTooltip(
+                                      monthlyBadge),
+                                  child: BadgeWidget(
+                                    badgeKey: monthlyBadge,
+                                    size: 18,
+                                  ),
                                 ),
                               if (adminBadge != null)
                                 Tooltip(
-                                  message: BadgeUtils.getBadgeTooltip(adminBadge),
-                                  child: BadgeWidget(badgeKey: adminBadge, size: 18),
+                                  message: BadgeUtils.getBadgeTooltip(
+                                      adminBadge),
+                                  child: BadgeWidget(
+                                    badgeKey: adminBadge,
+                                    size: 18,
+                                  ),
                                 ),
                             ],
                           );
                         },
                       )
-                          : const Text('Unknown', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
+                          : const Text(
+                        'Unknown',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
                       if (timestamp != null)
-                        Text(AppDateUtils.formatRelativeTime(timestamp), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text(
+                          AppDateUtils.formatRelativeTime(timestamp),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 if (canEdit || canDelete)
                   PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, size: 22, color: Colors.grey[600]),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    icon: Icon(
+                      Icons.more_vert,
+                      size: 22,
+                      color: Colors.grey[600],
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     onSelected: (v) {
                       if (v == 'edit') widget.onEdit?.call();
                       if (v == 'delete') widget.onDelete?.call();
                     },
                     itemBuilder: (_) => [
-                      if (canEdit) const PopupMenuItem(value: 'edit', child: Text('수정')),
-                      if (canDelete) const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
+                      if (canEdit)
+                        const PopupMenuItem(
+                          value: 'edit',
+                          child: Text('수정'),
+                        ),
+                      if (canDelete)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text(
+                            '삭제',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
                     ],
                   ),
               ],
@@ -169,13 +262,18 @@ class _PostCardState extends ConsumerState<PostCard> {
 
           // === 2. 사진 ===
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(16)),
             child: Image.network(
-              photoUrl,
+              photoUrl!,
               width: double.infinity,
               height: 300,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(height: 300, color: Colors.grey[200], child: const Icon(Icons.error, color: Colors.red)),
+              errorBuilder: (_, __, ___) => Container(
+                height: 300,
+                color: Colors.grey[200],
+                child: const Icon(Icons.error, color: Colors.red),
+              ),
             ),
           ),
 
@@ -184,11 +282,22 @@ class _PostCardState extends ConsumerState<PostCard> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
-                LikeButton(postId: postId, currentUserId: widget.currentUserId, likesCount: likes),
+                LikeButton(
+                  postId: postId,
+                  currentUserId: widget.currentUserId,
+                  likesCount: likes,
+                ),
                 const SizedBox(width: 16),
-                CommentButton(postId: postId, commentsCount: comments),
+                CommentButton(
+                  postId: postId,
+                  commentsCount: comments,
+                ),
                 const SizedBox(width: 16),
-                IconButton(icon: const Icon(Icons.send_outlined, size: 24), onPressed: () => Share.share('$content\n$photoUrl'), color: theme.colorScheme.primary),
+                IconButton(
+                  icon: const Icon(Icons.send_outlined, size: 24),
+                  onPressed: () => Share.share('$content\n$photoUrl'),
+                  color: theme.colorScheme.primary,
+                ),
                 const Spacer(),
                 const Icon(Icons.bookmark_border, size: 24),
               ],
@@ -207,36 +316,70 @@ class _PostCardState extends ConsumerState<PostCard> {
                     curve: Curves.easeInOut,
                     child: RichText(
                       text: TextSpan(
-                        style: const TextStyle(color: Colors.black87, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontSize: 13,
+                        ),
                         children: [
                           WidgetSpan(
                             child: postUserId != null
                                 ? FutureBuilder<DocumentSnapshot>(
-                              future: FirebaseFirestore.instance.collection('users').doc(postUserId).get(),
+                              future: FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(postUserId)
+                                  .get(),
                               builder: (context, snapshot) {
                                 String name = 'Unknown';
-                                if (snapshot.hasData && snapshot.data!.exists) {
-                                  name = snapshot.data!['koreanName']?.toString().trim() ?? 'Unknown';
+                                if (snapshot.hasData &&
+                                    snapshot.data!.exists) {
+                                  name = snapshot.data!['koreanName']
+                                      ?.toString()
+                                      .trim() ??
+                                      'Unknown';
                                 }
-                                return Text('$name ', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary));
+                                return Text(
+                                  '$name ',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                );
                               },
                             )
-                                : const Text('Unknown ', style: TextStyle(fontWeight: FontWeight.bold)),
+                                : const Text(
+                              'Unknown ',
+                              style:
+                              TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
-                          TextSpan(text: _isContentExpanded ? content : content),
+                          TextSpan(
+                            text: _isContentExpanded ? content : content,
+                          ),
                         ],
                       ),
                       maxLines: _isContentExpanded ? null : 2,
-                      overflow: _isContentExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                      overflow: _isContentExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
                     ),
                   ),
                   if (isLongContent)
                     GestureDetector(
                       onTap: () {
                         setState(() => _isContentExpanded = !_isContentExpanded);
-                        Future.delayed(const Duration(milliseconds: 300), _reportHeight);
+                        Future.delayed(
+                          const Duration(milliseconds: 300),
+                          _reportHeight,
+                        );
                       },
-                      child: Text(_isContentExpanded ? '간략히' : '더 보기', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
+                      child: Text(
+                        _isContentExpanded ? '간략히' : '더 보기',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -245,7 +388,10 @@ class _PostCardState extends ConsumerState<PostCard> {
           // === 5. 댓글 미리보기 ===
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
-            child: CommentPreview(postId: postId, currentUserId: widget.currentUserId),
+            child: CommentPreview(
+              postId: postId,
+              currentUserId: widget.currentUserId,
+            ),
           ),
         ],
       ),
@@ -253,14 +399,19 @@ class _PostCardState extends ConsumerState<PostCard> {
   }
 
   Widget _buildProfileAvatar(String? userId, String? fallbackUrl) {
-    if (userId == null) return const Icon(Icons.person, size: 20, color: Colors.white);
+    if (userId == null) {
+      return const Icon(Icons.person, size: 20, color: Colors.white);
+    }
 
     final cached = _photoCache[userId];
     if (cached != null) {
       return CircleAvatar(
         radius: 18,
-        backgroundImage: cached.isNotEmpty ? NetworkImage(cached) : null,
-        child: cached.isEmpty ? const Icon(Icons.person, size: 20, color: Colors.white) : null,
+        backgroundImage:
+        cached.isNotEmpty ? NetworkImage(cached) : null,
+        child: cached.isEmpty
+            ? const Icon(Icons.person, size: 20, color: Colors.white)
+            : null,
       );
     }
 
@@ -269,14 +420,21 @@ class _PostCardState extends ConsumerState<PostCard> {
       builder: (context, snapshot) {
         String? photoUrl;
         if (snapshot.hasData && snapshot.data!.exists) {
-          photoUrl = snapshot.data!['profileImageUrl'] as String? ?? fallbackUrl;
-          if (photoUrl != null && photoUrl.isNotEmpty) _photoCache[userId] = photoUrl;
+          photoUrl =
+              snapshot.data!['profileImageUrl'] as String? ?? fallbackUrl;
+          if (photoUrl != null && photoUrl.isNotEmpty) {
+            _photoCache[userId] = photoUrl;
+          }
         }
 
         return CircleAvatar(
           radius: 18,
-          backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
-          child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 20, color: Colors.white) : null,
+          backgroundImage: photoUrl?.isNotEmpty == true
+              ? NetworkImage(photoUrl!)
+              : null,
+          child: photoUrl?.isNotEmpty != true
+              ? const Icon(Icons.person, size: 20, color: Colors.white)
+              : null,
         );
       },
     );
@@ -289,20 +447,33 @@ class _PostCardState extends ConsumerState<PostCard> {
     showDialog(
       context: context,
       builder: (_) => FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+        future:
+        FirebaseFirestore.instance.collection('users').doc(userId).get(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
           if (!snapshot.data!.exists || snapshot.data!.data() == null) {
-            return UserProfileDialog(koreanName: '프로필 없음', isMe: isMe, userId: userId);
+            return UserProfileDialog(
+              koreanName: '프로필 없음',
+              isMe: isMe,
+              userId: userId,
+            );
           }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final data =
+          snapshot.data!.data() as Map<String, dynamic>;
           final hasProfile = data['hasProfile'] == true;
           if (!hasProfile) {
-            return UserProfileDialog(koreanName: '프로필 미완료', isMe: isMe, userId: userId);
+            return UserProfileDialog(
+              koreanName: '프로필 미완료',
+              isMe: isMe,
+              userId: userId,
+            );
           }
 
-          final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
+          final koreanName =
+              data['koreanName']?.toString().trim() ?? '이름 없음';
           final englishName = data['englishName']?.toString().trim();
           final photoUrl = data['profileImageUrl'] as String?;
           final shopName = data['shopName']?.toString().trim();
@@ -312,12 +483,17 @@ class _PostCardState extends ConsumerState<PostCard> {
                   data['shaft']?.toString().isNotEmpty == true ||
                   data['flight']?.toString().isNotEmpty == true ||
                   data['tip']?.toString().isNotEmpty == true ||
-                  (data['barrelImageUrl'] as String?)?.isNotEmpty == true
+                  (data['barrelImageUrl'] as String?)?.isNotEmpty ==
+                      true
                   ? {
-                'barrelImageUrl': data['barrelImageUrl'] as String?,
-                'barrelName': data['barrelName']?.toString().trim() ?? '',
-                'shaft': data['shaft']?.toString().trim() ?? '',
-                'flight': data['flight']?.toString().trim() ?? '',
+                'barrelImageUrl':
+                data['barrelImageUrl'] as String?,
+                'barrelName':
+                data['barrelName']?.toString().trim() ?? '',
+                'shaft':
+                data['shaft']?.toString().trim() ?? '',
+                'flight':
+                data['flight']?.toString().trim() ?? '',
                 'tip': data['tip']?.toString().trim() ?? '',
               }
                   : null);

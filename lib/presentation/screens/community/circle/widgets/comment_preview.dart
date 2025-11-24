@@ -1,4 +1,3 @@
-// lib/presentation/screens/community/circle/widgets/comment_preview.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
@@ -45,12 +44,14 @@ class CommentPreview extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: writerId != null ? () => _showProfile(context, writerId) : null,
+                      onTap: writerId != null ? () => _showProfile(context, writerId!) : null,
                       child: _buildAvatar(writerId),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: RichText(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         text: TextSpan(
                           style: const TextStyle(fontSize: 12, color: Colors.black87),
                           children: [
@@ -61,37 +62,32 @@ class CommentPreview extends StatelessWidget {
                                     .collection('users')
                                     .doc(writerId)
                                     .get(),
-                                builder: (context, snapshot) {
+                                builder: (context, userSnapshot) {
                                   String name = '익명';
-                                  if (snapshot.hasData && snapshot.data!.exists) {
-                                    name = snapshot.data!['koreanName']?.toString().trim() ?? '익명';
+                                  if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                                    final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+                                    name = userData?['koreanName']?.toString().trim() ?? '익명';
                                   }
                                   return GestureDetector(
-                                    onTap: writerId != null ? () => _showProfile(context, writerId) : null,
+                                    onTap: () => _showProfile(context, writerId),
                                     child: Text(
                                       name,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   );
                                 },
                               )
-                                  : const Text(
-                                '익명',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
-                              ),
+                                  : const Text('익명', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                             ),
                             const WidgetSpan(child: SizedBox(width: 4)),
                             TextSpan(text: content),
                           ],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -108,10 +104,7 @@ class CommentPreview extends StatelessWidget {
                 ),
                 child: Text(
                   '댓글 모두 보기',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
                 ),
               ),
           ],
@@ -120,28 +113,38 @@ class CommentPreview extends StatelessWidget {
     );
   }
 
+  // 완전 안전한 아바타 — get() 절대 금지!
   Widget _buildAvatar(String? userId) {
     if (userId == null) {
-      return const CircleAvatar(radius: 12, child: Icon(Icons.person, size: 16));
+      return CircleAvatar(
+        radius: 12,
+        backgroundColor: Colors.grey[300],
+        child: const Icon(Icons.person, size: 16, color: Colors.grey),
+      );
     }
+
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
       builder: (context, snapshot) {
         String? photoUrl;
         if (snapshot.hasData && snapshot.data!.exists) {
-          photoUrl = snapshot.data!['profileImageUrl'] as String?;
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          photoUrl = data?['profileImageUrl'] as String?; // ← 이걸로 강제 변경!
         }
+
         return CircleAvatar(
           radius: 12,
           backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+          backgroundColor: photoUrl?.isNotEmpty != true ? Colors.grey[300] : null,
           child: photoUrl?.isNotEmpty != true
-              ? const Icon(Icons.person, size: 16, color: Colors.grey)
+              ? const Icon(Icons.person, size: 16, color: Colors.white)
               : null,
         );
       },
     );
   }
 
+  // 프로필 다이얼로그 — get() 제거 완료
   void _showProfile(BuildContext context, String userId) {
     final isMe = currentUserId == userId;
 
@@ -156,7 +159,7 @@ class CommentPreview extends StatelessWidget {
             return UserProfileDialog(koreanName: '프로필 없음', isMe: isMe, userId: userId);
           }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           final hasProfile = data['hasProfile'] == true;
           if (!hasProfile) {
             return UserProfileDialog(koreanName: '프로필 미완료', isMe: isMe, userId: userId);
@@ -164,7 +167,10 @@ class CommentPreview extends StatelessWidget {
 
           final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
           final englishName = data['englishName']?.toString().trim();
-          final photoUrl = data['profileImageUrl'] as String?;
+
+          // 진짜 마지막 지뢰 제거 완료
+          final String? photoUrl = data['profileImageUrl'] as String?;
+
           final shopName = data['shopName']?.toString().trim();
 
           final barrelName = data['barrelName']?.toString().trim() ?? '';

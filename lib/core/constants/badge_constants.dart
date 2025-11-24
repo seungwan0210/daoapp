@@ -14,6 +14,12 @@ class BadgeConstants {
     'bronze2': 'assets/badges/bronze2.png',
     'bronze3': 'assets/badges/bronze3.png',
     'tro': 'assets/badges/tro.png',
+
+    // 🔥 시즌 배지 (시즌 우승/1위/2위/3위 등)
+    'season':  'assets/badges/season.png',   // 시즌 챔피언 / 시즌 우승자
+    'season1': 'assets/badges/season1.png',  // 시즌 1위
+    'season2': 'assets/badges/season2.png',  // 시즌 2위
+    'season3': 'assets/badges/season3.png',  // 시즌 3위
   };
 
   /// 모든 배지 키 리스트 제공 (관리자 수동 지정 등에 사용)
@@ -24,6 +30,7 @@ class BadgeConstants {
   /// - admin_badgeKey
   /// - 그 외: badgeKey 자체
   static String? getImagePath(String key) {
+    // 월간 배지: monthly_2025_11_pro
     if (key.startsWith('monthly_')) {
       final parts = key.split('_');
       if (parts.length >= 4) {
@@ -33,11 +40,13 @@ class BadgeConstants {
       return null;
     }
 
+    // 관리자 배지: admin_pro
     if (key.startsWith('admin_')) {
       final badgeKey = key.substring('admin_'.length);
       return _badgeMap[badgeKey];
     }
 
+    // 그 외: 순수 키 사용 (pro, emerald, season 등)
     return _badgeMap[key];
   }
 
@@ -58,6 +67,9 @@ class BadgeConstants {
   /// 10위 → bronze1
   /// 11위 → bronze2
   /// 12위 → bronze3
+  ///
+  /// ※ tro/season 계열은 일반 월간 랭킹이 아니라
+  ///   시즌 우승/특별 배지용이라 여기 매핑에는 포함하지 않음.
   static String? badgeKeyForRank(int rank) {
     switch (rank) {
       case 1:

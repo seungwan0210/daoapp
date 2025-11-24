@@ -40,7 +40,9 @@ class CommunityPreview extends StatelessWidget {
                 children: [
                   Text(
                     '최근 게시물',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   TextButton(
                     onPressed: onSeeAllPressed,
@@ -87,7 +89,9 @@ class CommunityPreview extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
                 '인기 게시물',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             SizedBox(
@@ -110,12 +114,29 @@ class CommunityPreview extends StatelessWidget {
     );
   }
 
-  Widget _buildPreviewItem(BuildContext context, Map<String, dynamic> data, String postId) {
-    final photoUrl = data['photoUrl'] as String?;
+  /// ✅ photoUrl + imageUrls[0] 둘 다 지원
+  String? _extractThumbnailUrl(Map<String, dynamic> data) {
+    final direct = data['photoUrl'] as String?;
+    if (direct != null && direct.isNotEmpty) return direct;
+
+    final dynamic images = data['imageUrls'];
+    if (images is List && images.isNotEmpty) {
+      final first = images.first;
+      if (first is String && first.isNotEmpty) {
+        return first;
+      }
+    }
+    return null;
+  }
+
+  Widget _buildPreviewItem(
+      BuildContext context, Map<String, dynamic> data, String postId) {
+    final photoUrl = _extractThumbnailUrl(data);
     final likes = data['likes'] as int? ?? 0;
     final comments = data['comments'] as int? ?? 0;
 
-    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox(width: 100);
+    // 썸네일이 없으면 자리만 살짝 차지 (레이아웃 깨지지 않게)
+    if (photoUrl == null) return const SizedBox(width: 100);
 
     return GestureDetector(
       onTap: () {
@@ -148,7 +169,8 @@ class CommunityPreview extends StatelessWidget {
               left: 4,
               right: 4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(8),
@@ -156,13 +178,19 @@ class CommunityPreview extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.favorite, color: Colors.white, size: 12),
+                    const Icon(Icons.favorite,
+                        color: Colors.white, size: 12),
                     const SizedBox(width: 2),
-                    Text('$likes', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    Text('$likes',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 10)),
                     const SizedBox(width: 6),
-                    const Icon(Icons.comment, color: Colors.white, size: 12),
+                    const Icon(Icons.comment,
+                        color: Colors.white, size: 12),
                     const SizedBox(width: 2),
-                    Text('$comments', style: const TextStyle(color: Colors.white, fontSize: 10)),
+                    Text('$comments',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 10)),
                   ],
                 ),
               ),
@@ -173,10 +201,11 @@ class CommunityPreview extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularItem(BuildContext context, Map<String, dynamic> data, String postId, int likes) {
-    final photoUrl = data['photoUrl'] as String?;
+  Widget _buildPopularItem(
+      BuildContext context, Map<String, dynamic> data, String postId, int likes) {
+    final photoUrl = _extractThumbnailUrl(data);
 
-    if (photoUrl == null || photoUrl.isEmpty) return const SizedBox(width: 100);
+    if (photoUrl == null) return const SizedBox(width: 100);
 
     return GestureDetector(
       onTap: () {
@@ -209,7 +238,8 @@ class CommunityPreview extends StatelessWidget {
               left: 4,
               right: 4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.black54,
                   borderRadius: BorderRadius.circular(8),

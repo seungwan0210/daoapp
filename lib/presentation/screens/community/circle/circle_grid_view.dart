@@ -28,7 +28,16 @@ class CircleGridView extends StatelessWidget {
       itemBuilder: (_, i) {
         final data = docs[i].data() as Map<String, dynamic>;
         final postId = docs[i].id;
-        final photoUrl = data['photoUrl'] as String?;
+
+        // 1) 새 방식: imageUrls 배열
+        final List<dynamic>? images = data['imageUrls'] as List<dynamic>?;
+        String? photoUrl;
+        if (images != null && images.isNotEmpty) {
+          photoUrl = images.first as String;
+        } else {
+          // 2) 예전 방식: photoUrl 단일 필드
+          photoUrl = data['photoUrl'] as String?;
+        }
 
         if (photoUrl == null || photoUrl.isEmpty) {
           return const SizedBox.shrink();

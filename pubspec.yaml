@@ -2,7 +2,7 @@ name: daoapp
 description: "스틸리그 포인트 집계 앱 - 관리자 전용 입력 + 실시간 랭킹 + 경기 일정"
 publish_to: 'none'
 
-version: 1.0.9+10
+version: 1.1.0+11
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
@@ -83,6 +83,10 @@ flutter:
     - assets/badges/bronze2.png
     - assets/badges/bronze3.png
     - assets/badges/tro.png
+    - assets/badges/season.png
+    - assets/badges/season1.png
+    - assets/badges/season2.png
+    - assets/badges/season3.png
 
 flutter_launcher_icons:
   android: "launcher_icon"

@@ -29,7 +29,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: CommonAppBar(
+      appBar: const CommonAppBar(
         title: '버그/신고',
         showBackButton: true,
       ),
@@ -141,15 +141,39 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         imageUrl = await ref.getDownloadURL();
       }
 
+      // 🔹 Firestore users/{uid}에서 이름 가져오기
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      final userData = userDoc.data() as Map<String, dynamic>?;
+
+      final reporterName = (userData?['koreanName'] ??
+          userData?['nickname'] ??
+          user.displayName ??
+          user.email ??
+          '익명')
+          .toString();
+
+      // 🔹 Firestore에 저장 (Admin 화면에서 기대하는 필드 이름에 맞춤)
       await FirebaseFirestore.instance.collection('reports').add({
+        // 예전 필드(호환용)
         'userId': user.uid,
         'email': user.email,
+        'createdAt': FieldValue.serverTimestamp(),
+        'isResolved': false,
+
+        // Admin 화면용 필드들
+        'reporterId': user.uid,
+        'reporterName': reporterName,          // ← 여기! 바뀐 이름 들어감
+        'reporterEmail': user.email,
         'title': title,
         'content': content,
         'imageUrl': imageUrl,
         'currentScreen': 'Unknown',
-        'createdAt': FieldValue.serverTimestamp(),
-        'isResolved': false,
+        'timestamp': FieldValue.serverTimestamp(),
+        'processed': false,
       });
 
       if (mounted) {
@@ -166,6 +190,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
 
   @override
   void dispose() {

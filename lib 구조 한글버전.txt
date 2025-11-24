@@ -47,7 +47,9 @@
 │   │         - 각 문제별 결과(성공/실패, 사용 다트 수)
 │   │         - 연습 종료 시 Firestore 저장 + 요약 데이터 생성
 │   │   └── arena_provider.dart
-│   │       →아레나 전체 상태 관리 (완성됨)
+│   │       → 아레나 전체 상태 관리 (완성됨)
+│   │   └── my_log_provider.dart
+│   │       → 다트일기 상태 관리
 │   │
 │   ├── screens/
 │   │   ├── splash_screen.dart
@@ -65,6 +67,15 @@
 │   │   │     - 탭: 유저 홈, 커뮤니티, 아레나, 마이페이지, 관리자 등
 │   │   │
 │   │   ├── user/
+│   │   │   ├── my_log/
+│   │   │   │   ├── widgets/
+│   │   │   │           └── my_log_card.dart
+│   │   │   │   ├── my_log_home_screen.dart
+│   │   │   │   │   → 마이로그 다트일기 
+│   │   │   │   ├── my_log_detail_screen.dart
+│   │   │   │   │   → 다트일기 상세보기
+│   │   │   │   ├── my_log_write_screen.dart
+
 │   │   │   ├── services/
 │   │   │   │   ├── image_upload_service.dart
 │   │   │   │   │   → 프로필/배럴 이미지 업로드 전용 로직
@@ -292,6 +303,7 @@
 │   │   ├── arena_repository.dart
 │   │   ├── arena_repository_impl.dart
 │   │       →Firestore 구현 + 내가 주최 OR 쿼리 완벽
+│   │   ├── my_log_repository.dart
 │   │
 │   └── models/
 │       ├── point_record_model.dart
@@ -307,6 +319,7 @@
 │             → freezed 적용 완료
 │       ├── tournament_entry_model.dart 
 │             → freezed 적용 완료
+│       ├── my_log_model.dart
 ├── core/
 │   ├── constants/
 │   │   ├── route_constants.dart
