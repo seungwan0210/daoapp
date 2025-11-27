@@ -8,6 +8,7 @@ plugins {
     id("org.jetbrains.kotlin.android")           // ← Kotlin DSL 올바른 ID
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")         // 루트에서 버전 선언, 여기선 버전 없이 적용
+    // ← 플러그인 추가 X! (이게 에러 원인)
 }
 
 // ── key.properties 로드 (있을 때만)
@@ -66,3 +67,13 @@ android {
 flutter {
     source = "../.."
 }
+
+// ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+// 이 블록만 새로 추가! (App Check 의존성)
+dependencies {
+    // 디버그 빌드용
+    debugImplementation("com.google.firebase:firebase-appcheck-debug:17.2.0")
+    // 릴리즈 빌드용 Play Integrity
+    releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity:17.2.0")
+}
+// ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←

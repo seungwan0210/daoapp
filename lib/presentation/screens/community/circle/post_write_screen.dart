@@ -32,11 +32,14 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   String? _postId;
   String? _existingPhotoUrl;
 
+  // 🚩 ModalRoute.of(context)에서 args를 한 번만 읽기 위한 플래그
+  bool _initializedFromRoute = false;
+
   @override
   void initState() {
     super.initState();
 
-    // 마이로그에서 넘어온 경우 → 자동으로 내용 + 사진 채우기
+    // 마이로그에서 넘어온 경우 → 자동으로 내용 + 사진 채우기 (이건 initState에서 해도 됨)
     if (widget.initialContent != null) {
       _contentController.text = widget.initialContent!;
     }
@@ -44,16 +47,35 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
       _image = widget.initialImageFile;
     }
 
-    // 기존 게시물 수정인 경우 (서클에서 직접 수정)
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['postId'] != null && _postId == null) {
-      _postId = args['postId'] as String;
-      _loadExistingPost(_postId!);
+    // 글 내용 바뀔 때마다 상단 "게시" 버튼 활성/비활성 갱신을 위해 리스너 추가
+    _contentController.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // ❗ 여기서부터는 context 기반 의존(ModalRoute)을 안전하게 사용 가능
+    if (!_initializedFromRoute) {
+      final args =
+      ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+      if (args != null && args['postId'] != null && _postId == null) {
+        _postId = args['postId'] as String;
+        _loadExistingPost(_postId!);
+      }
+
+      _initializedFromRoute = true;
     }
   }
 
   Future<void> _loadExistingPost(String postId) async {
-    final doc = await FirebaseFirestore.instance.collection('community').doc(postId).get();
+    final doc = await FirebaseFirestore.instance
+        .collection('community')
+        .doc(postId)
+        .get();
     if (!doc.exists) return;
 
     final data = doc.data()!;
@@ -64,14 +86,17 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   }
 
   Future<void> _pickImage() async {
-    final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked =
+    await _picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (picked != null) {
       setState(() => _image = File(picked.path));
     }
   }
 
   Future<void> _upload() async {
-    if (_contentController.text.trim().isEmpty && _image == null && _existingPhotoUrl == null) {
+    if (_contentController.text.trim().isEmpty &&
+        _image == null &&
+        _existingPhotoUrl == null) {
       _showSnackBar('내용 또는 사진을 추가해주세요');
       return;
     }
@@ -79,14 +104,19 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
     setState(() => _isUploading = true);
     try {
       final user = FirebaseAuth.instance.currentUser!;
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final appUser = AppUser.fromMap(user.uid, userDoc.data()!);
 
       String? photoUrl = _existingPhotoUrl;
       if (_image != null) {
         if (_existingPhotoUrl != null) {
           try {
-            await FirebaseStorage.instance.refFromURL(_existingPhotoUrl!).delete();
+            await FirebaseStorage.instance
+                .refFromURL(_existingPhotoUrl!)
+                .delete();
           } catch (e) {
             debugPrint('기존 이미지 삭제 실패: $e');
           }
@@ -115,7 +145,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
           'comments': 0,
         });
       } else {
-        await FirebaseFirestore.instance.collection('community').doc(_postId).update(data);
+        await FirebaseFirestore.instance
+            .collection('community')
+            .doc(_postId)
+            .update(data);
       }
 
       if (mounted) Navigator.pop(context);
@@ -128,7 +161,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -138,7 +174,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
     super.dispose();
   }
 
-  bool get _canPost => _contentController.text.trim().isNotEmpty || _image != null || _existingPhotoUrl != null;
+  bool get _canPost =>
+      _contentController.text.trim().isNotEmpty ||
+          _image != null ||
+          _existingPhotoUrl != null;
 
   @override
   Widget build(BuildContext context) {
@@ -165,11 +204,17 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
                   ? const SizedBox(
                 width: 16,
                 height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
               )
                   : Text(
                 isEdit ? "수정" : "게시",
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
@@ -192,13 +237,22 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
                   hintText: widget.initialContent != null
                       ? "마이로그를 다듬어서 공유해 보세요"
                       : "무슨 생각을 하고 계신가요?",
-                  hintStyle: TextStyle(color: Colors.grey[600], fontSize: 16),
+                  hintStyle: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 16,
+                  ),
                   border: InputBorder.none,
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.5),
+                    borderSide: BorderSide(
+                      color: theme.colorScheme.primary,
+                      width: 1.5,
+                    ),
                   ),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                    borderSide: BorderSide(
+                      color: Colors.grey[300]!,
+                      width: 1,
+                    ),
                   ),
                 ),
               ),
@@ -246,10 +300,20 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
             const SizedBox(height: 16),
             Text(
               "사진 추가하기",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
             ),
             const SizedBox(height: 4),
-            Text("터치해서 사진을 선택하세요", style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+            Text(
+              "터치해서 사진을 선택하세요",
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey[600],
+              ),
+            ),
           ],
         ),
       ),
@@ -273,7 +337,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
             errorBuilder: (_, __, ___) => Container(
               height: 340,
               color: Colors.grey[200],
-              child: const Icon(Icons.error, color: Colors.red),
+              child: const Icon(
+                Icons.error,
+                color: Colors.red,
+              ),
             ),
           ),
         ),
@@ -291,9 +358,19 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.6),
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.close, color: Colors.white, size: 20),
+              child: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
         ),
@@ -304,16 +381,27 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
           child: GestureDetector(
             onTap: _pickImage,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8, offset: const Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.photo_library, size: 16, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.photo_library,
+                    size: 16,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     "변경",

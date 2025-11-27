@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart'; // ← 추가!
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
@@ -68,8 +69,19 @@ import 'package:daoapp/presentation/screens/community/arena/tournament_participa
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase 초기화
   await Firebase.initializeApp();
-  await initializeDateFormatting('ko_KR', null); // ← 이거 추가!!
+
+  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+  // App Check 활성화 (이게 -13040 에러를 완전히 없애줍니다!)
+  await FirebaseAppCheck.instance.activate(
+    androidProvider: AndroidProvider.playIntegrity, // 릴리즈용 (최고 보안)
+    // androidProvider: AndroidProvider.debug,       // ← 디버그용으로 바꾸고 싶을 땐 이 줄 주석 해제
+  );
+  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
+
+  await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
   FirebaseAuth.instance.authStateChanges().listen((user) {
@@ -83,6 +95,7 @@ void main() async {
   runApp(const ProviderScope(child: DaoApp()));
 }
 
+// 나머지 OnlineStatusManager 클래스와 DaoApp 위젯은 그대로 유지 (수정 없음)
 class OnlineStatusManager {
   static Timer? _timer;
   static User? _currentUser;

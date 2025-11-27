@@ -32,6 +32,7 @@ dependencies:
   collection: ^1.17.0
   firebase_database: ^11.3.10
   share_plus: ^7.2.2
+  firebase_app_check: ^0.3.0+2
 
   # 아레나 토너먼트 기능 완벽 지원 (freezed 필수!!)
   freezed_annotation: ^2.4.1
