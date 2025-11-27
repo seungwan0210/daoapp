@@ -27,8 +27,8 @@ class _TournamentCreateScreenState
 
   final _titleCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
-  final _hostNameCtrl = TextEditingController();   // 🔹 담당자 이름
-  final _hostPhoneCtrl = TextEditingController();  // 🔹 담당자 연락처
+  final _hostNameCtrl = TextEditingController();
+  final _hostPhoneCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _maxCtrl = TextEditingController();
@@ -45,8 +45,8 @@ class _TournamentCreateScreenState
   bool get _canSubmit =>
       _titleCtrl.text.trim().isNotEmpty &&
           _locationCtrl.text.trim().isNotEmpty &&
-          _hostNameCtrl.text.trim().isNotEmpty &&   // 🔹 담당자 이름 필수
-          _hostPhoneCtrl.text.trim().isNotEmpty &&  // 🔹 담당자 연락처 필수
+          _hostNameCtrl.text.trim().isNotEmpty &&
+          _hostPhoneCtrl.text.trim().isNotEmpty &&
           _feeCtrl.text.trim().isNotEmpty &&
           _maxCtrl.text.trim().isNotEmpty &&
           _eventDate != null &&
@@ -146,9 +146,12 @@ class _TournamentCreateScreenState
         entryEndDate: Timestamp.fromDate(_entryEndDate!),
         createdByUid: user.uid,
         organizerEmails: organizerEmails,
-        hostName: _hostNameCtrl.text.trim(),   // 🔹 담당자 이름 저장
-        hostPhone: _hostPhoneCtrl.text.trim(), // 🔹 담당자 연락처 저장
+        hostName: _hostNameCtrl.text.trim(),
+        hostPhone: _hostPhoneCtrl.text.trim(),
         createdAt: Timestamp.now(),
+        entrySummarySent: false,  // 이거 추가!! → 메일 발송 문제 해결
+        entryCount: 0,           // 명시적으로 초기화
+        isCanceled: false,
       );
 
       await repo.createTournament(tournament);

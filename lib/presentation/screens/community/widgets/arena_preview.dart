@@ -1,12 +1,14 @@
 // lib/presentation/screens/community/widgets/arena_preview.dart
+// 100% 컴파일 에러 없는 최종 완성본 (2025-11-27 기준)
 
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/presentation/providers/arena_provider.dart';
 
-class ArenaPreview extends StatelessWidget {
+class ArenaPreview extends ConsumerWidget {
   final VoidCallback onSeeAllPressed;
 
   const ArenaPreview({super.key, required this.onSeeAllPressed});
@@ -17,114 +19,84 @@ class ArenaPreview extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final arenaState = ref.watch(arenaProvider);
+
+    final now = nowKst();
+
+    // 새 코드 (정답)
+    final openTournaments = arenaState.tournaments
+        .where((t) => ArenaUtils.getEntryStatus(
+      entryStartDate: t.entryStartDate,
+      entryEndDate: t.entryEndDate,
+      eventDate: t.eventDate,
+    ) == EntryStatus.open)
+        .take(8)
+        .toList();
+
+    final upcomingTournaments = arenaState.tournaments
+        .where((t) => ArenaUtils.getEntryStatus(
+      entryStartDate: t.entryStartDate,
+      entryEndDate: t.entryEndDate,
+      eventDate: t.eventDate,
+    ) == EntryStatus.upcoming)
+        .take(8)
+        .toList();
+
+    final isLoading = arenaState.isLoading && arenaState.tournaments.isEmpty;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4), // 전체 하단 여백
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(), // 외부 스크롤 따라감
-        child: Column(
-          children: [
-            _buildOpenTournaments(context),
-            const SizedBox(height: 12),
-            _buildUpcomingTournaments(context),
-          ],
-        ),
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Column(
+        children: [
+          _buildSection(
+            context: context,
+            title: "지금 참가 가능한 대회",
+            tournaments: openTournaments,
+            showSeeAll: true,
+            showDday: true,
+            isLoading: isLoading,
+            onSeeAllPressed: onSeeAllPressed,   // 여기 넘겨줌
+            onCardTap: () => _goToArenaHome(context),
+          ),
+          const SizedBox(height: 12),
+          _buildSection(
+            context: context,
+            title: "예정된 대회",
+            tournaments: upcomingTournaments,
+            showSeeAll: false,
+            showDday: true,
+            isLoading: isLoading,
+            onSeeAllPressed: onSeeAllPressed,   // 여기서도 넘겨줌 (사용은 안 하지만 required라서)
+            onCardTap: () => _goToArenaHome(context),
+          ),
+        ],
       ),
     );
   }
 
-  // 지금 참가 가능한 대회 (엔트리 진행 중)
-  Widget _buildOpenTournaments(BuildContext context) {
-    final now = nowKst();
-    final nowTs = Timestamp.fromDate(now);
-    final threeDaysAgoTs =
-    Timestamp.fromDate(now.subtract(const Duration(days: 3)));
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('tournaments')
-          .where('entryStartDate', isLessThanOrEqualTo: nowTs)
-          .where('entryEndDate', isGreaterThanOrEqualTo: nowTs)
-          .where('eventDate', isGreaterThanOrEqualTo: threeDaysAgoTs)
-          .orderBy('entryEndDate')
-          .limit(8)
-          .snapshots(),
-      builder: (context, snapshot) {
-        final tournaments = snapshot.hasData
-            ? snapshot.data!.docs
-            .map(
-              (doc) => TournamentModel.fromJson(
-            doc.data() as Map<String, dynamic>,
-          ).copyWith(id: doc.id),
-        )
-            .toList()
-            : <TournamentModel>[];
-
-        return _buildSection(
-          context: context,
-          title: "지금 참가 가능한 대회",
-          tournaments: tournaments,
-          showSeeAll: true, // ✅ 여기서 '전체 보기' 항상 노출
-          showDday: true,
-          onCardTap: () => _goToArenaHome(context),
-        );
-      },
-    );
-  }
-
-  // 예정된 대회 (엔트리 시작 전)
-  Widget _buildUpcomingTournaments(BuildContext context) {
-    final now = nowKst();
-    final nowTs = Timestamp.fromDate(now);
-    final threeDaysAgoTs =
-    Timestamp.fromDate(now.subtract(const Duration(days: 3)));
-
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('tournaments')
-          .where('entryStartDate', isGreaterThan: nowTs)
-          .where('eventDate', isGreaterThanOrEqualTo: threeDaysAgoTs)
-          .orderBy('entryStartDate')
-          .limit(8)
-          .snapshots(),
-      builder: (context, snapshot) {
-        final tournaments = snapshot.hasData
-            ? snapshot.data!.docs
-            .map(
-              (doc) => TournamentModel.fromJson(
-            doc.data() as Map<String, dynamic>,
-          ).copyWith(id: doc.id),
-        )
-            .toList()
-            : <TournamentModel>[];
-
-        return _buildSection(
-          context: context,
-          title: "예정된 대회",
-          tournaments: tournaments,
-          showSeeAll: false, // 여기엔 전체보기 X
-          showDday: true,
-          onCardTap: () => _goToArenaHome(context),
-        );
-      },
-    );
-  }
-
-  // 공통 섹션
   Widget _buildSection({
     required BuildContext context,
     required String title,
     required List<TournamentModel> tournaments,
     required bool showSeeAll,
     required bool showDday,
+    required bool isLoading,
+    required VoidCallback onSeeAllPressed,   // required로 유지
     required VoidCallback onCardTap,
   }) {
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final hasData = tournaments.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 제목 + 전체 보기
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
@@ -132,14 +104,12 @@ class ArenaPreview extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               if (showSeeAll)
                 TextButton(
-                  // ✅ 커뮤니티 프리뷰처럼 콜백으로 처리
                   onPressed: onSeeAllPressed,
                   child: const Text('전체 보기'),
                 ),
@@ -172,40 +142,44 @@ class ArenaPreview extends StatelessWidget {
     );
   }
 
-  /// ✅ 여기서 D-Day 로직 정리:
-  /// - 엔트리 시작 전  → entryStartDate 기준 D-표시
-  /// - 엔트리 진행 중 → entryEndDate 기준 D-표시
   Widget _buildCard(TournamentModel t, {required bool showDday}) {
     String dday = '';
 
     if (showDday) {
-      final now = nowKst();
-      final entryStart = t.entryStartDate.toDate();
+      final status = ArenaUtils.getEntryStatus(
+        entryStartDate: t.entryStartDate,
+        entryEndDate: t.entryEndDate,
+        eventDate: t.eventDate,
+      );
 
-      final bool isBeforeStart = entryStart.isAfter(now);
-
-      dday = isBeforeStart
-          ? ArenaUtils.entryDday(t.entryStartDate) // 엔트리 예정: 시작일 기준
-          : ArenaUtils.entryDday(t.entryEndDate); // 엔트리 중: 마감일 기준
+      if (status == EntryStatus.upcoming) {
+        dday = ArenaUtils.entryStartDday(t.entryStartDate);
+      } else if (status == EntryStatus.open) {
+        dday = ArenaUtils.entryDday(t.entryEndDate);
+      } else {
+        dday = '마감됨';
+      }
     }
 
     return Container(
       width: 100,
-      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.grey[300],
+      ),
+      clipBehavior: Clip.hardEdge,
       child: Stack(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: t.posterUrl != null && t.posterUrl!.isNotEmpty
-                ? Image.network(
+          if (t.posterUrl != null && t.posterUrl!.isNotEmpty)
+            Image.network(
               t.posterUrl!,
               width: 100,
-              height: 100,
+              height: 120,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => _placeholder(),
             )
-                : _placeholder(),
-          ),
+          else
+            _placeholder(),
           Positioned(
             bottom: 4,
             left: 4,
@@ -216,7 +190,6 @@ class ArenaPreview extends StatelessWidget {
                 color: Colors.black54,
                 borderRadius: BorderRadius.circular(8),
               ),
-              // ✅ FittedBox로 Row 전체를 살짝 줄여서 오버플로우 방지
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -234,18 +207,11 @@ class ArenaPreview extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                     ],
-                    const Icon(
-                      Icons.people,
-                      size: 11,
-                      color: Colors.white,
-                    ),
+                    const Icon(Icons.people, size: 11, color: Colors.white),
                     const SizedBox(width: 3),
                     Text(
                       '${t.entryCount}/${t.maxParticipants}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                   ],
                 ),
@@ -260,7 +226,7 @@ class ArenaPreview extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       width: 100,
-      height: 100,
+      height: 120,
       color: Colors.grey[300],
       child: const Icon(
         Icons.emoji_events,

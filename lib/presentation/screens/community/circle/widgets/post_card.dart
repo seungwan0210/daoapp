@@ -10,8 +10,8 @@ import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
-import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
+import 'package:daoapp/presentation/widgets/badge_widget.dart';
+import 'package:daoapp/core/utils/badge_utils.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final QueryDocumentSnapshot doc;
@@ -20,8 +20,8 @@ class PostCard extends ConsumerStatefulWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final Map<String, String?>? barrelData;
-  final String? monthlyBadge;   // 추가
-  final String? adminBadge;     // 추가
+  final String? monthlyBadge;
+  final String? adminBadge;
 
   const PostCard({
     super.key,
@@ -42,7 +42,6 @@ class PostCard extends ConsumerStatefulWidget {
 class _PostCardState extends ConsumerState<PostCard> {
   bool _isContentExpanded = false;
   late final GlobalKey _cardKey = GlobalKey();
-  static final Map<String, String?> _photoCache = {};
 
   @override
   void initState() {
@@ -63,10 +62,9 @@ class _PostCardState extends ConsumerState<PostCard> {
     final data = widget.doc.data() as Map<String, dynamic>;
     final postId = widget.doc.id;
 
-    // 🔹 1) 이미 MyLog → Feed 공유: imageUrls 배열 우선 사용
-    // 🔹 2) 기존 피드 글: photoUrl 단일 필드 사용
+    // 1) MyLog → Feed 공유: imageUrls 배열 우선
+    // 2) 기존 피드 글: photoUrl 단일 필드
     String? photoUrl;
-
     final dynamic images = data['imageUrls'];
     if (images is List && images.isNotEmpty) {
       final first = images.first;
@@ -80,7 +78,7 @@ class _PostCardState extends ConsumerState<PostCard> {
       }
     }
 
-    // 이미지가 아예 없으면 이 카드는 안 보여줌 (그리드/피드 컨셉이 “사진 기반”이라서)
+    // 이미지 없는 글은 카드 안 그림
     if (photoUrl == null || photoUrl.isEmpty) {
       return const SizedBox();
     }
@@ -134,7 +132,7 @@ class _PostCardState extends ConsumerState<PostCard> {
                     backgroundColor: theme.colorScheme.primaryContainer,
                     child: _buildProfileAvatar(
                       postUserId,
-                      data['userPhotoUrl'] as String?,
+                      data['userPhotoUrl'] as String?, // 피드 문서에 저장된 백업 url
                     ),
                   ),
                 ),
@@ -143,9 +141,10 @@ class _PostCardState extends ConsumerState<PostCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 실시간 이름 + 배지
+                      // 이름 + 배지 (Firestore 실시간은 아니고, 빌드시 1회 로드)
                       postUserId != null
-                          ? FutureBuilder<DocumentSnapshot>(
+                          ? FutureBuilder<
+                          DocumentSnapshot<Map<String, dynamic>>>(
                         future: FirebaseFirestore.instance
                             .collection('users')
                             .doc(postUserId)
@@ -157,8 +156,9 @@ class _PostCardState extends ConsumerState<PostCard> {
 
                           if (snapshot.hasData &&
                               snapshot.data!.exists) {
-                            final userData = snapshot.data!.data()
-                            as Map<String, dynamic>;
+                            final userData =
+                                snapshot.data!.data() ??
+                                    <String, dynamic>{};
                             name = userData['koreanName']
                                 ?.toString()
                                 .trim() ??
@@ -187,7 +187,8 @@ class _PostCardState extends ConsumerState<PostCard> {
                               const SizedBox(width: 4),
                               if (monthlyBadge != null)
                                 Tooltip(
-                                  message: BadgeUtils.getBadgeTooltip(
+                                  message:
+                                  BadgeUtils.getBadgeTooltip(
                                       monthlyBadge),
                                   child: BadgeWidget(
                                     badgeKey: monthlyBadge,
@@ -196,7 +197,8 @@ class _PostCardState extends ConsumerState<PostCard> {
                                 ),
                               if (adminBadge != null)
                                 Tooltip(
-                                  message: BadgeUtils.getBadgeTooltip(
+                                  message:
+                                  BadgeUtils.getBadgeTooltip(
                                       adminBadge),
                                   child: BadgeWidget(
                                     badgeKey: adminBadge,
@@ -279,7 +281,8 @@ class _PostCardState extends ConsumerState<PostCard> {
 
           // === 3. 좋아요/댓글/공유 ===
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Row(
               children: [
                 LikeButton(
@@ -323,7 +326,9 @@ class _PostCardState extends ConsumerState<PostCard> {
                         children: [
                           WidgetSpan(
                             child: postUserId != null
-                                ? FutureBuilder<DocumentSnapshot>(
+                                ? FutureBuilder<
+                                DocumentSnapshot<
+                                    Map<String, dynamic>>>(
                               future: FirebaseFirestore.instance
                                   .collection('users')
                                   .doc(postUserId)
@@ -332,7 +337,10 @@ class _PostCardState extends ConsumerState<PostCard> {
                                 String name = 'Unknown';
                                 if (snapshot.hasData &&
                                     snapshot.data!.exists) {
-                                  name = snapshot.data!['koreanName']
+                                  final data =
+                                      snapshot.data!.data() ??
+                                          <String, dynamic>{};
+                                  name = data['koreanName']
                                       ?.toString()
                                       .trim() ??
                                       'Unknown';
@@ -341,23 +349,26 @@ class _PostCardState extends ConsumerState<PostCard> {
                                   '$name ',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.primary,
+                                    color: theme
+                                        .colorScheme.primary,
                                   ),
                                 );
                               },
                             )
                                 : const Text(
                               'Unknown ',
-                              style:
-                              TextStyle(fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           TextSpan(
-                            text: _isContentExpanded ? content : content,
+                            text: content,
                           ),
                         ],
                       ),
-                      maxLines: _isContentExpanded ? null : 2,
+                      maxLines:
+                      _isContentExpanded ? null : 2,
                       overflow: _isContentExpanded
                           ? TextOverflow.visible
                           : TextOverflow.ellipsis,
@@ -366,7 +377,9 @@ class _PostCardState extends ConsumerState<PostCard> {
                   if (isLongContent)
                     GestureDetector(
                       onTap: () {
-                        setState(() => _isContentExpanded = !_isContentExpanded);
+                        setState(
+                              () => _isContentExpanded = !_isContentExpanded,
+                        );
                         Future.delayed(
                           const Duration(milliseconds: 300),
                           _reportHeight,
@@ -398,43 +411,48 @@ class _PostCardState extends ConsumerState<PostCard> {
     );
   }
 
+  /// 프로필 이미지 로더 (profileImageUrl 없으면 기본 아이콘)
   Widget _buildProfileAvatar(String? userId, String? fallbackUrl) {
     if (userId == null) {
       return const Icon(Icons.person, size: 20, color: Colors.white);
     }
 
-    final cached = _photoCache[userId];
-    if (cached != null) {
-      return CircleAvatar(
-        radius: 18,
-        backgroundImage:
-        cached.isNotEmpty ? NetworkImage(cached) : null,
-        child: cached.isEmpty
-            ? const Icon(Icons.person, size: 20, color: Colors.white)
-            : null,
-      );
-    }
-
-    return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+    return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      future:
+      FirebaseFirestore.instance.collection('users').doc(userId).get(),
       builder: (context, snapshot) {
-        String? photoUrl;
-        if (snapshot.hasData && snapshot.data!.exists) {
-          photoUrl =
-              snapshot.data!['profileImageUrl'] as String? ?? fallbackUrl;
-          if (photoUrl != null && photoUrl.isNotEmpty) {
-            _photoCache[userId] = photoUrl;
-          }
+        // 로딩 중에는 그냥 기본 아이콘
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Icon(Icons.person, size: 20, color: Colors.white);
         }
+
+        String? photoUrl;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() ?? <String, dynamic>{};
+
+          final dynamic field = data['profileImageUrl'];
+          if (field is String && field.isNotEmpty) {
+            photoUrl = field;
+          } else if (fallbackUrl != null && fallbackUrl.isNotEmpty) {
+            // 피드 문서에 저장된 userPhotoUrl 같은 값 있으면 사용
+            photoUrl = fallbackUrl;
+          }
+        } else {
+          // 유저 문서 없음 → 기본 아이콘
+          photoUrl = null;
+        }
+
+        final hasPhoto =
+            photoUrl != null && photoUrl!.isNotEmpty;
 
         return CircleAvatar(
           radius: 18,
-          backgroundImage: photoUrl?.isNotEmpty == true
-              ? NetworkImage(photoUrl!)
-              : null,
-          child: photoUrl?.isNotEmpty != true
-              ? const Icon(Icons.person, size: 20, color: Colors.white)
-              : null,
+          backgroundImage:
+          hasPhoto ? NetworkImage(photoUrl!) : null,
+          child: hasPhoto
+              ? null
+              : const Icon(Icons.person, size: 20, color: Colors.white),
         );
       },
     );
@@ -446,9 +464,12 @@ class _PostCardState extends ConsumerState<PostCard> {
 
     showDialog(
       context: context,
-      builder: (_) => FutureBuilder<DocumentSnapshot>(
-        future:
-        FirebaseFirestore.instance.collection('users').doc(userId).get(),
+      builder: (_) => FutureBuilder<
+          DocumentSnapshot<Map<String, dynamic>>>(
+        future: FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -462,7 +483,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           }
 
           final data =
-          snapshot.data!.data() as Map<String, dynamic>;
+              snapshot.data!.data() ?? <String, dynamic>{};
           final hasProfile = data['hasProfile'] == true;
           if (!hasProfile) {
             return UserProfileDialog(
@@ -474,22 +495,26 @@ class _PostCardState extends ConsumerState<PostCard> {
 
           final koreanName =
               data['koreanName']?.toString().trim() ?? '이름 없음';
-          final englishName = data['englishName']?.toString().trim();
+          final englishName =
+          data['englishName']?.toString().trim();
           final photoUrl = data['profileImageUrl'] as String?;
-          final shopName = data['shopName']?.toString().trim();
+          final shopName =
+          data['shopName']?.toString().trim();
 
           final barrelData = widget.barrelData ??
               (data['barrelName']?.toString().isNotEmpty == true ||
                   data['shaft']?.toString().isNotEmpty == true ||
                   data['flight']?.toString().isNotEmpty == true ||
                   data['tip']?.toString().isNotEmpty == true ||
-                  (data['barrelImageUrl'] as String?)?.isNotEmpty ==
+                  (data['barrelImageUrl'] as String?)
+                      ?.isNotEmpty ==
                       true
                   ? {
                 'barrelImageUrl':
                 data['barrelImageUrl'] as String?,
                 'barrelName':
-                data['barrelName']?.toString().trim() ?? '',
+                data['barrelName']?.toString().trim() ??
+                    '',
                 'shaft':
                 data['shaft']?.toString().trim() ?? '',
                 'flight':

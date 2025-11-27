@@ -13,8 +13,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ====================== 헬퍼 함수 ======================
-// 한국 시간 정확하게 가져오기 (가장 안전한 방법)
+// ====================== 한국시간 헬퍼 ======================
 function getKoreaNowTimestamp() {
   return admin.firestore.Timestamp.fromMillis(Date.now() + 9 * 60 * 60 * 1000);
 }
@@ -45,7 +44,7 @@ const BADGE_MAP = [
   'silver1', 'silver2', 'bronze1', 'bronze2', 'bronze3'
 ];
 
-// ====================== 기존 함수들 (변경 없음) ======================
+// ====================== 기존 함수들 ======================
 exports.setHasProfile = functions.https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인 필요');
   await admin.auth().setCustomUserClaims(context.auth.uid, { hasProfile: true });
@@ -81,7 +80,6 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
 
       const collectionName = getMonthlyRankingCollection();
       const rankingRef = admin.firestore().collection(collectionName).doc(uid);
-
       const { score } = calculateCheckoutScore(data);
 
       const newRecord = {
@@ -98,19 +96,9 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
       };
 
       const rankingSnap = await rankingRef.get();
-
-      if (!rankingSnap.exists) {
+      if (!rankingSnap.exists || (rankingSnap.data()?.score || 0) < score) {
         await rankingRef.set(newRecord);
-        console.log(`[랭킹 등록] ${koreanName} → ${score}점`);
-      } else {
-        const oldScore = rankingSnap.data()?.score || 0;
-
-        if (score > oldScore) {
-          await rankingRef.set(newRecord);
-          console.log(`[랭킹 갱신] ${koreanName} → ${score}점 (신기록!)`);
-        } else {
-          console.log(`[랭킹 유지] ${koreanName} → ${oldScore}점 (최고 총점 세션 보존)`);
-        }
+        console.log(`[랭킹 ${rankingSnap.exists ? '갱신' : '등록'}] ${koreanName} → ${score}점`);
       }
     } catch (e) {
       console.error('랭킹 업데이트 실패:', e);
@@ -141,7 +129,6 @@ exports.grantMonthlyBadges = functions.pubsub
       const year = lastMonth.getFullYear();
       const month = String(lastMonth.getMonth() + 1).padStart(2, '0');
       const currentPrefix = `monthly_${year}_${month}`;
-
       const batch = admin.firestore().batch();
 
       top12.docs.forEach((doc, i) => {
@@ -169,23 +156,21 @@ exports.onTournamentEntryCreated = functions.firestore
   .document('tournaments/{tournamentId}/entries/{entryId}')
   .onCreate(async (snap, context) => {
     const { tournamentId } = context.params;
-    const tournamentRef = admin.firestore().collection('tournaments').doc(tournamentId);
-    await tournamentRef.update({ entryCount: admin.firestore.FieldValue.increment(1) })
+    await admin.firestore().collection('tournaments').doc(tournamentId)
+      .update({ entryCount: admin.firestore.FieldValue.increment(1) })
       .catch(e => console.error('[Arena] entryCount 증가 실패:', e));
-    return null;
   });
 
 exports.onTournamentEntryDeleted = functions.firestore
   .document('tournaments/{tournamentId}/entries/{entryId}')
   .onDelete(async (snap, context) => {
     const { tournamentId } = context.params;
-    const tournamentRef = admin.firestore().collection('tournaments').doc(tournamentId);
-    await tournamentRef.update({ entryCount: admin.firestore.FieldValue.increment(-1) })
+    await admin.firestore().collection('tournaments').doc(tournamentId)
+      .update({ entryCount: admin.firestore.FieldValue.increment(-1) })
       .catch(e => console.error('[Arena] entryCount 감소 실패:', e));
-    return null;
   });
 
-// ====================== 완전 수정된 아레나 메일 발송 부분 ======================
+// ====================== 참가자 명단 CSV 생성 ======================
 function buildEntriesCsv(entriesSnap) {
   let csv = '\uFEFFnameKo,nameEn,phone,email,rating,homeShop,createdAt\n';
   entriesSnap.forEach(doc => {
@@ -205,7 +190,6 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
     .orderBy('createdAt', 'asc')
     .get();
 
-  // 안전한 이메일 처리
   let organizerEmails = Array.isArray(tournamentData.organizerEmails)
     ? tournamentData.organizerEmails.filter(e => typeof e === 'string' && e.includes('@'))
     : [];
@@ -236,17 +220,18 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
   }
 }
 
+// 자동 발송 - 한국시간 기준 매시간 실행
 exports.sendTournamentEntrySummary = functions.pubsub
   .schedule('every 60 minutes')
   .timeZone('Asia/Seoul')
   .onRun(async () => {
     const db = admin.firestore();
-    const now = getKoreaNowTimestamp();  // 정확한 한국시간!
+    const now = getKoreaNowTimestamp();
 
     const snap = await db
       .collection('tournaments')
       .where('entryEndDate', '<=', now)
-      .where('entrySummarySent', '!=', true)  // false 또는 없어도 잡힘
+      .where('entrySummarySent', '==', false)
       .get();
 
     if (snap.empty) {
@@ -261,7 +246,6 @@ exports.sendTournamentEntrySummary = functions.pubsub
       } catch (e) {
         console.error('개별 메일 처리 실패:', e);
       } finally {
-        // 성공/실패 무조건 플래그 켜기 → 무한 재시도 방지!!
         await db.collection('tournaments').doc(tournamentId)
           .update({ entrySummarySent: true })
           .catch(() => {});
@@ -272,3 +256,26 @@ exports.sendTournamentEntrySummary = functions.pubsub
     console.log(`[Arena] 마감 대회 ${snap.size}개 처리 완료`);
     return null;
   });
+
+// 관리자 전용 테스트 함수 (나중에 필요 없으면 주석 처리하거나 삭제 가능)
+exports.testSendEntrySummary = functions.https.onCall(async (data, context) => {
+  if (!context.auth || context.auth.uid !== "NanHPgCdsbMCFkHEs7MtxS51OSX2") {
+    throw new functions.https.HttpsError('permission-denied', '관리자 전용 기능입니다');
+  }
+
+  const tournamentId = data.tournamentId;
+  if (!tournamentId) {
+    throw new functions.https.HttpsError('invalid-argument', 'tournamentId가 필요합니다');
+  }
+
+  const db = admin.firestore();
+  const doc = await db.collection('tournaments').doc(tournamentId).get();
+  if (!doc.exists) {
+    throw new functions.https.HttpsError('not-found', '대회를 찾을 수 없습니다');
+  }
+
+  await sendSummaryForTournament(db, tournamentId, doc.data());
+  await doc.ref.update({ entrySummarySent: true });
+
+  return { success: true, message: '테스트 메일이 발송되었습니다!' };
+});

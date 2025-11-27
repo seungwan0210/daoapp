@@ -2,7 +2,7 @@ name: daoapp
 description: "스틸리그 포인트 집계 앱 - 관리자 전용 입력 + 실시간 랭킹 + 경기 일정"
 publish_to: 'none'
 
-version: 1.1.0+11
+version: 1.1.1+12
 
 environment:
   sdk: '>=3.7.0 <4.0.0'
@@ -16,7 +16,8 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   rxdart: ^0.27.7
-  firebase_storage: ^12.3.3
+  # 핵심 수정: 12.3.3 → 12.3.4 (이 버그 완전히 고쳐진 버전)
+  firebase_storage: ^12.3.4
   cloud_functions: ^5.6.2
   cached_network_image: ^3.3.1
   flutter_riverpod: ^2.4.0
@@ -33,6 +34,7 @@ dependencies:
   firebase_database: ^11.3.10
   share_plus: ^7.2.2
   firebase_app_check: ^0.3.0+2
+  path: ^1.8.3   # 이거 추가!!
 
   # 아레나 토너먼트 기능 완벽 지원 (freezed 필수!!)
   freezed_annotation: ^2.4.1

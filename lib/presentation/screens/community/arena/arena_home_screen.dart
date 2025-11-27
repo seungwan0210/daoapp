@@ -24,9 +24,7 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
+      setState(() => _searchQuery = _searchController.text);
     });
   }
 
@@ -41,7 +39,6 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
     final arenaState = ref.watch(arenaProvider);
     final notifier = ref.read(arenaProvider.notifier);
 
-    // 검색어 필터링
     final filteredTournaments = arenaState.tournaments.where((t) {
       return t.title.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
@@ -58,37 +55,21 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
         ),
         centerTitle: false,
         actions: [
-          // 대회 만들기
           IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const TournamentCreateScreen(),
-                ),
-              ).then((_) {
-                // 돌아오면 리스트 새로고침
-                notifier.refresh();
-              });
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TournamentCreateScreen()),
+            ).then((_) => notifier.refresh()),
             icon: const Icon(Icons.add_circle_outline),
             tooltip: '대회 만들기',
             iconSize: 28,
             color: theme.colorScheme.primary,
           ),
-          // 내가 주최한 대회
           IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const MyTournamentsScreen(),
-                ),
-              ).then((_) {
-                // 주최자가 삭제/변경했을 수 있으니 돌아오면 새로고침
-                notifier.refresh();
-              });
-            },
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MyTournamentsScreen()),
+            ).then((_) => notifier.refresh()),
             icon: const Icon(Icons.emoji_events),
             tooltip: '내가 주최한 대회',
             iconSize: 28,
@@ -116,7 +97,7 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                       icon: const Icon(Icons.clear),
-                      onPressed: () => _searchController.clear(),
+                      onPressed: _searchController.clear,
                     )
                         : null,
                     filled: true,
@@ -134,7 +115,7 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
               ),
             ),
 
-            // 리스트 영역
+            // 대회 리스트
             SliverPadding(
               padding: const EdgeInsets.only(bottom: 100),
               sliver: _buildListSliver(
@@ -150,24 +131,21 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
     );
   }
 
-  // 🔧 여기 타입만 Widget으로 바꿔주면 돼
   Widget _buildListSliver({
     required BuildContext context,
     required ArenaState arenaState,
     required List filteredTournaments,
     required ArenaNotifier notifier,
   }) {
-    // 초기 로딩 중 + 데이터 없을 때
     if (arenaState.isLoading && arenaState.tournaments.isEmpty) {
-      return SliverToBoxAdapter(
+      return const SliverToBoxAdapter(
         child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.4,
-          child: const Center(child: CircularProgressIndicator()),
+          height: 400,
+          child: Center(child: CircularProgressIndicator()),
         ),
       );
     }
 
-    // 검색/필터 결과 없음
     if (filteredTournaments.isEmpty && !arenaState.isLoading) {
       return SliverToBoxAdapter(
         child: Center(
@@ -176,17 +154,13 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
             child: Column(
               children: [
                 Icon(
-                  _searchQuery.isEmpty
-                      ? Icons.sports_esports_outlined
-                      : Icons.search_off,
+                  _searchQuery.isEmpty ? Icons.sports_esports_outlined : Icons.search_off,
                   size: 100,
                   color: Colors.grey[400],
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  _searchQuery.isEmpty
-                      ? '등록된 대회가 없어요'
-                      : '검색 결과가 없어요',
+                  _searchQuery.isEmpty ? '등록된 대회가 없어요' : '검색 결과가 없어요',
                   style: TextStyle(
                     fontSize: 20,
                     color: Colors.grey[600],
@@ -199,10 +173,7 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
                   _searchQuery.isEmpty
                       ? '새로운 대회를 기다려주세요!'
                       : '"$_searchQuery"에 맞는 대회가 없어요',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 15, color: Colors.grey[500]),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -212,11 +183,9 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
       );
     }
 
-    // 데이터 있는 경우 + 무한 스크롤
     return SliverList(
       delegate: SliverChildBuilderDelegate(
             (context, index) {
-          // 로딩 인디케이터 영역
           if (index >= filteredTournaments.length) {
             if (arenaState.hasMore) {
               notifier.loadTournaments();
@@ -237,15 +206,13 @@ class _ArenaHomeScreenState extends ConsumerState<ArenaHomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      TournamentDetailScreen(tournamentId: tournament.id!),
+                  builder: (_) => TournamentDetailScreen(tournamentId: tournament.id!),
                 ),
               );
             },
           );
         },
-        childCount:
-        filteredTournaments.length + (arenaState.hasMore ? 1 : 0),
+        childCount: filteredTournaments.length + (arenaState.hasMore ? 1 : 0),
       ),
     );
   }
