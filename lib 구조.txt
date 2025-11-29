@@ -44,12 +44,12 @@ lib/
 ├── presentation/
 │   ├── providers/
 │   │   ├── app_providers.dart
-│   │   ├── home_provider.dart                 // ★ 기존 user_home_provider.dart → 이름 변경
+│   │   ├── home_provider.dart               
 │   │   ├── ranking_provider.dart
 │   │   ├── community_provider.dart
 │   │   ├── circle_feed_provider.dart
-│   │   ├── checkout_provider.dart            // (트레이닝 내 체크아웃 계산용)
-│   │   ├── checkout_practice_provider.dart   // (트레이닝 내 연습모드)
+│   │   ├── checkout_provider.dart            
+│   │   ├── checkout_practice_provider.dart   
 │   │   ├── arena_provider.dart
 │   │   └── my_log_provider.dart
 │   │
@@ -57,21 +57,21 @@ lib/
 │   │   ├── splash_screen.dart
 │   │   ├── login/
 │   │   │   └── login_screen.dart
-│   │   ├── main_screen.dart                  // BottomNavigationBar: Home/Training/Arena/Community/MyPage
+│   │   ├── main_screen.dart                  
 │   │   │
-│   │   ├── home/                             // ★ 기존 user_home_screen 위치 변경
-│   │   │   ├── home_screen.dart              // ★ 기존 user_home_screen.dart → 이름+위치 변경
+│   │   ├── home/                           
+│   │   │   ├── home_screen.dart              
 │   │   │   └── widgets/
 │   │   │       └── (홈 카드/배너/섹션 위젯들 필요 시 분리)
 │   │   │
-│   │   ├── training/                         // ★ 새 탭: 트레이닝
-│   │   │   ├── training_home_screen.dart     // ★ 새 파일: 오늘의 할일/계산기/연습/테스트 허브
-│   │   │   ├── today_tasks_screen.dart       // ★ 오늘의 할 일 (TODO)
-│   │   │   ├── rating_test_screen.dart       // ★ 레이팅/간단 테스트
+│   │   ├── training/                         
+│   │   │   ├── training_home_screen.dart     
+│   │   │   ├── today_tasks_screen.dart      
+│   │   │   ├── rating_test_screen.dart       
 │   │   │   │
 │   │   │   ├── calculator/
 │   │   │   │   └── training_calculator_screen.dart
-│   │   │   │       // ★ 기존 community/checkout/calculator/checkout_calculator_screen.dart
+│   │   │   │      
 │   │   │   │
 │   │   │   ├── checkout/
 │   │   │   │   ├── checkout_practice_home_screen.dart
@@ -80,7 +80,6 @@ lib/
 │   │   │   │   ├── checkout_my_history_screen.dart
 │   │   │   │   ├── checkout_ranking_screen.dart
 │   │   │   │   └── checkout_practice_detail_screen.dart
-│   │   │   │       // ★ 전부 기존 community/checkout/practice/ 밑에서 이동
 │   │   │   │
 │   │   │   └── widgets/
 │   │   │       ├── dartboard_widget.dart
@@ -90,23 +89,19 @@ lib/
 │   │   │       ├── checkout_ranking_mini.dart
 │   │   │       └── my_recent_record_mini.dart
 │   │   │
-│   │   ├── arena/                            // ★ 아레나 탭
-│   │   │   ├── arena_home_screen.dart        // ★ 기존 aarena_home_screen.dart → 이름 수정
-│   │   │   │   // 상단: 스틸리그 카드 섹션
-│   │   │   │   // 하단: 토너먼트 카드 섹션
+│   │   ├── arena/                           
+│   │   │   ├── arena_home_screen.dart       
 │   │   │   │
-│   │   │   ├── steel_league/                 // ★ 스틸리그 관련 화면들
+│   │   │   ├── steel_league/                 
 │   │   │   │   ├── steel_league_ranking_screen.dart
-│   │   │   │   │   // ★ 기존 user/ranking_screen.dart 기능 옮겨오기 추천
 │   │   │   │   ├── steel_league_schedule_screen.dart
 │   │   │   │   ├── steel_league_point_calendar_screen.dart
-│   │   │   │   │   // ★ 기존 user/point_calendar_screen.dart 이동
 │   │   │   │   ├── member_list_screen.dart.dart
 │   │   │   │   └── selection_players_screen.dart
 │   │   │   │
 │   │   │   ├── tournament/
-│   │   │   │   ├── tournaments_home_screen.dart        // ★ [주최하기/참가 가능/예정] 허브
-│   │   │   │   ├── my_tournaments_screen.dart          // 기존 my_tournaments_screen.dart
+│   │   │   │   ├── tournaments_home_screen.dart        
+│   │   │   │   ├── my_tournaments_screen.dart         
 │   │   │   │   ├── tournament_create_screen.dart
 │   │   │   │   ├── tournament_detail_screen.dart
 │   │   │   │   ├── tournament_entry_form_screen.dart
@@ -118,11 +113,11 @@ lib/
 │   │   │   │       └── tournament_filter_chips.dart
 │   │   │   │
 │   │   │   └── widgets/
-│   │   │       └── (아레나 공통 카드/섹션 위젯들)
+│   │   │       └── arena_preview.dart
 │   │   │
-│   │   ├── community/                        // 커뮤니티 탭
+│   │   ├── community/                       
 │   │   │   ├── community_home_screen.dart
-│   │   │   │   // ★ 탭: 서클 중심 (체크아웃/아레나 관련 버튼 제거 예정)
+│   │   │   │  
 │   │   │   │
 │   │   │   ├── widgets/
 │   │   │   │   ├── community_avatar_slider.dart
@@ -142,8 +137,8 @@ lib/
 │   │   │   │       ├── comment_preview.dart
 │   │   │   │       └── comment_bottom_sheet.dart
 │   │   │
-│   │   ├── my_page/                          // ★ 기존 user/ → MyPage 중심으로 정리
-│   │   │   ├── my_page_screen.dart           // 탭 5번과 연결
+│   │   ├── my_page/                          
+│   │   │   ├── my_page_screen.dart          
 │   │   │   ├── profile_register_screen.dart
 │   │   │   ├── notice_list_screen.dart
 │   │   │   ├── report_form_screen.dart
@@ -165,6 +160,7 @@ lib/
 │   │   │   │       └── my_log_card.dart
 │   │   │
 │   │   ├── admin/
+│   │   │   ├── selection_players_admin_screen.dart
 │   │   │   ├── admin_dashboard_screen.dart
 │   │   │   ├── admin_member_list_screen.dart
 │   │   │   ├── admin_report_list_screen.dart
