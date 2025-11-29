@@ -1,13 +1,17 @@
-// lib/presentation/screens/community/arena/my_tournaments_screen.dart
+// lib/presentation/screens/arena/tournament/my_tournaments_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/data/repositories/arena_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
-import 'package:daoapp/presentation/screens/community/arena/widgets/tournament_card.dart';
-import 'package:daoapp/presentation/screens/community/arena/tournament_detail_screen.dart';
+
+// 🔧 경로 변경: arena/tournament/widgets 로 이동했다고 가정
+import 'package:daoapp/presentation/screens/arena/tournament/widgets/tournament_card.dart';
+// 🔧 경로 변경: arena/tournament/ 로 이동했다고 가정
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
 
 class MyTournamentsScreen extends ConsumerWidget {
   const MyTournamentsScreen({super.key});
@@ -15,6 +19,7 @@ class MyTournamentsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user == null) {
       return const Scaffold(
         body: Center(
@@ -38,7 +43,7 @@ class MyTournamentsScreen extends ConsumerWidget {
         stream: repo.getMyHostedTournaments(
           userUid: userUid,
           userEmail: userEmail,
-          limit: 100, // 필요하면 나중에 무한스크롤 구조로 확장 가능
+          limit: 100, // 나중에 필요하면 무한 스크롤로 확장 가능
         ),
         builder: (context, snapshot) {
           // 에러
@@ -94,9 +99,11 @@ class MyTournamentsScreen extends ConsumerWidget {
             itemCount: tournaments.length,
             itemBuilder: (context, index) {
               final tournament = tournaments[index];
+
               return TournamentCard(
                 tournament: tournament,
                 onTap: () {
+                  if (tournament.id == null) return;
                   Navigator.push(
                     context,
                     MaterialPageRoute(

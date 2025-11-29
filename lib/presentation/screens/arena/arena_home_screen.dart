@@ -1,0 +1,293 @@
+// lib/presentation/screens/arena/arena_home_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// ── 스틸리그 화면들 ─────────────────────────────────────────────
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/member_list_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
+
+// ── 토너먼트 관련 ─────────────────────────────────────────────
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/my_tournaments_screen.dart';
+
+// 아레나 프리뷰 위젯
+import 'package:daoapp/presentation/screens/arena/widgets/arena_preview.dart';
+
+class ArenaHomeScreen extends ConsumerWidget {
+  const ArenaHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        title: const Text(
+          '아레나',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: false,
+        actions: [
+          // 대회 만들기
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TournamentCreateScreen()),
+              );
+            },
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: '대회 만들기',
+            iconSize: 28,
+            color: theme.colorScheme.primary,
+          ),
+          // 내가 주최한 대회
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MyTournamentsScreen()),
+              );
+            },
+            icon: const Icon(Icons.emoji_events),
+            tooltip: '내가 주최한 대회',
+            iconSize: 28,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ==========================
+            // 스틸리그 카드 섹션
+            // ==========================
+            Text(
+              '스틸리그',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.9,
+                  children: [
+                    _ArenaGridItem(
+                      icon: Icons.leaderboard_outlined,
+                      label: '랭킹',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SteelLeagueRankingScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ArenaGridItem(
+                      icon: Icons.event_available_outlined,
+                      label: '리그 일정',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SteelLeagueScheduleScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ArenaGridItem(
+                      icon: Icons.calendar_month_outlined,
+                      label: '포인트 달력',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SteelLeaguePointCalendarScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ArenaGridItem(
+                      icon: Icons.card_membership_outlined,
+                      label: 'KDF 정회원',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MemberListScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ArenaGridItem(
+                      icon: Icons.groups_3_outlined,
+                      label: '선발 선수',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const SelectionPlayersScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ==========================
+            // 토너먼트 카드 섹션
+            // ==========================
+            Text(
+              '토너먼트',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                  childAspectRatio: 0.9,
+                  children: [
+                    _ArenaGridItem(
+                      icon: Icons.add_circle_outline,
+                      label: '개최하기',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TournamentCreateScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _ArenaGridItem(
+                      icon: Icons.how_to_reg_outlined,
+                      label: '참가 가능',
+                      onTap: () {
+                        // TODO: tournaments_home_screen.dart와 연동해서
+                        // "참가 가능" 탭으로 이동하도록 확장 가능
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('참가 가능 대회 화면은 준비 중입니다.')),
+                        );
+                      },
+                    ),
+                    _ArenaGridItem(
+                      icon: Icons.schedule_outlined,
+                      label: '예정 경기',
+                      onTap: () {
+                        // TODO: tournaments_home_screen.dart의 "예정" 탭과 연동 예정
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('예정 경기 화면은 준비 중입니다.')),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // ==========================
+            // 토너먼트 프리뷰 (참가 가능 / 예정)
+            // ==========================
+            ArenaPreview(
+              onSeeAllPressed: () {
+                // TODO: 추후 "참가 가능 대회 전체 리스트" 화면으로 교체
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('대회 전체 보기 화면은 준비 중입니다.')),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ArenaGridItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _ArenaGridItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withOpacity(0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 26,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,176 +1,216 @@
 // lib/presentation/providers/checkout_provider.dart
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'dart:math';
+
 import 'package:daoapp/core/constants/checkout_table.dart';
 import 'package:daoapp/data/models/checkout_route_model.dart';
+import 'package:daoapp/data/models/practice_session_summary.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
-/// 체크아웃 계산기 + 연습 모드 공통 상태 관리
-class CheckoutProvider extends ChangeNotifier {
-  // === 계산기 & 연습 공통 ===
-  int remainingScore = 0;              // 남은 점수
-  List<CheckoutRoute> routes = [];     // 현재 점수에서 추천 루트들
+class CheckoutState {
+  final int remainingScore;
+  final List<CheckoutRoute> routes;
+  final List<int> history;
+  final List<Turn> practiceHistory;
+  final List<String> currentTurn;
+  final bool isPracticing;
+  final int elapsedSeconds;
 
-  // === 계산기 전용: 점수 히스토리 (되돌리기용) ===
-  final List<int> _history = [];
+  const CheckoutState({
+    required this.remainingScore,
+    required this.routes,
+    required this.history,
+    required this.practiceHistory,
+    required this.currentTurn,
+    required this.isPracticing,
+    this.elapsedSeconds = 0,
+  });
 
-  /// 히스토리 읽기 (필요하면 UI에서 사용)
-  List<int> get history => List.unmodifiable(_history);
+  factory CheckoutState.initial() => const CheckoutState(
+    remainingScore: 0,
+    routes: [],
+    history: [],
+    practiceHistory: [],
+    currentTurn: [],
+    isPracticing: false,
+  );
 
-  /// 되돌리기 가능 여부 (연습 모드가 아닐 때만 사용)
-  bool get canUndo => _history.isNotEmpty && !isPracticing;
+  CheckoutState copyWith({
+    int? remainingScore,
+    List<CheckoutRoute>? routes,
+    List<int>? history,
+    List<Turn>? practiceHistory,
+    List<String>? currentTurn,
+    bool? isPracticing,
+    int? elapsedSeconds,
+  }) {
+    return CheckoutState(
+      remainingScore: remainingScore ?? this.remainingScore,
+      routes: routes ?? this.routes,
+      history: history ?? this.history,
+      practiceHistory: practiceHistory ?? this.practiceHistory,
+      currentTurn: currentTurn ?? this.currentTurn,
+      isPracticing: isPracticing ?? this.isPracticing,
+      elapsedSeconds: elapsedSeconds ?? this.elapsedSeconds,
+    );
+  }
 
-  // === 연습 모드 전용 ===
-  List<String> currentTurn = [];       // 이번 턴에서 던진 다트들 ["T20", "T20", "D20"]
-  List<Turn> practiceHistory = [];     // 연습 기록
-  bool isPracticing = false;
+  // 이 getter들이 없어서 에러 났음!!!
+  bool get canUndo => history.isNotEmpty && !isPracticing;
+  int get currentOptimalDarts => checkoutTable[remainingScore.toString()]?.primary.length ?? 3;
+  double get currentEfficiency => currentTurn.isEmpty ? 0 : (currentOptimalDarts / currentTurn.length).clamp(0.0, 2.0) * 100;
+  bool get isBust => remainingScore == 1 || (remainingScore == 0 && !currentTurn.any((s) => s.startsWith('D') || s == 'Bull'));
+}
 
-  // ================================================================
-  //                           계산기 모드
-  // ================================================================
+class Turn {
+  final List<String> darts;
+  final int scoreBefore;
+  const Turn({required this.darts, required this.scoreBefore});
+}
 
-  /// 초기 점수 설정 (계산기 진입 시)
+class CheckoutProvider extends StateNotifier<CheckoutState> {
+  CheckoutProvider() : super(CheckoutState.initial());
+  Timer? _timer;
+
+  // 계산기 전용
   void setInitialScore(int score) {
-    remainingScore = score;
-    isPracticing = false;   // 계산기 모드
-    _history.clear();       // 히스토리 초기화
+    if (score < 2 || score > 170) return;
+    state = CheckoutState.initial().copyWith(remainingScore: score);
     _updateRoutes();
   }
 
-  /// 점수 차감 (키패드 입력 후)
   void subtractScore(int score) {
-    if (score <= 0) return;
-    if (score > remainingScore) return;
-
-    remainingScore -= score;
-    if (remainingScore < 0) remainingScore = 0;
-
-    // ✅ 히스토리에 기록 (계산기 모드 되돌리기용)
-    _history.add(score);
-
+    if (score <= 0 || score > state.remainingScore) return;
+    state = state.copyWith(
+      remainingScore: state.remainingScore - score,
+      history: [...state.history, score],
+    );
     _updateRoutes();
   }
 
-  /// 마지막 입력 되돌리기 (계산기 모드 전용)
   void undoLast() {
-    if (!canUndo) return;
-
-    final last = _history.removeLast();
-    remainingScore += last;
+    if (!state.canUndo) return;
+    final last = state.history.last;
+    state = state.copyWith(
+      remainingScore: state.remainingScore + last,
+      history: state.history..removeLast(),
+    );
     _updateRoutes();
   }
 
-  // ================================================================
-  //                           연습 모드
-  // ================================================================
-
-  /// 연습 시작
-  void startPractice(int startScore) {
-    remainingScore = startScore;
-    isPracticing = true;
-    practiceHistory.clear();
-    currentTurn.clear();
-    _history.clear();       // 연습 모드에서는 계산기 히스토리 사용 X
+  // 연습 모드 전용
+  void startPractice() {
+    state = CheckoutState.initial().copyWith(
+      isPracticing: true,
+      remainingScore: _randomScore(),
+    );
+    _startTimer();
     _updateRoutes();
   }
 
-  /// 다트 입력 (세그먼트: T20, D20 등)
   void inputDart(String segment) {
-    if (currentTurn.length >= 3 || !isPracticing) return;
+    if (!state.isPracticing || state.currentTurn.length >= 3) return;
+    final value = _segmentValue(segment);
+    final newScore = state.remainingScore - value;
+    if (newScore < 0) return;
 
-    currentTurn.add(segment);
-    remainingScore -= _segmentValue(segment);
-    if (remainingScore < 0) remainingScore = 0;
-
+    state = state.copyWith(
+      remainingScore: newScore,
+      currentTurn: [...state.currentTurn, segment],
+    );
     _updateRoutes();
   }
 
-  /// 턴 종료
   void finishTurn(BuildContext context) {
-    if (currentTurn.isEmpty || !isPracticing) return;
+    if (state.currentTurn.isEmpty) return;
 
-    final turnScore = _turnScore();
-    final scoreBefore = remainingScore + turnScore;
+    final turnScore = state.currentTurn.map(_segmentValue).fold(0, (a, b) => a + b);
+    final scoreBefore = state.remainingScore + turnScore;
 
-    practiceHistory.add(
-      Turn(
-        darts: List.from(currentTurn),
-        scoreBefore: scoreBefore,
-      ),
+    state = state.copyWith(
+      practiceHistory: [
+        ...state.practiceHistory,
+        Turn(darts: List.from(state.currentTurn), scoreBefore: scoreBefore)
+      ],
+      currentTurn: [],
     );
 
-    currentTurn.clear();
-
-    if (remainingScore <= 0) {
-      // 체크아웃 성공 → 결과 화면으로
-      Future.delayed(const Duration(milliseconds: 400), () {
-        if (context.mounted) {
-          Navigator.pushNamed(context, RouteConstants.checkoutResult);
-        }
-      });
+    if (state.remainingScore <= 0) {
+      _finishPractice(context);
     } else {
-      _updateRoutes();
+      state = state.copyWith(remainingScore: _randomScore());
     }
-
-    notifyListeners();
+    _updateRoutes();
   }
 
-  // ================================================================
-  //                           공통 유틸
-  // ================================================================
+  void _finishPractice(BuildContext context) {
+    _timer?.cancel();
+    final summary = PracticeSessionSummary(
+      elapsedSeconds: state.elapsedSeconds,
+      results: state.practiceHistory.map((t) => PracticeResult(
+        scoreBefore: t.scoreBefore,
+        darts: t.darts,
+        isSuccess: true,
+        dartsUsed: t.darts.length,
+      )).toList(),
+    );
 
-  /// 추천 루트 갱신
+    if (context.mounted) {
+      Navigator.pushReplacementNamed(
+        context,
+        RouteConstants.checkoutResult,
+        arguments: summary,
+      );
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
+    });
+  }
+
+  int _randomScore() {
+    final scores = checkoutTable.keys.map(int.parse).where((s) => s >= 61 && s <= 170).toList();
+    return scores[Random().nextInt(scores.length)];
+  }
+
   void _updateRoutes() {
-    routes.clear();
-
-    if (remainingScore < 2 || remainingScore > 170) {
-      notifyListeners();
-      return;
+    final routes = <CheckoutRoute>[];
+    if (state.remainingScore >= 2 && state.remainingScore <= 170) {
+      final data = checkoutTable[state.remainingScore.toString()];
+      if (data != null) {
+        routes.add(CheckoutRoute(primary: data.primary, alts: data.alts));
+      }
     }
-
-    final data = checkoutTable[remainingScore.toString()];
-    if (data != null) {
-      // 수정 전 (대안 루트 안 보임)
-      // routes.add(CheckoutRoute(primary: data.primary));
-      // routes.addAll(data.alts.map((alt) => CheckoutRoute(primary: alt)));
-
-      // 수정 후 (대안 루트 전부 보임!)
-      routes.add(CheckoutRoute(
-        primary: data.primary,
-        alts: data.alts,   // ← 이 한 줄만 추가!
-      ));
-    }
-
-    notifyListeners();
+    state = state.copyWith(routes: routes);
   }
 
-  /// 턴 점수 합계
-  int _turnScore() => currentTurn.map(_segmentValue).fold(0, (a, b) => a + b);
-
-  /// 세그먼트 → 실제 점수 변환
   int _segmentValue(String s) {
     if (s == 'Bull') return 50;
-    if (s == 'SB') return 25; // 싱글 불(25) 옛 데이터 호환
-
     final match = RegExp(r'([STD])(\d+)').firstMatch(s);
     if (match == null) return 0;
-
     final type = match.group(1);
     final num = int.parse(match.group(2)!);
+    return switch (type) {
+      'S' => num,
+      'D' => num * 2,
+      'T' => num * 3,
+      _ => 0,
+    };
+  }
 
-    if (type == 'S') return num;
-    if (type == 'D') return num * 2;
-    if (type == 'T') return num * 3;
-    return 0;
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 }
 
-/// 연습 기록 모델
-class Turn {
-  final List<String> darts;     // ["T20", "D20"]
-  final int scoreBefore;        // 턴 시작 전 남은 점수
-
-  const Turn({
-    required this.darts,
-    required this.scoreBefore,
-  });
-}
+final checkoutProvider = StateNotifierProvider<CheckoutProvider, CheckoutState>((ref) {
+  return CheckoutProvider();
+});

@@ -1,32 +1,32 @@
-// lib/presentation/screens/user/user_home_screen.dart
+// lib/presentation/screens/home/home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:daoapp/presentation/providers/user_home_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart';
+
+import 'package:daoapp/presentation/providers/home_provider.dart'; // ★ 기존 user_home_provider.dart → 이름 변경된 파일
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/data/models/ranking_user.dart';
-import 'package:daoapp/core/theme/app_theme.dart';
+import 'package:daoapp/presentation/screens/main_screen.dart';
 
-class UserHomeScreen extends ConsumerWidget {
-  const UserHomeScreen({super.key});
+class HomeScreen extends ConsumerWidget {
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // 홈 진입 시 기본 랭킹 필터 세팅
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
     });
 
-    return const UserHomeScreenBody();
+    return const HomeScreenBody();
   }
 }
 
-class UserHomeScreenBody extends ConsumerWidget {
-  const UserHomeScreenBody({super.key});
+class HomeScreenBody extends ConsumerWidget {
+  const HomeScreenBody({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,7 +71,9 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // =========================
   // 대회 사진 캐러셀
+  // =========================
   static Widget _buildCompetitionPhotos(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -121,7 +123,10 @@ class UserHomeScreenBody extends ConsumerWidget {
                       ),
                     )
                   else
-                    Container(color: Colors.grey[300], child: const Icon(Icons.image, size: 60)),
+                    Container(
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.image, size: 60),
+                    ),
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -134,11 +139,16 @@ class UserHomeScreenBody extends ConsumerWidget {
                           end: Alignment.topCenter,
                           colors: [Colors.black54, Colors.transparent],
                         ),
-                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                        borderRadius:
+                        BorderRadius.vertical(bottom: Radius.circular(16)),
                       ),
                       child: Text(
                         item['title']!,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -154,7 +164,8 @@ class UserHomeScreenBody extends ConsumerWidget {
   }
 
   // 대회 사진 클릭 처리
-  static void _handleCompetitionPhotoTap(BuildContext context, Map<String, dynamic> item) {
+  static void _handleCompetitionPhotoTap(
+      BuildContext context, Map<String, dynamic> item) {
     final type = item['actionType'];
     final url = item['actionUrl'] as String?;
     final route = item['actionRoute'] as String?;
@@ -166,9 +177,12 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 다음 경기 카드 (요일 버그 완전 해결!)
+  // =========================
+  // 다음 경기 카드
+  // =========================
   static Widget _buildNextEventCard(BuildContext context) {
-    final now = Timestamp.fromDate(DateTime.now().subtract(const Duration(minutes: 5)));
+    final now =
+    Timestamp.fromDate(DateTime.now().subtract(const Duration(minutes: 5)));
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -178,11 +192,6 @@ class UserHomeScreenBody extends ConsumerWidget {
           .limit(3)
           .snapshots(),
       builder: (context, snapshot) {
-        print('NextEvent - State: ${snapshot.connectionState}, '
-            'HasData: ${snapshot.hasData}, '
-            'Docs: ${snapshot.data?.docs.length}, '
-            'Error: ${snapshot.error}');
-
         if (snapshot.connectionState == ConnectionState.waiting) {
           return _buildShimmerBanner(height: 120);
         }
@@ -202,9 +211,11 @@ class UserHomeScreenBody extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Text('다음 경기 일정', style: Theme.of(context).textTheme.titleLarge),
+                Text('다음 경기 일정',
+                    style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
                 TextButton(
+                  // 전체 보기 → 아레나 탭으로 이동 (index=2)
                   onPressed: () => MainScreen.changeTab(context, 2),
                   child: const Text('전체 보기'),
                 ),
@@ -214,16 +225,15 @@ class UserHomeScreenBody extends ConsumerWidget {
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
               final timestamp = data['eventDateTime'] as Timestamp;
-              final date = timestamp.toDate(); // 원본 시간 (시간 표시용)
+              final date = timestamp.toDate();
 
-              // 시간대 오차 제거: 날짜만 추출
+              // 날짜만 추출해서 요일 계산
               final normalizedDate = DateTime(date.year, date.month, date.day);
 
-              // 시간은 원본 date에서 정확히 가져옴
               final timeStr = data['time'] as String? ??
-                  '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+                  '${date.hour.toString().padLeft(2, '0')}:'
+                      '${date.minute.toString().padLeft(2, '0')}';
 
-              // 요일은 normalizedDate 기준 (정확!)
               final formatted =
                   '${normalizedDate.month}/${normalizedDate.day}(${_getWeekday(normalizedDate.weekday)}) $timeStr';
 
@@ -231,7 +241,8 @@ class UserHomeScreenBody extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on, color: Theme.of(context).colorScheme.primary, size: 18),
+                    Icon(Icons.location_on,
+                        color: Theme.of(context).colorScheme.primary, size: 18),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
@@ -242,7 +253,10 @@ class UserHomeScreenBody extends ConsumerWidget {
                     ),
                     Text(
                       formatted,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -254,17 +268,22 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // =========================
   // TOP 3 랭킹
-  static Widget _buildTop3Ranking(AsyncValue<List<RankingUser>> rankingState, BuildContext context) {
+  // =========================
+  static Widget _buildTop3Ranking(
+      AsyncValue<List<RankingUser>> rankingState, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Text('현재 TOP 3 (통합)', style: Theme.of(context).textTheme.titleLarge),
+            Text('현재 TOP 3 (통합)',
+                style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
             TextButton(
-              onPressed: () => MainScreen.changeTab(context, 1),
+              // 전체 랭킹 → 아레나 탭으로 이동 (index=2)
+              onPressed: () => MainScreen.changeTab(context, 2),
               child: const Text('전체 보기'),
             ),
           ],
@@ -272,7 +291,9 @@ class UserHomeScreenBody extends ConsumerWidget {
         const SizedBox(height: 8),
         rankingState.when(
           data: (rankings) {
-            if (rankings.isEmpty) return const Text('랭킹 데이터 없음');
+            if (rankings.isEmpty) {
+              return const Text('랭킹 데이터 없음');
+            }
             return Column(
               children: rankings.take(3).toList().asMap().entries.map((e) {
                 final rank = e.key + 1;
@@ -285,32 +306,51 @@ class UserHomeScreenBody extends ConsumerWidget {
                       CircleAvatar(
                         backgroundColor: _getRankColor(rank),
                         radius: 14,
-                        child: Text('$rank', style: const TextStyle(color: Colors.white, fontSize: 13)),
+                        child: Text(
+                          '$rank',
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 13),
+                        ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(child: Text('${user.koreanName} (${user.englishName})')),
-                      Text('${user.displayPoints} pt', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Text(
+                            '${user.koreanName} (${user.englishName})'),
+                      ),
+                      Text(
+                        '${user.displayPoints} pt',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(width: 8),
-                      Text(genderText, style: const TextStyle(color: Colors.black87)),
+                      Text(
+                        genderText,
+                        style: const TextStyle(color: Colors.black87),
+                      ),
                     ],
                   ),
                 );
               }).toList(),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () =>
+          const Center(child: CircularProgressIndicator(strokeWidth: 2)),
           error: (_, __) => const Text('랭킹 로드 오류'),
         ),
       ],
     );
   }
 
+  // =========================
   // 최신 뉴스
+  // =========================
   static Widget _buildNewsSection(BuildContext context, WidgetRef ref) {
     final news = ref.watch(newsProvider);
     return news.when(
       data: (snapshot) {
-        if (snapshot.docs.isEmpty) return const Text('뉴스 없음', style: TextStyle(color: Colors.grey));
+        if (snapshot.docs.isEmpty) {
+          return const Text('뉴스 없음', style: TextStyle(color: Colors.grey));
+        }
+
         final items = snapshot.docs.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return {
@@ -340,7 +380,8 @@ class UserHomeScreenBody extends ConsumerWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      if (item['imageUrl'] != null && item['imageUrl']!.isNotEmpty)
+                      if (item['imageUrl'] != null &&
+                          item['imageUrl']!.isNotEmpty)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.network(
@@ -348,12 +389,17 @@ class UserHomeScreenBody extends ConsumerWidget {
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(
                               color: Colors.grey[300],
-                              child: const Icon(Icons.broken_image, size: 60),
+                              child:
+                              const Icon(Icons.broken_image, size: 60),
                             ),
                           ),
                         )
                       else
-                        Container(color: Colors.grey[300], child: const Icon(Icons.image, size: 60)),
+                        Container(
+                          color: Colors.grey[300],
+                          child:
+                          const Icon(Icons.image, size: 60),
+                        ),
                       Positioned(
                         bottom: 0,
                         left: 0,
@@ -366,11 +412,17 @@ class UserHomeScreenBody extends ConsumerWidget {
                               end: Alignment.topCenter,
                               colors: [Colors.black54, Colors.transparent],
                             ),
-                            borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
                           ),
                           child: Text(
                             item['title']!,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -389,7 +441,9 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
+  // =========================
   // 스폰서 섹션
+  // =========================
   static Widget _buildSponsorSection(BuildContext context, WidgetRef ref) {
     final sponsors = ref.watch(sponsorBannerProvider);
     return Column(
@@ -417,13 +471,15 @@ class UserHomeScreenBody extends ConsumerWidget {
                 : _buildSponsorCarousel(context, items);
           },
           loading: () => _buildShimmerBanner(height: 180),
-          error: (_, __) => const Text('오류', style: TextStyle(color: Colors.red)),
+          error: (_, __) =>
+          const Text('오류', style: TextStyle(color: Colors.red)),
         ),
       ],
     );
   }
 
-  static Widget _buildSponsorCarousel(BuildContext context, List<Map<String, dynamic>> items) {
+  static Widget _buildSponsorCarousel(
+      BuildContext context, List<Map<String, dynamic>> items) {
     return CarouselSlider(
       options: CarouselOptions(
         height: 180,
@@ -455,7 +511,9 @@ class UserHomeScreenBody extends ConsumerWidget {
                 width: double.infinity,
                 errorBuilder: (_, __, ___) => Container(
                   color: Colors.grey[200],
-                  child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                  child: const Center(
+                    child: Icon(Icons.broken_image, color: Colors.grey),
+                  ),
                 ),
               ),
             ),
@@ -465,8 +523,11 @@ class UserHomeScreenBody extends ConsumerWidget {
     );
   }
 
-  // 뉴스 클릭
-  static void _handleNewsTap(BuildContext context, Map<String, dynamic> item) {
+  // =========================
+  // 뉴스/스폰서 클릭 공통
+  // =========================
+  static void _handleNewsTap(
+      BuildContext context, Map<String, dynamic> item) {
     final type = item['actionType'];
     final url = item['actionUrl'] as String?;
     final route = item['actionRoute'] as String?;
@@ -478,8 +539,8 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
-  // 스폰서 클릭
-  static void _handleSponsorTap(BuildContext context, Map<String, dynamic> item) {
+  static void _handleSponsorTap(
+      BuildContext context, Map<String, dynamic> item) {
     final type = item['actionType'];
     final url = item['actionUrl'] as String?;
     final route = item['actionRoute'] as String?;
@@ -491,22 +552,52 @@ class UserHomeScreenBody extends ConsumerWidget {
     }
   }
 
+  // =========================
   // 탭 전환
+  // (기존 actionRoute 문자열 그대로 써도 동작하게 매핑)
+  // =========================
   static void _navigateToTab(BuildContext context, String route) {
     int? tabIndex;
+
     switch (route) {
-      case '/ranking': tabIndex = 1; break;
-      case '/calendar': tabIndex = 2; break;
-      case '/community': tabIndex = 3; break;
-      case '/my-page': tabIndex = 4; break;
+    // 홈
+      case '/home':
+        tabIndex = 0;
+        break;
+
+    // 예전 구조에서 쓰던 값들 → 이제 아레나 탭으로 모으기
+      case '/ranking':
+      case '/calendar':
+      case '/point-calendar':
+      case '/arena/home':
+        tabIndex = 2; // 아레나
+        break;
+
+    // 트레이닝 관련 (나중에 /training 같은 route 쓰면 여기 매핑)
+      case '/training':
+      case '/checkout':
+        tabIndex = 1;
+        break;
+
+      case '/community':
+        tabIndex = 3;
+        break;
+
+      case '/my-page':
+        tabIndex = 4;
+        break;
     }
+
     if (tabIndex != null) {
       MainScreen.changeTab(context, tabIndex);
     }
   }
 
-  // 요일 계산 (정상)
-  static String _getWeekday(int weekday) => ['월', '화', '수', '목', '금', '토', '일'][weekday - 1];
+  // =========================
+  // 기타 UI 헬퍼
+  // =========================
+  static String _getWeekday(int weekday) =>
+      ['월', '화', '수', '목', '금', '토', '일'][weekday - 1];
 
   static Widget _buildEmptyCard(BuildContext context, String msg) {
     return AppCard(
@@ -520,24 +611,36 @@ class UserHomeScreenBody extends ConsumerWidget {
   static Widget _buildShimmerBanner({double height = 50}) {
     return Container(
       height: height,
-      decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(12),
+      ),
     );
   }
 
   static Widget _buildEmptyBanner(BuildContext context, String msg) {
     return Container(
       height: 200,
-      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-      child: Center(child: Text(msg, style: const TextStyle(color: Colors.grey))),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(msg, style: const TextStyle(color: Colors.grey)),
+      ),
     );
   }
 
   static Color _getRankColor(int rank) {
-    return switch (rank) {
-      1 => Colors.amber,
-      2 => Colors.grey,
-      3 => Colors.brown[700]!,
-      _ => const Color(0xFF1565C0),
-    };
+    switch (rank) {
+      case 1:
+        return Colors.amber;
+      case 2:
+        return Colors.grey;
+      case 3:
+        return Colors.brown[700]!;
+      default:
+        return const Color(0xFF1565C0);
+    }
   }
 }

@@ -4,10 +4,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
+import 'package:daoapp/core/utils/date_utils.dart'; // ✅ 날짜 포맷용
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/presentation/screens/community/arena/tournament_edit_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/widgets/entry_status_badge.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_edit_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/widgets/entry_status_badge.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -162,7 +163,8 @@ class TournamentDetailScreen extends ConsumerWidget {
         // 종료 후 3일 경과 여부 (KST)
         final now = nowKst();
         final threeDaysAgo = now.subtract(const Duration(days: 3));
-        final isTournamentExpired = tournament.eventDate.toDate().isBefore(threeDaysAgo);
+        final isTournamentExpired =
+        tournament.eventDate.toDate().isBefore(threeDaysAgo);
 
         // 주최자·공동주최자 여부
         final bool isOrganizer = user != null &&
@@ -203,13 +205,30 @@ class TournamentDetailScreen extends ConsumerWidget {
         );
         final bool canEnter = status == EntryStatus.open;
 
+        // ✅ 보기 좋은 날짜/시간 문자열 준비
+        final eventDate = tournament.eventDate.toDate();
+        final entryStart = tournament.entryStartDate.toDate();
+        final entryEnd = tournament.entryEndDate.toDate();
+
+        String _formatDateTime(DateTime dt) {
+          final date = AppDateUtils.formatKoreanDate(dt);
+          final time =
+              '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+          return '$date $time';
+        }
+
+        final eventDateStr = _formatDateTime(eventDate);
+        final entryStartStr = _formatDateTime(entryStart);
+        final entryEndStr = _formatDateTime(entryEnd);
+
         return Scaffold(
           appBar: CommonAppBar(title: '대회 상세', showBackButton: true),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // 포스터
-              if (tournament.posterUrl != null && tournament.posterUrl!.isNotEmpty)
+              if (tournament.posterUrl != null &&
+                  tournament.posterUrl!.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: CachedNetworkImage(
@@ -219,7 +238,8 @@ class TournamentDetailScreen extends ConsumerWidget {
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
                       color: Colors.grey[200],
-                      child: const Center(child: CircularProgressIndicator()),
+                      child:
+                      const Center(child: CircularProgressIndicator()),
                     ),
                     errorWidget: (_, __, ___) => Container(
                       height: 240,
@@ -228,7 +248,8 @@ class TournamentDetailScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Center(
-                        child: Icon(Icons.image_not_supported, size: 64, color: Colors.white70),
+                        child: Icon(Icons.image_not_supported,
+                            size: 64, color: Colors.white70),
                       ),
                     ),
                   ),
@@ -237,11 +258,14 @@ class TournamentDetailScreen extends ConsumerWidget {
                 Container(
                   height: 240,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Colors.indigo, Colors.purple]),
+                    gradient: const LinearGradient(
+                      colors: [Colors.indigo, Colors.purple],
+                    ),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Center(
-                    child: Icon(Icons.emoji_events, size: 100, color: Colors.white),
+                    child:
+                    Icon(Icons.emoji_events, size: 100, color: Colors.white),
                   ),
                 ),
 
@@ -253,7 +277,8 @@ class TournamentDetailScreen extends ConsumerWidget {
                   EntryStatusBadge(tournament: tournament),
                   const Spacer(),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.grey[100],
                       borderRadius: BorderRadius.circular(20),
@@ -283,20 +308,18 @@ class TournamentDetailScreen extends ConsumerWidget {
               _InfoRow(icon: Icons.location_on, text: tournament.location),
               _InfoRow(
                 icon: Icons.calendar_today,
-                text:
-                '대회일: ${tournament.eventDate.toDate().toLocal().toString().substring(0, 16)}',
+                text: '대회일: $eventDateStr',
               ),
               _InfoRow(
                 icon: Icons.access_time,
-                text:
-                '엔트리: ${tournament.entryStartDate.toDate().toLocal().toString().substring(0, 16)} ~ ${tournament.entryEndDate.toDate().toLocal().toString().substring(0, 16)}',
+                text: '엔트리: $entryStartStr ~ $entryEndStr',
               ),
               if (tournament.entryFee > 0)
                 _InfoRow(
                   icon: Icons.paid,
                   text:
                   '참가비: ${tournament.entryFee.toString().replaceAllMapped(
-                    RegExp(r'(\\d)(?=(\\d{3})+(?!\\d))'),
+                    RegExp(r'(\d)(?=(\d{3})+(?!\d))'), // ✅ 정규식 수정
                         (m) => '${m[1]},',
                   )}원',
                 ),
@@ -312,7 +335,6 @@ class TournamentDetailScreen extends ConsumerWidget {
                 ),
 
               const SizedBox(height: 24),
-
 
               // 상세 내용
               if (tournament.description.isNotEmpty)
@@ -340,7 +362,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                     child: const Center(
                       child: Text(
                         '로그인 후 참가 신청이 가능합니다',
-                        style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   )
@@ -354,8 +379,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                         .limit(1)
                         .snapshots(),
                     builder: (context, entrySnap) {
-                      final hasEntry = entrySnap.hasData && entrySnap.data!.docs.isNotEmpty;
-                      final entryDoc = hasEntry ? entrySnap.data!.docs.first : null;
+                      final hasEntry = entrySnap.hasData &&
+                          entrySnap.data!.docs.isNotEmpty;
+                      final entryDoc =
+                      hasEntry ? entrySnap.data!.docs.first : null;
 
                       if (canEnter) {
                         if (!hasEntry) {
@@ -369,12 +396,18 @@ class TournamentDetailScreen extends ConsumerWidget {
                               );
                             },
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             child: const Text(
                               '참가 신청하기',
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           );
                         } else {
@@ -383,21 +416,33 @@ class TournamentDetailScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               ElevatedButton(
-                                onPressed: () => _cancelMyEntry(context, entryId: entryDoc!.id),
+                                onPressed: () => _cancelMyEntry(
+                                  context,
+                                  entryId: entryDoc!.id,
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red[600],
-                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
                                 child: const Text(
                                   '참가 신청 취소',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 '※ 엔트리 마감 전까지는 직접 취소할 수 있습니다.\n마감 이후 변경이 필요하면 주최자에게 문의해 주세요.',
-                                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             ],
                           );
@@ -419,7 +464,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                                   : status == EntryStatus.inProgress
                                   ? '현재 대회가 진행 중입니다'
                                   : '이미 종료된 대회입니다',
-                              style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         );
@@ -433,7 +481,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 30),
                 Text(
                   isAdmin ? '관리자 전용 기능' : '주최자 전용 기능',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -461,7 +512,9 @@ class TournamentDetailScreen extends ConsumerWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => TournamentEditScreen(tournamentId: tournament.id!),
+                              builder: (_) => TournamentEditScreen(
+                                tournamentId: tournament.id!,
+                              ),
                             ),
                           );
                         },
@@ -472,7 +525,10 @@ class TournamentDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.delete_forever, color: Colors.red),
-                  label: const Text('대회 삭제하기', style: TextStyle(color: Colors.red)),
+                  label: const Text(
+                    '대회 삭제하기',
+                    style: TextStyle(color: Colors.red),
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
                     side: const BorderSide(color: Colors.red),

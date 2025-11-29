@@ -1,17 +1,13 @@
 // lib/presentation/screens/community/community_home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_avatar_slider.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_preview.dart';
-import 'package:daoapp/presentation/screens/community/checkout/checkout_home_screen.dart';
-
-// 아레나 프리뷰 임포트
-import 'package:daoapp/presentation/screens/community/widgets/arena_preview.dart';
 
 class CommunityHomeScreen extends ConsumerStatefulWidget {
   const CommunityHomeScreen({super.key});
@@ -27,7 +23,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 1, vsync: this);
   }
 
   @override
@@ -40,14 +36,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
     Navigator.pushNamed(context, RouteConstants.circle);
   }
 
-  void _goToCheckoutHome() {
-    Navigator.pushNamed(context, RouteConstants.checkoutHome);
-  }
-
-  void _goToArenaFull() {
-    Navigator.pushNamed(context, RouteConstants.arenaHome);
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -58,10 +46,13 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
       body: SafeArea(
         child: authState.when(
           data: (user) {
-            if (user == null) return _buildLoginPrompt(context);
+            if (user == null) return _buildLoginPrompt();
 
             return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -72,69 +63,43 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
                 final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
 
                 if (!hasProfile || !isPhoneVerified) {
-                  return _buildVerificationPrompt(context, hasProfile, isPhoneVerified);
+                  return _buildVerificationPrompt(hasProfile, isPhoneVerified);
                 }
 
                 return Column(
                   children: [
                     const SizedBox(height: 16),
                     const CommunityAvatarSlider(),
+                    const SizedBox(height: 24),
 
-                    // 탭바
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surface,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                    // 서클 피드 타이틀
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Icon(Icons.groups, size: 32, color: theme.colorScheme.primary),
+                          const SizedBox(width: 12),
+                          Text(
+                            "서클 피드",
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ],
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: theme.colorScheme.primary,
-                        unselectedLabelColor: Colors.grey[600],
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                        indicator: UnderlineTabIndicator(
-                          borderSide: BorderSide(color: theme.colorScheme.primary, width: 3),
-                          insets: const EdgeInsets.symmetric(horizontal: 24),
-                        ),
-                        tabs: const [
-                          Tab(icon: Icon(Icons.groups, size: 22), text: "서클"),
-                          Tab(icon: Icon(Icons.sports_score, size: 22), text: "체크아웃"),
-                          Tab(icon: Icon(Icons.sports_esports, size: 22), text: "아레나"),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: _goToCircleFull,
+                            child: const Text("전체보기", style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
                         ],
                       ),
                     ),
 
-                    // 본문
+                    const SizedBox(height: 8),
+
+                    // 서클 피드 프리뷰
                     Expanded(
-                      child: TabBarView(
-                        controller: _tabController,
-                        children: [
-                          // 1. 서클
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: CommunityPreview(onSeeAllPressed: _goToCircleFull),
-                          ),
-
-                          // 2. 체크아웃
-                          GestureDetector(
-                            onTap: _goToCheckoutHome,
-                            child: Container(
-                              color: Colors.transparent,
-                              child: _buildCheckoutPreview(theme),
-                            ),
-                          ),
-
-                          // 아레나 ← 이거만 바꿔!
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8), // ← vertical → top만!
-                            child: ArenaPreview(onSeeAllPressed: _goToArenaFull),
-                          ),
-                        ],
+                      child: CommunityPreview(
+                        onSeeAllPressed: _goToCircleFull,
                       ),
                     ),
                   ],
@@ -143,64 +108,41 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildLoginPrompt(context),
+          error: (_, __) => _buildLoginPrompt(),
         ),
       ),
-
-      // 아레나 탭일 때만 FAB
-      floatingActionButton: Consumer(
-        builder: (context, ref, child) {
-          if (_tabController.index != 2) return const SizedBox.shrink();
-          return FloatingActionButton(
-            onPressed: () => Navigator.pushNamed(context, RouteConstants.tournamentCreate),
-            child: const Icon(Icons.add),
-          );
-        },
-      ),
     );
   }
 
-  Widget _buildCheckoutPreview(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-            child: Icon(Icons.sports_score, size: 56, color: theme.colorScheme.primary),
-          ),
-          const SizedBox(height: 20),
-          Text("체크아웃", style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-          const SizedBox(height: 8),
-          Text("계산기, 연습 모드\n통계까지 한 번에!", style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]), textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          Icon(Icons.touch_app, size: 32, color: theme.colorScheme.primary),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoginPrompt(BuildContext context) {
-    final theme = Theme.of(context);
+  Widget _buildLoginPrompt() {
     return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.account_circle, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 24),
-            Text('커뮤니티는 로그인 후 이용 가능해요!', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            Text('Google 계정으로 간편하게 시작하세요', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]), textAlign: TextAlign.center),
+            Icon(Icons.people_alt_outlined, size: 80, color: Colors.grey[400]!),
             const SizedBox(height: 32),
+            Text(
+              "커뮤니티에 오신 걸 환영해요!",
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              "다트 친구들과 소통하고,\n서클에서 함께 즐겨보세요",
+              style: TextStyle(color: Colors.grey[600], fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              height: 56,
+              child: ElevatedButton.icon(
                 onPressed: () => Navigator.pushReplacementNamed(context, RouteConstants.login),
-                child: const Text('Google로 로그인'),
+                icon: const Icon(Icons.login, size: 24),
+                label: const Text("Google로 로그인", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(elevation: 6),
               ),
             ),
           ],
@@ -209,26 +151,45 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen>
     );
   }
 
-  Widget _buildVerificationPrompt(BuildContext context, bool hasProfile, bool isPhoneVerified) {
-    final theme = Theme.of(context);
+  Widget _buildVerificationPrompt(bool hasProfile, bool isPhoneVerified) {
     return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.verified_user, size: 64, color: Colors.orange[400]),
-            const SizedBox(height: 24),
-            Text('커뮤니티 이용을 위해\n인증이 필요해요!', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            if (!hasProfile) const Text('• 프로필 등록'),
-            if (!isPhoneVerified) const Text('• 핸드폰 인증'),
+            Icon(Icons.verified_user_outlined, size: 80, color: Colors.orange[600]),
             const SizedBox(height: 32),
+            Text(
+              "커뮤니티 이용을 위해\n인증이 필요해요",
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            if (!hasProfile)
+              const Chip(
+                avatar: Icon(Icons.person_add, size: 18),
+                label: Text("프로필 등록 필요"),
+                backgroundColor: Colors.orangeAccent,
+              ),
+            if (!isPhoneVerified)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Chip(
+                  avatar: Icon(Icons.phone_android, size: 18),
+                  label: Text("핸드폰 인증 필요"),
+                  backgroundColor: Colors.redAccent,
+                ),
+              ),
+            const SizedBox(height: 40),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
+              height: 56,
+              child: ElevatedButton.icon(
                 onPressed: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
-                child: const Text('인증하러 가기'),
+                icon: const Icon(Icons.arrow_forward_ios, size: 20),
+                label: const Text("인증하러 가기", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[600]),
               ),
             ),
           ],

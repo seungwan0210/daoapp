@@ -30,10 +30,8 @@ class MyPageScreenBody extends ConsumerWidget {
     return hasProfile && isPhoneVerified && koreanName != null && koreanName.isNotEmpty;
   }
 
-  // 핵심 기능 3개 (마이로그 추가!)
+  // 핵심 기능: 마이로그만 (로그아웃은 아래에서 같이 붙임)
   static const List<_GridItem> _mainFunctions = [
-    _GridItem(Icons.calendar_month, '포인트 달력', RouteConstants.pointCalendar),
-    _GridItem(Icons.card_membership, 'KDF 정회원', RouteConstants.memberList),
     _GridItem(Icons.edit_note, '마이로그', RouteConstants.myLogHome),
   ];
 
@@ -210,6 +208,7 @@ class MyPageScreenBody extends ConsumerWidget {
 
     return ListView(
       children: [
+        // 프로필 카드
         AppCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -306,8 +305,8 @@ class MyPageScreenBody extends ConsumerWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   phoneNumber,
-                                  style: theme.textTheme.bodyMedium
-                                      ?.copyWith(color: Colors.grey[700]),
+                                  style:
+                                  theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
@@ -408,7 +407,7 @@ class MyPageScreenBody extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
 
-        // 첫 번째 카드: 포인트 달력, KDF 정회원, 마이로그
+        // 🔥 하나의 카드 섹션: 마이로그 + 로그아웃
         AppCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -416,31 +415,20 @@ class MyPageScreenBody extends ConsumerWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 3,
-              childAspectRatio: 0.9, // 🔧 세로 공간 확보
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: _mainFunctions
-                  .map((item) =>
-                  _buildIconButton(context, item.icon, item.label, item.route))
-                  .toList(),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // 두 번째 카드: 로그아웃
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              childAspectRatio: 0.9, // 🔧 세로 공간 확보
+              childAspectRatio: 0.9,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               children: [
+                // 마이로그
+                ..._mainFunctions.map(
+                      (item) => _buildIconButton(
+                    context,
+                    item.icon,
+                    item.label,
+                    item.route,
+                  ),
+                ),
+                // 로그아웃
                 _buildIconButton(
                   context,
                   Icons.logout,
@@ -448,8 +436,6 @@ class MyPageScreenBody extends ConsumerWidget {
                   null,
                   onTap: () => _showLogoutDialog(context, ref),
                 ),
-                const SizedBox.shrink(),
-                const SizedBox.shrink(),
               ],
             ),
           ),
@@ -460,53 +446,37 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
-  // 프로필 미등록 시에도 사용하는 그리드
+  // 프로필 미등록 시에도 사용하는 그리드 (마이로그 + 로그아웃 한 카드)
   Widget _buildFunctionGrid(BuildContext context, WidgetRef ref) {
-    return Column(
-      children: [
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              childAspectRatio: 0.9, // 🔧 세로 공간 확보
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: _mainFunctions
-                  .map((item) =>
-                  _buildIconButton(context, item.icon, item.label, item.route))
-                  .toList(),
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 3,
+          childAspectRatio: 0.9,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          children: [
+            ..._mainFunctions.map(
+                  (item) => _buildIconButton(
+                context,
+                item.icon,
+                item.label,
+                item.route,
+              ),
             ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              childAspectRatio: 0.9, // 🔧 세로 공간 확보
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: [
-                _buildIconButton(
-                  context,
-                  Icons.logout,
-                  '로그아웃',
-                  null,
-                  onTap: () => _showLogoutDialog(context, ref),
-                ),
-                const SizedBox.shrink(),
-                const SizedBox.shrink(),
-              ],
+            _buildIconButton(
+              context,
+              Icons.logout,
+              '로그아웃',
+              null,
+              onTap: () => _showLogoutDialog(context, ref),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -525,18 +495,18 @@ class MyPageScreenBody extends ConsumerWidget {
             }
           },
       child: Column(
-        mainAxisSize: MainAxisSize.min, // 🔧 콘텐츠 크기에 맞게
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            size: 26, // 🔧 살짝 줄임
+            size: 26,
             color: Theme.of(context).colorScheme.primary,
           ),
-          const SizedBox(height: 4), // 🔧 간격 조금 줄임
+          const SizedBox(height: 4),
           Text(
             label,
-            maxLines: 2, // 🔧 긴 텍스트 대비
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context)
                 .textTheme

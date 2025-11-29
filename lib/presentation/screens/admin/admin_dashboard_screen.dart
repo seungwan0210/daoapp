@@ -6,7 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // (현재는 사용 안 하지만 남겨둠)
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -21,7 +21,8 @@ class AdminDashboardScreen extends ConsumerWidget {
     }
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+      stream:
+      FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -64,52 +65,152 @@ class AdminDashboardScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // -------------------------
+          // 공지·뉴스·스폰서·사진
+          // -------------------------
           _buildSection(
             context,
             title: '공지·뉴스·스폰서·사진',
             items: [
-              _buildItem(context, icon: Icons.campaign, title: '공지 등록', subtitle: '공지 작성·수정·삭제·링크', route: RouteConstants.noticeForm),
-              _buildItem(context, icon: Icons.article, title: '뉴스 등록', subtitle: '뉴스 작성·수정·삭제·링크', route: RouteConstants.newsForm),
-              _buildItem(context, icon: Icons.image, title: '스폰서 배너 등록', subtitle: '스폰서 등록·수정·삭제·링크', route: RouteConstants.sponsorForm),
-              _buildItem(context, icon: Icons.photo_library, title: '대회 사진 등록', subtitle: '대회 사진 등록·수정·삭제·링크', route: RouteConstants.competitionPhotosForm),
+              _buildItem(
+                context,
+                icon: Icons.campaign,
+                title: '공지 등록',
+                subtitle: '공지 작성·수정·삭제·링크',
+                route: RouteConstants.noticeForm,
+              ),
+              _buildItem(
+                context,
+                icon: Icons.article,
+                title: '뉴스 등록',
+                subtitle: '뉴스 작성·수정·삭제·링크',
+                route: RouteConstants.newsForm,
+              ),
+              _buildItem(
+                context,
+                icon: Icons.image,
+                title: '스폰서 배너 등록',
+                subtitle: '스폰서 등록·수정·삭제·링크',
+                route: RouteConstants.sponsorForm,
+              ),
+              _buildItem(
+                context,
+                icon: Icons.photo_library,
+                title: '대회 사진 등록',
+                subtitle: '대회 사진 등록·수정·삭제·링크',
+                route: RouteConstants.competitionPhotosForm,
+              ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // -------------------------
+          // 포인트 관리
+          // -------------------------
           _buildSection(
             context,
             title: '포인트 관리',
             items: [
-              _buildItem(context, icon: Icons.add_circle, title: '포인트 수동 부여', subtitle: '스틸리그 포인트 부여·등록', route: RouteConstants.pointAward),
-              _buildItem(context, icon: Icons.list_alt, title: '포인트 내역 관리', subtitle: '포인트 내역 수정·삭제', route: RouteConstants.pointAwardList),
+              _buildItem(
+                context,
+                icon: Icons.add_circle,
+                title: '포인트 수동 부여',
+                subtitle: '스틸리그 포인트 부여·등록',
+                route: RouteConstants.pointAward,
+              ),
+              _buildItem(
+                context,
+                icon: Icons.list_alt,
+                title: '포인트 내역 관리',
+                subtitle: '포인트 내역 수정·삭제',
+                route: RouteConstants.pointAwardList,
+              ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // -------------------------
+          // 스틸리그 경기
+          // -------------------------
           _buildSection(
             context,
             title: '스틸리그 경기',
             items: [
-              _buildItem(context, icon: Icons.sports_esports, title: '경기 등록', subtitle: '스틸리그 경기 일정 등록·예정·종료', route: RouteConstants.eventCreate),
-              _buildItem(context, icon: Icons.list_alt, title: '경기 관리', subtitle: '스틸리그 경기 삭제·재등록', route: RouteConstants.eventList),
+              _buildItem(
+                context,
+                icon: Icons.sports_esports,
+                title: '경기 등록',
+                subtitle: '스틸리그 경기 일정 등록·예정·종료',
+                route: RouteConstants.eventCreate,
+              ),
+              _buildItem(
+                context,
+                icon: Icons.list_alt,
+                title: '경기 관리',
+                subtitle: '스틸리그 경기 삭제·재등록',
+                route: RouteConstants.eventList,
+              ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // -------------------------
+          // 스틸리그 선발 (★ 새로 추가)
+          // -------------------------
+          _buildSection(
+            context,
+            title: '스틸리그 선발',
+            items: [
+              _buildItem(
+                context,
+                icon: Icons.stars,
+                title: '선발 선수 관리',
+                subtitle: '시즌별 남/여 대표 8명 설정',
+                route: RouteConstants.selectionPlayersAdmin, // 새 라우트
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // -------------------------
+          // KDF 정회원
+          // -------------------------
           _buildSection(
             context,
             title: 'KDF 정회원',
             items: [
-              _buildItem(context, icon: Icons.card_membership, title: '정회원 등록', subtitle: 'KDF 정회원 등록·사진 등록', route: RouteConstants.memberRegister),
+              _buildItem(
+                context,
+                icon: Icons.card_membership,
+                title: '정회원 등록',
+                subtitle: 'KDF 정회원 등록·사진 등록',
+                route: RouteConstants.memberRegister,
+              ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // -------------------------
+          // 버그/신고 관리
+          // -------------------------
           _buildSection(
             context,
             title: '버그/신고 관리',
             items: [
-              _buildItem(context, icon: Icons.bug_report, title: '신고 내역 확인', subtitle: '사용자 신고 확인 및 처리', route: RouteConstants.adminReportList),
+              _buildItem(
+                context,
+                icon: Icons.bug_report,
+                title: '신고 내역 확인',
+                subtitle: '사용자 신고 확인 및 처리',
+                route: RouteConstants.adminReportList,
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          // === 추가: 회원 관리 섹션 ===
+
+          // -------------------------
+          // 회원 관리
+          // -------------------------
           _buildSection(
             context,
             title: '회원 관리',
@@ -119,17 +220,22 @@ class AdminDashboardScreen extends ConsumerWidget {
                 icon: Icons.people,
                 title: '회원 목록 & 배지 부여',
                 subtitle: '모든 회원 확인 및 체크아웃 배지 수동 부여',
-                route: RouteConstants.adminMemberList, // 라우트 추가 필요
+                route: RouteConstants.adminMemberList,
               ),
             ],
           ),
+
           const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _buildSection(BuildContext context, {required String title, required List<Widget> items}) {
+  Widget _buildSection(
+      BuildContext context, {
+        required String title,
+        required List<Widget> items,
+      }) {
     final theme = Theme.of(context);
 
     return AppCard(
@@ -138,6 +244,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 섹션 헤더
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -156,13 +263,18 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
             ),
           ),
+          // 섹션 아이템들
           Column(
             children: List.generate(items.length, (i) {
               return Column(
                 children: [
                   items[i],
                   if (i < items.length - 1)
-                    const Divider(height: 1, indent: 68, endIndent: 16),
+                    const Divider(
+                      height: 1,
+                      indent: 68,
+                      endIndent: 16,
+                    ),
                 ],
               );
             }),
@@ -194,7 +306,11 @@ class AdminDashboardScreen extends ConsumerWidget {
               CircleAvatar(
                 radius: 20,
                 backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                child: Icon(icon, color: theme.colorScheme.primary, size: 20),
+                child: Icon(
+                  icon,
+                  color: theme.colorScheme.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -203,17 +319,25 @@ class AdminDashboardScreen extends ConsumerWidget {
                   children: [
                     Text(
                       title,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[600]),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.grey[600],
+              ),
             ],
           ),
         ),

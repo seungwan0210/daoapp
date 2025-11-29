@@ -5,8 +5,8 @@ import 'package:daoapp/data/models/my_log_model.dart';
 import 'package:daoapp/data/repositories/my_log_repository.dart';
 import 'package:daoapp/presentation/providers/my_log_provider.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:daoapp/presentation/screens/user/my_log/my_log_write_screen.dart';
-import 'package:daoapp/presentation/screens/user/my_log/widgets/my_log_card.dart';
+import 'package:daoapp/presentation/screens/my_page/my_log/my_log_write_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/my_log/widgets/my_log_card.dart';
 
 class MyLogDetailScreen extends ConsumerWidget {
   final String logId;

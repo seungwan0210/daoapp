@@ -1,13 +1,13 @@
 // lib/presentation/screens/main_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:daoapp/presentation/screens/user/user_home_screen.dart';
-import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
-import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
+
+import 'package:daoapp/presentation/screens/home/home_screen.dart';
+import 'package:daoapp/presentation/screens/training/training_home_screen.dart';
+import 'package:daoapp/presentation/screens/arena/arena_home_screen.dart';
 import 'package:daoapp/presentation/screens/community/community_home_screen.dart';
-import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/presentation/screens/my_page/my_page_screen.dart';
+
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/more_menu_button.dart';
 
@@ -17,6 +17,7 @@ class MainScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<MainScreen> createState() => _MainScreenState();
 
+  /// 외부에서 탭 변경하고 싶을 때 사용
   static void changeTab(BuildContext context, int index) {
     final state = context.findAncestorStateOfType<_MainScreenState>();
     state?._onTabTapped(index);
@@ -26,34 +27,59 @@ class MainScreen extends ConsumerStatefulWidget {
 class _MainScreenState extends ConsumerState<MainScreen> {
   int _currentIndex = 0;
 
-  static final List<Widget> _pageBodies = [
-    const UserHomeScreenBody(),
-    const RankingScreenBody(),
-    const CalendarScreenBody(),
-    const CommunityHomeScreen(),
-    const MyPageScreenBody(),
-  ];
+  late final List<Widget> _pageBodies;
 
   static const List<BottomNavigationBarItem> _items = [
-    BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: '홈'),
-    BottomNavigationBarItem(icon: Icon(Icons.leaderboard_outlined), label: '랭킹'),
-    BottomNavigationBarItem(icon: Icon(Icons.calendar_today_outlined), label: '일정'),
-    BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: '커뮤니티'),
-    BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: '내정보'),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.home_outlined),
+      label: '홈',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.fitness_center_outlined),
+      label: '트레이닝',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.emoji_events_outlined),
+      label: '아레나',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.forum_outlined),
+      label: '커뮤니티',
+    ),
+    BottomNavigationBarItem(
+      icon: Icon(Icons.person_outline),
+      label: '내정보',
+    ),
   ];
 
-  void _onTabTapped(int index) {
-    setState(() => _currentIndex = index);
+  @override
+  void initState() {
+    super.initState();
+    _pageBodies = const [
+      HomeScreen(),
+      TrainingHomeScreen(),
+      ArenaHomeScreen(),
+      CommunityHomeScreen(),
+      MyPageScreenBody(),
+    ];
   }
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  String get _currentTitle => _items[_currentIndex].label ?? '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: CommonAppBar(
-        title: _items[_currentIndex].label ?? '',
-        actions: [
-          // MoreMenuButton이 이미 unreadNoticesCountProvider 사용
-          const MoreMenuButton(),
+        title: _currentTitle,
+        actions: const [
+          // 알림/설정 등 공통 더보기 메뉴
+          MoreMenuButton(),
         ],
       ),
       body: IndexedStack(

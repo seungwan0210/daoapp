@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:daoapp/presentation/screens/user/my_log/my_log_write_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/my_log/my_log_write_screen.dart';
 import 'package:daoapp/presentation/providers/my_log_provider.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/data/models/my_log_model.dart';
-import 'package:daoapp/presentation/screens/user/my_log/my_log_detail_screen.dart';
+import 'package:daoapp/presentation/screens/my_page//my_log/my_log_detail_screen.dart';
 
 class MyLogHomeScreen extends ConsumerWidget {
   const MyLogHomeScreen({super.key});

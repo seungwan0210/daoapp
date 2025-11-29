@@ -1,45 +1,43 @@
-// lib/presentation/screens/community/widgets/arena_preview.dart
-// 100% 컴파일 에러 없는 최종 완성본 (2025-11-27 기준)
+// lib/presentation/screens/arena/widgets/arena_preview.dart
+// 100% 컴파일 에러 없는 최종본 (수정 버전)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
-import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/arena_provider.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
 
 class ArenaPreview extends ConsumerWidget {
   final VoidCallback onSeeAllPressed;
 
   const ArenaPreview({super.key, required this.onSeeAllPressed});
 
-  void _goToArenaHome(BuildContext context) {
-    if (ModalRoute.of(context)?.settings.name == RouteConstants.arenaHome) return;
-    Navigator.pushNamed(context, RouteConstants.arenaHome);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final arenaState = ref.watch(arenaProvider);
 
-    final now = nowKst();
-
-    // 새 코드 (정답)
     final openTournaments = arenaState.tournaments
-        .where((t) => ArenaUtils.getEntryStatus(
-      entryStartDate: t.entryStartDate,
-      entryEndDate: t.entryEndDate,
-      eventDate: t.eventDate,
-    ) == EntryStatus.open)
+        .where(
+          (t) => ArenaUtils.getEntryStatus(
+        entryStartDate: t.entryStartDate,
+        entryEndDate: t.entryEndDate,
+        eventDate: t.eventDate,
+      ) ==
+          EntryStatus.open,
+    )
         .take(8)
         .toList();
 
     final upcomingTournaments = arenaState.tournaments
-        .where((t) => ArenaUtils.getEntryStatus(
-      entryStartDate: t.entryStartDate,
-      entryEndDate: t.entryEndDate,
-      eventDate: t.eventDate,
-    ) == EntryStatus.upcoming)
+        .where(
+          (t) => ArenaUtils.getEntryStatus(
+        entryStartDate: t.entryStartDate,
+        entryEndDate: t.entryEndDate,
+        eventDate: t.eventDate,
+      ) ==
+          EntryStatus.upcoming,
+    )
         .take(8)
         .toList();
 
@@ -56,8 +54,6 @@ class ArenaPreview extends ConsumerWidget {
             showSeeAll: true,
             showDday: true,
             isLoading: isLoading,
-            onSeeAllPressed: onSeeAllPressed,   // 여기 넘겨줌
-            onCardTap: () => _goToArenaHome(context),
           ),
           const SizedBox(height: 12),
           _buildSection(
@@ -67,8 +63,6 @@ class ArenaPreview extends ConsumerWidget {
             showSeeAll: false,
             showDday: true,
             isLoading: isLoading,
-            onSeeAllPressed: onSeeAllPressed,   // 여기서도 넘겨줌 (사용은 안 하지만 required라서)
-            onCardTap: () => _goToArenaHome(context),
           ),
         ],
       ),
@@ -82,8 +76,6 @@ class ArenaPreview extends ConsumerWidget {
     required bool showSeeAll,
     required bool showDday,
     required bool isLoading,
-    required VoidCallback onSeeAllPressed,   // required로 유지
-    required VoidCallback onCardTap,
   }) {
     if (isLoading) {
       return const Padding(
@@ -125,9 +117,19 @@ class ArenaPreview extends ConsumerWidget {
             itemCount: tournaments.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (_, i) {
+              final t = tournaments[i];
               return GestureDetector(
-                onTap: onCardTap,
-                child: _buildCard(tournaments[i], showDday: showDday),
+                onTap: () {
+                  if (t.id == null) return;
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          TournamentDetailScreen(tournamentId: t.id!),
+                    ),
+                  );
+                },
+                child: _buildCard(t, showDday: showDday),
               );
             },
           )
@@ -211,7 +213,8 @@ class ArenaPreview extends ConsumerWidget {
                     const SizedBox(width: 3),
                     Text(
                       '${t.entryCount}/${t.maxParticipants}',
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                      style:
+                      const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                   ],
                 ),

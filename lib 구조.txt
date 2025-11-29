@@ -1,149 +1,192 @@
 lib/
-¦§¦¡¦¡ main.dart
-¦§¦¡¦¡ firebase_options.dart
-¦§¦¡¦¡ services/
-¦¢   ¦¦¦¡¦¡ storage_service.dart
-¦§¦¡¦¡ di/
-¦¢   ¦¦¦¡¦¡ service_locator.dart
-¦§¦¡¦¡ presentation/
-¦¢   ¦§¦¡¦¡ providers/
-¦¢   ¦¢   ¦§¦¡¦¡ app_providers.dart
-¦¢   ¦¢   ¦§¦¡¦¡ user_home_provider.dart
-¦¢   ¦¢   ¦§¦¡¦¡ ranking_provider.dart
-¦¢   ¦¢   ¦§¦¡¦¡ community_provider.dart
-¦¢   ¦¢   ¦§¦¡¦¡ circle_feed_provider.dart
-¦¢   ¦¢   ¦§¦¡¦¡ checkout_provider.dart
-¦¢   ¦¢   ¦¦¦¡¦¡ checkout_practice_provider.dart
-¦¢   ¦¢
-¦¢   ¦§¦¡¦¡ screens/
-¦¢   ¦¢   ¦§¦¡¦¡ splash_screen.dart
-¦¢   ¦¢   ¦§¦¡¦¡ login/
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ login_screen.dart
-¦¢   ¦¢   ¦§¦¡¦¡ main_screen.dart
-¦¢   ¦¢   ¦§¦¡¦¡ user/
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ services/
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ image_upload_service.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ phone_auth_service.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ profile_service.dart
-¦¢   ¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ widgets/
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ barrel_image_widget.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ barrel_setting_section.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ phone_verification_section.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ profile_form_fields.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ profile_image_widget.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ guestbook_header.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ guestbook_comment_item.dart
-¦¢   ¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ user_home_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ ranking_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ calendar_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ my_page_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ point_calendar_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ profile_register_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ notice_list_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ member_list_screen.dart
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ guestbook_screen.dart
-¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦§¦¡¦¡ community/
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ community_home_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ widgets/
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ community_avatar_slider.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ community_preview.dart
-¦¢   ¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ checkout/
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ checkout_home_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ calculator/
-¦¢   ¦¢   ¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ checkout_calculator_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ widgets/
-¦¢   ¦¢   ¦¢   ¦¢   ¦¢       ¦¦¦¡¦¡ route_card.dart
-¦¢   ¦¢   ¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ practice/
-¦¢   ¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ checkout_practice_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ checkout_practice_home_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ checkout_result_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ checkout_my_history_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ checkout_ranking_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ checkout_practice_detail_screen.dart
-¦¢   ¦¢   ¦¢   ¦¢       ¦¦¦¡¦¡ widgets/
-¦¢   ¦¢   ¦¢   ¦¢           ¦§¦¡¦¡ dartboard_widget.dart
-¦¢   ¦¢   ¦¢   ¦¢           ¦§¦¡¦¡ dart_input_panel.dart
-¦¢   ¦¢   ¦¢   ¦¢           ¦§¦¡¦¡ remaining_score_display.dart
-¦¢   ¦¢   ¦¢   ¦¢           ¦§¦¡¦¡ practice_stats_card.dart
-¦¢   ¦¢   ¦¢   ¦¢           ¦§¦¡¦¡ checkout_ranking_mini.dart
-¦¢   ¦¢   ¦¢   ¦¢           ¦¦¦¡¦¡ my_recent_record_mini.dart
-¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦§¦¡¦¡ circle/
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ circle_screen.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ circle_grid_view.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ circle_list_view.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ circle_preview.dart
-¦¢   ¦¢   ¦¢   ¦§¦¡¦¡ post_write_screen.dart
-¦¢   ¦¢   ¦¢   ¦¦¦¡¦¡ widgets/
-¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ post_card.dart
-¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ post_grid_item.dart
-¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ like_button.dart
-¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ comment_button.dart
-¦¢   ¦¢   ¦¢       ¦§¦¡¦¡ comment_preview.dart
-¦¢   ¦¢   ¦¢       ¦¦¦¡¦¡ comment_bottom_sheet.dart
-¦¢   ¦¢   ¦¢
-¦¢   ¦¢   ¦¦¦¡¦¡ arena/
-¦¢   ¦¢       ¦§¦¡¦¡ arena_screen.dart
-¦¢   ¦¢       ¦§¦¡¦¡ arena_preview.dart
-¦¢   ¦¢       ¦§¦¡¦¡ arena_review_write_screen.dart
-¦¢   ¦¢       ¦¦¦¡¦¡ arena_review_detail_screen.dart
-¦¢   ¦¢
-¦¢   ¦¦¦¡¦¡ admin/
-¦¢       ¦§¦¡¦¡ admin_dashboard_screen.dart
-¦¢       ¦§¦¡¦¡ admin_report_list_screen.dart
-¦¢       ¦§¦¡¦¡ event_create_screen.dart
-¦¢       ¦§¦¡¦¡ event_list_screen.dart
-¦¢       ¦§¦¡¦¡ point_award_screen.dart
-¦¢       ¦§¦¡¦¡ point_award_list_screen.dart
-¦¢       ¦§¦¡¦¡ member_register_screen.dart
-¦¢       ¦§¦¡¦¡ point_edit_screen.dart
-¦¢       ¦§¦¡¦¡ event_edit_screen.dart
-¦¢       ¦¦¦¡¦¡ forms/
-¦¢           ¦§¦¡¦¡ notice_form_screen.dart
-¦¢           ¦§¦¡¦¡ news_form_screen.dart
-¦¢           ¦§¦¡¦¡ sponsor_form_screen.dart
-¦¢           ¦¦¦¡¦¡ member_register_screen.dart
-¦¢
-¦§¦¡¦¡ presentation/widgets/
-¦¢   ¦§¦¡¦¡ app_card.dart
-¦¢   ¦§¦¡¦¡ admin_delete_button.dart
-¦¢   ¦§¦¡¦¡ post_item_widget.dart
-¦¢   ¦§¦¡¦¡ common_appbar.dart
-¦¢   ¦§¦¡¦¡ more_menu_button.dart
-¦¢   ¦§¦¡¦¡ galaxy_settings_section.dart
-¦¢   ¦§¦¡¦¡ user_profile_dialog.dart
-¦¢   ¦¦¦¡¦¡ badge_widget.dart
-¦¢
-¦§¦¡¦¡ data/
-¦¢   ¦§¦¡¦¡ repositories/
-¦¢   ¦¢   ¦§¦¡¦¡ auth_repository.dart
-¦¢   ¦¢   ¦§¦¡¦¡ auth_repository_impl.dart
-¦¢   ¦¢   ¦§¦¡¦¡ point_record_repository.dart
-¦¢   ¦¢   ¦¦¦¡¦¡ point_record_repository_impl.dart
-¦¢   ¦¢
-¦¢   ¦¦¦¡¦¡ models/
-¦¢       ¦§¦¡¦¡ point_record_model.dart
-¦¢       ¦§¦¡¦¡ ranking_user.dart
-¦¢       ¦§¦¡¦¡ user_model.dart
-¦¢       ¦¦¦¡¦¡ checkout_route_model.dart
-¦¢
-¦¦¦¡¦¡ core/
-    ¦§¦¡¦¡ constants/
-    ¦¢   ¦§¦¡¦¡ route_constants.dart
-    ¦¢   ¦§¦¡¦¡ checkout_table.dart
-    ¦¢   ¦¦¦¡¦¡ badge_constants.dart
-    ¦¢
-    ¦§¦¡¦¡ theme/
-    ¦¢   ¦¦¦¡¦¡ app_theme.dart
-    ¦¢
-    ¦¦¦¡¦¡ utils/
-        ¦§¦¡¦¡ date_utils.dart
-        ¦§¦¡¦¡ segment_utils.dart
-        ¦¦¦¡¦¡ ranking_utils.dart
+â”œâ”€â”€ main.dart
+â”œâ”€â”€ firebase_options.dart
+â”‚
+â”œâ”€â”€ services/
+â”‚   â””â”€â”€ storage_service.dart
+â”‚
+â”œâ”€â”€ di/
+â”‚   â””â”€â”€ service_locator.dart
+â”‚
+â”œâ”€â”€ core/
+â”‚   â”œâ”€â”€ constants/
+â”‚   â”‚   â”œâ”€â”€ route_constants.dart
+â”‚   â”‚   â”œâ”€â”€ checkout_table.dart
+â”‚   â”‚   â””â”€â”€ badge_constants.dart
+â”‚   â”œâ”€â”€ theme/
+â”‚   â”‚   â””â”€â”€ app_theme.dart
+â”‚   â””â”€â”€ utils/
+â”‚       â”œâ”€â”€ badge_utils.dart
+â”‚       â”œâ”€â”€ date_utils.dart
+â”‚       â”œâ”€â”€ segment_utils.dart
+â”‚       â”œâ”€â”€ ranking_utils.dart
+â”‚       â””â”€â”€ arena_utils.dart
+â”‚
+â”œâ”€â”€ data/
+â”‚   â”œâ”€â”€ repositories/
+â”‚   â”‚   â”œâ”€â”€ auth_repository.dart
+â”‚   â”‚   â”œâ”€â”€ auth_repository_impl.dart
+â”‚   â”‚   â”œâ”€â”€ point_record_repository.dart
+â”‚   â”‚   â”œâ”€â”€ point_record_repository_impl.dart
+â”‚   â”‚   â”œâ”€â”€ arena_repository.dart
+â”‚   â”‚   â”œâ”€â”€ arena_repository_impl.dart
+â”‚   â”‚   â”œâ”€â”€ my_log_repository.dart
+â”‚   â”‚   â””â”€â”€ (ê¸°íƒ€ ë ˆí¬ì§€í† ë¦¬ë“¤)
+â”‚   â””â”€â”€ models/
+â”‚       â”œâ”€â”€ point_record_model.dart
+â”‚       â”œâ”€â”€ ranking_user.dart
+â”‚       â”œâ”€â”€ user_model.dart
+â”‚       â”œâ”€â”€ checkout_route_model.dart
+â”‚       â”œâ”€â”€ tournament_model.dart
+â”‚       â”œâ”€â”€ tournament_entry_model.dart
+â”‚       â””â”€â”€ my_log_model.dart
+â”‚
+â”œâ”€â”€ presentation/
+â”‚   â”œâ”€â”€ providers/
+â”‚   â”‚   â”œâ”€â”€ app_providers.dart
+â”‚   â”‚   â”œâ”€â”€ home_provider.dart                 // â˜… ê¸°ì¡´ user_home_provider.dart â†’ ì´ë¦„ ë³€ê²½
+â”‚   â”‚   â”œâ”€â”€ ranking_provider.dart
+â”‚   â”‚   â”œâ”€â”€ community_provider.dart
+â”‚   â”‚   â”œâ”€â”€ circle_feed_provider.dart
+â”‚   â”‚   â”œâ”€â”€ checkout_provider.dart            // (íŠ¸ë ˆì´ë‹ ë‚´ ì²´í¬ì•„ì›ƒ ê³„ì‚°ìš©)
+â”‚   â”‚   â”œâ”€â”€ checkout_practice_provider.dart   // (íŠ¸ë ˆì´ë‹ ë‚´ ì—°ìŠµëª¨ë“œ)
+â”‚   â”‚   â”œâ”€â”€ arena_provider.dart
+â”‚   â”‚   â””â”€â”€ my_log_provider.dart
+â”‚   â”‚
+â”‚   â”œâ”€â”€ screens/
+â”‚   â”‚   â”œâ”€â”€ splash_screen.dart
+â”‚   â”‚   â”œâ”€â”€ login/
+â”‚   â”‚   â”‚   â””â”€â”€ login_screen.dart
+â”‚   â”‚   â”œâ”€â”€ main_screen.dart                  // BottomNavigationBar: Home/Training/Arena/Community/MyPage
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ home/                             // â˜… ê¸°ì¡´ user_home_screen ìœ„ì¹˜ ë³€ê²½
+â”‚   â”‚   â”‚   â”œâ”€â”€ home_screen.dart              // â˜… ê¸°ì¡´ user_home_screen.dart â†’ ì´ë¦„+ìœ„ì¹˜ ë³€ê²½
+â”‚   â”‚   â”‚   â””â”€â”€ widgets/
+â”‚   â”‚   â”‚       â””â”€â”€ (í™ˆ ì¹´ë“œ/ë°°ë„ˆ/ì„¹ì…˜ ìœ„ì ¯ë“¤ í•„ìš” ì‹œ ë¶„ë¦¬)
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ training/                         // â˜… ìƒˆ íƒ­: íŠ¸ë ˆì´ë‹
+â”‚   â”‚   â”‚   â”œâ”€â”€ training_home_screen.dart     // â˜… ìƒˆ íŒŒì¼: ì˜¤ëŠ˜ì˜ í• ì¼/ê³„ì‚°ê¸°/ì—°ìŠµ/í…ŒìŠ¤íŠ¸ í—ˆë¸Œ
+â”‚   â”‚   â”‚   â”œâ”€â”€ today_tasks_screen.dart       // â˜… ì˜¤ëŠ˜ì˜ í•  ì¼ (TODO)
+â”‚   â”‚   â”‚   â”œâ”€â”€ rating_test_screen.dart       // â˜… ë ˆì´íŒ…/ê°„ë‹¨ í…ŒìŠ¤íŠ¸
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ calculator/
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ training_calculator_screen.dart
+â”‚   â”‚   â”‚   â”‚       // â˜… ê¸°ì¡´ community/checkout/calculator/checkout_calculator_screen.dart
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ checkout/
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ checkout_practice_home_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ checkout_practice_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ checkout_result_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ checkout_my_history_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ checkout_ranking_screen.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ checkout_practice_detail_screen.dart
+â”‚   â”‚   â”‚   â”‚       // â˜… ì „ë¶€ ê¸°ì¡´ community/checkout/practice/ ë°‘ì—ì„œ ì´ë™
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â””â”€â”€ widgets/
+â”‚   â”‚   â”‚       â”œâ”€â”€ dartboard_widget.dart
+â”‚   â”‚   â”‚       â”œâ”€â”€ dart_input_panel.dart
+â”‚   â”‚   â”‚       â”œâ”€â”€ remaining_score_display.dart
+â”‚   â”‚   â”‚       â”œâ”€â”€ practice_stats_card.dart
+â”‚   â”‚   â”‚       â”œâ”€â”€ checkout_ranking_mini.dart
+â”‚   â”‚   â”‚       â””â”€â”€ my_recent_record_mini.dart
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ arena/                            // â˜… ì•„ë ˆë‚˜ íƒ­
+â”‚   â”‚   â”‚   â”œâ”€â”€ arena_home_screen.dart        // â˜… ê¸°ì¡´ aarena_home_screen.dart â†’ ì´ë¦„ ìˆ˜ì •
+â”‚   â”‚   â”‚   â”‚   // ìƒë‹¨: ìŠ¤í‹¸ë¦¬ê·¸ ì¹´ë“œ ì„¹ì…˜
+â”‚   â”‚   â”‚   â”‚   // í•˜ë‹¨: í† ë„ˆë¨¼íŠ¸ ì¹´ë“œ ì„¹ì…˜
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ steel_league/                 // â˜… ìŠ¤í‹¸ë¦¬ê·¸ ê´€ë ¨ í™”ë©´ë“¤
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ steel_league_ranking_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”‚   // â˜… ê¸°ì¡´ user/ranking_screen.dart ê¸°ëŠ¥ ì˜®ê²¨ì˜¤ê¸° ì¶”ì²œ
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ steel_league_schedule_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ steel_league_point_calendar_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”‚   // â˜… ê¸°ì¡´ user/point_calendar_screen.dart ì´ë™
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ member_list_screen.dart.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ selection_players_screen.dart
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ tournament/
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tournaments_home_screen.dart        // â˜… [ì£¼ìµœí•˜ê¸°/ì°¸ê°€ ê°€ëŠ¥/ì˜ˆì •] í—ˆë¸Œ
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ my_tournaments_screen.dart          // ê¸°ì¡´ my_tournaments_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tournament_create_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tournament_detail_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tournament_entry_form_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tournament_edit_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ tournament_participant_list_screen.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ widgets/
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ entry_status_badge.dart
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ tournament_card.dart
+â”‚   â”‚   â”‚   â”‚       â””â”€â”€ tournament_filter_chips.dart
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â””â”€â”€ widgets/
+â”‚   â”‚   â”‚       â””â”€â”€ (ì•„ë ˆë‚˜ ê³µí†µ ì¹´ë“œ/ì„¹ì…˜ ìœ„ì ¯ë“¤)
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ community/                        // ì»¤ë®¤ë‹ˆí‹° íƒ­
+â”‚   â”‚   â”‚   â”œâ”€â”€ community_home_screen.dart
+â”‚   â”‚   â”‚   â”‚   // â˜… íƒ­: ì„œí´ ì¤‘ì‹¬ (ì²´í¬ì•„ì›ƒ/ì•„ë ˆë‚˜ ê´€ë ¨ ë²„íŠ¼ ì œê±° ì˜ˆì •)
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ widgets/
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ community_avatar_slider.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ community_preview.dart
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ circle/
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ circle_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ circle_grid_view.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ circle_list_view.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ circle_preview.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ post_write_screen.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ widgets/
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ post_card.dart
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ post_grid_item.dart
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ like_button.dart
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ comment_button.dart
+â”‚   â”‚   â”‚   â”‚       â”œâ”€â”€ comment_preview.dart
+â”‚   â”‚   â”‚   â”‚       â””â”€â”€ comment_bottom_sheet.dart
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ my_page/                          // â˜… ê¸°ì¡´ user/ â†’ MyPage ì¤‘ì‹¬ìœ¼ë¡œ ì •ë¦¬
+â”‚   â”‚   â”‚   â”œâ”€â”€ my_page_screen.dart           // íƒ­ 5ë²ˆê³¼ ì—°ê²°
+â”‚   â”‚   â”‚   â”œâ”€â”€ profile_register_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ notice_list_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ report_form_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ guestbook_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ widgets/
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ profile_image_widget.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ profile_form_fields.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ barrel_image_widget.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ barrel_setting_section.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ phone_verification_section.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ guestbook_header.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ guestbook_comment_item.dart
+â”‚   â”‚   â”‚   â”‚
+â”‚   â”‚   â”‚   â”œâ”€â”€ my_log/
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ my_log_home_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ my_log_detail_screen.dart
+â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€ my_log_write_screen.dart
+â”‚   â”‚   â”‚   â”‚   â””â”€â”€ widgets/
+â”‚   â”‚   â”‚   â”‚       â””â”€â”€ my_log_card.dart
+â”‚   â”‚   â”‚
+â”‚   â”‚   â”œâ”€â”€ admin/
+â”‚   â”‚   â”‚   â”œâ”€â”€ admin_dashboard_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ admin_member_list_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ admin_report_list_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ event_create_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ event_list_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ point_award_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ point_award_list_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ member_register_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ point_edit_screen.dart
+â”‚   â”‚   â”‚   â”œâ”€â”€ event_edit_screen.dart
+â”‚   â”‚   â”‚   â””â”€â”€ forms/
+â”‚   â”‚   â”‚       â”œâ”€â”€ notice_form_screen.dart
+â”‚   â”‚   â”‚       â”œâ”€â”€ news_form_screen.dart
+â”‚   â”‚   â”‚       â”œâ”€â”€ sponsor_form_screen.dart
+â”‚   â”‚   â”‚       â””â”€â”€ competition_photos_form_screen.dart
+â”‚   â”‚   â”‚
+â”‚   â””â”€â”€ widgets/
+â”‚       â”œâ”€â”€ app_card.dart
+â”‚       â”œâ”€â”€ admin_delete_button.dart
+â”‚       â”œâ”€â”€ post_item_widget.dart
+â”‚       â”œâ”€â”€ common_appbar.dart
+â”‚       â”œâ”€â”€ more_menu_button.dart
+â”‚       â”œâ”€â”€ galaxy_settings_section.dart
+â”‚       â”œâ”€â”€ user_profile_dialog.dart
+â”‚       â””â”€â”€ badge_widget.dart

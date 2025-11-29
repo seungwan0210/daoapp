@@ -1,36 +1,59 @@
 // lib/main.dart
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_app_check/firebase_app_check.dart'; // ← 추가!
+import 'package:intl/date_symbol_data_local.dart';
+
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
-import 'package:intl/date_symbol_data_local.dart'; // 추가
 
-// 공통
+// === Screens Import (새 구조 완벽 반영) ===
 import 'package:daoapp/presentation/screens/splash_screen.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
+import 'package:daoapp/presentation/screens/main_screen.dart';
 
-// 유저
-import 'package:daoapp/presentation/screens/user/ranking_screen.dart';
-import 'package:daoapp/presentation/screens/user/calendar_screen.dart';
+// 홈
+import 'package:daoapp/presentation/screens/home/home_screen.dart';
+
+// 트레이닝
+import 'package:daoapp/presentation/screens/training/training_home_screen.dart';
+import 'package:daoapp/presentation/screens/training/calculator/training_calculator_screen.dart';
+import 'package:daoapp/presentation/screens/training/checkout/checkout_practice_home_screen.dart';
+import 'package:daoapp/presentation/screens/training/checkout/checkout_practice_screen.dart';
+import 'package:daoapp/presentation/screens/training/checkout/checkout_result_screen.dart';
+import 'package:daoapp/presentation/screens/training/checkout/checkout_ranking_screen.dart';
+import 'package:daoapp/presentation/screens/training/checkout/checkout_my_history_screen.dart';
+
+
+// 아레나
+import 'package:daoapp/presentation/screens/arena/arena_home_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/member_list_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_entry_form_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_participant_list_screen.dart';
+
+// 커뮤니티
 import 'package:daoapp/presentation/screens/community/community_home_screen.dart';
-import 'package:daoapp/presentation/screens/user/point_calendar_screen.dart';
-import 'package:daoapp/presentation/screens/user/profile_register_screen.dart';
-import 'package:daoapp/presentation/screens/user/my_page_screen.dart';
-import 'package:daoapp/presentation/screens/user/notice_list_screen.dart';
-import 'package:daoapp/presentation/screens/user/member_list_screen.dart';
-import 'package:daoapp/presentation/screens/user/guestbook_screen.dart';
-import 'package:daoapp/presentation/screens/user/report_form_screen.dart';
+import 'package:daoapp/presentation/screens/community/circle/circle_screen.dart';
+import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
 
-// 마이로그 (신규 추가!)
-import 'package:daoapp/presentation/screens/user/my_log/my_log_home_screen.dart'; // 마이로그 홈
+// 마이페이지
+import 'package:daoapp/presentation/screens/my_page/my_page_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/profile_register_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/notice_list_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/report_form_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/guestbook_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/my_log/my_log_home_screen.dart';
 
 // 관리자
 import 'package:daoapp/presentation/screens/admin/admin_dashboard_screen.dart';
@@ -47,62 +70,31 @@ import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_
 import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart';
 
-// 서클
-import 'package:daoapp/presentation/screens/community/circle/post_write_screen.dart';
-import 'package:daoapp/presentation/screens/community/circle/circle_screen.dart';
-
-// 체크아웃
-import 'package:daoapp/presentation/screens/community/checkout/checkout_home_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/calculator/checkout_calculator_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_result_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_ranking_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_my_history_screen.dart';
-import 'package:daoapp/presentation/screens/community/checkout/practice/checkout_practice_home_screen.dart';
-
-// 아레나 (토너먼트)
-import 'package:daoapp/presentation/screens/community/arena/arena_home_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/tournament_create_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/tournament_detail_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/tournament_entry_form_screen.dart';
-import 'package:daoapp/presentation/screens/community/arena/tournament_participant_list_screen.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Firebase 초기화
   await Firebase.initializeApp();
-
-  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-  // App Check 활성화 (이게 -13040 에러를 완전히 없애줍니다!)
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity, // 릴리즈용 (최고 보안)
-    // androidProvider: AndroidProvider.debug,       // ← 디버그용으로 바꾸고 싶을 땐 이 줄 주석 해제
+    androidProvider: AndroidProvider.playIntegrity,
+    // androidProvider: AndroidProvider.debug,
   );
-  // ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
 
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
   FirebaseAuth.instance.authStateChanges().listen((user) {
-    if (user != null) {
-      OnlineStatusManager.start(user);
-    } else {
-      OnlineStatusManager.stop();
-    }
+    user != null ? OnlineStatusManager.start(user) : OnlineStatusManager.stop();
   });
 
   runApp(const ProviderScope(child: DaoApp()));
 }
 
-// 나머지 OnlineStatusManager 클래스와 DaoApp 위젯은 그대로 유지 (수정 없음)
 class OnlineStatusManager {
   static Timer? _timer;
   static User? _currentUser;
 
   static void _update() {
     if (_currentUser == null) return;
-
     FirebaseFirestore.instance
         .collection('online_users')
         .doc(_currentUser!.uid)
@@ -111,7 +103,7 @@ class OnlineStatusManager {
       'name': _currentUser!.displayName ?? '이름 없음',
       'lastSeen': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true))
-        .catchError((e) => debugPrint('Online status update error: $e'));
+        .catchError((e) => debugPrint('Online status error: $e'));
   }
 
   static void start(User user) {
@@ -144,20 +136,37 @@ class DaoApp extends StatelessWidget {
         RouteConstants.login: (_) => const LoginScreen(),
         RouteConstants.main: (_) => const MainScreen(),
 
-        // 유저
-        RouteConstants.ranking: (_) => const RankingScreenBody(),
-        RouteConstants.calendar: (_) => const CalendarScreenBody(),
-        RouteConstants.community: (_) => const CommunityHomeScreen(),
-        RouteConstants.myPage: (_) => const MyPageScreenBody(),
-        RouteConstants.profileRegister: (_) => const ProfileRegisterScreen(),
-        RouteConstants.pointCalendar: (_) => const PointCalendarScreen(),
-        RouteConstants.noticeList: (_) => const NoticeListScreen(),
-        RouteConstants.memberList: (_) => const MemberListScreen(),
-        RouteConstants.report: (_) => const ReportFormScreen(),
-        RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
+        // 홈
+        RouteConstants.home: (_) => const HomeScreen(),
 
-        // 마이로그 (신규 추가!)
-        RouteConstants.myLogHome: (_) => const MyLogHomeScreen(), // 마이로그 홈
+        // 트레이닝
+        RouteConstants.trainingHome: (_) => const TrainingHomeScreen(),
+        RouteConstants.checkoutPracticeHome: (_) => const CheckoutPracticeHomeScreen(),
+        RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(),
+        RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
+        RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
+        RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
+        RouteConstants.checkoutCalculator: (_) => const TrainingCalculatorScreen(),
+
+        // 아레나
+        RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
+        RouteConstants.steelLeagueRanking: (_) => const SteelLeagueRankingScreen(),
+        RouteConstants.steelLeagueSchedule: (_) => const SteelLeagueScheduleScreen(),
+        RouteConstants.steelLeaguePointCalendar: (_) => const SteelLeaguePointCalendarScreen(),
+        RouteConstants.steelLeagueMembers: (_) => const MemberListScreen(),
+        RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
+
+        // 커뮤니티
+        RouteConstants.community: (_) => const CommunityHomeScreen(),
+        RouteConstants.circle: (_) => const CircleScreen(),
+        RouteConstants.postWrite: (_) => const PostWriteScreen(),
+
+        // 마이페이지
+        RouteConstants.myPage: (_) => const MyPageScreen(),
+        RouteConstants.profileRegister: (_) => const ProfileRegisterScreen(),
+        RouteConstants.noticeList: (_) => const NoticeListScreen(),
+        RouteConstants.report: (_) => const ReportFormScreen(),
+        RouteConstants.myLogHome: (_) => const MyLogHomeScreen(),
 
         // 관리자
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
@@ -170,31 +179,17 @@ class DaoApp extends StatelessWidget {
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
+        RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
         RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(),
-
-        // 서클
-        RouteConstants.postWrite: (_) => PostWriteScreen(),
-        RouteConstants.circle: (_) => const CircleScreen(),
-
-        // 체크아웃
-        RouteConstants.checkoutHome: (_) => const CheckoutHomeScreen(),
-        RouteConstants.checkoutCalculator: (_) => CheckoutCalculatorScreen(),
-        RouteConstants.checkoutPractice: (_) => const CheckoutPracticeHomeScreen(),
-        RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(),
-        RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
-        RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
-        RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
-
-        // 아레나 토너먼트
-        RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
-        RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
       },
       onGenerateRoute: (settings) {
+        // 방명록
         if (settings.name == RouteConstants.guestbook) {
           final userId = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => GuestbookScreen(userId: userId));
         }
 
+        // 이벤트 수정
         if (settings.name == RouteConstants.eventEdit) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
@@ -207,29 +202,23 @@ class DaoApp extends StatelessWidget {
 
         // 토너먼트 상세
         if (settings.name == RouteConstants.tournamentDetail) {
-          final tournamentId = settings.arguments as String;
-          return MaterialPageRoute(
-            builder: (_) => TournamentDetailScreen(tournamentId: tournamentId),
-          );
+          final id = settings.arguments as String;
+          return MaterialPageRoute(builder: (_) => TournamentDetailScreen(tournamentId: id));
         }
 
-        // 참가 신청 폼
+        // 참가 신청
         if (settings.name == RouteConstants.tournamentEntryForm) {
-          final tournamentId = settings.arguments as String;
-          return MaterialPageRoute(
-            builder: (_) => TournamentEntryFormScreen(tournamentId: tournamentId),
-          );
+          final id = settings.arguments as String;
+          return MaterialPageRoute(builder: (_) => TournamentEntryFormScreen(tournamentId: id));
         }
 
         // 참가자 명단
         if (settings.name == RouteConstants.tournamentParticipantList) {
           final args = settings.arguments as Map<String, dynamic>;
-          final tournamentId = args['tournamentId'] as String;
-          final tournamentTitle = args['tournamentTitle'] as String? ?? '참가자 명단';
           return MaterialPageRoute(
             builder: (_) => TournamentParticipantListScreen(
-              tournamentId: tournamentId,
-              tournamentTitle: tournamentTitle,
+              tournamentId: args['tournamentId'] as String,
+              tournamentTitle: args['tournamentTitle'] as String? ?? '참가자 명단',
             ),
           );
         }

@@ -54,6 +54,24 @@ class _TournamentCreateScreenState
           _entryEndDate != null;
 
   @override
+  void initState() {
+    super.initState();
+    // ✅ 입력값 바뀔 때마다 버튼 활성화 상태 갱신
+    void attachListener(TextEditingController c) {
+      c.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
+
+    attachListener(_titleCtrl);
+    attachListener(_locationCtrl);
+    attachListener(_hostNameCtrl);
+    attachListener(_hostPhoneCtrl);
+    attachListener(_feeCtrl);
+    attachListener(_maxCtrl);
+  }
+
+  @override
   void dispose() {
     _titleCtrl.dispose();
     _locationCtrl.dispose();
@@ -149,8 +167,8 @@ class _TournamentCreateScreenState
         hostName: _hostNameCtrl.text.trim(),
         hostPhone: _hostPhoneCtrl.text.trim(),
         createdAt: Timestamp.now(),
-        entrySummarySent: false,  // 이거 추가!! → 메일 발송 문제 해결
-        entryCount: 0,           // 명시적으로 초기화
+        entrySummarySent: false, // 메일 발송 플래그 초기값
+        entryCount: 0, // 명시적으로 초기화
         isCanceled: false,
       );
 
@@ -280,7 +298,7 @@ class _TournamentCreateScreenState
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 담당자 이름
+                // 담당자 이름
                 TextFormField(
                   controller: _hostNameCtrl,
                   decoration: const InputDecoration(
@@ -290,12 +308,13 @@ class _TournamentCreateScreenState
                     contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
-                  validator: (v) =>
-                  v == null || v.trim().isEmpty ? '담당자 이름을 입력해주세요' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? '담당자 이름을 입력해주세요'
+                      : null,
                 ),
                 const SizedBox(height: 12),
 
-                // 🔹 담당자 연락처
+                // 담당자 연락처
                 TextFormField(
                   controller: _hostPhoneCtrl,
                   keyboardType: TextInputType.phone,
@@ -307,8 +326,9 @@ class _TournamentCreateScreenState
                     contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
-                  validator: (v) =>
-                  v == null || v.trim().isEmpty ? '담당자 연락처를 입력해주세요' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? '담당자 연락처를 입력해주세요'
+                      : null,
                 ),
                 const SizedBox(height: 6),
                 Text(

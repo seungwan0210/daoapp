@@ -5,7 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/screens/community/arena/widgets/entry_status_badge.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/widgets/entry_status_badge.dart';
 
 class TournamentCard extends StatelessWidget {
   final TournamentModel tournament;
