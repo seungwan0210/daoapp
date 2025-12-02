@@ -14,34 +14,37 @@ class TrainingSessionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double hitRatePercent = session.hitRate * 100;
+    // 🔹 null-safe 처리
+    final double hitRate = session.hitRate ?? 0.0;
+    final double hitRatePercent = hitRate * 100;
     final String rateText = hitRatePercent.toStringAsFixed(1);
+
+    final int successCount = session.successCount ?? 0;
+    final int totalAttempts = session.totalAttempts ?? 0;
 
     // 성공률에 따라 색상 결정
     Color rateColor;
     if (hitRatePercent >= 80) {
-      rateColor = Colors.cyan;
+      rateColor = Colors.cyan[700]!;
     } else if (hitRatePercent >= 60) {
-      rateColor = Colors.green;
+      rateColor = Colors.green[600]!;
     } else if (hitRatePercent >= 40) {
-      rateColor = Colors.yellow;
+      rateColor = Colors.amber[700]!;
     } else {
-      rateColor = Colors.orange;
+      rateColor = Colors.orange[700]!;
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D001A),
-      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.white, // 🔹 라이트 모드 배경
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
         title: const Text(
           "트레이닝 상세",
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
-        foregroundColor: Colors.cyan,
-        iconTheme: const IconThemeData(color: Colors.cyan),
+        foregroundColor: Colors.black87,
       ),
       body: SafeArea(
         child: ListView(
@@ -57,9 +60,9 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                     Text(
                       session.drillTitle,
                       style: const TextStyle(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -67,21 +70,24 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                       "드릴 ID: ${session.drillId}",
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[400],
+                        color: Colors.grey[600],
                       ),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        Icon(Icons.access_time_filled,
-                            color: Colors.purpleAccent, size: 18),
+                        Icon(
+                          Icons.access_time_filled,
+                          color: Colors.cyan[700],
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Text(
                           "연습 시간",
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey[300],
+                            color: Colors.grey[800],
                           ),
                         ),
                       ],
@@ -89,9 +95,9 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       "${session.startedAt.toLocal().toString().substring(0, 16)}\n→ ${session.endedAt.toLocal().toString().substring(0, 16)}",
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: Colors.white70,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
                         height: 1.4,
                       ),
                     ),
@@ -105,28 +111,32 @@ class TrainingSessionDetailScreen extends StatelessWidget {
             // 성공률 + 성공/시도
             AppCard(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 24),
+                padding:
+                const EdgeInsets.symmetric(vertical: 30, horizontal: 24),
                 child: Row(
                   children: [
                     Expanded(
                       child: Column(
                         children: [
-                          const Text(
+                          Text(
                             "성공률",
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Text(
                             "$rateText%",
                             style: TextStyle(
-                              fontSize: 48,
+                              fontSize: 40,
                               fontWeight: FontWeight.w900,
                               color: rateColor,
                               shadows: [
                                 Shadow(
                                   offset: const Offset(0, 0),
-                                  blurRadius: 20,
-                                  color: rateColor.withOpacity(0.6),
+                                  blurRadius: 12,
+                                  color: rateColor.withOpacity(0.5),
                                 ),
                               ],
                             ),
@@ -135,31 +145,35 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      width: 2,
-                      height: 80,
-                      color: Colors.grey[700],
+                      width: 1,
+                      height: 70,
+                      color: Colors.grey[300],
                     ),
                     Expanded(
                       child: Column(
                         children: [
-                          const Text(
+                          Text(
                             "성공 / 시도",
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            session.successCount.toString(),
-                            style: const TextStyle(
-                              fontSize: 44,
+                            successCount.toString(),
+                            style: TextStyle(
+                              fontSize: 32,
                               fontWeight: FontWeight.bold,
-                              color: Colors.cyan,
+                              color: Colors.cyan[700],
                             ),
                           ),
+                          const SizedBox(height: 4),
                           Text(
-                            "/ ${session.totalAttempts} 다트",
+                            "/ $totalAttempts 다트",
                             style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.grey[400],
+                              fontSize: 13,
+                              color: Colors.grey[600],
                             ),
                           ),
                         ],
@@ -182,14 +196,17 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.code, color: Colors.purpleAccent),
+                          Icon(
+                            Icons.code,
+                            color: Colors.deepPurple[400],
+                          ),
                           const SizedBox(width: 10),
                           const Text(
                             "드릴 설정 정보",
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Colors.black87,
                             ),
                           ),
                         ],
@@ -197,20 +214,20 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: Colors.black38,
+                          color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Colors.purpleAccent.withOpacity(0.4),
-                            width: 1.5,
+                            color: Colors.deepPurple.withOpacity(0.2),
+                            width: 1,
                           ),
                         ),
                         child: SelectableText(
                           session.extra.toString(),
                           style: const TextStyle(
                             fontSize: 13,
-                            color: Colors.white70,
+                            color: Colors.black87,
                             fontFamily: 'RobotoMono',
                             height: 1.5,
                           ),
@@ -221,7 +238,7 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                 ),
               ),
 
-            const SizedBox(height: 60),
+            const SizedBox(height: 40),
           ],
         ),
       ),

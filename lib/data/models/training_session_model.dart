@@ -3,18 +3,37 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 
+/// 한 번의 연습 세션 기록
 class TrainingSessionModel {
   final String? id;
   final String userId;
+
+  /// 어떤 드릴인지 (definition id)
   final String drillId;
   final String drillTitle;
+
+  /// 그때의 DAO 티어 (7단계)
   final DaoTrainingTier tierAtThatTime;
+
   final DateTime startedAt;
   final DateTime endedAt;
+
+  /// 실제 진행 라운드 수
   final int totalRounds;
+
+  /// 실제 던진 다트 수 (hitCount / score / cricket 공통)
   final int totalAttempts;
+
+  /// hitCount 모드용 성공/실패 카운트
   final int successCount;
   final int failCount;
+
+  /// 부가 정보 / 통계
+  ///
+  /// - inputMode: 'hitCount' / 'scoreOnly' / 'cricketMarks'
+  /// - totalScore, totalMarks
+  /// - hitRate, ppd, threeDartAvg, mpr 등
+  /// - finishedEarly, plannedRounds, plannedDartsPerRound ...
   final Map<String, dynamic>? extra;
 
   const TrainingSessionModel({
@@ -31,11 +50,6 @@ class TrainingSessionModel {
     required this.failCount,
     this.extra,
   });
-
-  double get hitRate {
-    if (totalAttempts == 0) return 0.0;
-    return successCount / totalAttempts;
-  }
 
   TrainingSessionModel copyWith({
     String? id,
@@ -67,12 +81,74 @@ class TrainingSessionModel {
     );
   }
 
+  // --------- 편의 getter (통계 화면용) ---------
+
+  String? get inputModeString => extra?['inputMode'] as String?;
+  int? get totalScoreExtra => extra?['totalScore'] as int?;
+  int? get totalMarksExtra => extra?['totalMarks'] as int?;
+
+  double? get hitRate =>
+      (extra?['hitRate'] is num) ? (extra!['hitRate'] as num).toDouble() : null;
+
+  double? get ppd =>
+      (extra?['ppd'] is num) ? (extra!['ppd'] as num).toDouble() : null;
+
+  double? get threeDartAvg => (extra?['threeDartAvg'] is num)
+      ? (extra!['threeDartAvg'] as num).toDouble()
+      : null;
+
+  double? get mpr =>
+      (extra?['mpr'] is num) ? (extra!['mpr'] as num).toDouble() : null;
+
+  // --------- Firestore 변환 ---------
+
+  static DateTime _toDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
+  }
+
+  static DaoTrainingTier _tierFromRaw(dynamic raw) {
+    if (raw is String) {
+      final index =
+      DaoTrainingTier.values.indexWhere((e) => e.name == raw);
+      if (index >= 0) return DaoTrainingTier.values[index];
+    }
+    if (raw is int) {
+      if (raw >= 0 && raw < DaoTrainingTier.values.length) {
+        return DaoTrainingTier.values[raw];
+      }
+    }
+    // 기본값: beginner
+    return DaoTrainingTier.beginner;
+  }
+
+  factory TrainingSessionModel.fromJson(
+      String id,
+      Map<String, dynamic> json,
+      ) {
+    return TrainingSessionModel(
+      id: id,
+      userId: json['userId'] as String,
+      drillId: json['drillId'] as String,
+      drillTitle: json['drillTitle'] as String? ?? '',
+      tierAtThatTime: _tierFromRaw(json['tierAtThatTime']),
+      startedAt: _toDate(json['startedAt']),
+      endedAt: _toDate(json['endedAt']),
+      totalRounds: (json['totalRounds'] as num?)?.toInt() ?? 0,
+      totalAttempts: (json['totalAttempts'] as num?)?.toInt() ?? 0,
+      successCount: (json['successCount'] as num?)?.toInt() ?? 0,
+      failCount: (json['failCount'] as num?)?.toInt() ?? 0,
+      extra: (json['extra'] as Map<String, dynamic>?) ?? const {},
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'userId': userId,
       'drillId': drillId,
       'drillTitle': drillTitle,
-      // ✅ 7티어 enum의 name 저장 (beginner / learner / ...)
+      // 문자열로 저장 (나중에 name으로 복원)
       'tierAtThatTime': tierAtThatTime.name,
       'startedAt': Timestamp.fromDate(startedAt),
       'endedAt': Timestamp.fromDate(endedAt),
@@ -80,76 +156,7 @@ class TrainingSessionModel {
       'totalAttempts': totalAttempts,
       'successCount': successCount,
       'failCount': failCount,
-      if (extra != null) 'extra': extra,
+      'extra': extra ?? <String, dynamic>{},
     };
-  }
-
-  factory TrainingSessionModel.fromJson(String id, Map<String, dynamic> json) {
-    return TrainingSessionModel(
-      id: id,
-      userId: json['userId'] as String,
-      drillId: json['drillId'] as String,
-      drillTitle: (json['drillTitle'] ?? '') as String,
-      tierAtThatTime: _tierFromString(json['tierAtThatTime'] as String?),
-      startedAt: (json['startedAt'] as Timestamp).toDate(),
-      endedAt: (json['endedAt'] as Timestamp).toDate(),
-      totalRounds: (json['totalRounds'] as num?)?.toInt() ?? 0,
-      totalAttempts: (json['totalAttempts'] as num?)?.toInt() ?? 0,
-      successCount: (json['successCount'] as num?)?.toInt() ?? 0,
-      failCount: (json['failCount'] as num?)?.toInt() ?? 0,
-      extra: json['extra'] as Map<String, dynamic>?,
-    );
-  }
-
-  factory TrainingSessionModel.fromDoc(
-      DocumentSnapshot<Map<String, dynamic>> doc,
-      ) {
-    final data = doc.data()!;
-    return TrainingSessionModel.fromJson(doc.id, data);
-  }
-
-  /// 🔁 예전 5티어 문자열 → 새 7티어 매핑 포함
-  ///
-  /// old 5티어:
-  ///  - rookie, basic, intermediate, advanced, expert
-  ///
-  /// 새 7티어:
-  ///  - beginner, learner, competitor, challenger, elite, pro, master
-  static DaoTrainingTier _tierFromString(String? name) {
-    if (name == null) return DaoTrainingTier.beginner;
-
-    switch (name) {
-    // === 새 7티어 문자열 그대로 들어온 경우 ===
-      case 'beginner':
-        return DaoTrainingTier.beginner;
-      case 'learner':
-        return DaoTrainingTier.learner;
-      case 'competitor':
-        return DaoTrainingTier.competitor;
-      case 'challenger':
-        return DaoTrainingTier.challenger;
-      case 'elite':
-        return DaoTrainingTier.elite;
-      case 'pro':
-        return DaoTrainingTier.pro;
-      case 'master':
-        return DaoTrainingTier.master;
-
-    // === 예전 5티어 데이터 마이그레이션용 매핑 ===
-      case 'rookie':
-        return DaoTrainingTier.beginner;      // 가장 아래
-      case 'basic':
-        return DaoTrainingTier.learner;       // 한 단계 위
-      case 'intermediate':
-        return DaoTrainingTier.competitor;    // 중간
-      case 'advanced':
-        return DaoTrainingTier.challenger;    // 상위
-      case 'expert':
-        return DaoTrainingTier.pro;           // 최상위 쪽
-
-    // 혹시 이상한 값이면 최소 티어로
-      default:
-        return DaoTrainingTier.beginner;
-    }
   }
 }

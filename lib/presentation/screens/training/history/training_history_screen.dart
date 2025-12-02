@@ -15,25 +15,36 @@ class TrainingHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("트레이닝 히스토리"),
+        title: const Text(
+          "트레이닝 히스토리",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.cyan,
+        backgroundColor: Colors.white,      // 🔹 라이트 모드 앱바
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
       ),
-      backgroundColor: const Color(0xFF0D001A),
+      backgroundColor: Colors.white,        // 🔹 전체 배경 흰색
       body: historyAsync.when(
         data: (sessions) {
           if (sessions.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.history_toggle_off, size: 80, color: Colors.grey),
-                  SizedBox(height: 20),
+                  Icon(
+                    Icons.history_toggle_off,
+                    size: 80,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 20),
                   Text(
                     "아직 저장된 트레이닝 기록이 없습니다.\n지금 바로 연습을 시작해보세요!",
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 16,
+                    ),
                   ),
                 ],
               ),
@@ -45,21 +56,40 @@ class TrainingHistoryScreen extends ConsumerWidget {
             itemCount: sessions.length,
             itemBuilder: (context, index) {
               final s = sessions[index];
+
+              // 🔹 null-safe 처리
+              final double hitRate = s.hitRate ?? 0.0;
+              final String hitRateText =
+              (hitRate * 100).toStringAsFixed(1);
+
+              final int successCount = s.successCount ?? 0;
+              final int totalAttempts = s.totalAttempts ?? 0;
+
+              final Color rateColor =
+              hitRate >= 0.7
+                  ? (Colors.cyan[700]!)
+                  : hitRate >= 0.5
+                  ? (Colors.green[600]!)
+                  : (Colors.orange[700]!);
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: AppCard(
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => TrainingSessionDetailScreen(session: s),
+                        builder: (_) =>
+                            TrainingSessionDetailScreen(session: s),
                       ),
                     );
                   },
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Colors.purple.shade800,
+                      backgroundColor: Colors.cyan[700],
                       child: Text(
-                        s.drillTitle.isNotEmpty ? s.drillTitle[0] : "?",
+                        s.drillTitle.isNotEmpty
+                            ? s.drillTitle[0]
+                            : "?",
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -70,35 +100,34 @@ class TrainingHistoryScreen extends ConsumerWidget {
                       s.drillTitle,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
                     ),
                     subtitle: Text(
                       "${s.startedAt.toLocal().toString().substring(0, 16)} ~ "
                           "${s.endedAt.toLocal().toString().substring(0, 16)}",
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          "${(s.hitRate * 100).toStringAsFixed(1)}%",
+                          "$hitRateText%",
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 20,
-                            color: s.hitRate >= 0.7
-                                ? Colors.cyan
-                                : s.hitRate >= 0.5
-                                ? Colors.green
-                                : Colors.orange,
+                            color: rateColor,
                           ),
                         ),
                         Text(
-                          "${s.successCount}/${s.totalAttempts} 다트",
-                          style: const TextStyle(
+                          "$successCount/$totalAttempts 다트",
+                          style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey,
+                            color: Colors.grey[600],
                           ),
                         ),
                       ],
@@ -110,7 +139,9 @@ class TrainingHistoryScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(
-          child: CircularProgressIndicator(color: Colors.cyan),
+          child: CircularProgressIndicator(
+            color: Colors.cyan,
+          ),
         ),
         error: (e, st) => Center(
           child: Column(
@@ -122,9 +153,11 @@ class TrainingHistoryScreen extends ConsumerWidget {
                 "기록을 불러오지 못했습니다",
                 style: TextStyle(color: Colors.red),
               ),
+              const SizedBox(height: 8),
               Text(
                 "$e",
-                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey[700]),
               ),
             ],
           ),

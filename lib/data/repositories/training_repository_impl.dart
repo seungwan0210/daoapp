@@ -36,7 +36,7 @@ class TrainingRepositoryImpl implements TrainingRepository {
   @override
   Stream<List<TrainingSessionModel>> watchRecentSessions({
     required String userId,
-    int limit = 20,
+    int limit = 50, // 🔹 인터페이스 기본값과 맞춤
   }) {
     return _sessionCollection(userId)
         .orderBy('endedAt', descending: true)
@@ -53,7 +53,7 @@ class TrainingRepositoryImpl implements TrainingRepository {
   Future<List<TrainingSessionModel>> fetchSessionsByDrill({
     required String userId,
     required String drillId,
-    int limit = 50,
+    int limit = 100, // 🔹 인터페이스 기본값과 맞춤
   }) async {
     final snap = await _sessionCollection(userId)
         .where('drillId', isEqualTo: drillId)

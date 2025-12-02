@@ -40,28 +40,34 @@ class DrillResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hitRatePercent = session.hitRate * 100;
-    final hitRateText = hitRatePercent.toStringAsFixed(1);
+    // 🔹 null-safe 처리
+    final double hitRate = (session.hitRate ?? 0.0);
+    final double hitRatePercent = hitRate * 100;
+    final String hitRateText = hitRatePercent.toStringAsFixed(1);
+
+    final int successCount = session.successCount ?? 0;
+    final int totalAttempts = session.totalAttempts ?? 0;
 
     Color rateColor;
     if (hitRatePercent >= 80) {
-      rateColor = Colors.cyanAccent;
+      rateColor = Colors.cyan;
     } else if (hitRatePercent >= 60) {
-      rateColor = Colors.greenAccent;
+      rateColor = Colors.green;
     } else if (hitRatePercent >= 40) {
-      rateColor = Colors.amberAccent;
+      rateColor = Colors.amber;
     } else {
-      rateColor = Colors.orangeAccent;
+      rateColor = Colors.orange;
     }
 
     final extra = session.extra ?? {};
-    final finishedEarly = extra['finishedEarly'] == true;
+    final finishedEarly = (extra['finishedEarly'] as bool?) ?? false;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D001A),
+      backgroundColor: Colors.white, // 🔹 라이트 모드 배경
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.cyanAccent,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
         title: const Text(
           "드릴 결과",
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -84,7 +90,7 @@ class DrillResultScreen extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: Colors.white,
+                        color: Colors.black87,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -92,7 +98,7 @@ class DrillResultScreen extends StatelessWidget {
                       drill.shortDescriptionKo,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[300],
+                        color: Colors.grey[800],
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -106,15 +112,15 @@ class DrillResultScreen extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: Colors.cyanAccent,
+                              color: Colors.cyan[700]!,
                               width: 1,
                             ),
                           ),
                           child: Text(
                             "DAO TIER · ${_tierLabel(tier)}",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Colors.cyanAccent,
+                              color: Colors.cyan[700],
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -124,7 +130,7 @@ class DrillResultScreen extends StatelessWidget {
                           "드릴 ID: ${session.drillId}",
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey[500],
+                            color: Colors.grey[600],
                           ),
                         ),
                       ],
@@ -132,10 +138,10 @@ class DrillResultScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.access_time_filled,
                           size: 16,
-                          color: Colors.purpleAccent,
+                          color: Colors.deepPurple[400],
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -143,7 +149,7 @@ class DrillResultScreen extends StatelessWidget {
                               "${session.endedAt.toLocal().toString().substring(0, 16)}",
                           style: const TextStyle(
                             fontSize: 13,
-                            color: Colors.white70,
+                            color: Colors.black54,
                           ),
                         ),
                       ],
@@ -182,8 +188,8 @@ class DrillResultScreen extends StatelessWidget {
                               shadows: [
                                 Shadow(
                                   offset: const Offset(0, 0),
-                                  blurRadius: 20,
-                                  color: rateColor.withOpacity(0.8),
+                                  blurRadius: 12,
+                                  color: rateColor.withOpacity(0.5),
                                 ),
                               ],
                             ),
@@ -194,7 +200,7 @@ class DrillResultScreen extends StatelessWidget {
                     Container(
                       width: 2,
                       height: 70,
-                      color: Colors.grey[700],
+                      color: Colors.grey[300],
                     ),
                     Expanded(
                       child: Column(
@@ -208,19 +214,19 @@ class DrillResultScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            session.successCount.toString(),
-                            style: const TextStyle(
+                            successCount.toString(),
+                            style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
-                              color: Colors.cyanAccent,
+                              color: Colors.cyan[700],
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "/ ${session.totalAttempts} 다트",
+                            "/ $totalAttempts 다트",
                             style: TextStyle(
                               fontSize: 13,
-                              color: Colors.grey[400],
+                              color: Colors.grey[600],
                             ),
                           ),
                         ],
@@ -242,15 +248,15 @@ class DrillResultScreen extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.auto_awesome,
-                      color: Colors.cyanAccent.shade100,
+                      color: Colors.cyan[700],
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        _commentByHitRate(session.hitRate),
+                        _commentByHitRate(hitRate),
                         style: const TextStyle(
                           fontSize: 14,
-                          color: Colors.white70,
+                          color: Colors.black87,
                           height: 1.5,
                         ),
                       ),
@@ -269,7 +275,7 @@ class DrillResultScreen extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.info_outline,
-                        color: Colors.orangeAccent,
+                        color: Colors.orange,
                         size: 18,
                       ),
                       const SizedBox(width: 8),
@@ -278,7 +284,7 @@ class DrillResultScreen extends StatelessWidget {
                           "이번 세션은 계획된 라운드보다 조금 일찍 종료되었습니다.",
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.orangeAccent.shade100,
+                            color: Colors.orange[800],
                           ),
                         ),
                       ),
@@ -311,8 +317,8 @@ class DrillResultScreen extends StatelessWidget {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyanAccent,
-                      foregroundColor: Colors.black,
+                      backgroundColor: Colors.cyan[700],
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         vertical: 14,
                       ),
@@ -340,7 +346,7 @@ class DrillResultScreen extends StatelessWidget {
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple.shade700,
+                backgroundColor: Colors.deepPurple[600],
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
@@ -354,13 +360,13 @@ class DrillResultScreen extends StatelessWidget {
                 Navigator.of(context).pop();
               },
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.cyanAccent),
+                side: BorderSide(color: Colors.cyan[700]!),
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              child: const Text(
+              child: Text(
                 "트레이닝 홈으로",
                 style: TextStyle(
-                  color: Colors.cyanAccent,
+                  color: Colors.cyan[700],
                   fontWeight: FontWeight.bold,
                 ),
               ),

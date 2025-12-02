@@ -212,7 +212,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
             controller: mprController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
-              labelText: "MPR (선택 입력)",
+              labelText: "MPR",
               hintText: mprHint,
               prefixIcon: const Icon(Icons.speed, color: Colors.orange),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

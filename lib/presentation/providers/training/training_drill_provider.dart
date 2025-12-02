@@ -39,7 +39,7 @@ class TrainingDrillNotifier extends StateNotifier<TrainingDrillState> {
       : _repo = repo ?? sl<TrainingRepository>(),
         super(const TrainingDrillState());
 
-  /// 드릴 세션 시작
+  /// 세션 시작
   Future<void> startSession({
     required String userId,
     required TrainingDrillDefinition drill,
@@ -50,6 +50,27 @@ class TrainingDrillNotifier extends StateNotifier<TrainingDrillState> {
 
       final now = DateTime.now();
 
+      // 🔹 기본 계획값: extraConfig 기반 + 안전한 기본값
+      final extra = drill.extraConfig;
+
+      // plannedRounds / rounds 우선 사용, 없으면 8라운드 기본
+      int plannedRounds;
+      final roundsFromExtra = extra?['plannedRounds'] ?? extra?['rounds'];
+      if (roundsFromExtra is int && roundsFromExtra > 0) {
+        plannedRounds = roundsFromExtra;
+      } else {
+        plannedRounds = 8;
+      }
+
+      // dartsPerRound 없으면 3다트 기본
+      int plannedDartsPerRound;
+      final dartsFromExtra = extra?['dartsPerRound'];
+      if (dartsFromExtra is int && dartsFromExtra > 0) {
+        plannedDartsPerRound = dartsFromExtra;
+      } else {
+        plannedDartsPerRound = 3;
+      }
+
       final newSession = TrainingSessionModel(
         id: null,
         userId: userId,
@@ -57,19 +78,21 @@ class TrainingDrillNotifier extends StateNotifier<TrainingDrillState> {
         drillTitle: drill.titleKo,
         tierAtThatTime: tierAtThatTime,
         startedAt: now,
-        endedAt: now, // 임시값 (실제 종료는 finishSession에서)
-        totalRounds: drill.rounds,
+        endedAt: now, // 실제 종료는 finishSession에서 덮어씀
+        totalRounds: plannedRounds,
         totalAttempts: 0,
         successCount: 0,
         failCount: 0,
         extra: {
-          'rounds': drill.rounds,
-          'dartsPerRound': drill.dartsPerRound,
+          'rounds': plannedRounds,
+          'dartsPerRound': plannedDartsPerRound,
           'targetLabel': drill.targetLabel,
           'guideKo': drill.guideKo,
           'guideEn': drill.guideEn,
           'category': drill.category.name,
           'shortDescriptionKo': drill.shortDescriptionKo,
+          'inputMode': drill.inputMode.name,
+          if (drill.extraConfig != null) ...drill.extraConfig!,
         },
       );
 
@@ -88,10 +111,17 @@ class TrainingDrillNotifier extends StateNotifier<TrainingDrillState> {
   }
 
   /// 드릴 완료
+  ///
+  /// - hitCount 모드: `hitCount` / `totalDarts`로 명중률 계산
+  /// - scoreOnly 모드: `totalScore` / `totalDarts`로 PPD, 3다트 평균 계산
+  /// - cricketMarks 모드: `totalMarks` / `totalRounds`로 MPR 계산
   Future<void> finishSession({
-    required int totalAttempts,
-    required int successCount,
-    required int failCount,
+    required TrainingDrillInputMode inputMode,
+    required int totalRounds,
+    required int totalDarts,
+    int hitCount = 0,
+    int totalMarks = 0,
+    int totalScore = 0,
     Map<String, dynamic>? additionalExtra,
   }) async {
     final current = state.activeSession;
@@ -100,16 +130,49 @@ class TrainingDrillNotifier extends StateNotifier<TrainingDrillState> {
     try {
       state = state.copyWith(isSaving: true, errorMessage: null);
 
+      final now = DateTime.now();
+
+      final bool isHit = inputMode == TrainingDrillInputMode.hitCount;
+      final bool isScore = inputMode == TrainingDrillInputMode.scoreOnly;
+      final bool isCricket = inputMode == TrainingDrillInputMode.cricketMarks;
+
+      final int successCount = isHit ? hitCount : 0;
+      final int failCount =
+      isHit ? (totalDarts - hitCount).clamp(0, totalDarts) : 0;
+
+      final double hitRate =
+      (isHit && totalDarts > 0) ? hitCount / totalDarts : 0.0;
+
+      double? ppd;
+      double? threeDartAvg;
+      if (isScore && totalDarts > 0) {
+        ppd = totalScore / totalDarts;
+        threeDartAvg = ppd * 3;
+      }
+
+      double? mpr;
+      if (isCricket && totalRounds > 0) {
+        // 일반 크리켓 MPR = (총마크 / 라운드 수)
+        mpr = totalMarks / totalRounds;
+      }
+
       final updated = current.copyWith(
-        endedAt: DateTime.now(), // 여기서 진짜 종료 시간 기록
-        totalAttempts: totalAttempts,
+        endedAt: now,
+        totalRounds: totalRounds,
+        totalAttempts: totalDarts,
         successCount: successCount,
         failCount: failCount,
         extra: {
           ...?current.extra,
           if (additionalExtra != null) ...additionalExtra,
-          'hitRate': totalAttempts > 0 ? successCount / totalAttempts : 0.0,
-          'completedAt': DateTime.now().toIso8601String(),
+          'inputMode': inputMode.name,
+          'totalMarks': totalMarks,
+          'totalScore': totalScore,
+          'hitRate': hitRate,
+          if (ppd != null) 'ppd': ppd,
+          if (threeDartAvg != null) 'threeDartAvg': threeDartAvg,
+          if (mpr != null) 'mpr': mpr,
+          'completedAt': now.toIso8601String(),
         },
       );
 

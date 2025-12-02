@@ -112,6 +112,9 @@
 │   │   │       └── neon_glow_container.dart
 │   │   │       └── dual_neon_gauge_row.dart
 │   │   │       └── dao_tier_badge_large.dart
+│   │   │       └── round_input_panel.dart
+│   │   │       └── beginner_board_area_widget.dart
+│   │   │       └── drill_stat_summary.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

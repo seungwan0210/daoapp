@@ -20,8 +20,7 @@ class TrainingHomeScreen extends StatefulWidget {
   State<TrainingHomeScreen> createState() => _TrainingHomeScreenState();
 }
 
-class _TrainingHomeScreenState extends State<TrainingHomeScreen>
-    with SingleTickerProviderStateMixin {
+class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
   DaoTrainingProfile? _profile;
   bool _isLoadingProfile = true;
 
@@ -51,8 +50,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
 
       final data = doc.data()!;
       final tierIndex = (data['tierIndex'] as int?) ?? 0;
-      final tier = DaoTrainingTier
-          .values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
+      final tier =
+      DaoTrainingTier.values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
 
       setState(() {
         _profile = DaoTrainingProfile(
@@ -68,7 +67,6 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
         _isLoadingProfile = false;
       });
     } catch (e) {
-      // 에러 나도 앱 죽지 않게만 처리
       debugPrint('Failed to load training profile: $e');
       setState(() {
         _isLoadingProfile = false;
@@ -191,25 +189,37 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
               _buildEmptyState(),
               const SizedBox(height: 60),
             ] else ...[
-              // === 네온 듀얼 게이지 (반응형 크기) ===
-              Padding(
-                padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth > 400 ? 20 : 0),
-                child: DualNeonGaugeRow(
-                  phoenixRating: _profile!.phoenixClass,
-                  liveRating: _profile!.liveRating,
-                  gaugeSize: screenWidth > 400 ? 160 : 140,
-                ),
-              ),
-              const SizedBox(height: 32),
-
               // === DAO 티어 크게 표시 ===
               Center(
                 child: DaoTierBadgeLarge(
                   tier: _profile!.tier,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              Center(
+                child: Text(
+                  "현재 DAO 티어 · ${_profile!.tier.labelKo}",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // === 네온 듀얼 게이지 (반응형 크기) ===
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth > 400 ? 20 : 0,
+                ),
+                child: DualNeonGaugeRow(
+                  phoenixRating: _profile!.phoenixClass,
+                  liveRating: _profile!.liveRating,
+                  gaugeSize: screenWidth > 400 ? 160 : 140,
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // === 상세 정보 카드 + 수정 / 초기화 ===
               AppCard(
@@ -222,8 +232,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                         children: [
                           const Text(
                             "PHOENIX CLASS",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.phoenixClass),
@@ -241,8 +250,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                         children: [
                           const Text(
                             "DARTSLIVE RATING",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.liveRating),
@@ -265,15 +273,13 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                               icon: const Icon(Icons.edit),
                               label: const Text(
                                 "레이팅 수정하기",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                style:
+                                TextStyle(fontWeight: FontWeight.bold),
                               ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.cyan,
-                                side: const BorderSide(
-                                    color: Colors.cyan),
-                                padding:
-                                const EdgeInsets.symmetric(
+                                side: const BorderSide(color: Colors.cyan),
+                                padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
                               ),
@@ -315,7 +321,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                 ),
               ],
 
-              const SizedBox(height: 50),
+              const SizedBox(height: 40),
             ],
 
             // === 오늘의 추천 연습 ===
@@ -325,9 +331,14 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                 fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
-            const SizedBox(height: 50),
+            const SizedBox(height: 40),
 
             // === 연습 모드 ===
             Text(
@@ -348,8 +359,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
   Widget _buildEmptyState() {
     return Column(
       children: [
-        Icon(Icons.sports_esports_outlined,
-            size: 100, color: Colors.grey[400]),
+        Icon(Icons.sports_esports_outlined, size: 100, color: Colors.grey[400]),
         const SizedBox(height: 32),
         const Text(
           "당신의 다트 실력을 알려주세요!",
@@ -390,8 +400,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: OutlinedButton.styleFrom(
-                  side:
-                  const BorderSide(color: Colors.cyan, width: 2),
+                  side: const BorderSide(color: Colors.cyan, width: 2),
                   foregroundColor: Colors.cyan,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                 ),
@@ -406,8 +415,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
   /// 티어 기반 "오늘의 추천 드릴" 카드
   Widget _buildRecommendationCards(DaoTrainingTier? tier) {
     // 프로필 없으면 일단 Beginner(비기너) 기준으로 보여주기
-    final DaoTrainingTier effectiveTier =
-        tier ?? DaoTrainingTier.beginner;
+    final DaoTrainingTier effectiveTier = tier ?? DaoTrainingTier.beginner;
 
     final List<TrainingDrillDefinition> drills =
     recommendedDrillsForToday(effectiveTier);
@@ -425,28 +433,9 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
             (drill) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: AppCard(
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.cyan.withOpacity(0.1),
-                child: const Icon(Icons.auto_awesome,
-                    color: Colors.cyan),
-              ),
-              title: Text(
-                drill.titleKo,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold),
-              ),
-              subtitle: Text(
-                drill.shortDescriptionKo,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing:
-              const Icon(Icons.arrow_forward_ios, size: 16),
+            child: InkWell(
               onTap: () {
-                // 프로필 티어가 있으면 그 티어로, 없으면 비기너 티어로
-                final DaoTrainingTier runTier =
-                    _profile?.tier ?? effectiveTier;
+                final DaoTrainingTier runTier = _profile?.tier ?? effectiveTier;
 
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -457,6 +446,66 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
                   ),
                 );
               },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 24,
+                      backgroundColor: _categoryColor(drill.category).withOpacity(0.12),
+                      child: Icon(
+                        _categoryIcon(drill.category),
+                        color: _categoryColor(drill.category),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            drill.titleKo,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            drill.shortDescriptionKo,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              _pill(
+                                _categoryColor(drill.category),
+                                _categoryLabel(drill.category),
+                              ),
+                              _pill(
+                                Colors.blueGrey,
+                                _inputModeLabel(drill.inputMode),
+                              ),
+                              _pill(
+                                Colors.deepPurple,
+                                _tierRangeLabel(drill.tierRange),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 14),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -475,18 +524,17 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
         Colors.blueGrey,
       ),
 
-      // 기존 체크아웃/테스트 메뉴
-      _practiceTile(Icons.today, "오늘의 체크아웃 과제",
-          RouteConstants.todayTasks, Colors.purple),
-      _practiceTile(Icons.sports_score, "체크아웃 연습",
-          RouteConstants.checkoutPracticeHome, Colors.green),
-      _practiceTile(Icons.trending_up, "Count-Up 훈련",
-          RouteConstants.ratingTest, Colors.orange),
+      // 🔹 체크아웃 연습 (기존 기능)
+      _practiceTile(
+        Icons.sports_score,
+        "체크아웃 연습",
+        RouteConstants.checkoutPracticeHome,
+        Colors.green,
+      ),
     ];
   }
 
-  Widget _practiceTile(
-      IconData icon, String title, String route, Color color) {
+  Widget _practiceTile(IconData icon, String title, String route, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: AppCard(
@@ -507,5 +555,104 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen>
         ),
       ),
     );
+  }
+
+  // ======= 추천 카드용 헬퍼들 =======
+
+  Color _categoryColor(TrainingDrillCategory category) {
+    switch (category) {
+      case TrainingDrillCategory.boardMapping:
+        return Colors.teal;
+      case TrainingDrillCategory.finish:
+        return Colors.redAccent;
+      case TrainingDrillCategory.doublePractice:
+        return Colors.indigo;
+      case TrainingDrillCategory.scoring:
+        return Colors.orange;
+      case TrainingDrillCategory.bull:
+        return Colors.green;
+      case TrainingDrillCategory.other:
+        return Colors.grey;
+    }
+  }
+
+  IconData _categoryIcon(TrainingDrillCategory category) {
+    switch (category) {
+      case TrainingDrillCategory.boardMapping:
+        return Icons.grid_3x3;
+      case TrainingDrillCategory.finish:
+        return Icons.flag_circle;
+      case TrainingDrillCategory.doublePractice:
+        return Icons.blur_circular;
+      case TrainingDrillCategory.scoring:
+        return Icons.trending_up;
+      case TrainingDrillCategory.bull:
+        return Icons.my_location;
+      case TrainingDrillCategory.other:
+        return Icons.extension;
+    }
+  }
+
+  String _categoryLabel(TrainingDrillCategory category) {
+    switch (category) {
+      case TrainingDrillCategory.boardMapping:
+        return '보드 감각';
+      case TrainingDrillCategory.finish:
+        return '체크아웃';
+      case TrainingDrillCategory.doublePractice:
+        return '더블 연습';
+      case TrainingDrillCategory.scoring:
+        return '스코어링';
+      case TrainingDrillCategory.bull:
+        return 'BULL 연습';
+      case TrainingDrillCategory.other:
+        return '기타';
+    }
+  }
+
+  String _inputModeLabel(TrainingDrillInputMode mode) {
+    switch (mode) {
+      case TrainingDrillInputMode.hitCount:
+        return '명중률 드릴';
+      case TrainingDrillInputMode.cricketMarks:
+        return 'MPR 드릴';
+      case TrainingDrillInputMode.scoreOnly:
+        return '점수 드릴';
+    }
+  }
+
+  String _tierRangeLabel(DrillTierRange range) {
+    // 예: "비기너~러너", "컴페티터~엘리트"
+    if (range.minTier == range.maxTier) {
+      return range.minTier.labelKo;
+    }
+    return '${range.minTier.labelKo}~${range.maxTier.labelKo}';
+  }
+
+  Widget _pill(Color color, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 11,
+          color: color.darken(),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+// 간단한 Color 확장: 살짝 어둡게
+extension _ColorX on Color {
+  Color darken([double amount = .15]) {
+    final hsl = HSLColor.fromColor(this);
+    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    return hslDark.toColor();
   }
 }

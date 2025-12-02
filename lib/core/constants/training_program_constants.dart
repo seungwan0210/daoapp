@@ -36,6 +36,7 @@ class TrainingProgramDefinition {
 /// 7티어 기반 기본 프로그램 예시
 /// ========================================
 
+/// 비기너용: “기초 감각 쌓기” 루틴
 const TrainingProgramDefinition beginnerProgram = TrainingProgramDefinition(
   id: 'program_beginner_4w',
   titleKo: '비기너 4주 기초 프로그램',
@@ -45,10 +46,19 @@ const TrainingProgramDefinition beginnerProgram = TrainingProgramDefinition(
   minTier: DaoTrainingTier.beginner,
   maxTier: DaoTrainingTier.beginner,
   drills: [
-    rookieBoardMappingDrill,
+    // 워밍업: 큰 영역 감각
+    beginnerQuadrantBasic,
+    beginnerTopBottomBasic,
+    // 메인: 숫자 감각 + 스코어링
+    beginnerAroundTheBoardSingle,
+    beginnerLargeSingle20,
+    // 피니시: Bull 감각 + 가벼운 Count-Up
+    beginnerBigBull,
+    beginnerLooseCountUp,
   ],
 );
 
+/// 러너용: “싱글·루트 이해” 루틴
 const TrainingProgramDefinition learnerProgram = TrainingProgramDefinition(
   id: 'program_learner_4w',
   titleKo: '러너 4주 루트 이해 프로그램',
@@ -58,12 +68,16 @@ const TrainingProgramDefinition learnerProgram = TrainingProgramDefinition(
   minTier: DaoTrainingTier.learner,
   maxTier: DaoTrainingTier.learner,
   drills: [
-    rookieBoardMappingDrill,
-    basicCheckout81Drill,
+    // 워밍업: 싱글 정확도 + 상/하 컨트롤
+    learnerSingle20x100,
+    learnerTopBottomAdvanced,
+    // 메인: 20↔19 스위치
+    learner20to19Switch,
+    // 나중에 Learner용 체크아웃/크리켓 드릴 추가 가능
   ],
 );
 
-/// 나머지(컴페티터~마스터)는 지금 만든 구조로 확장만 하면 됨.
+/// 앞으로 competitor ~ master 도 같은 패턴으로 추가하면 됨.
 /// ========================================
 
 List<TrainingProgramDefinition> getProgramsForTier(DaoTrainingTier tier) {
@@ -74,4 +88,32 @@ List<TrainingProgramDefinition> getProgramsForTier(DaoTrainingTier tier) {
   ];
 
   return all.where((p) => p.isTierInRange(tier)).toList();
+}
+
+/// 이 티어에서 “대표 프로그램 하나” 선택
+TrainingProgramDefinition? getPrimaryProgramForTier(DaoTrainingTier tier) {
+  final programs = getProgramsForTier(tier);
+  if (programs.isEmpty) return null;
+  // 일단 첫 번째 것을 메인 프로그램으로 사용
+  return programs.first;
+}
+
+/// ========================================
+/// “오늘의 추천 패턴” 헬퍼
+///  - 홈 화면에서 바로 쓸 수 있는 루틴 리스트
+///  - 1순위: 프로그램에 정의된 드릴들
+///  - 2순위: kTrainingDrillsByTier (fallback)
+/// ========================================
+
+List<TrainingDrillDefinition> getRecommendedDrillsForToday(
+    DaoTrainingTier tier,
+    ) {
+  final program = getPrimaryProgramForTier(tier);
+  if (program != null && program.drills.isNotEmpty) {
+    return program.drills;
+  }
+
+  // 만약 해당 티어 프로그램이 아직 없으면
+  // training_drill_constants.dart 쪽의 기본 드릴 맵 사용
+  return getDrillsForTier(tier);
 }
