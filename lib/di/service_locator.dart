@@ -3,17 +3,25 @@ import 'package:get_it/get_it.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:daoapp/data/repositories/auth_repository_impl.dart';
-import 'package:daoapp/data/repositories/auth_repository.dart';
-import 'package:daoapp/data/repositories/point_record_repository_impl.dart';
-import 'package:daoapp/data/repositories/point_record_repository.dart';
 
-// ★★★★★ Arena 추가 ★★★★★
+// Auth
+import 'package:daoapp/data/repositories/auth_repository.dart';
+import 'package:daoapp/data/repositories/auth_repository_impl.dart';
+
+// Point & Ranking
+import 'package:daoapp/data/repositories/point_record_repository.dart';
+import 'package:daoapp/data/repositories/point_record_repository_impl.dart';
+
+// Arena
 import 'package:daoapp/data/repositories/arena_repository.dart';
 import 'package:daoapp/data/repositories/arena_repository_impl.dart';
 
-// ★★★★★ StorageService 추가 (포스터 업로드 때문에 필수!!) ★★★★★
+// Storage
 import 'package:daoapp/services/storage_service.dart';
+
+// ★★★★★ Training 추가 ★★★★★
+import 'package:daoapp/data/repositories/training_repository.dart';
+import 'package:daoapp/data/repositories/training_repository_impl.dart';
 
 final sl = GetIt.instance;
 
@@ -30,11 +38,16 @@ void setupDependencies() {
   ));
 
   // === Point & Ranking ===
-  sl.registerLazySingleton<PointRecordRepository>(() => PointRecordRepositoryImpl());
+  sl.registerLazySingleton<PointRecordRepository>(
+          () => PointRecordRepositoryImpl());
 
-  // ★★★★★ Arena Repository 등록 ★★★★★
+  // === Arena ===
   sl.registerLazySingleton<ArenaRepository>(() => ArenaRepositoryImpl());
 
-  // ★★★★★ StorageService 등록 (포스터 업로드용!!) ★★★★★
+  // === Storage ===
   sl.registerLazySingleton<StorageService>(() => StorageService());
+
+  // ★★★★★ Training Repository 등록 (핵심) ★★★★★
+  sl.registerLazySingleton<TrainingRepository>(
+          () => TrainingRepositoryImpl(firestore: sl<FirebaseFirestore>()));
 }

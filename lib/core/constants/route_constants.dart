@@ -12,15 +12,24 @@ class RouteConstants {
   // === 트레이닝 탭 (Training) ===
   static const String trainingHome = '/training';                          // TrainingHomeScreen
   static const String todayTasks = '/training/today-tasks';                // 오늘의 체크아웃 과제 (미래)
-  static const String ratingTest = '/training/rating-test';                // 레이팅 테스트 (미래)
+  static const String ratingTest = '/training/rating-test';                // 기존 레이팅 테스트 (미래/임시)
+
+  // 🔹 트레이닝 프로필 관련
+  static const String trainingRatingInput = '/training/rating-input';      // 레이팅 / PPD 입력
+  static const String boardLevelTest = '/training/board-level-test';       // 1~20 레벨 테스트
+
+  // 🔹 드릴 & 히스토리 관련 (신규)
+  static const String trainingDrillRun = '/training/drill-run';            // DrillRunScreen
+  static const String trainingDrillResult = '/training/drill-result';      // DrillResultScreen
+  static const String trainingHistory = '/training/history';               // TrainingHistoryScreen
 
   // 체크아웃 연습 & 계산기
   static const String checkoutPracticeHome = '/training/checkout/practice-home';     // 연습 홈
-  static const String checkoutPracticePlay = '/training/checkout/practice';         // 실제 연습 플레이
-  static const String checkoutResult = '/training/checkout/result';                 // 결과 화면
-  static const String checkoutRanking = '/training/checkout/ranking';               // 전체 랭킹
-  static const String checkoutMyHistory = '/training/checkout/my-history';          // 내 기록
-  static const String checkoutCalculator = '/training/checkout/calculator';         // 체크아웃 계산기
+  static const String checkoutPracticePlay = '/training/checkout/practice';          // 실제 연습 플레이
+  static const String checkoutResult = '/training/checkout/result';                  // 결과 화면
+  static const String checkoutRanking = '/training/checkout/ranking';                // 전체 랭킹
+  static const String checkoutMyHistory = '/training/checkout/my-history';           // 내 기록
+  static const String checkoutCalculator = '/training/checkout/calculator';          // 체크아웃 계산기
 
   // === 아레나 탭 (Arena) ===
   static const String arenaHome = '/arena';                                 // ArenaHomeScreen

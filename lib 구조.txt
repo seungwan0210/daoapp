@@ -1,4 +1,4 @@
-lib/
+﻿lib/
 ├── main.dart
 ├── firebase_options.dart
 │
@@ -13,6 +13,8 @@ lib/
 │   │   ├── route_constants.dart
 │   │   ├── checkout_table.dart
 │   │   └── badge_constants.dart
+│   │   └── training_drill_constants.dart
+│   │   └── training_program_constants.dart
 │   ├── theme/
 │   │   └── app_theme.dart
 │   └── utils/
@@ -21,6 +23,7 @@ lib/
 │       ├── segment_utils.dart
 │       ├── ranking_utils.dart
 │       └── arena_utils.dart
+│       └── dao_training_rating_utils.dart
 │
 ├── data/
 │   ├── repositories/
@@ -32,6 +35,9 @@ lib/
 │   │   ├── arena_repository_impl.dart
 │   │   ├── my_log_repository.dart
 │   │   └── (기타 레포지토리들)
+│   │   └── training_repository.dart
+│   │   └── training_repository_impl.dart
+
 │   └── models/
 │       ├── point_record_model.dart
 │       ├── ranking_user.dart
@@ -40,6 +46,8 @@ lib/
 │       ├── tournament_model.dart
 │       ├── tournament_entry_model.dart
 │       └── my_log_model.dart
+│       └── training_drill_model.dart
+│       └── training_session_model.dart
 │
 ├── presentation/
 │   ├── providers/
@@ -52,6 +60,10 @@ lib/
 │   │   ├── checkout_practice_provider.dart   
 │   │   ├── arena_provider.dart
 │   │   └── my_log_provider.dart
+│   │   └── training/ 
+│   │   │   └── training_drill_provider.dart
+│   │   │   └── training_history_provider.dart
+│   │   │   └── training_home_provider.dart
 │   │
 │   ├── screens/
 │   │   ├── splash_screen.dart
@@ -66,11 +78,19 @@ lib/
 │   │   │
 │   │   ├── training/                         
 │   │   │   ├── training_home_screen.dart     
-│   │   │   ├── today_tasks_screen.dart      
-│   │   │   ├── rating_test_screen.dart       
+│   │   │   ├── training_rating_input_screen.dart
+│   │   │   ├── board_level_test_screen.dart 
+│   │   │   ├── drills/
+│   │   │   │   ├── drill_result_screen.dart
+│   │   │   │   ├── drill_run_screen.dart
+│   │   │   ├── history/    
+│   │   │   │   ├── training_history_screen.dart
+│   │   │   │   ├── training_session_detail_screen.dart 
 │   │   │   │
 │   │   │   ├── calculator/
 │   │   │   │   └── training_calculator_screen.dart
+│   │   │   │   └──  widgets/
+│   │   │   │       ├── route_card.dart
 │   │   │   │      
 │   │   │   │
 │   │   │   ├── checkout/
@@ -88,6 +108,10 @@ lib/
 │   │   │       ├── practice_stats_card.dart
 │   │   │       ├── checkout_ranking_mini.dart
 │   │   │       └── my_recent_record_mini.dart
+│   │   │       └── training_recommendation_card.dart
+│   │   │       └── neon_glow_container.dart
+│   │   │       └── dual_neon_gauge_row.dart
+│   │   │       └── dao_tier_badge_large.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

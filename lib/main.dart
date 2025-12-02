@@ -30,6 +30,12 @@ import 'package:daoapp/presentation/screens/training/checkout/checkout_result_sc
 import 'package:daoapp/presentation/screens/training/checkout/checkout_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/training/checkout/checkout_my_history_screen.dart';
 
+// 🔹 트레이닝 프로필/레벨 테스트 스크린
+import 'package:daoapp/presentation/screens/training/training_rating_input_screen.dart';
+import 'package:daoapp/presentation/screens/training/board_level_test_screen.dart';
+
+// 🔹 트레이닝 히스토리
+import 'package:daoapp/presentation/screens/training/history/training_history_screen.dart';
 
 // 아레나
 import 'package:daoapp/presentation/screens/arena/arena_home_screen.dart';
@@ -141,20 +147,40 @@ class DaoApp extends StatelessWidget {
 
         // 트레이닝
         RouteConstants.trainingHome: (_) => const TrainingHomeScreen(),
-        RouteConstants.checkoutPracticeHome: (_) => const CheckoutPracticeHomeScreen(),
-        RouteConstants.checkoutPracticePlay: (_) => const CheckoutPracticeScreen(),
+        RouteConstants.checkoutPracticeHome: (_) =>
+        const CheckoutPracticeHomeScreen(),
+        RouteConstants.checkoutPracticePlay: (_) =>
+        const CheckoutPracticeScreen(),
         RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
-        RouteConstants.checkoutRanking: (_) => const CheckoutRankingScreen(),
-        RouteConstants.checkoutMyHistory: (_) => const CheckoutMyHistoryScreen(),
-        RouteConstants.checkoutCalculator: (_) => const TrainingCalculatorScreen(),
+        RouteConstants.checkoutRanking: (_) =>
+        const CheckoutRankingScreen(),
+        RouteConstants.checkoutMyHistory: (_) =>
+        const CheckoutMyHistoryScreen(),
+        RouteConstants.checkoutCalculator: (_) =>
+        const TrainingCalculatorScreen(),
+
+        // 🔹 트레이닝 프로필 관련 라우트
+        RouteConstants.trainingRatingInput: (_) =>
+        const TrainingRatingInputScreen(),
+        RouteConstants.boardLevelTest: (_) =>
+        const BoardLevelTestScreen(),
+
+        // 🔹 트레이닝 히스토리
+        RouteConstants.trainingHistory: (_) =>
+        const TrainingHistoryScreen(),
 
         // 아레나
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
-        RouteConstants.steelLeagueRanking: (_) => const SteelLeagueRankingScreen(),
-        RouteConstants.steelLeagueSchedule: (_) => const SteelLeagueScheduleScreen(),
-        RouteConstants.steelLeaguePointCalendar: (_) => const SteelLeaguePointCalendarScreen(),
-        RouteConstants.steelLeagueMembers: (_) => const MemberListScreen(),
-        RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
+        RouteConstants.steelLeagueRanking: (_) =>
+        const SteelLeagueRankingScreen(),
+        RouteConstants.steelLeagueSchedule: (_) =>
+        const SteelLeagueScheduleScreen(),
+        RouteConstants.steelLeaguePointCalendar: (_) =>
+        const SteelLeaguePointCalendarScreen(),
+        RouteConstants.steelLeagueMembers: (_) =>
+        const MemberListScreen(),
+        RouteConstants.tournamentCreate: (_) =>
+        const TournamentCreateScreen(),
 
         // 커뮤니티
         RouteConstants.community: (_) => const CommunityHomeScreen(),
@@ -163,30 +189,40 @@ class DaoApp extends StatelessWidget {
 
         // 마이페이지
         RouteConstants.myPage: (_) => const MyPageScreen(),
-        RouteConstants.profileRegister: (_) => const ProfileRegisterScreen(),
+        RouteConstants.profileRegister: (_) =>
+        const ProfileRegisterScreen(),
         RouteConstants.noticeList: (_) => const NoticeListScreen(),
         RouteConstants.report: (_) => const ReportFormScreen(),
         RouteConstants.myLogHome: (_) => const MyLogHomeScreen(),
 
         // 관리자
-        RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
+        RouteConstants.adminDashboard: (_) =>
+        const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
-        RouteConstants.pointAwardList: (_) => const PointAwardListScreen(),
-        RouteConstants.eventCreate: (_) => const EventCreateScreen(),
+        RouteConstants.pointAwardList: (_) =>
+        const PointAwardListScreen(),
+        RouteConstants.eventCreate: (_) =>
+        const EventCreateScreen(),
         RouteConstants.eventList: (_) => const EventListScreen(),
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
-        RouteConstants.memberRegister: (_) => const MemberRegisterScreen(),
-        RouteConstants.competitionPhotosForm: (_) => const CompetitionPhotosFormScreen(),
-        RouteConstants.adminReportList: (_) => const AdminReportListScreen(),
-        RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(),
+        RouteConstants.memberRegister: (_) =>
+        const MemberRegisterScreen(),
+        RouteConstants.competitionPhotosForm: (_) =>
+        const CompetitionPhotosFormScreen(),
+        RouteConstants.adminReportList: (_) =>
+        const AdminReportListScreen(),
+        RouteConstants.adminMemberList: (_) =>
+        const AdminMemberListScreen(),
       },
       onGenerateRoute: (settings) {
         // 방명록
         if (settings.name == RouteConstants.guestbook) {
           final userId = settings.arguments as String;
-          return MaterialPageRoute(builder: (_) => GuestbookScreen(userId: userId));
+          return MaterialPageRoute(
+            builder: (_) => GuestbookScreen(userId: userId),
+          );
         }
 
         // 이벤트 수정
@@ -195,7 +231,8 @@ class DaoApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) => EventEditScreen(
               docId: args['docId'] as String,
-              initialData: args['initialData'] as Map<String, dynamic>,
+              initialData:
+              args['initialData'] as Map<String, dynamic>,
             ),
           );
         }
@@ -203,29 +240,39 @@ class DaoApp extends StatelessWidget {
         // 토너먼트 상세
         if (settings.name == RouteConstants.tournamentDetail) {
           final id = settings.arguments as String;
-          return MaterialPageRoute(builder: (_) => TournamentDetailScreen(tournamentId: id));
+          return MaterialPageRoute(
+            builder: (_) =>
+                TournamentDetailScreen(tournamentId: id),
+          );
         }
 
         // 참가 신청
         if (settings.name == RouteConstants.tournamentEntryForm) {
           final id = settings.arguments as String;
-          return MaterialPageRoute(builder: (_) => TournamentEntryFormScreen(tournamentId: id));
+          return MaterialPageRoute(
+            builder: (_) =>
+                TournamentEntryFormScreen(tournamentId: id),
+          );
         }
 
         // 참가자 명단
-        if (settings.name == RouteConstants.tournamentParticipantList) {
+        if (settings.name ==
+            RouteConstants.tournamentParticipantList) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(
             builder: (_) => TournamentParticipantListScreen(
               tournamentId: args['tournamentId'] as String,
-              tournamentTitle: args['tournamentTitle'] as String? ?? '참가자 명단',
+              tournamentTitle: args['tournamentTitle']
+              as String? ??
+                  '참가자 명단',
             ),
           );
         }
 
         return null;
       },
-      onUnknownRoute: (_) => MaterialPageRoute(builder: (_) => const SplashScreen()),
+      onUnknownRoute: (_) =>
+          MaterialPageRoute(builder: (_) => const SplashScreen()),
     );
   }
 }
