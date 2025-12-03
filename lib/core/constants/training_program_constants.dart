@@ -1,7 +1,8 @@
 // lib/core/constants/training_program_constants.dart
 
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
-import 'package:daoapp/core/constants/training_drill_constants.dart';
+import 'package:daoapp/core/constants/training_drill_constants.dart'
+as drill_constants; // 👈 여기 alias 추가
 import 'package:daoapp/data/models/training_drill_model.dart';
 
 class TrainingProgramDefinition {
@@ -47,14 +48,14 @@ const TrainingProgramDefinition beginnerProgram = TrainingProgramDefinition(
   maxTier: DaoTrainingTier.beginner,
   drills: [
     // 워밍업: 큰 영역 감각
-    beginnerQuadrantBasic,
-    beginnerTopBottomBasic,
+    drill_constants.beginnerQuadrantBasic,
+    drill_constants.beginnerTopBottomBasic,
     // 메인: 숫자 감각 + 스코어링
-    beginnerAroundTheBoardSingle,
-    beginnerLargeSingle20,
+    drill_constants.beginnerAroundTheBoardSingle,
+    drill_constants.beginnerLargeSingle20,
     // 피니시: Bull 감각 + 가벼운 Count-Up
-    beginnerBigBull,
-    beginnerLooseCountUp,
+    drill_constants.beginnerBigBull,
+    drill_constants.beginnerLooseCountUp,
   ],
 );
 
@@ -69,15 +70,14 @@ const TrainingProgramDefinition learnerProgram = TrainingProgramDefinition(
   maxTier: DaoTrainingTier.learner,
   drills: [
     // 워밍업: 싱글 정확도 + 상/하 컨트롤
-    learnerSingle20x100,
-    learnerTopBottomAdvanced,
+    drill_constants.learnerSingle20x100,
+    drill_constants.learnerTopBottomAdvanced,
     // 메인: 20↔19 스위치
-    learner20to19Switch,
-    // 나중에 Learner용 체크아웃/크리켓 드릴 추가 가능
+    drill_constants.learner20to19Switch,
   ],
 );
 
-/// 앞으로 competitor ~ master 도 같은 패턴으로 추가하면 됨.
+// 앞으로 competitor ~ master 도 같은 패턴으로 추가하면 됨.
 /// ========================================
 
 List<TrainingProgramDefinition> getProgramsForTier(DaoTrainingTier tier) {
@@ -113,7 +113,6 @@ List<TrainingDrillDefinition> getRecommendedDrillsForToday(
     return program.drills;
   }
 
-  // 만약 해당 티어 프로그램이 아직 없으면
-  // training_drill_constants.dart 쪽의 기본 드릴 맵 사용
-  return getDrillsForTier(tier);
+  // 🔻 여기에서 drill_constants.getDrillsForTier 사용
+  return drill_constants.getDrillsForTier(tier);
 }

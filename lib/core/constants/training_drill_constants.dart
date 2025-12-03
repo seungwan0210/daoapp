@@ -178,7 +178,10 @@ const TrainingDrillDefinition learnerSingle20x100 = TrainingDrillDefinition(
   shortDescriptionKo: '정규 거리에서 S20만 100발 던지는 정확도 드릴',
   shortDescriptionEn: 'Shoot 100 darts at S20 from the official distance.',
   category: TrainingDrillCategory.scoring,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.learner, maxTier: rating_utils.DaoTrainingTier.learner),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 100,
@@ -187,7 +190,12 @@ const TrainingDrillDefinition learnerSingle20x100 = TrainingDrillDefinition(
       '100발 중 60발 이상을 목표로 합니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.segmentTarget,
-  extraConfig: {'targetSegment': 'S20', 'totalDarts': 100, 'dartsPerRound': 3, 'targetHits': 60},
+  extraConfig: {
+    'targetSegment': 'S20',
+    'totalDarts': 100,
+    'dartsPerRound': 3,
+    'targetHits': 60,
+  },
 );
 
 const TrainingDrillDefinition learnerTopBottomAdvanced = TrainingDrillDefinition(
@@ -197,7 +205,10 @@ const TrainingDrillDefinition learnerTopBottomAdvanced = TrainingDrillDefinition
   shortDescriptionKo: '초보 단계에서 만든 상/하 영역 감각을 더 정교하게 다듬는 드릴',
   shortDescriptionEn: 'Refine your top/bottom control with more darts.',
   category: TrainingDrillCategory.boardMapping,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.learner, maxTier: rating_utils.DaoTrainingTier.learner),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 12,
   recommendedDarts: 60,
@@ -206,7 +217,10 @@ const TrainingDrillDefinition learnerTopBottomAdvanced = TrainingDrillDefinition
       '각 영역 30발 중 20발 이상 들어가는 것이 목표입니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.boardArea,
-  extraConfig: {'mode': 'top_bottom', 'totalDartsPerArea': 30},
+  extraConfig: {
+    'mode': 'top_bottom',
+    'totalDartsPerArea': 30,
+  },
 );
 
 const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
@@ -216,7 +230,10 @@ const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
   shortDescriptionKo: '20과 19 사이를 오가며 큰 실수를 줄이는 이동 연습',
   shortDescriptionEn: 'Practice switching between 20 and 19 without big misses.',
   category: TrainingDrillCategory.scoring,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.learner, maxTier: rating_utils.DaoTrainingTier.learner),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 60,
@@ -225,7 +242,11 @@ const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
       '각 세트에서 목표 숫자에 맞춘 개수 또는 점수를 기록하고, 1·5 같은 빅 넘버를 줄이는 것이 목표입니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.segmentTarget,
-  extraConfig: {'segments': ['20', '19'], 'cycles': 10, 'dartsPerSet': 3},
+  extraConfig: {
+    'segments': ['20', '19'],
+    'cycles': 10,
+    'dartsPerSet': 3,
+  },
 );
 
 const TrainingDrillDefinition comp20SectorTsd = TrainingDrillDefinition(
@@ -235,7 +256,10 @@ const TrainingDrillDefinition comp20SectorTsd = TrainingDrillDefinition(
   shortDescriptionKo: '20 섹터(T20/S20/D20)에만 100발 던지며 정확도와 구성 파악',
   shortDescriptionEn: 'Shoot 100 darts into the 20 sector (T/S/D).',
   category: TrainingDrillCategory.scoring,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.competitor, maxTier: rating_utils.DaoTrainingTier.competitor),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 100,
@@ -244,7 +268,10 @@ const TrainingDrillDefinition comp20SectorTsd = TrainingDrillDefinition(
       'T20 10개, D20 3개 이상을 목표로 합니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.segmentTarget,
-  extraConfig: {'segments': ['T20', 'S20', 'D20'], 'totalDarts': 100},
+  extraConfig: {
+    'segments': ['T20', 'S20', 'D20'],
+    'totalDarts': 100,
+  },
 );
 
 const TrainingDrillDefinition compDoubleClockHalf = TrainingDrillDefinition(
@@ -254,7 +281,10 @@ const TrainingDrillDefinition compDoubleClockHalf = TrainingDrillDefinition(
   shortDescriptionKo: 'D1~D10까지 반 시계를 돌면서 더블 감각을 올리는 드릴',
   shortDescriptionEn: 'Practice doubles from D1 to D10 with limited darts.',
   category: TrainingDrillCategory.doublePractice,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.competitor, maxTier: rating_utils.DaoTrainingTier.competitor),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 50,
@@ -276,7 +306,10 @@ const TrainingDrillDefinition compCheckout40to80 = TrainingDrillDefinition(
   shortDescriptionKo: '40~80 구간을 더블로 마무리하는 필수 체크아웃 드릴',
   shortDescriptionEn: 'Practice finishing 40–80 only via doubles.',
   category: TrainingDrillCategory.finish,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.competitor, maxTier: rating_utils.DaoTrainingTier.competitor),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 20,
   recommendedDarts: 60,
@@ -300,7 +333,10 @@ const TrainingDrillDefinition compCricket2019 = TrainingDrillDefinition(
   shortDescriptionKo: '20, 19만 사용하는 크리켓 연습으로 MPR 2.0을 노린다.',
   shortDescriptionEn: 'Practice cricket using only 20 and 19 aiming for 2.0 MPR.',
   category: TrainingDrillCategory.scoring,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.competitor, maxTier: rating_utils.DaoTrainingTier.competitor),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
   inputMode: TrainingDrillInputMode.cricketMarks,
   estimatedMinutes: 15,
   recommendedDarts: 45,
@@ -310,7 +346,11 @@ const TrainingDrillDefinition compCricket2019 = TrainingDrillDefinition(
       '평균 2.0 이상을 목표로 합니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.cricketMarks,
-  extraConfig: {'cricketNumbers': ['20','19'], 'rounds': 15, 'targetMpr': 2.0},
+  extraConfig: {
+    'cricketNumbers': ['20','19'],
+    'rounds': 15,
+    'targetMpr': 2.0,
+  },
 );
 
 const TrainingDrillDefinition compCountUpHigh20 = TrainingDrillDefinition(
@@ -320,7 +360,10 @@ const TrainingDrillDefinition compCountUpHigh20 = TrainingDrillDefinition(
   shortDescriptionKo: '모든 다트를 20에만 던져 600점(=PPD 25)을 노리는 드릴',
   shortDescriptionEn: 'Throw only at 20 in Count-Up and aim for 600+ points.',
   category: TrainingDrillCategory.scoring,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.competitor, maxTier: rating_utils.DaoTrainingTier.challenger),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.challenger,
+  ),
   inputMode: TrainingDrillInputMode.scoreOnly,
   estimatedMinutes: 8,
   recommendedDarts: 24,
@@ -329,7 +372,12 @@ const TrainingDrillDefinition compCountUpHigh20 = TrainingDrillDefinition(
       '최종 점수만 입력하고, 600점(평균 25점/다트) 이상을 목표로 합니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.scoreGame,
-  extraConfig: {'gameType': 'countup_fixed_sector', 'rounds': 8, 'fixedSector': 20, 'targetScore': 600},
+  extraConfig: {
+    'gameType': 'countup_fixed_sector',
+    'rounds': 8,
+    'fixedSector': 20,
+    'targetScore': 600,
+  },
 );
 
 const TrainingDrillDefinition compBullDoubleIntro = TrainingDrillDefinition(
@@ -339,7 +387,10 @@ const TrainingDrillDefinition compBullDoubleIntro = TrainingDrillDefinition(
   shortDescriptionKo: 'Bull 60발 중 SBull/DBull을 나누어 기록하는 상급 입문 드릴',
   shortDescriptionEn: 'Shoot 60 darts at Bull and track SBull/DBull separately.',
   category: TrainingDrillCategory.bull,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.competitor, maxTier: rating_utils.DaoTrainingTier.competitor),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 10,
   recommendedDarts: 60,
@@ -348,7 +399,12 @@ const TrainingDrillDefinition compBullDoubleIntro = TrainingDrillDefinition(
       'DBull 5개 이상, SBull+DBull 합 20개 이상을 목표로 합니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.segmentTarget,
-  extraConfig: {'targetArea': 'bull_split', 'totalDarts': 60, 'targetSbPlusDb': 20, 'targetDb': 5},
+  extraConfig: {
+    'targetArea': 'bull_split',
+    'totalDarts': 60,
+    'targetSbPlusDb': 20,
+    'targetDb': 5,
+  },
 );
 
 // Challenger ~ Master 드릴도 동일하게 계속 정의 (총 70개 이상 드릴 포함)
@@ -360,7 +416,10 @@ const TrainingDrillDefinition challCheckout60to100Random = TrainingDrillDefiniti
   shortDescriptionKo: '60~100 구간 숫자를 랜덤으로 받아 2R(6다트) 안에 마무리하는 드릴',
   shortDescriptionEn: 'Random finish practice between 60–100 in up to 6 darts.',
   category: TrainingDrillCategory.finish,
-  tierRange: DrillTierRange(minTier: rating_utils.DaoTrainingTier.challenger, maxTier: rating_utils.DaoTrainingTier.challenger),
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.challenger,
+    maxTier: rating_utils.DaoTrainingTier.challenger,
+  ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 20,
   recommendedDarts: 180,
@@ -1038,6 +1097,10 @@ const TrainingDrillDefinition masterBullPrecision100 = TrainingDrillDefinition(
   },
 );
 
+/// ===============================
+/// 티어별 드릴 매핑
+/// ===============================
+
 const Map<rating_utils.DaoTrainingTier, List<TrainingDrillDefinition>> kTrainingDrillsByTier = {
   rating_utils.DaoTrainingTier.beginner: [
     beginnerQuadrantBasic,
@@ -1051,7 +1114,6 @@ const Map<rating_utils.DaoTrainingTier, List<TrainingDrillDefinition>> kTraining
     learnerSingle20x100,
     learnerTopBottomAdvanced,
     learner20to19Switch,
-    // 추가 learner 드릴들...
   ],
   rating_utils.DaoTrainingTier.competitor: [
     comp20SectorTsd,
@@ -1063,23 +1125,41 @@ const Map<rating_utils.DaoTrainingTier, List<TrainingDrillDefinition>> kTraining
   ],
   rating_utils.DaoTrainingTier.challenger: [
     challCheckout60to100Random,
-    // challDoubleClockFull, challT20Focus60 등 추가
+    challDoubleClockFull,
+    challT20Focus60,
+    challCricketFull2015B,
+    challCountUp700,
   ],
   rating_utils.DaoTrainingTier.elite: [
-    // eliteT20Precision60, elite501PressureFinish 등
+    eliteT20Precision60,
+    eliteT20T19TripleSwitch,
+    eliteCheckout61to120,
+    eliteDoubleClusterD16D20,
+    elite501PressureFinish,
+    eliteCricketPowerMarks,
   ],
   rating_utils.DaoTrainingTier.pro: [
-    // pro501Standard18Darts, proT20_100Darts 등
+    pro501Standard18Darts,
+    proT20_100Darts,
+    proHighFinishSet,
+    proCricketHighMprMarks,
+    proBull100,
+    proClutchDouble2Darts,
   ],
   rating_utils.DaoTrainingTier.master: [
-    // masterT20_120Darts, masterCricket4Mpr20R 등
+    masterT20_120Darts,
+    master170RouteFocused30,
+    masterCricket4Mpr20R,
+    masterBullPrecision100,
   ],
 };
 
-List<TrainingDrillDefinition> getDrillsForTier(rating_utils.DaoTrainingTier tier) {
-  return kTrainingDrillsByTier[tier] ?? [];
-}
+/// ===============================
+/// 헬퍼: 티어별 드릴 목록 반환
+/// ===============================
 
-List<TrainingDrillDefinition> recommendedDrillsForToday(rating_utils.DaoTrainingTier tier) {
-  return getDrillsForTier(tier);
+List<TrainingDrillDefinition> getDrillsForTier(
+    rating_utils.DaoTrainingTier tier,
+    ) {
+  return kTrainingDrillsByTier[tier] ?? const <TrainingDrillDefinition>[];
 }

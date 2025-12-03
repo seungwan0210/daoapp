@@ -81,6 +81,24 @@
 │   │   │   ├── training_rating_input_screen.dart
 │   │   │   ├── board_level_test_screen.dart 
 │   │   │   ├── drills/
+│   │   │   │   └──  widgets/
+core/
+drill_header_card.dart
+drill_progress_card.dart
+generic_hit_panel.dart
+round_input_panel.dart
+effects/
+confetti_effect.dart
+fireworks_effect.dart
+neon_glow_effect.dart
+specialized/
+double_clock_panel.dart
+fixed_route_panel.dart
+full_cricket_panel.dart
+random_checkout_panel.dart
+t20_focus_panel.dart
+triple_switch_panel.dart
+
 │   │   │   │   ├── drill_result_screen.dart
 │   │   │   │   ├── drill_run_screen.dart
 │   │   │   ├── history/    

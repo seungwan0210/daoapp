@@ -16,7 +16,6 @@ dependencies:
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
   rxdart: ^0.27.7
-  # 핵심 수정: 12.3.3 → 12.3.4 (이 버그 완전히 고쳐진 버전)
   firebase_storage: ^12.3.4
   cloud_functions: ^5.6.2
   cached_network_image: ^3.3.1
@@ -34,18 +33,19 @@ dependencies:
   firebase_database: ^11.3.10
   share_plus: ^7.2.2
   firebase_app_check: ^0.3.0+2
-  path: ^1.8.3   # 이거 추가!!
+  path: ^1.8.3
 
-  # 아레나 토너먼트 기능 완벽 지원 (freezed 필수!!)
+  # 아레나 토너먼트 기능 완벽 지원
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
+
+  # 반드시 추가! (우리가 만든 모든 화려한 효과들)
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-
-  # freezed 코드 자동 생성 필수!!
   build_runner: ^2.4.7
   freezed: ^2.4.1
   json_serializable: ^6.8.0

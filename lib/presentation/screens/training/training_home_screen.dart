@@ -12,6 +12,8 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'widgets/dual_neon_gauge_row.dart';
 import 'widgets/dao_tier_badge_large.dart';
 import 'drills/drill_run_screen.dart';
+import 'package:daoapp/core/constants/training_program_constants.dart'
+as program_constants;
 
 class TrainingHomeScreen extends StatefulWidget {
   const TrainingHomeScreen({super.key});
@@ -50,8 +52,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
 
       final data = doc.data()!;
       final tierIndex = (data['tierIndex'] as int?) ?? 0;
-      final tier =
-      DaoTrainingTier.values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
+      final tier = DaoTrainingTier
+          .values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
 
       setState(() {
         _profile = DaoTrainingProfile(
@@ -273,12 +275,13 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                               icon: const Icon(Icons.edit),
                               label: const Text(
                                 "레이팅 수정하기",
-                                style:
-                                TextStyle(fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold),
                               ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.cyan,
-                                side: const BorderSide(color: Colors.cyan),
+                                side: const BorderSide(
+                                    color: Colors.cyan),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
@@ -327,14 +330,16 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
             // === 오늘의 추천 연습 ===
             Text(
               "오늘의 추천 연습",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style:
+              Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style:
+              TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
@@ -343,7 +348,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
             // === 연습 모드 ===
             Text(
               "연습 모드",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style:
+              Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -359,7 +365,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
   Widget _buildEmptyState() {
     return Column(
       children: [
-        Icon(Icons.sports_esports_outlined, size: 100, color: Colors.grey[400]),
+        Icon(Icons.sports_esports_outlined,
+            size: 100, color: Colors.grey[400]),
         const SizedBox(height: 32),
         const Text(
           "당신의 다트 실력을 알려주세요!",
@@ -418,7 +425,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
     final DaoTrainingTier effectiveTier = tier ?? DaoTrainingTier.beginner;
 
     final List<TrainingDrillDefinition> drills =
-    recommendedDrillsForToday(effectiveTier);
+    program_constants.getRecommendedDrillsForToday(effectiveTier);
 
     if (drills.isEmpty) {
       return const Text(
@@ -435,7 +442,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
           child: AppCard(
             child: InkWell(
               onTap: () {
-                final DaoTrainingTier runTier = _profile?.tier ?? effectiveTier;
+                final DaoTrainingTier runTier =
+                    _profile?.tier ?? effectiveTier;
 
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -447,12 +455,14 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 6),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundColor: _categoryColor(drill.category).withOpacity(0.12),
+                      backgroundColor: _categoryColor(drill.category)
+                          .withOpacity(0.12),
                       child: Icon(
                         _categoryIcon(drill.category),
                         color: _categoryColor(drill.category),
@@ -461,7 +471,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
                         children: [
                           Text(
                             drill.titleKo,
@@ -491,11 +502,13 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                               ),
                               _pill(
                                 Colors.blueGrey,
-                                _inputModeLabel(drill.inputMode),
+                                _inputModeLabel(
+                                    drill.inputMode),
                               ),
                               _pill(
                                 Colors.deepPurple,
-                                _tierRangeLabel(drill.tierRange),
+                                _tierRangeLabel(
+                                    drill.tierRange),
                               ),
                             ],
                           ),
@@ -534,7 +547,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
     ];
   }
 
-  Widget _practiceTile(IconData icon, String title, String route, Color color) {
+  Widget _practiceTile(
+      IconData icon, String title, String route, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: AppCard(
@@ -631,7 +645,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
 
   Widget _pill(Color color, String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(999),
@@ -652,7 +667,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
 extension _ColorX on Color {
   Color darken([double amount = .15]) {
     final hsl = HSLColor.fromColor(this);
-    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    final hslDark =
+    hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
     return hslDark.toColor();
   }
 }
