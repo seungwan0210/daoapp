@@ -5,9 +5,9 @@ import '../effects/neon_glow_effect.dart';
 import '../effects/confetti_effect.dart';
 
 class T20FocusPanel extends StatefulWidget {
-  final int totalDarts;
-  final VoidCallback? onHitSuccess;
-  final VoidCallback? onHitFail;
+  final int totalDarts;              // 예: 60, 90, 120
+  final VoidCallback? onHitSuccess;  // T20 명중 1회
+  final VoidCallback? onHitFail;     // 미스 1회
   final VoidCallback? onFinishPressed;
   final bool isBusy;
 
@@ -44,22 +44,25 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
       }
     });
 
-    if (isT20) widget.onHitSuccess?.call();
-    else widget.onHitFail?.call();
+    if (isT20) {
+      widget.onHitSuccess?.call();
+    } else {
+      widget.onHitFail?.call();
+    }
 
+    // 네온 효과 잠깐만 보여주기
     Future.delayed(const Duration(milliseconds: 1200), () {
       if (mounted) setState(() => justHit = false);
     });
 
-    if (isFinished) {
-      Future.delayed(const Duration(seconds: 1), widget.onFinishPressed);
-    }
+    // ❌ 여기서 onFinishPressed를 자동 호출하지 않고
+    // 사용자가 아래 "결과 확인하기" 버튼을 누를 때만 호출하게 둔다.
   }
 
   @override
   Widget build(BuildContext context) {
     return ConfettiEffect(
-      trigger: isFinished && successRate >= 0.5,
+      trigger: isFinished && successRate >= 0.5, // 50% 이상일 때 축포
       duration: const Duration(seconds: 5),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -78,7 +81,11 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
                   borderRadius: BorderRadius.circular(40),
                   border: Border.all(color: Colors.red.shade700, width: 4),
                   boxShadow: [
-                    BoxShadow(color: Colors.red.withOpacity(0.8), blurRadius: 40, spreadRadius: 10),
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.8),
+                      blurRadius: 40,
+                      spreadRadius: 10,
+                    ),
                   ],
                 ),
                 child: const Center(
@@ -101,7 +108,8 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
             // 2. 핵심 정보 한 줄!
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+              padding:
+              const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
               decoration: BoxDecoration(
                 color: Colors.grey.shade900,
                 borderRadius: BorderRadius.circular(20),
@@ -111,8 +119,11 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
                 children: [
                   _infoChip("던진", "$dartsThrown", Colors.cyan),
                   _infoChip("명중", "$t20Hits", Colors.red),
-                  _infoChip("성공률", "${(successRate * 100).toStringAsFixed(1)}%",
-                      successRate >= 0.5 ? Colors.green : Colors.orange),
+                  _infoChip(
+                    "성공률",
+                    "${(successRate * 100).toStringAsFixed(1)}%",
+                    successRate >= 0.5 ? Colors.green : Colors.orange,
+                  ),
                   if (!isFinished)
                     _infoChip("남은", "$remainingDarts", Colors.white70),
                 ],
@@ -121,57 +132,99 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
 
             const SizedBox(height: 40),
 
-            // 3. 성공 / 실패 버튼 (적당히!)
+            // 3. 성공 / 실패 버튼
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: widget.isBusy || isFinished ? null : () => _record(true),
+                    onPressed: widget.isBusy || isFinished
+                        ? null
+                        : () => _record(true),
                     icon: const Icon(Icons.whatshot, size: 36),
-                    label: const Text("T20 명중!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      "T20 명중!",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade700,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: widget.isBusy || isFinished ? null : () => _record(false),
+                    onPressed: widget.isBusy || isFinished
+                        ? null
+                        : () => _record(false),
                     icon: const Icon(Icons.close, size: 36),
-                    label: const Text("미스", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      "미스",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.grey.shade700,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      padding:
+                      const EdgeInsets.symmetric(vertical: 24),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
 
+            const SizedBox(height: 24),
+
+            // 4. 종료/저장 버튼
             if (isFinished) ...[
-              const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: widget.onFinishPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan.shade600,
-                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 18,
+                    horizontal: 40,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
-                child: const Text("결과 확인하기", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "결과 확인하기",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-            ] else
-              const SizedBox(height: 20),
-
-            if (!isFinished)
+            ] else ...[
               TextButton(
-                onPressed: widget.onFinishPressed,
-                child: const Text("드릴 종료하고 결과 저장", style: TextStyle(fontSize: 16, color: Colors.cyan, fontWeight: FontWeight.bold)),
+                onPressed: widget.isBusy ? null : widget.onFinishPressed,
+                child: const Text(
+                  "드릴 종료하고 결과 저장",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.cyan,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
+            ],
           ],
         ),
       ),
@@ -181,9 +234,22 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
   Widget _infoChip(String label, String value, Color color) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.white70)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.white70,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: color,
+          ),
+        ),
       ],
     );
   }

@@ -1,47 +1,53 @@
-// lib/presentation/screens/training/drills/widgets/specialized/double_clock_panel.dart
+// lib/presentation/screens/training/drills/widgets/specialized/around_board_panel.dart
 
 import 'package:flutter/material.dart';
 
-class DoubleClockPanel extends StatefulWidget {
+class AroundBoardPanel extends StatefulWidget {
+  final List<String> sequence;
+  final ValueNotifier<int> thrownDartsNotifier; // 사용은 안 하지만 시그니처 유지
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
+  final VoidCallback? onCompleted;
   final bool isBusy;
 
-  const DoubleClockPanel({
+  const AroundBoardPanel({
     super.key,
+    required this.sequence,
+    required this.thrownDartsNotifier,
     this.onHitSuccess,
     this.onHitFail,
     this.onFinishPressed,
+    this.onCompleted,
     this.isBusy = false,
   });
 
   @override
-  State<DoubleClockPanel> createState() => _DoubleClockPanelState();
+  State<AroundBoardPanel> createState() => _AroundBoardPanelState();
 }
 
-class _DoubleClockPanelState extends State<DoubleClockPanel> {
-  int currentTargetIndex = 0;
+class _AroundBoardPanelState extends State<AroundBoardPanel> {
+  int currentIndex = 0;
 
-  final List<String> doubles = [
-    'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10',
-    'D11', 'D12', 'D13', 'D14', 'D15', 'D16', 'D17', 'D18', 'D19', 'D20',
-    'DBull',
-  ];
-
-  String get currentTarget => doubles[currentTargetIndex];
-  int get totalTargets => doubles.length;
+  String get currentTarget => widget.sequence[currentIndex];
+  int get totalTargets => widget.sequence.length;
+  double get progress => currentIndex / totalTargets;
 
   void _record(bool success) {
     if (widget.isBusy) return;
 
     if (success) {
       widget.onHitSuccess?.call();
-      if (currentTargetIndex < totalTargets - 1) {
-        setState(() => currentTargetIndex++);
+
+      if (currentIndex < totalTargets - 1) {
+        setState(() => currentIndex++);
       } else {
-        // 전부 성공했으면 끝!
-        widget.onFinishPressed?.call();
+        // 마지막 타겟까지 성공
+        if (widget.onCompleted != null) {
+          widget.onCompleted!.call();
+        } else if (widget.onFinishPressed != null) {
+          widget.onFinishPressed!.call();
+        }
       }
     } else {
       widget.onHitFail?.call();
@@ -50,12 +56,12 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = currentTargetIndex / totalTargets;
+    final bool isBull = currentTarget == 'SB' || currentTarget == 'DBull';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. 진행 정보
+        // 1. 진행 정보 (더블 시계 스타일)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -65,7 +71,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Text(
-            "더블 시계: $currentTargetIndex / $totalTargets 완료",
+            "싱글 한 바퀴: $currentIndex / $totalTargets 완료",
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -76,37 +82,53 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
         // 2. 원형 진행 + 현재 타겟
         SizedBox(
-          width: 160,
-          height: 160,
+          width: 180,
+          height: 180,
           child: Stack(
             alignment: Alignment.center,
             children: [
               SizedBox(
-                width: 150,
-                height: 150,
+                width: 160,
+                height: 160,
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 10,
                   backgroundColor: Colors.grey.shade300,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    Colors.cyan.shade600,
+                    isBull ? Colors.purple.shade600 : Colors.cyan.shade600,
                   ),
                 ),
               ),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.black,
-                  border: Border.all(color: Colors.cyan, width: 2),
-                ),
-                child: Text(
-                  currentTarget,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                  border: Border.all(
+                    color: isBull ? Colors.purpleAccent : Colors.cyan,
+                    width: 2,
                   ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      currentTarget,
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isBull ? "BULL" : "싱글",
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -115,7 +137,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
         const SizedBox(height: 24),
 
-        // 3. 버튼
+        // 3. 버튼 (더블 시계와 동일 패턴)
         Row(
           children: [
             Expanded(
@@ -163,7 +185,9 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
             ),
           ],
         ),
+
         const SizedBox(height: 12),
+
         TextButton(
           onPressed: widget.isBusy ? null : widget.onFinishPressed,
           child: const Text(

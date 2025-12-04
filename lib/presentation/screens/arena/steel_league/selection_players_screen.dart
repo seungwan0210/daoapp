@@ -64,7 +64,8 @@ class SelectionPlayersScreen extends ConsumerWidget {
             }
 
             final docs = snapshot.data!.docs;
-            final players = docs.map((d) => _SelectionPlayer.fromDoc(d)).toList();
+            final players =
+            docs.map((d) => _SelectionPlayer.fromDoc(d)).toList();
 
             // 시즌별 + 성별로 나누기
             final seasons = ['season1', 'season2', 'season3', 'total'];
@@ -80,11 +81,13 @@ class SelectionPlayersScreen extends ConsumerWidget {
                   ...seasons.map((season) {
                     final male = players.firstWhere(
                           (p) => p.season == season && p.gender == 'male',
-                      orElse: () => _SelectionPlayer.empty(season: season, gender: 'male'),
+                      orElse: () =>
+                          _SelectionPlayer.empty(season: season, gender: 'male'),
                     );
                     final female = players.firstWhere(
                           (p) => p.season == season && p.gender == 'female',
-                      orElse: () => _SelectionPlayer.empty(season: season, gender: 'female'),
+                      orElse: () => _SelectionPlayer.empty(
+                          season: season, gender: 'female'),
                     );
 
                     final hasMale = male.isFilled;
@@ -117,14 +120,16 @@ class SelectionPlayersScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            theme.colorScheme.primary.withOpacity(0.12),
-            theme.colorScheme.secondary.withOpacity(0.08),
+            theme.colorScheme.primary.withOpacity(0.08),
+            Colors.white,
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.25),
-          width: 1.2,
+          color: theme.colorScheme.primary.withOpacity(0.20),
+          width: 1,
         ),
       ),
       child: Row(
@@ -164,7 +169,9 @@ class SelectionPlayersScreen extends ConsumerWidget {
   }
 }
 
-// 시즌 섹션 위젯
+// ========================
+// 시즌 섹션 (제목 + 큰 카드)
+// ========================
 class _SeasonSection extends StatelessWidget {
   final String season;
   final _SelectionPlayer? male;
@@ -228,7 +235,8 @@ class _SeasonSection extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(30),
@@ -245,34 +253,38 @@ class _SeasonSection extends StatelessWidget {
           ),
         ),
 
-        // 남/여 카드 2개를 한 줄에
+        // 🔹 남/여 정보를 세로로 쌓은 "큰 카드" 한 장
         Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           elevation: 2,
+          shadowColor: Colors.black.withOpacity(0.05),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
             child: hasAny
-                ? Row(
+                ? Column(
               children: [
-                Expanded(
-                  child: _PlayerCard(
-                    label: '남자',
-                    color: Colors.blue,
-                    player: male,
-                  ),
+                _PlayerBlock(
+                  title: '남자 대표',
+                  label: '남자',
+                  color: Colors.blue,
+                  player: male,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _PlayerCard(
-                    label: '여자',
-                    color: Colors.pink,
-                    player: female,
-                  ),
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                _PlayerBlock(
+                  title: '여자 대표',
+                  label: '여자',
+                  color: Colors.pink,
+                  player: female,
                 ),
               ],
             )
                 : SizedBox(
-              height: 72,
+              height: 80,
               child: Center(
                 child: Text(
                   '아직 선발된 선수가 없습니다.',
@@ -289,13 +301,17 @@ class _SeasonSection extends StatelessWidget {
   }
 }
 
-// 실제 선수 카드 (한 명)
-class _PlayerCard extends StatelessWidget {
+// ========================
+// 한 블록(남자 대표 / 여자 대표)
+// ========================
+class _PlayerBlock extends StatelessWidget {
+  final String title; // '남자 대표' / '여자 대표'
   final String label; // '남자' / '여자'
   final Color color;
   final _SelectionPlayer? player;
 
-  const _PlayerCard({
+  const _PlayerBlock({
+    required this.title,
     required this.label,
     required this.color,
     required this.player,
@@ -305,144 +321,166 @@ class _PlayerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (player == null || !player!.isFilled) {
-      // 빈 자리 (미정)
-      return Container(
-        height: 130,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          color: Colors.grey[50],
-          border: Border.all(
-            color: Colors.grey[300]!,
-            width: 1,
+    // 상단 타이틀 + 칩
+    final header = Row(
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _GenderChip(label: label, color: color),
-            const SizedBox(height: 8),
-            const Text(
-              '선발 예정',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey,
+        const SizedBox(width: 8),
+        _GenderChip(label: label, color: color),
+      ],
+    );
+
+    if (player == null || !player!.isFilled) {
+      // 아직 선발 안 된 경우
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 8),
+          Container(
+            height: 80,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: Colors.grey[50],
+              border: Border.all(
+                color: Colors.grey[300]!,
+                width: 1,
               ),
             ),
-          ],
-        ),
+            child: const Center(
+              child: Text(
+                '선발 예정',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+          ),
+        ],
       );
     }
 
     final p = player!;
 
-    return Container(
-      height: 130,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withOpacity(0.10),
-            color.withOpacity(0.03),
-          ],
-        ),
-        border: Border.all(
-          color: color.withOpacity(0.40),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 10),
-          // 프로필 사진
-          _PlayerAvatar(photoUrl: p.photoUrl, color: color),
-          const SizedBox(width: 10),
-          // 이름 / 샵 / 한줄소개
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 상단: 이름 + 성별
-                  Row(
+    // 선발 완료 카드
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        header,
+        const SizedBox(height: 8),
+        Container(
+          height: 100,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            color: Colors.white,
+            border: Border.all(
+              color: color.withOpacity(0.45),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // 왼쪽 컬러 바
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.7),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(14),
+                    bottomLeft: Radius.circular(14),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _PlayerAvatar(photoUrl: p.photoUrl, color: color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Padding(
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          p.koreanName,
+                      // 1) 한글 이름
+                      Text(
+                        p.koreanName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      // 2) 영문 이름
+                      if (p.englishName.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          p.englishName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      _GenderChip(label: label, color: color),
-                    ],
-                  ),
-                  if (p.englishName.isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      p.englishName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[700],
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  // 샵명
-                  if (p.shopName.isNotEmpty)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_outlined,
-                          size: 14,
-                          color: Colors.grey[700],
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            p.shopName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[700],
-                              fontSize: 11,
-                            ),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[800],
                           ),
                         ),
                       ],
-                    ),
-                  const Spacer(),
-                  // 한 줄 소개
-                  if (p.bio.isNotEmpty)
-                    Text(
-                      p.bio,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 11,
-                        color: Colors.grey[800],
-                      ),
-                    ),
-                ],
+                      // 3) 홈샵
+                      if (p.shopName.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.store_mall_directory_outlined,
+                              size: 16,
+                              color: color.withOpacity(0.9),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                '소속: ${p.shopName}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[900],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+            ],
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
+// ========================
 // 성별 칩
+// ========================
 class _GenderChip extends StatelessWidget {
   final String label;
   final Color color;
@@ -457,7 +495,7 @@ class _GenderChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -466,7 +504,7 @@ class _GenderChip extends StatelessWidget {
           Icon(
             label == '남자' ? Icons.male : Icons.female,
             size: 14,
-            color: color,
+            color: color.withOpacity(0.9),
           ),
           const SizedBox(width: 2),
           Text(
@@ -474,7 +512,7 @@ class _GenderChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: color,
+              color: color.withOpacity(0.9),
             ),
           ),
         ],
@@ -483,7 +521,9 @@ class _GenderChip extends StatelessWidget {
   }
 }
 
+// ========================
 // 프로필 아바타
+// ========================
 class _PlayerAvatar extends StatelessWidget {
   final String photoUrl;
   final Color color;
@@ -498,18 +538,18 @@ class _PlayerAvatar extends StatelessWidget {
     if (photoUrl.isEmpty) {
       return CircleAvatar(
         radius: 26,
-        backgroundColor: color.withOpacity(0.15),
+        backgroundColor: color.withOpacity(0.12),
         child: Icon(
           Icons.person,
           size: 28,
-          color: color,
+          color: color.withOpacity(0.9),
         ),
       );
     }
 
     return CircleAvatar(
       radius: 26,
-      backgroundColor: color.withOpacity(0.10),
+      backgroundColor: color.withOpacity(0.06),
       child: ClipOval(
         child: CachedNetworkImage(
           imageUrl: photoUrl,
@@ -519,7 +559,7 @@ class _PlayerAvatar extends StatelessWidget {
           errorWidget: (_, __, ___) => Icon(
             Icons.person,
             size: 28,
-            color: color,
+            color: color.withOpacity(0.9),
           ),
         ),
       ),
@@ -527,7 +567,9 @@ class _PlayerAvatar extends StatelessWidget {
   }
 }
 
+// ========================
 // 내부용 모델
+// ========================
 class _SelectionPlayer {
   final String id;
   final String koreanName;
@@ -553,7 +595,8 @@ class _SelectionPlayer {
 
   bool get isFilled => koreanName.isNotEmpty;
 
-  factory _SelectionPlayer.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
+  factory _SelectionPlayer.fromDoc(
+      DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data() ?? {};
     return _SelectionPlayer(
       id: doc.id,

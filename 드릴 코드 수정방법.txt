@@ -1,0 +1,126 @@
+[1] 드릴 ID / 이름
+- id: chall_t20_focus_60
+- 이름: T20 집중 60발
+
+[2] 현재 동작 / 문제점
+- DrillProgressCard에서 "총 라운드"가 20으로 나오는데,
+  실제로는 라운드 개념 없이 그냥 60발 던지고 히트 수만 세고 싶음.
+- 명중률은 잘 나오는데, "현재 라운드 / 총 라운드" 표시가 헷갈림.
+
+[3] 원하는 동작
+- 이 드릴은 "완전 프리모드 60발" 느낌이라:
+  - 상단 ProgressCard에서 "라운드 표시"를 빼고
+  - 대신 "던진 다트 / 전체 다트 + 성공률"만 보이게 하고 싶음.
+- T20FocusPanel 안에서는 지금처럼 던진/명중/성공률만 나오면 됨.
+
+[4] 관련 코드
+- drill_run_screen.dart → _buildDrillPanel() 쪽 코드 붙임
+- T20FocusPanel 코드도 같이 붙임
+
+[5] 우선순위
+- ✅ 최우선 / 나중에 해도 됨 중 하나 선택
+
+
+① – “라운드/명중률 계산이 헷갈릴 때”
+
+[1] 드릴 ID / 이름
+- id: chall_t20_focus_60
+- 이름: T20 집중 60발
+
+[2] 현재 동작 / 문제점
+- DrillRunScreen에서:
+  - _currentRound, _currentDart 로 라운드를 올리고 있음
+  - DrillProgressCard에서 totalRounds를 (_totalPlannedDarts / 3).ceil()로 계산해서
+    "현재 3R / 총 20R" 이런 식으로 나옴
+- 하지만 실제로는 라운드는 신경 안 쓰고:
+  - 그냥 "60발 중 몇 발 던졌는지" + "명중률"만 보고 싶음
+- 사용자가 T20FocusPanel에서 버튼을 눌러도
+  라운드 개념이 UI랑 머릿속이 잘 안 맞음
+
+[3] 원하는 동작
+- 이 드릴은 라운드 기반 X, "총 60발" 기반 O 이라서:
+  - DrillProgressCard에서 "라운드" 관련 텍스트를 숨기고
+  - 대신:
+    - progress: 던진 다트 / 60
+    - 성공률(%)
+  - 만 보여주면 좋겠음.
+- _currentRound / _currentDart 계산은 이 드릴에서는 안 써도 됨.
+
+[4] 관련 코드
+- drill_run_screen.dart → _buildDrillPanel():
+  - mode: segments == ['T20'] 일 때 T20FocusPanel을 사용함
+- drill_run_screen.dart → DrillProgressCard 호출부
+  - totalRounds: (_totalPlannedDarts / 3).ceil()
+- T20FocusPanel 코드 붙임
+
+[5] 우선순위
+- ✅ 최우선 (T20 드릴은 많이 쓸 거라서)
+
+
+② – “패널 버튼/텍스트 구조만 고치고 싶을 때”
+
+[1] 드릴 ID / 이름
+- id: elite_t20_t19_triple_switch
+- 이름: T20 ↔ T19 트리플 스위치
+
+[2] 현재 동작 / 문제점
+- TripleSwitchPanel에서:
+  - "성공 / 실패" 버튼은 잘 동작함
+  - 근데 현재 타겟이 T20인지 T19인지 표시가 조금 약해서
+    (글씨만 바뀌고, 강조 컬러가 없음)
+  - 유저가 빠르게 보고 던지기엔 UI가 덜 눈에 띔
+
+[3] 원하는 동작
+- 현재 타겟이 T20일 때는 붉은 계열 / T19일 때는 초록 계열로 배경 그라데이션을 바꿔서
+  한눈에 구분됐으면 좋겠음.
+- “마지막 다트!” 텍스트도 현재는 작게 나오는데,
+  이걸 한 번 더 강조(네온 느낌)해 주면 좋겠음.
+
+[4] 관련 코드
+- triple_switch_panel.dart 전체 붙임
+
+[5] 우선순위
+- 나중에 해도 됨 (기능은 이미 동작)
+
+
+③ – “로직 + 패널 + 컨텐츠가 섞여있는 애매한 케이스”
+
+[1] 드릴 ID / 이름
+- id: chall_checkout_60_100_random
+- 이름: 60~100 랜덤 체크아웃
+
+[2] 현재 동작 / 문제점
+- 현재:
+  - RandomCheckoutPanel 에서 성공 버튼을 누를 때마다 _recordHit(true) 호출 → hitCount 증가
+  - DrillRunScreen 에서는 hitCount / totalAttempts 기반으로 성공률 계산
+- 내가 원하는 구조:
+  - “몇 세트 중 몇 세트 성공했는지” 기준으로 성공률을 보고 싶음
+  - 예: 30세트 중 12세트 성공 = 40% → 세트 단위 성공률
+- 지금은 다트 6개 안에서 맞추든 말든, "한 발 성공"만 해도 hit로 계산되는 느낌이라,
+  드릴 설명(세트/점수 기준)과 실제 성공률 계산이 살짝 어긋나는 느낌.
+
+[3] 원하는 동작
+- 이 드릴은 “30세트 중 몇 세트 더블로 마무리했냐”에 초점을 맞췄으면 좋겠음.
+- 그러려면:
+  - RandomCheckoutPanel 에서:
+    - 한 세트 안에서 한 번이라도 성공하면 "그 세트는 성공 세트 1" 로 카운트
+    - 세트 끝날 때(6다트 끝) 성공 여부만 _recordHit(true/false)로 넘기기
+  - DrillRunScreen에서는:
+    - hitCount = 성공한 세트 수
+    - totalAttempts = 진행한 세트 수
+    - progress = 세트 수 / totalSets (extra['totalSets'])
+- UI 상으로는:
+  - 패널에서는 “현재 점수, 남은 다트, 이 세트 성공 여부”만 보여주고,
+  - ProgressCard에서는 “성공 세트 / 총 세트” 기준으로 성공률을 보여주면 좋음.
+
+[4] 관련 코드
+- training_drill_constants.dart → challCheckout60to100Random 정의
+- drill_run_screen.dart → mode == 'random_range' 분기
+- random_checkout_panel.dart 전체
+
+[5] 우선순위
+- 중간 정도 (나중에라도 세트 기준 통일해두는 게 좋을 것 같음)
+
+
+
+

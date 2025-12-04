@@ -1,7 +1,6 @@
 // lib/presentation/screens/training/drills/widgets/specialized/triple_switch_panel.dart
 
 import 'package:flutter/material.dart';
-import '../core/generic_hit_panel.dart';
 
 class TripleSwitchPanel extends StatefulWidget {
   final VoidCallback? onHitSuccess;

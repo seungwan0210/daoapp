@@ -14,23 +14,23 @@ class DrillHeaderCard extends StatelessWidget {
     this.tier,
   });
 
-  Color _categoryColor(TrainingDrillCategory category) {
-    return switch (category) {
-      TrainingDrillCategory.boardMapping => Colors.teal.shade600,
-      TrainingDrillCategory.scoring => Colors.orange.shade700,
-      TrainingDrillCategory.finish => Colors.redAccent.shade700,
-      TrainingDrillCategory.doublePractice => Colors.indigo.shade600,
-      TrainingDrillCategory.bull => Colors.green.shade700,
-      _ => Colors.cyan.shade700,
-    };
-  }
+  Color _categoryColor(TrainingDrillCategory category) => switch (category) {
+    TrainingDrillCategory.boardMapping => Colors.teal,
+    TrainingDrillCategory.scoring => Colors.orange,
+    TrainingDrillCategory.finish => Colors.redAccent,
+    TrainingDrillCategory.doublePractice => Colors.indigo,
+    TrainingDrillCategory.bull => Colors.green,
+    TrainingDrillCategory.other => Colors.cyan,
+  };
 
+  /// 예상 소요 시간 계산
   String _estimatedTime() {
-    final extra = drill.extraConfig ?? {};
-    final minutes = extra['estimatedMinutes'] as int? ??
-        drill.estimatedMinutes ??
-        (drill.recommendedDarts != null ? (drill.recommendedDarts! / 6).ceil() : 10);
-    return "~${minutes}분";
+    // 🔥 공식 시간배치 규칙: drill.estimatedMinutes → 있으면 우선 사용
+    final m = drill.estimatedMinutes ??
+        (drill.recommendedDarts != null
+            ? (drill.recommendedDarts! / 6).ceil()
+            : 10);
+    return "~${m}분";
   }
 
   @override
@@ -39,87 +39,99 @@ class DrillHeaderCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.95), color.withOpacity(0.85)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.95),
+            color.withOpacity(0.75),
+          ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
-            blurRadius: 16,
+            color: color.withOpacity(.25),
+            blurRadius: 12,
             offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 왼쪽: 제목 + 티어
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 제목 + 티어 한 줄로!
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        drill.titleKo,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (tier != null) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          tier!.labelKo,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
+          // ===== 제목 + 티어 배지 =====
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  drill.titleKo,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-
-                const SizedBox(height: 6),
-
-                // 목표 + 예상 시간 한 줄로!
-                Row(
-                  children: [
-                    Icon(Icons.flag_circle, color: Colors.white70, size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      "목표: ${drill.targetLabel}",
-                      style: const TextStyle(fontSize: 14, color: Colors.white),
+              ),
+              if (tier != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    tier!.labelKo,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    const Spacer(),
-                    Icon(Icons.access_time, color: Colors.white70, size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      _estimatedTime(),
-                      style: const TextStyle(fontSize: 14, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                )
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // ===== 설명 =====
+          Text(
+            drill.shortDescriptionKo,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white.withOpacity(.9),
+              fontWeight: FontWeight.w500,
             ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: 10),
+
+          // ===== 목표 & 시간 =====
+          Row(
+            children: [
+              if (drill.targetLabel.isNotEmpty) ...[
+                const Icon(Icons.flag_circle, color: Colors.white70, size: 14),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    drill.targetLabel,
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              const Icon(Icons.access_time, color: Colors.white70, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                _estimatedTime(),
+                style: const TextStyle(fontSize: 12, color: Colors.white),
+              ),
+            ],
           ),
         ],
       ),

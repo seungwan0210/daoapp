@@ -76,6 +76,25 @@ enum DrillUIPattern {
   checkoutRoute,  // 체크아웃/피니시 루트형
 }
 
+/// 런 스크린에서 어떤 패널을 사용할지
+///
+/// - genericHit     : 기본 성공/실패 패널 (GenericHitPanel)
+/// - tripleSwitch   : T20/T20/T19 패턴 등 트리플 스위치
+/// - doubleClock    : D1~DBull 더블 시계
+/// - randomCheckout : 랜덤 체크아웃 (60~100 등)
+/// - fullCricket    : 풀 크리켓 MPR 드릴
+/// - t20Focus       : T20 집중 드릴
+/// - fixedRoute     : 고정 루트 체크아웃 (170, 130 등)
+enum TrainingDrillRunPanelType {
+  genericHit,
+  tripleSwitch,
+  doubleClock,
+  randomCheckout,
+  fullCricket,
+  t20Focus,
+  fixedRoute,
+}
+
 /// 이 드릴이 어떤 티어 구간에 추천되는지 범위
 class DrillTierRange {
   final DaoTrainingTier minTier;
@@ -146,6 +165,11 @@ class TrainingDrillDefinition {
   /// - {'gameType': 'countup', 'targetScore': 600}
   final Map<String, dynamic>? extraConfig;
 
+  /// 런 스크린에서 사용할 패널 타입
+  ///
+  /// 지정하지 않으면 genericHit 패널 사용.
+  final TrainingDrillRunPanelType runPanelType;
+
   const TrainingDrillDefinition({
     required this.id,
     required this.titleKo,
@@ -159,9 +183,10 @@ class TrainingDrillDefinition {
     this.recommendedDarts,
     required this.targetLabel,
     required this.guideKo,
-    this.guideEn,       // 🔹 더 이상 필수 아님
-    this.difficulty,    // 🔹 새 필드
-    this.uiPattern,     // 🔹 새 필드
-    this.extraConfig,   // 🔹 새 필드
+    this.guideEn,       // 더 이상 필수 아님
+    this.difficulty,    // 난이도
+    this.uiPattern,     // UI 패턴
+    this.extraConfig,   // 추가 설정
+    this.runPanelType = TrainingDrillRunPanelType.genericHit, // 기본값
   });
 }

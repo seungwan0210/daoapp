@@ -75,6 +75,8 @@ import 'package:daoapp/presentation/screens/admin/member_register_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/competition_photos_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart';
+import 'package:daoapp/presentation/screens/admin/selection_players_admin_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -215,6 +217,13 @@ class DaoApp extends StatelessWidget {
         const AdminReportListScreen(),
         RouteConstants.adminMemberList: (_) =>
         const AdminMemberListScreen(),
+        // 🔹 여기 추가
+        RouteConstants.selectionPlayersAdmin: (_) =>
+        const SelectionPlayersAdminScreen(),
+
+        // (선택) 스틸리그 선발 공개 화면도 라우트로 쓰고 싶으면
+        RouteConstants.steelLeagueSelection: (_) =>
+        const SelectionPlayersScreen(),
       },
       onGenerateRoute: (settings) {
         // 방명록

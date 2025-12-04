@@ -13,7 +13,7 @@ class CommunityPreview extends StatelessWidget {
     return Column(
       children: [
         _buildRecentPosts(context),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _buildPopularPosts(context),
       ],
     );
@@ -24,17 +24,17 @@ class CommunityPreview extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('community')
           .orderBy('timestamp', descending: true)
-          .limit(3)
+          .limit(10)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox(height: 120);
+        if (!snapshot.hasData) return const SizedBox(height: 90);
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const SizedBox();
 
         return Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -52,7 +52,7 @@ class CommunityPreview extends StatelessWidget {
               ),
             ),
             SizedBox(
-              height: 120,
+              height: 90,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -75,10 +75,10 @@ class CommunityPreview extends StatelessWidget {
       stream: FirebaseFirestore.instance
           .collection('community')
           .orderBy('likes', descending: true)
-          .limit(3)
+          .limit(10)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox(height: 120);
+        if (!snapshot.hasData) return const SizedBox(height: 90);
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const SizedBox();
 
@@ -86,7 +86,7 @@ class CommunityPreview extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Text(
                 '인기 게시물',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -95,7 +95,7 @@ class CommunityPreview extends StatelessWidget {
               ),
             ),
             SizedBox(
-              height: 120,
+              height: 90,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -136,7 +136,7 @@ class CommunityPreview extends StatelessWidget {
     final comments = data['comments'] as int? ?? 0;
 
     // 썸네일이 없으면 자리만 살짝 차지 (레이아웃 깨지지 않게)
-    if (photoUrl == null) return const SizedBox(width: 100);
+    if (photoUrl == null) return const SizedBox(width: 80);
 
     return GestureDetector(
       onTap: () {
@@ -148,18 +148,18 @@ class CommunityPreview extends StatelessWidget {
         );
       },
       child: Container(
-        width: 100,
-        margin: const EdgeInsets.only(right: 12),
+        width: 80,
+        margin: const EdgeInsets.only(right: 10),
         child: Stack(
           children: [
             // 사진
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               child: Image.network(
                 photoUrl,
                 fit: BoxFit.cover,
-                width: 100,
-                height: 100,
+                width: 80,
+                height: 80,
               ),
             ),
 
@@ -170,27 +170,35 @@ class CommunityPreview extends StatelessWidget {
               right: 4,
               child: Container(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.black54,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.favorite,
-                        color: Colors.white, size: 12),
+                        color: Colors.white, size: 11),
                     const SizedBox(width: 2),
-                    Text('$likes',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 10)),
-                    const SizedBox(width: 6),
+                    Text(
+                      '$likes',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
                     const Icon(Icons.comment,
-                        color: Colors.white, size: 12),
+                        color: Colors.white, size: 11),
                     const SizedBox(width: 2),
-                    Text('$comments',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 10)),
+                    Text(
+                      '$comments',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -205,7 +213,7 @@ class CommunityPreview extends StatelessWidget {
       BuildContext context, Map<String, dynamic> data, String postId, int likes) {
     final photoUrl = _extractThumbnailUrl(data);
 
-    if (photoUrl == null) return const SizedBox(width: 100);
+    if (photoUrl == null) return const SizedBox(width: 80);
 
     return GestureDetector(
       onTap: () {
@@ -217,18 +225,18 @@ class CommunityPreview extends StatelessWidget {
         );
       },
       child: Container(
-        width: 100,
-        margin: const EdgeInsets.only(right: 12),
+        width: 80,
+        margin: const EdgeInsets.only(right: 10),
         child: Stack(
           children: [
             // 사진
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               child: Image.network(
                 photoUrl,
                 fit: BoxFit.cover,
-                width: 100,
-                height: 100,
+                width: 80,
+                height: 80,
               ),
             ),
 
@@ -239,21 +247,21 @@ class CommunityPreview extends StatelessWidget {
               right: 4,
               child: Container(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.black54,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.favorite, color: Colors.red, size: 12),
+                    const Icon(Icons.favorite, color: Colors.red, size: 11),
                     const SizedBox(width: 2),
                     Text(
                       '$likes',
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

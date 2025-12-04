@@ -45,51 +45,10 @@ class ArenaHomeBody extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ==========================
-          // 상단 헤더 (타이틀 + 액션 아이콘)
-          // ==========================
-          Row(
-            children: [
-              Text(
-                '아레나',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const TournamentCreateScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add_circle_outline),
-                tooltip: '대회 만들기',
-                iconSize: 24,
-                color: theme.colorScheme.primary,
-              ),
-              IconButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const MyTournamentsScreen(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.emoji_events),
-                tooltip: '내가 주최한 대회',
-                iconSize: 24,
-                color: theme.colorScheme.primary,
-              ),
-            ],
-          ),
+          // 🔹 상단 Row(아레나 + 대회 만들기/내가 주최한 대회)는 제거
+          //    → 최상단 AppBar(CommonAppBar)에서 타이틀/설정 아이콘 처리
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
 
           // ==========================
           // 스틸리그 카드 섹션
@@ -115,6 +74,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.leaderboard_outlined,
                     label: '랭킹',
+                    color: Colors.indigo,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -127,6 +87,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.event_available_outlined,
                     label: '리그 일정',
+                    color: Colors.teal,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -139,6 +100,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.calendar_month_outlined,
                     label: '포인트 달력',
+                    color: Colors.orange,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -152,6 +114,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.card_membership_outlined,
                     label: 'KDF 정회원',
+                    color: Colors.pinkAccent,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -164,6 +127,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.groups_3_outlined,
                     label: '선발 선수',
+                    color: Colors.deepPurple,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -204,6 +168,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.add_circle_outline,
                     label: '개최하기',
+                    color: Colors.cyan,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -216,6 +181,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.how_to_reg_outlined,
                     label: '참가 가능',
+                    color: Colors.green,
                     onTap: () {
                       // TODO: tournaments_home_screen.dart와 연동해서
                       // "참가 가능" 탭으로 이동하도록 확장 가능
@@ -229,6 +195,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.schedule_outlined,
                     label: '예정 경기',
+                    color: Colors.blueGrey,
                     onTap: () {
                       // TODO: tournaments_home_screen.dart의 "예정" 탭과 연동 예정
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -240,7 +207,8 @@ class ArenaHomeBody extends ConsumerWidget {
                   ),
                   _ArenaGridItem(
                     icon: Icons.emoji_events_outlined,
-                    label: '내가 주최한 경기',
+                    label: '내 주최 경기',
+                    color: Colors.amber.shade700,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -282,12 +250,14 @@ class _ArenaGridItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color color;
 
   const _ArenaGridItem({
     super.key,
     required this.icon,
     required this.label,
     required this.onTap,
+    required this.color,
   });
 
   @override
@@ -302,13 +272,13 @@ class _ArenaGridItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.08),
+              color: color.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 26,
-              color: theme.colorScheme.primary,
+              color: color,
             ),
           ),
           const SizedBox(height: 6),
@@ -319,6 +289,7 @@ class _ArenaGridItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
             ),
           ),
         ],

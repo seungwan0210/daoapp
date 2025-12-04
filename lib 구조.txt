@@ -98,7 +98,7 @@
 │   │   │   │   │   ├── random_checkout_panel.dart
 │   │   │   │   │   ├── t20_focus_panel.dart
 │   │   │   │   │   ├── triple_switch_panel.dart
-
+│   │   │   │   │   ├── score_game_panel.dart
 │   │   │   │   ├── drill_result_screen.dart
 │   │   │   │   ├── drill_run_screen.dart
 │   │   │   ├── history/    
@@ -132,6 +132,7 @@
 │   │   │       └── round_input_panel.dart
 │   │   │       └── beginner_board_area_widget.dart
 │   │   │       └── drill_stat_summary.dart
+quadrant_board_panel.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

@@ -1,5 +1,3 @@
-// lib/presentation/screens/training/drills/widgets/specialized/full_cricket_panel.dart
-
 import 'package:flutter/material.dart';
 import '../effects/neon_glow_effect.dart';
 
@@ -41,6 +39,7 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
   }
 
   void _confirmRound() {
+    // 이번 라운드 마크를 부모에게 전달
     widget.onMarksRecorded(currentMarks);
 
     if (currentRound < totalRounds) {
@@ -55,46 +54,73 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final double mpr = currentRound == 1 ? 0 : (currentMarks / (currentRound - 1));
+    // 👉 이번 라운드 기준 "예상 MPR" (항상 3다트라고 가정)
+    final double estimatedMprThisRound =
+    currentMarks == 0 ? 0 : currentMarks / 3.0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. MPR + 라운드 (한 줄로!)
+          // 1. MPR + 라운드
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.purple.shade700, Colors.indigo.shade800]),
+              gradient: LinearGradient(
+                colors: [Colors.purple.shade700, Colors.indigo.shade800],
+              ),
               borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.6), blurRadius: 20)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.6),
+                  blurRadius: 20,
+                ),
+              ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // 라운드 정보
                 Text(
                   "ROUND $currentRound/$totalRounds",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
+
+                // 이번 라운드 기준 예상 MPR
                 Row(
                   children: [
-                    const Text("MPR ", style: TextStyle(fontSize: 18, color: Colors.white70)),
+                    const Text(
+                      "이번 R MPR ",
+                      style: TextStyle(fontSize: 16, color: Colors.white70),
+                    ),
                     Text(
-                      mpr.toStringAsFixed(2),
+                      estimatedMprThisRound.toStringAsFixed(2),
                       style: const TextStyle(
-                        fontSize: 36,
+                        fontSize: 32,
                         fontWeight: FontWeight.w900,
                         color: Colors.yellowAccent,
-                        shadows: [Shadow(color: Colors.yellowAccent, blurRadius: 20)],
+                        shadows: [
+                          Shadow(color: Colors.yellowAccent, blurRadius: 20),
+                        ],
                       ),
                     ),
                   ],
                 ),
+
+                // 현재 라운드 마크 수
                 Text(
                   "$currentMarks 마크",
-                  style: const TextStyle(fontSize: 18, color: Colors.white70, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -102,7 +128,7 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
 
           const SizedBox(height: 28),
 
-          // 2. 마크 입력 버튼 (4x2 그리드 → 작고 깔끔!)
+          // 2. 마크 입력 버튼 (20~15 + Bull)
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -122,11 +148,16 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
                 trigger: justScored && currentMarks > 0,
                 glowColor: isBull ? Colors.red : Colors.cyan,
                 child: ElevatedButton(
-                  onPressed: widget.isBusy ? null : () => _addMark(isBull ? 3 : 1),
+                  onPressed: widget.isBusy
+                      ? null
+                      : () => _addMark(isBull ? 3 : 1),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isBull ? Colors.red.shade700 : Colors.cyan.shade600,
+                    backgroundColor:
+                    isBull ? Colors.red.shade700 : Colors.cyan.shade600,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     padding: const EdgeInsets.all(8),
                     elevation: 8,
                   ),
@@ -135,7 +166,10 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
                     children: [
                       Text(
                         number,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       Text(
                         isBull ? "+3" : "+1",
@@ -150,21 +184,29 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
 
           const SizedBox(height: 32),
 
-          // 3. 확정 버튼 (적당한 크기!)
+          // 3. 확정 버튼
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: widget.isBusy || currentMarks == 0 ? null : _confirmRound,
+              onPressed:
+              widget.isBusy || currentMarks == 0 ? null : _confirmRound,
               icon: const Icon(Icons.check_circle, size: 32),
               label: Text(
                 "이번 라운드 확정 ($currentMarks 마크)",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: currentMarks >= 6 ? Colors.green.shade600 : Colors.orange.shade600,
+                backgroundColor: currentMarks >= 6
+                    ? Colors.green.shade600
+                    : Colors.orange.shade600,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
             ),
           ),
@@ -174,7 +216,11 @@ class _FullCricketPanelState extends State<FullCricketPanel> {
             onPressed: widget.isBusy ? null : widget.onFinishPressed,
             child: const Text(
               "드릴 종료하고 결과 저장",
-              style: TextStyle(fontSize: 16, color: Colors.cyan, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.cyan,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

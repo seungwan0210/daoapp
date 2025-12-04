@@ -1,0 +1,354 @@
+1. 
+
+const TrainingDrillDefinition beginnerQuadrantBasic = TrainingDrillDefinition(
+  id: 'beginner_quadrant_basic',
+  titleKo: '4분할 감각 만들기',
+  titleEn: 'Quadrant Basic',
+  shortDescriptionKo:
+  '보드를 4구역(우상/우하/좌하/좌상)으로 나눠 방향·거리 감각을 만드는 입문 드릴',
+  shortDescriptionEn: 'Build basic feel using 4 board quadrants.',
+  category: TrainingDrillCategory.boardMapping,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.beginner,
+    maxTier: rating_utils.DaoTrainingTier.beginner,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 60,
+  targetLabel: '우상단 / 우하단 / 좌하단 / 좌상단',
+  guideKo:
+  '보드를 4색(빨강/노랑/초록/파랑)으로 4구역(우상단/우하단/좌하단/좌상단)으로 나누고, '
+      '앱이 지시하는 구역에 3다트를 던집니다. 1색당 5라운드(=15발)씩, 총 4구역 20라운드(=60발)를 진행합니다. '
+      '각 라운드마다 해당 구역 안에 들어간 화살 개수(0~3)를 입력하고, 색(15발) 단위로 성공률(%)을 확인하며 '
+      '구역별로 얼마나 잘 모이고 있는지 확인하세요.',
+  difficulty: DrillDifficulty.veryEasy,
+  uiPattern: DrillUIPattern.boardArea,
+  extraConfig: {
+    'mode': 'quadrant',
+    'rounds': 20, // 5R × 4구역 = 20R
+    'dartsPerRound': 3, // 총 60발
+    'successTarget': 15, // 기준값
+  },
+);
+
+중앙 우상단 우하단 좌하단 좌상단 
+
+이부분을 보드판 이미지 넣기
+
+C:\daoapp\assets\images
+dartboard.png
+
+현재 60다트 20R 
+
+15발 마다 우상단 빨간색 우하단 노란색 좌하단 파란색 좌상단 녹색 피자모양으로 표현
+
+3R 마다 변경 
+
+2. 
+
+const TrainingDrillDefinition beginnerTopBottomBasic = TrainingDrillDefinition(
+  id: 'beginner_top_bottom_basic',
+  titleKo: '상단/하단 영역 익히기',
+  titleEn: 'Top / Bottom Area Control',
+  shortDescriptionKo: '상단/하단 큰 영역을 목표로 던져보며 방향 감각을 만든다.',
+  shortDescriptionEn: 'Learn to control top and bottom halves of the board.',
+  category: TrainingDrillCategory.boardMapping,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.beginner,
+    maxTier: rating_utils.DaoTrainingTier.beginner,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 60, // 상단 30 + 하단 30
+  targetLabel: '상단 / 하단',
+  guideKo:
+  '보드를 상단(예: 빨강) / 하단(예: 노랑) 두 영역으로 나누고, 먼저 상단에만 30발, '
+      '그 다음 하단에만 30발을 던집니다. 각 라운드(3다트)마다 목표 영역 안에 들어간 다트 개수(0~3)를 입력하세요. '
+      '각 영역 30발 기준으로 총 히트 수와 성공률(%)을 확인하며, 상단/하단 방향 감각을 점검합니다.',
+  difficulty: DrillDifficulty.veryEasy,
+  uiPattern: DrillUIPattern.boardArea,
+  extraConfig: {
+    'mode': 'top_bottom',
+    'totalDartsPerArea': 30, // 상단 30, 하단 30 → 총 60발
+    'dartsPerRound': 3,
+    'rounds': 20,
+  },
+);
+
+중앙 부분 
+
+이부분을 보드판 이미지 넣기
+
+C:\daoapp\assets\images
+dartboard.png
+
+현재 60다트 20R 
+
+30발 마다 상단 빨간색 하단 노란색 반원형으로 표현
+
+10R 마다 변경 
+
+
+3. const TrainingDrillDefinition beginnerAroundTheBoardSingle =
+TrainingDrillDefinition(
+  id: 'beginner_around_board_single',
+  titleKo: '싱글 한 바퀴',
+  titleEn: 'Around the Board Single',
+  shortDescriptionKo: '1→20→SB까지 싱글을 한 바퀴 도는 기초 드릴',
+  shortDescriptionEn: 'Hit singles 1→20 then SB in order.',
+  category: TrainingDrillCategory.boardMapping,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.beginner,
+    maxTier: rating_utils.DaoTrainingTier.beginner,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 60, // 완주 시 대략 60발 전후를 예상
+  targetLabel: '1~20 + SB',
+  guideKo: '1 → 2 → 3 → … → 20 → SB 순서로 진행하며, 각 숫자를 최소 한 번 맞추면 다음 숫자로 이동합니다. '
+      '앱에는 이번 완주에 사용한 총 다트 수만 기록하고, 이전 기록과 비교해 “더 적은 다트로 완주하기”를 목표로 합니다. '
+      '완주 기록이 쌓일수록 등급 상승/유지/하락 같은 피드백을 줄 수 있습니다.',
+  difficulty: DrillDifficulty.easy,
+  uiPattern: DrillUIPattern.boardArea,
+  extraConfig: {
+    'mode': 'around_board',
+    'sequence': [
+      '1',
+      '2',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+      '10',
+      '11',
+      '12',
+      '13',
+      '14',
+      '15',
+      '16',
+      '17',
+      '18',
+      '19',
+      '20',
+      'SB',
+    ],
+  },
+);
+
+원형에 돌아가벼 숫자 올리기 예시 D 1~ 10 반시계
+
+성공률 확인
+
+3.
+const TrainingDrillDefinition beginnerLooseCountUp = TrainingDrillDefinition(
+  id: 'beginner_loose_countup_8r',
+  titleKo: '느슨한 Count-Up',
+  titleEn: 'Loose Count-Up',
+  shortDescriptionKo: '점수보다는 “보드에 꽂히는 경험”을 쌓는 가벼운 8R Count-Up',
+  shortDescriptionEn: 'A relaxed 8-round Count-Up to gain throwing experience.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.beginner,
+    maxTier: rating_utils.DaoTrainingTier.beginner,
+  ),
+  inputMode: TrainingDrillInputMode.scoreOnly,
+  estimatedMinutes: 5,
+  recommendedDarts: 24,
+  targetLabel: '8R Count-Up',
+  guideKo:
+  '일반 8R Count-Up을 1게임 플레이하고 최종 점수만 앱에 입력합니다. '
+      '목표는 “점수를 따내기”보다는 “보드에 많이 던져보는 것”입니다. '
+      '200점 → 250점 → 300점 순으로 목표 점수를 설정하고, 예를 들어 220점을 기록했다면 '
+      '“200 클리어, 다음 목표 250!”처럼 다음 목표를 정해 연습을 이어가세요.',
+  difficulty: DrillDifficulty.veryEasy,
+  uiPattern: DrillUIPattern.scoreGame,
+  extraConfig: {
+    'gameType': 'countup',
+    'rounds': 8,
+    'targetScores': [200, 250, 300],
+  },
+);
+
+카운트업 점수 입력창 +-가 아닌 8R 24다트 최종 점수 입력창
+
+4.
+
+const TrainingDrillDefinition learnerTopBottomAdvanced =
+TrainingDrillDefinition(
+  id: 'learner_top_bottom_advanced',
+  titleKo: '상단/하단 컨트롤 심화',
+  titleEn: 'Top / Bottom Advanced',
+  shortDescriptionKo: 'Beginner 때 만든 상/하 영역 감각을 더 정교하게 다듬는 드릴',
+  shortDescriptionEn: 'Refine your top/bottom control with structured reps.',
+  category: TrainingDrillCategory.boardMapping,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 60,
+  targetLabel: '상단 / 하단',
+  guideKo:
+  'Beginner 단계에서 만들었던 상단/하단 감각을 한 단계 끌어올리는 드릴입니다. '
+      '보드를 상단(예: 빨강) / 하단(예: 노랑)으로 나누고, 상단 30발 → 하단 30발을 던집니다. '
+      '각 라운드(3다트)마다 목표 영역 안에 들어간 개수(0~3)를 입력하세요. '
+      '세션 종료 후 상단 30발 기준 성공률(%), 하단 30발 기준 성공률(%)을 각각 확인하며 '
+      '두 영역의 편차를 줄이는 것을 목표로 합니다.',
+  difficulty: DrillDifficulty.normal,
+  uiPattern: DrillUIPattern.boardArea,
+  extraConfig: {
+    'mode': 'top_bottom',
+    'totalDartsPerArea': 30,
+    'dartsPerRound': 3,
+    'rounds': 20,
+  },
+);
+
+
+중앙 부분 
+
+이부분을 보드판 이미지 넣기
+
+C:\daoapp\assets\images
+dartboard.png
+
+현재 60다트 20R 
+
+30발 마다 상단 빨간색 하단 노란색 반원형으로 표현
+
+10R 마다 변경 
+
+
+5. 
+
+const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
+  id: 'learner_20_19_switch',
+  titleKo: '20↔19 스위치',
+  titleEn: '20 ↔ 19 Switch',
+  shortDescriptionKo: '20과 19 사이 스위칭 시 큰 실수를 줄이는 이동 연습',
+  shortDescriptionEn:
+  'Practice switching between 20 and 19 while reducing big misses.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 60,
+  targetLabel: '20 / 19',
+  guideKo:
+  '1사이클을 “세트1: 20에 3발 → 세트2: 19에 3발”로 보고, 이 사이클을 10번 반복합니다. '
+      '총 60발(= 3다트 × 2세트 × 10사이클)을 던지게 됩니다. '
+      '각 세트마다 목표 숫자(20 또는 19)에 맞춘 개수 또는 점수를 기록하고, '
+      '20/19 히트 분포와 1·5 같은 빅 넘버 비율을 줄여가는 것이 목표입니다.',
+  difficulty: DrillDifficulty.normal,
+  uiPattern: DrillUIPattern.segmentTarget,
+  extraConfig: {
+    'segments': ['20', '19'],
+    'cycles': 10,
+    'dartsPerSet': 3,
+  },
+);
+
+스위치가 되려면 20 2발 19 1발 이런식으로 되야 할꺼 같아.
+
+그걸 위한 중앙 위젯은
+
+보여지는 부분 1발 20 성공 실패 누르면 2발 20 성공 실패 누르면 3발 19로 보여줘야해.
+
+6. 
+
+const TrainingDrillDefinition comp20SectorTsd90 = TrainingDrillDefinition(
+  id: 'comp_20_sector_tsd_90',
+  titleKo: '20 섹터(T/S/D) 90발',
+  titleEn: '20 Sector T/S/D x90',
+  shortDescriptionKo:
+  '20섹터 전체(T20/S20/D20)에 90발 던지며 분포와 정확도를 체크하는 드릴',
+  shortDescriptionEn: 'Shoot 90 darts into the 20 sector (T20/S20/D20).',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 90,
+  targetLabel: 'T20 / S20 / D20',
+  guideKo:
+  '20섹터 전체(T20/S20/D20)를 이해하고 분포를 파악하는 드릴입니다. '
+      '예를 들어 T20 30발, D20 30발, S20 30발 순서로 던져 총 90발을 진행합니다. '
+      '각 영역마다 10라운드(1R=3발)로 나누어, 라운드별 히트 수(0~3)를 입력하세요. '
+      '세션이 끝나면 T/S/D 각각의 총 히트 수와 성공률(%)을 확인하며, '
+      '어디에 강점/약점이 있는지 파악하는 것이 목표입니다.',
+  difficulty: DrillDifficulty.normal,
+  uiPattern: DrillUIPattern.segmentTarget,
+  extraConfig: {
+    'segments': ['T20', 'S20', 'D20'],
+    'totalDarts': 90,
+    'dartsPerRound': 3,
+    'roundsPerSegment': 10,
+  },
+);
+
+사용자는 어디를 맞춰야 하는지 모르겠어.
+
+차라리 t20 d20 s 20을 순서대로 맞추는 중앙을 보여주고 맞는지 안맞는지에 대해 성공 실패를 해주면 
+
+트리플 더블 싱글 성공률을 알수 있을꺼 같은데 그게 더 좋은 방향일꺼 같아.
+
+id: 'comp_double_clock_half',
+
+
+
+7.
+
+const TrainingDrillDefinition compDoubleClockBack = TrainingDrillDefinition(
+  id: 'comp_double_clock_back',
+  titleKo: '더블 시계 후반부 (D11~D20)',
+  titleEn: 'Double Clock Back (D11–D20)',
+  shortDescriptionKo: 'D11~D20까지 후반부 더블을 집중 연습하는 드릴',
+  shortDescriptionEn:
+  'Practice doubles from D11 to D20 with structured sets.',
+  category: TrainingDrillCategory.doublePractice,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.competitor,
+    maxTier: rating_utils.DaoTrainingTier.competitor,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 50,
+  targetLabel: 'D11 ~ D20',
+  guideKo:
+  'D11 → D12 → … → D20 순서로 진행하는 후반부 더블 시계입니다. '
+      '역시 각 더블마다 3발을 던지고, 맞으면 다음 숫자로 이동합니다. '
+      '3발 던진 후 앱으로 돌아와 “이번 더블을 몇 번째 세트에서 성공했는지” 버튼으로 기록하세요. '
+      '전체 사용 세트/다트 수를 기록해서, 전반부(D1~D10)와 비교하며 약한 구간을 찾아가는 데 활용합니다.',
+  difficulty: DrillDifficulty.normal,
+  uiPattern: DrillUIPattern.segmentTarget,
+  extraConfig: {
+    'doubleSequence': [
+      'D11',
+      'D12',
+      'D13',
+      'D14',
+      'D15',
+      'D16',
+      'D17',
+      'D18',
+      'D19',
+      'D20'
+    ],
+    'maxDartsPerDouble': 15,
+    'dartsPerSet': 3,
+  },
+);
+이건 id: 'comp_double_clock_half', 이거와 똑같이 만들고 숫자만 바꿔주면 되는데 중앙 위젯은 아예 다른게 들어가 있어
+
+
+
+
