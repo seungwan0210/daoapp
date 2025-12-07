@@ -11,6 +11,11 @@ class RoundInputPanel extends StatelessWidget {
   final VoidCallback? onConfirm;
   final bool isBusy;
 
+  /// 🔹 추가: 값 범위 & 단위(label) 설정
+  final int minValue;
+  final int maxValue;
+  final String unitLabel;
+
   const RoundInputPanel({
     super.key,
     required this.title,
@@ -20,6 +25,9 @@ class RoundInputPanel extends StatelessWidget {
     required this.onValueChanged,
     this.onConfirm,
     this.isBusy = false,
+    this.minValue = 0,      // 기본: 마크 0 ~ 9
+    this.maxValue = 9,
+    this.unitLabel = '마크', // 기본 단위 텍스트
   });
 
   @override
@@ -84,9 +92,21 @@ class RoundInputPanel extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
 
-          // + / - 버튼 (0 ~ 9 마크 기준)
+          // 범위 안내 (선택)
+          Text(
+            "$minValue ~ $maxValue $unitLabel",
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // + / - 버튼
           Row(
             children: [
               Expanded(
@@ -94,7 +114,9 @@ class RoundInputPanel extends StatelessWidget {
                   onPressed: isBusy
                       ? null
                       : () => onValueChanged(
-                    (currentValue - 1).clamp(0, 9),
+                    (currentValue - 1)
+                        .clamp(minValue, maxValue)
+                        .toInt(), // 🔹 num → int 캐스팅
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade100,
@@ -113,7 +135,9 @@ class RoundInputPanel extends StatelessWidget {
                   onPressed: isBusy
                       ? null
                       : () => onValueChanged(
-                    (currentValue + 1).clamp(0, 9),
+                    (currentValue + 1)
+                        .clamp(minValue, maxValue)
+                        .toInt(), // 🔹 num → int 캐스팅
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade100,
@@ -131,7 +155,7 @@ class RoundInputPanel extends StatelessWidget {
 
           const SizedBox(height: 18),
 
-          // 확정 버튼 (0 마크도 허용)
+          // 확정 버튼
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -146,7 +170,7 @@ class RoundInputPanel extends StatelessWidget {
                 elevation: 4,
               ),
               child: Text(
-                "이번 라운드 확정 ($currentValue 마크)",
+                "이번 라운드 확정 ($currentValue $unitLabel)",
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,

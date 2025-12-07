@@ -7,7 +7,9 @@ class QuadrantBoardPanel extends StatefulWidget {
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
   final bool isBusy;
-  final int totalDarts; // 전체 계획 다트 수 (예: 60)
+
+  /// 전체 계획 다트 수 (기본 60 = 15다트 × 4분면)
+  final int totalDarts;
 
   const QuadrantBoardPanel({
     super.key,
@@ -15,7 +17,7 @@ class QuadrantBoardPanel extends StatefulWidget {
     this.onHitFail,
     this.onFinishPressed,
     this.isBusy = false,
-    this.totalDarts = 60,
+    this.totalDarts = 60, // ✅ 기본값 60으로 고정
   });
 
   @override
@@ -26,9 +28,10 @@ class _QuadrantBoardPanelState extends State<QuadrantBoardPanel> {
   int thrown = 0;       // 던진 다트 수
   int successCount = 0; // 성공한 다트 수
 
+  /// 분면당 다트 수 (60 / 4 = 15)
   static const int dartsPerQuadrant = 15;
 
-  // 각 분면 색상만 유지 (이름은 UI에서 사용 안 함)
+  // 각 분면 색상 (이름은 UI에서 따로 쓰지 않음)
   static const List<Color> quadrantColors = [
     Color(0xFFE91E63), // 우상단
     Color(0xFFFF9800), // 우하단
@@ -36,10 +39,12 @@ class _QuadrantBoardPanelState extends State<QuadrantBoardPanel> {
     Color(0xFF4CAF50), // 좌상단
   ];
 
+  /// 현재 분면 index (0~3)
   int get currentQuadrantIndex =>
       (thrown ~/ dartsPerQuadrant).clamp(0, quadrantColors.length - 1);
 
-  int get dartInQuadrant => (thrown % dartsPerQuadrant) + 1;
+  /// 현재 분면에서 이미 던진 다트 수 (0~15)
+  int get dartsDoneInQuadrant => (thrown % dartsPerQuadrant);
 
   bool get isFinished => thrown >= widget.totalDarts;
 
@@ -56,12 +61,14 @@ class _QuadrantBoardPanelState extends State<QuadrantBoardPanel> {
     } else {
       widget.onHitFail?.call();
     }
-
-    // 끝났으면 여기서는 onFinishPressed는 누르는 쪽에 맡김
+    // 🔹 여기서는 "결과 화면으로 이동"까지는 하지 않고,
+    //    RunScreen 쪽(onFinishPressed)에서만 결정하도록 유지.
   }
 
   @override
   Widget build(BuildContext context) {
+    final totalDarts = widget.totalDarts;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -100,7 +107,7 @@ class _QuadrantBoardPanelState extends State<QuadrantBoardPanel> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '이번 구역 진행: $dartInQuadrant / $dartsPerQuadrant 다트',
+                  '이번 구역 진행: $dartsDoneInQuadrant / $dartsPerQuadrant 다트',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white.withOpacity(0.85),
@@ -108,7 +115,15 @@ class _QuadrantBoardPanelState extends State<QuadrantBoardPanel> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '현재 영역에 집중해서 던져주세요!',
+                  '전체 진행: $thrown / $totalDarts 다트',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.7),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '현재 하이라이트된 색 구역에 집중해서 던져주세요!',
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.white.withOpacity(0.7),

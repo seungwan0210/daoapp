@@ -1,15 +1,18 @@
 // lib/presentation/screens/training/drills/widgets/specialized/t20_focus_panel.dart
 
 import 'package:flutter/material.dart';
-import '../effects/neon_glow_effect.dart';
-import '../effects/confetti_effect.dart';
 
 class T20FocusPanel extends StatefulWidget {
   final int totalDarts;              // 예: 60, 90, 120
-  final VoidCallback? onHitSuccess;  // T20 명중 1회
+  final VoidCallback? onHitSuccess;  // 명중 1회
   final VoidCallback? onHitFail;     // 미스 1회
   final VoidCallback? onFinishPressed;
   final bool isBusy;
+
+  /// 🔹 공용 패널로 쓰기 위한 표시 라벨
+  ///  - 기본: 'T20'
+  ///  - 나중에 '20', '19', 'Bull' 등으로 바꿔서 재사용 가능
+  final String targetLabel;
 
   const T20FocusPanel({
     super.key,
@@ -18,6 +21,7 @@ class T20FocusPanel extends StatefulWidget {
     this.onHitFail,
     this.onFinishPressed,
     this.isBusy = false,
+    this.targetLabel = 'T20',
   });
 
   @override
@@ -26,231 +30,335 @@ class T20FocusPanel extends StatefulWidget {
 
 class _T20FocusPanelState extends State<T20FocusPanel> {
   int dartsThrown = 0;
-  int t20Hits = 0;
-  bool justHit = false;
+  int hitCount = 0;
 
-  double get successRate => dartsThrown == 0 ? 0 : t20Hits / dartsThrown;
+  double get successRate =>
+      dartsThrown == 0 ? 0 : hitCount / dartsThrown;
+
   int get remainingDarts => widget.totalDarts - dartsThrown;
   bool get isFinished => dartsThrown >= widget.totalDarts;
 
-  void _record(bool isT20) {
+  void _record(bool isHit) {
     if (widget.isBusy || isFinished) return;
 
     setState(() {
       dartsThrown++;
-      if (isT20) {
-        t20Hits++;
-        justHit = true;
+      if (isHit) {
+        hitCount++;
       }
     });
 
-    if (isT20) {
+    if (isHit) {
       widget.onHitSuccess?.call();
     } else {
       widget.onHitFail?.call();
     }
-
-    // 네온 효과 잠깐만 보여주기
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) setState(() => justHit = false);
-    });
-
-    // ❌ 여기서 onFinishPressed를 자동 호출하지 않고
-    // 사용자가 아래 "결과 확인하기" 버튼을 누를 때만 호출하게 둔다.
   }
 
   @override
   Widget build(BuildContext context) {
-    return ConfettiEffect(
-      trigger: isFinished && successRate >= 0.5, // 50% 이상일 때 축포
-      duration: const Duration(seconds: 5),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 1. T20 (진짜 크게!)
-            NeonGlowEffect(
-              trigger: justHit,
-              glowColor: Colors.red,
-              maxGlowSize: 80,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 40),
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(40),
-                  border: Border.all(color: Colors.red.shade700, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.red.withOpacity(0.8),
-                      blurRadius: 40,
-                      spreadRadius: 10,
-                    ),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    "T20",
-                    style: TextStyle(
-                      fontSize: 96,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      letterSpacing: -4,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+    final successPercent = (successRate * 100).toStringAsFixed(1);
 
-            const SizedBox(height: 32),
-
-            // 2. 핵심 정보 한 줄!
-            Container(
-              width: double.infinity,
-              padding:
-              const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade900,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _infoChip("던진", "$dartsThrown", Colors.cyan),
-                  _infoChip("명중", "$t20Hits", Colors.red),
-                  _infoChip(
-                    "성공률",
-                    "${(successRate * 100).toStringAsFixed(1)}%",
-                    successRate >= 0.5 ? Colors.green : Colors.orange,
-                  ),
-                  if (!isFinished)
-                    _infoChip("남은", "$remainingDarts", Colors.white70),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ===================== 상단 타겟 카드 =====================
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.black,
+                  Colors.grey.shade900,
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.grey.shade800, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 40),
-
-            // 3. 성공 / 실패 버튼
-            Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: widget.isBusy || isFinished
-                        ? null
-                        : () => _record(true),
-                    icon: const Icon(Icons.whatshot, size: 36),
-                    label: const Text(
-                      "T20 명중!",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red.shade700,
-                      foregroundColor: Colors.white,
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
+                Text(
+                  '${widget.targetLabel} 집중 연습',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: widget.isBusy || isFinished
-                        ? null
-                        : () => _record(false),
-                    icon: const Icon(Icons.close, size: 36),
-                    label: const Text(
-                      "미스",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey.shade700,
-                      foregroundColor: Colors.white,
-                      padding:
-                      const EdgeInsets.symmetric(vertical: 24),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.targetLabel,
+                  style: const TextStyle(
+                    fontSize: 64,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -3,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '총 ${widget.totalDarts}발',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white54,
                   ),
                 ),
               ],
             ),
+          ),
 
-            const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-            // 4. 종료/저장 버튼
-            if (isFinished) ...[
-              ElevatedButton(
-                onPressed: widget.onFinishPressed,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 18,
-                    horizontal: 40,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+          // ===================== 진행/통계 카드 =====================
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 18),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade900,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 진행 바
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '진행 상황',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade300,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '$dartsThrown / ${widget.totalDarts} 발',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.cyan.shade300,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: widget.totalDarts == 0
+                        ? 0
+                        : (dartsThrown / widget.totalDarts).clamp(0, 1),
+                    minHeight: 6,
+                    backgroundColor: Colors.grey.shade800,
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      Colors.cyanAccent,
+                    ),
                   ),
                 ),
-                child: const Text(
-                  "결과 확인하기",
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(height: 14),
+
+                // 통계 칩들
+                Row(
+                  children: [
+                    Expanded(
+                      child: _InfoStat(
+                        label: '던진',
+                        value: '$dartsThrown',
+                        color: Colors.cyanAccent,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _InfoStat(
+                        label: '명중',
+                        value: '$hitCount',
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _InfoStat(
+                        label: '성공률',
+                        value: '$successPercent%',
+                        color: successRate >= 0.5
+                            ? Colors.greenAccent
+                            : Colors.orangeAccent,
+                      ),
+                    ),
+                    if (!isFinished) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _InfoStat(
+                          label: '남은',
+                          value: '$remainingDarts',
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ===================== 명중 / 미스 버튼 =====================
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: widget.isBusy || isFinished
+                      ? null
+                      : () => _record(true),
+                  icon: const Icon(Icons.check_circle, size: 24),
+                  label: const Text(
+                    '명중',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                 ),
               ),
-            ] else ...[
-              TextButton(
-                onPressed: widget.isBusy ? null : widget.onFinishPressed,
-                child: const Text(
-                  "드릴 종료하고 결과 저장",
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.cyan,
-                    fontWeight: FontWeight.bold,
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: widget.isBusy || isFinished
+                      ? null
+                      : () => _record(false),
+                  icon: const Icon(Icons.close, size: 22),
+                  label: const Text(
+                    '미스',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
                   ),
                 ),
               ),
             ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // ===================== 종료/저장 버튼 =====================
+          if (isFinished) ...[
+            ElevatedButton(
+              onPressed: widget.onFinishPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyan.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 40,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                ),
+              ),
+              child: const Text(
+                '결과 확인하기',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ] else ...[
+            TextButton(
+              onPressed: widget.isBusy ? null : widget.onFinishPressed,
+              child: const Text(
+                '드릴 종료하고 결과 저장',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.cyan,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
+}
 
-  Widget _infoChip(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.white70,
-          ),
+class _InfoStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _InfoStat({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Colors.white10,
+          width: 1,
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: color,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Colors.white70,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

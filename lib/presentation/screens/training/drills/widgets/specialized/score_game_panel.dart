@@ -47,14 +47,17 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
   @override
   void initState() {
     super.initState();
-    _value = widget.initialValue.clamp(widget.minValue, widget.maxValue);
+    _value = widget.initialValue
+        .clamp(widget.minValue, widget.maxValue)
+        .toInt(); // 🔹 num → int
   }
 
   void _changeValue(int delta) {
     if (widget.isBusy) return;
     setState(() {
       _value = (_value + delta * widget.step)
-          .clamp(widget.minValue, widget.maxValue);
+          .clamp(widget.minValue, widget.maxValue)
+          .toInt(); // 🔹 num → int
     });
   }
 
@@ -144,14 +147,11 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy
-                      ? null
-                      : () => _changeValue(-1),
+                  onPressed: widget.isBusy ? null : () => _changeValue(-1),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade100,
                     foregroundColor: Colors.red.shade700,
-                    padding:
-                    const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -162,14 +162,11 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
               const SizedBox(width: 12),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy
-                      ? null
-                      : () => _changeValue(1),
+                  onPressed: widget.isBusy ? null : () => _changeValue(1),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade100,
                     foregroundColor: Colors.green.shade700,
-                    padding:
-                    const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -186,9 +183,7 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: widget.isBusy
-                  ? null
-                  : () => widget.onSubmit(_value),
+              onPressed: widget.isBusy ? null : () => widget.onSubmit(_value),
               icon: const Icon(Icons.check_circle, size: 28),
               label: const Text(
                 "결과 확정",
@@ -200,8 +195,7 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.cyan.shade600,
                 foregroundColor: Colors.white,
-                padding:
-                const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

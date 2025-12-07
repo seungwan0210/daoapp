@@ -97,8 +97,14 @@
 │   │   │   │   │   ├── full_cricket_panel.dart
 │   │   │   │   │   ├── random_checkout_panel.dart
 │   │   │   │   │   ├── t20_focus_panel.dart
-│   │   │   │   │   ├── triple_switch_panel.dart
+│   │   │   │   │   ├── sector_cycle_panel.dart
 │   │   │   │   │   ├── score_game_panel.dart
+
+countup_round_score_panel.dart
+
+twenty_nineteen_switch_panel.dart
+twenty_sector_tsd_panel.dart
+triple_switch_panel.dart
 │   │   │   │   ├── drill_result_screen.dart
 │   │   │   │   ├── drill_run_screen.dart
 │   │   │   ├── history/    

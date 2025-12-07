@@ -3,20 +3,11 @@
 import 'package:flutter/material.dart';
 
 class TopBottomBoardPanel extends StatefulWidget {
-  /// 성공 버튼 눌렀을 때 (DrillRunScreen의 _recordHit(true)로 연결)
   final VoidCallback? onHitSuccess;
-
-  /// 실패 버튼 눌렀을 때 (DrillRunScreen의 _recordHit(false)로 연결)
   final VoidCallback? onHitFail;
-
-  /// 드릴 종료 / 결과 저장 버튼 눌렀을 때
   final VoidCallback? onFinishPressed;
-
-  /// 상위에서 세션 시작/저장 중일 때 버튼 비활성화용
   final bool isBusy;
-
-  /// 전체 계획 다트 수 (예: 60)
-  final int totalDarts;
+  final int totalDarts; // 예: 60 (상단 30 + 하단 30)
 
   const TopBottomBoardPanel({
     super.key,
@@ -24,7 +15,7 @@ class TopBottomBoardPanel extends StatefulWidget {
     this.onHitFail,
     this.onFinishPressed,
     this.isBusy = false,
-    this.totalDarts = 60,
+    required this.totalDarts,
   });
 
   @override
@@ -32,29 +23,21 @@ class TopBottomBoardPanel extends StatefulWidget {
 }
 
 class _TopBottomBoardPanelState extends State<TopBottomBoardPanel> {
-  /// 이 패널에서 처리한 다트 수 (로컬)
   int _thrown = 0;
-
-  /// 이 패널 내 성공 카운트 (표시용)
   int _successCount = 0;
 
-  /// 상/하 각각 몇 다트씩인지
-  int get _dartsPerArea {
-    final total = widget.totalDarts ?? 60;  // null이면 60으로 fallback
-    final perArea = (total / 2).round();
-    return perArea > 0 ? perArea : 30;  // 0이면 30으로 강제 설정
+  late final int _dartsPerArea;
+
+  @override
+  void initState() {
+    super.initState();
+    _dartsPerArea = (widget.totalDarts <= 0 ? 60 : widget.totalDarts) ~/ 2;
   }
 
-  /// 전체 계획 다트를 다 던졌는지 여부
   bool get _isFinished => _thrown >= widget.totalDarts;
-
-  /// 현재 상단 구간인지, 하단 구간인지
   bool get _isTopPhase => _thrown < _dartsPerArea;
 
-  int get _dartInArea {
-    if (_dartsPerArea == 0) return 1;  // 0 나누기 방지
-    return (_thrown % _dartsPerArea) + 1;
-  }
+  int get _currentInArea => (_thrown % _dartsPerArea) + 1;
 
   void _record(bool success) {
     if (widget.isBusy || _isFinished) return;
@@ -64,7 +47,6 @@ class _TopBottomBoardPanelState extends State<TopBottomBoardPanel> {
       if (success) _successCount++;
     });
 
-    // 상위 런 스크린의 공통 로직 호출
     if (success) {
       widget.onHitSuccess?.call();
     } else {
@@ -74,142 +56,160 @@ class _TopBottomBoardPanelState extends State<TopBottomBoardPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final Color areaColor = _isTopPhase
-        ? const Color(0xFFE91E63) // 위: 핑크레드
-        : const Color(0xFFFF6D00); // 아래: 오렌지
+    final Color highlightColor = _isTopPhase
+        ? const Color(0xFFE91E63) // 상단: 핫핑크
+        : const Color(0xFFFF6D00); // 하단: 오렌지
 
+    final String mainTitle = _isTopPhase ? '상단 영역 집중' : '하단 영역 집중';
     final String subtitle =
-    _isTopPhase ? "위쪽 반만 노려주세요!" : "아래쪽 반만 노려주세요!";
+    _isTopPhase ? '위쪽 반만 정확히 노려주세요!' : '아래쪽 반만 노려주세요!';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // 1) 보드 + 상/하 오버레이 + 설명
+          // 보드 + 오버레이 + 텍스트 정보
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: Colors.grey[900],
               borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    ClipOval(
-                      child: Image.asset(
-                        'assets/images/dartboard.png',
-                        width: 260,
-                        height: 260,
-                        fit: BoxFit.cover,
+                SizedBox(
+                  width: 260,
+                  height: 260,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // 기본 보드
+                      ClipOval(
+                        child: Image.asset(
+                          'assets/images/dartboard.png',
+                          width: 260,
+                          height: 260,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
-                    // 상단 영역 하이라이트
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: FractionallySizedBox(
-                        heightFactor: 0.5,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
+
+                      // 활성 영역(위/아래) 정확히 반원만 색 입히기
+                      ShaderMask(
+                        blendMode: BlendMode.srcATop,
+                        shaderCallback: (Rect bounds) {
+                          if (_isTopPhase) {
+                            // 위쪽 반원만 색 → 중간에서 딱 끊김
+                            return LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [
-                                areaColor.withOpacity(_isTopPhase ? 0.6 : 0.1),
+                                highlightColor.withOpacity(0.7),
+                                highlightColor.withOpacity(0.7),
+                                Colors.transparent,
                                 Colors.transparent,
                               ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // 하단 영역 하이라이트
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: FractionallySizedBox(
-                        heightFactor: 0.5,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
+                              stops: const [0.0, 0.5, 0.5, 1.0],
+                            ).createShader(bounds);
+                          } else {
+                            // 아래쪽 반원만 색
+                            return LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
                               colors: [
-                                areaColor.withOpacity(_isTopPhase ? 0.1 : 0.6),
                                 Colors.transparent,
+                                Colors.transparent,
+                                highlightColor.withOpacity(0.7),
+                                highlightColor.withOpacity(0.7),
                               ],
-                            ),
+                              stops: const [0.0, 0.5, 0.5, 1.0],
+                            ).createShader(bounds);
+                          }
+                        },
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/images/dartboard.png',
+                            width: 260,
+                            height: 260,
+                            fit: BoxFit.cover,
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _isTopPhase ? '현재: 상단 영역 집중' : '현재: 하단 영역 집중',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withOpacity(0.9),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
+
+                const SizedBox(height: 16),
+
+                // 메인 타이틀
                 Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.75),
+                  mainTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 8),
+
+                // 부제목
                 Text(
-                  '이번 구역 진행: $_dartInArea / $_dartsPerArea 다트',
+                  subtitle,
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.85),
+                    height: 1.3,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '성공: $_successCount / $_thrown',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
-                  ),
+
+                const SizedBox(height: 16),
+
+                // 진행 정보
+                _buildInfoRow('이번 구역', '$_currentInArea / $_dartsPerArea 다트'),
+                _buildInfoRow(
+                    '전체 진행', '$_thrown / ${widget.totalDarts} 다트'),
+                _buildInfoRow(
+                  '성공률',
+                  _thrown == 0
+                      ? '--'
+                      : '${((_successCount / _thrown) * 100).toStringAsFixed(1)}%',
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 20), // 진행 카드와 간격 조금 줄인 값
 
-          // 2) 성공 / 실패 버튼
+          // 성공 / 실패 버튼
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy || _isFinished
-                      ? null
-                      : () => _record(true),
+                  onPressed:
+                  widget.isBusy || _isFinished ? null : () => _record(true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
                     ),
+                    elevation: 8,
                   ),
                   child: const Text(
                     "성공",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style:
+                    TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -224,24 +224,22 @@ class _TopBottomBoardPanelState extends State<TopBottomBoardPanel> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(24),
                     ),
+                    elevation: 8,
                   ),
                   child: const Text(
                     "실패",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style:
+                    TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // 3) 종료/저장 버튼
           if (_isFinished)
             ElevatedButton(
               onPressed: widget.onFinishPressed,
@@ -250,31 +248,55 @@ class _TopBottomBoardPanelState extends State<TopBottomBoardPanel> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
+                elevation: 10,
               ),
               child: const Text(
                 "결과 확인하기",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
               ),
             )
           else
             TextButton(
               onPressed: widget.isBusy ? null : widget.onFinishPressed,
-              child: const Text(
+              child: Text(
                 "드릴 종료하고 결과 저장",
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
-                  color: Colors.cyan,
+                  color: Colors.cyan.shade400,
                 ),
               ),
             ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white.withOpacity(0.7),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );

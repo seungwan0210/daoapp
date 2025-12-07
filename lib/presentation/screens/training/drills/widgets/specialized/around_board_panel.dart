@@ -31,7 +31,14 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
 
   String get currentTarget => widget.sequence[currentIndex];
   int get totalTargets => widget.sequence.length;
-  double get progress => currentIndex / totalTargets;
+
+  /// 🔹 진행률 보정
+  /// - 0번 타겟일 때 0.0
+  /// - 마지막 타겟(인덱스 totalTargets - 1)일 때 1.0
+  double get progress {
+    if (totalTargets <= 1) return 0;
+    return currentIndex / (totalTargets - 1);
+  }
 
   void _record(bool success) {
     if (widget.isBusy) return;
@@ -61,7 +68,7 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. 진행 정보 (더블 시계 스타일)
+        // 1. 진행 정보
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -71,7 +78,8 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Text(
-            "싱글 한 바퀴: $currentIndex / $totalTargets 완료",
+            // 🔹 "완료" 대신 "현재 타겟" 기준으로 텍스트 수정
+            "싱글 한 바퀴: ${currentIndex + 1} / $totalTargets 타겟",
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -137,7 +145,7 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
 
         const SizedBox(height: 24),
 
-        // 3. 버튼 (더블 시계와 동일 패턴)
+        // 3. 성공 / 실패 버튼
         Row(
           children: [
             Expanded(

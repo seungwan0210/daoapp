@@ -42,8 +42,7 @@ const TrainingProgramDefinition beginnerProgram = TrainingProgramDefinition(
   id: 'program_beginner_4w',
   titleKo: '비기너 4주 기초 프로그램',
   titleEn: 'Beginner 4-week Basics',
-  descriptionKo:
-  '보드를 4분할/상·하로 나눠 던져 보고, 숫자 한 바퀴와 S20·Bull·Count-Up까지 '
+  descriptionKo: '보드를 4분할/상·하로 나눠 던져 보고, 숫자 한 바퀴와 S20·Bull·Count-Up까지 '
       '기초 감각을 쌓는 과정입니다.',
   descriptionEn:
   'Build basic board mapping, S20/bull feel, and light Count-Up practice.',
@@ -67,19 +66,19 @@ const TrainingProgramDefinition learnerProgram = TrainingProgramDefinition(
   id: 'program_learner_4w',
   titleKo: '러너 4주 컨트롤 프로그램',
   titleEn: 'Learner 4-week Control Program',
-  descriptionKo:
-  '싱글 20 명중률과 상·하 컨트롤, 20↔19 스위칭을 통해 '
+  descriptionKo: '싱글 20 명중률과 상·하 컨트롤, 상단(20/19/18)·중단(17/16/15) 3섹터 루프를 통해 '
       '실전 스코어링의 기본 발판을 만드는 과정입니다.',
   descriptionEn:
-  'Improve S20 accuracy, top/bottom control, and 20↔19 switching for real-game scoring.',
+  'Improve S20 accuracy, top/bottom control, and 3-sector loops on the 20/19/18 and 17/16/15 lines for real-game scoring.',
   minTier: DaoTrainingTier.learner,
   maxTier: DaoTrainingTier.learner,
   drills: [
     // 워밍업: 싱글 정확도 + 상/하 컨트롤
-    drill_constants.learnerSingle20x60, // (이 정의 안에서 실제 totalDarts는 60으로 써도 무방)
+    drill_constants.learnerSingle20x60,
     drill_constants.learnerTopBottomAdvanced,
-    // 메인: 20↔19 스위치
-    drill_constants.learner20to19Switch,
+    // 메인: 상단/중단 3섹터 루프
+    drill_constants.learner20to19Switch,   // 상단 20/19/18
+    drill_constants.learner17to15Line,     // 중단 17/16/15
   ],
 );
 

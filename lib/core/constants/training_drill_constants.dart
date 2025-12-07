@@ -131,7 +131,7 @@ const TrainingDrillDefinition beginnerLargeSingle20 = TrainingDrillDefinition(
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 60,
-  targetLabel: 'S20 (큰 영역)',
+  targetLabel: 'S20 (싱글 20라인)',
   guideKo:
   '정규 거리 또는 조금 편한 거리에서 S20 큰 영역만 60발 던집니다. '
       '20라운드(3다트 × 20R)로 진행하며, 매 라운드마다 S20 안에 들어간 개수(0~3)를 입력하세요. '
@@ -149,7 +149,7 @@ const TrainingDrillDefinition beginnerBigBull = TrainingDrillDefinition(
   id: 'beginner_big_bull',
   titleKo: '빅 Bull 감각',
   titleEn: 'Big Bull Feel',
-  shortDescriptionKo: 'Bull 링 전체를 노리며 “센터 안으로 모으는 느낌”을 만드는 드릴',
+  shortDescriptionKo: 'Bull 링 전체를 노리며 “그루핑을 중점으로”만드는 드릴',
   shortDescriptionEn: 'Aim at the whole Bull ring to feel the center.',
   category: TrainingDrillCategory.bull,
   tierRange: DrillTierRange(
@@ -159,7 +159,7 @@ const TrainingDrillDefinition beginnerBigBull = TrainingDrillDefinition(
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 60,
-  targetLabel: '전체 Bull 링',
+  targetLabel: '전체 Bull ',
   guideKo:
   'BULL 링(SBull+DBull)을 모두 포함하는 큰 원만 노리고 60발을 던집니다. '
       '20라운드(3다트 × 20R) 동안 매 라운드 Bull 링 안에 들어간 개수(0~3)를 입력하세요. '
@@ -179,7 +179,8 @@ const TrainingDrillDefinition beginnerLooseCountUp = TrainingDrillDefinition(
   titleKo: '느슨한 Count-Up',
   titleEn: 'Loose Count-Up',
   shortDescriptionKo: '점수보다는 “보드에 꽂히는 경험”을 쌓는 가벼운 8R Count-Up',
-  shortDescriptionEn: 'A relaxed 8-round Count-Up to gain throwing experience.',
+  shortDescriptionEn:
+  'A relaxed 8-round Count-Up to gain throwing experience.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.beginner,
@@ -272,11 +273,37 @@ TrainingDrillDefinition(
 
 const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
   id: 'learner_20_19_switch',
-  titleKo: '20↔19 스위치',
-  titleEn: '20 ↔ 19 Switch',
-  shortDescriptionKo: '20과 19 사이 스위칭 시 큰 실수를 줄이는 이동 연습',
+  titleKo: '상단 3섹터 루프 (20/19/18)',
+  titleEn: 'Top 3 Sectors Loop (20/19/18)',
+  shortDescriptionKo: '20/19/18 상단 구역을 돌면서 빅미스를 줄이는 연습',
+  shortDescriptionEn: 'Loop through 20/19/18 to reduce big misses.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
+  inputMode: TrainingDrillInputMode.hitCount,
+  estimatedMinutes: 15,
+  recommendedDarts: 60, // 60발: 섹터당 20발 정도
+  targetLabel: '20 / 19 / 18',
+  guideKo:
+  '20, 19, 18 상단 세 구역을 차례대로(20 → 19 → 18 → 20 → …) 돌면서 총 60다트를 던집니다. '
+      '각 다트마다 현재 타겟에 맞으면 성공으로 기록하고, 1/5 같은 빅 넘버로 새는 비율을 줄이는 것이 목표입니다.',
+  difficulty: DrillDifficulty.normal,
+  uiPattern: DrillUIPattern.segmentTarget,
+  extraConfig: {
+    'segments': ['20', '19', '18'],
+    'totalDarts': 60,
+  },
+);
+
+const TrainingDrillDefinition learner17to15Line = TrainingDrillDefinition(
+  id: 'learner_17_16_15_line',
+  titleKo: '중단 3섹터 루프 (17/16/15)',
+  titleEn: 'Middle 3 Sectors Loop (17/16/15)',
+  shortDescriptionKo: '17/16/15 라인에서 스코어링과 빅미스 감소 연습',
   shortDescriptionEn:
-  'Practice switching between 20 and 19 while reducing big misses.',
+  'Practice scoring on 17/16/15 while reducing big misses.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.learner,
@@ -285,18 +312,46 @@ const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 60,
-  targetLabel: '20 / 19',
+  targetLabel: '17 / 16 / 15',
   guideKo:
-  '1사이클을 “세트1: 20에 3발 → 세트2: 19에 3발”로 보고, 이 사이클을 10번 반복합니다. '
-      '총 60발(= 3다트 × 2세트 × 10사이클)을 던지게 됩니다. '
-      '각 세트마다 목표 숫자(20 또는 19)에 맞춘 개수 또는 점수를 기록하고, '
-      '20/19 히트 분포와 1·5 같은 빅 넘버 비율을 줄여가는 것이 목표입니다.',
+  '17, 16, 15 세 구역을 차례대로(17 → 16 → 15 → 17 → …) 돌면서 총 60다트를 던집니다. '
+      '각 다트마다 현재 타겟에 맞으면 성공으로 기록하고, 빅 넘버나 바깥으로 새는 비율을 줄이는 것이 목표입니다.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.segmentTarget,
   extraConfig: {
-    'segments': ['20', '19'],
-    'cycles': 10,
-    'dartsPerSet': 3,
+    'segments': ['17', '16', '15'],
+    'totalDarts': 60,
+  },
+);
+
+/// 러너용 8R Count-Up (티어 밴드: 350~549)
+const TrainingDrillDefinition learnerStandardCountUp8r =
+TrainingDrillDefinition(
+  id: 'learner_countup_8r_standard',
+  titleKo: '러너 기준 Count-Up 8R',
+  titleEn: 'Learner Standard Count-Up 8R',
+  shortDescriptionKo: '8R Count-Up에서 350~500점 구간을 목표로 하는 러너용 드릴',
+  shortDescriptionEn:
+  '8-round Count-Up drill targeting scores in the 350–500 range.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.learner,
+    maxTier: rating_utils.DaoTrainingTier.learner,
+  ),
+  inputMode: TrainingDrillInputMode.scoreOnly,
+  estimatedMinutes: 8,
+  recommendedDarts: 24,
+  targetLabel: '8R Count-Up (러너 구간)',
+  guideKo:
+  '일반 8라운드 Count-Up을 1게임 플레이한 뒤, 최종 점수만 앱에 입력하는 드릴입니다. '
+      '러너 구간(350~549점)을 기준으로, 350점 → 400점 → 450점 → 500점 순으로 단계 목표를 잡습니다. '
+      '예를 들어 380점을 기록했다면 “350 클리어, 다음 목표 400!”처럼 다음 목표를 정해 연습을 이어가세요.',
+  difficulty: DrillDifficulty.normal,
+  uiPattern: DrillUIPattern.scoreGame,
+  extraConfig: {
+    'gameType': 'countup',
+    'rounds': 8,
+    'targetScores': [350, 400, 450, 500],
   },
 );
 
@@ -304,35 +359,32 @@ const TrainingDrillDefinition learner20to19Switch = TrainingDrillDefinition(
 /// 3. Competitor (컴페티터) 드릴
 /// ===============================
 
-const TrainingDrillDefinition comp20SectorTsd90 = TrainingDrillDefinition(
-  id: 'comp_20_sector_tsd_90',
-  titleKo: '20 섹터(T/S/D) 90발',
-  titleEn: '20 Sector T/S/D x90',
-  shortDescriptionKo:
-  '20섹터 전체(T20/S20/D20)에 90발 던지며 분포와 정확도를 체크하는 드릴',
-  shortDescriptionEn: 'Shoot 90 darts into the 20 sector (T20/S20/D20).',
+const TrainingDrillDefinition compTriple201918 = TrainingDrillDefinition(
+  id: 'comp_triple_20_19_18_line',
+  titleKo: '트리플 루프 (T20/T19/T18)',
+  titleEn: 'Top Triple Loop (T20/T19/T18)',
+  shortDescriptionKo: 'T20 → T19 → T18 트리플 영역을 순환하며 스코어링 전환 리듬을 만드는 연습',
+  shortDescriptionEn:
+  'Loop T20 → T19 → T18 to stabilize scoring transitions.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.competitor,
     maxTier: rating_utils.DaoTrainingTier.competitor,
   ),
   inputMode: TrainingDrillInputMode.hitCount,
-  estimatedMinutes: 15,
-  recommendedDarts: 90,
-  targetLabel: 'T20 / S20 / D20',
+  estimatedMinutes: 12,
+  recommendedDarts: 60, // 20발 × 3섹터
+  targetLabel: 'T20 / T19 / T18',
   guideKo:
-  '20섹터 전체(T20/S20/D20)를 이해하고 분포를 파악하는 드릴입니다. '
-      '예를 들어 T20 30발, D20 30발, S20 30발 순서로 던져 총 90발을 진행합니다. '
-      '각 영역마다 10라운드(1R=3발)로 나누어, 라운드별 히트 수(0~3)를 입력하세요. '
-      '세션이 끝나면 T/S/D 각각의 총 히트 수와 성공률(%)을 확인하며, '
-      '어디에 강점/약점이 있는지 파악하는 것이 목표입니다.',
+  'T20 → T19 → T18 순서로 반복하여 총 60발을 던집니다. '
+      '각 다트마다 명중 여부(0/1)를 입력하며, 트리플 라인 스위칭 시 리듬을 유지하는 것이 핵심입니다. '
+      '끝나면 각 트리플 성공률을 비교하여 본인의 강점과 약점을 파악하세요.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.segmentTarget,
   extraConfig: {
-    'segments': ['T20', 'S20', 'D20'],
-    'totalDarts': 90,
-    'dartsPerRound': 3,
-    'roundsPerSegment': 10,
+    'segments': ['T20', 'T19', 'T18'], // 🔥 수정됨
+    'totalDarts': 60,
+    'loopSize': 3,
   },
 );
 
@@ -435,55 +487,59 @@ const TrainingDrillDefinition compCheckout40to80 = TrainingDrillDefinition(
   recommendedDarts: 60,
   targetLabel: '40~80 Double-Out',
   guideKo:
-  '40, 48, 50, 52, 56, 60, 64, 72, 80 등 실전에서 자주 나오는 숫자들을 대상으로 하는 드릴입니다. '
-      '각 점수마다 최대 6다트 안에 반드시 더블로 마무리해야 하며, '
-      '총 10세트 진행 후 세트별 성공/실패를 기록합니다. '
-      '10세트 중 성공 세트 수와 성공률(%)을 확인하고, '
-      '4~5세트 이상 성공을 1차 목표로 삼을 수 있습니다.',
+  '40~80 점수대를 최대 3다트 안에 더블 아웃으로 마무리하는 실전형 드릴입니다. '
+      '각 세트마다 랜덤 점수가 주어지고, 실제로 점수를 입력하면서 연습합니다. '
+      '총 20세트 진행 후 성공률을 확인하세요!',
   difficulty: DrillDifficulty.hard,
   uiPattern: DrillUIPattern.checkoutRoute,
   extraConfig: {
-    'scores': [40, 48, 50, 52, 56, 60, 64, 72, 80],
-    'maxDartsPerScore': 6,
-    'totalSets': 10,
+    'mode': 'checkout_practice', // 이게 핵심!
+    'minScore': 40,
+    'maxScore': 80,
+    'maxDartsPerSet': 3, // 3다트 제한
+    'totalSets': 20,
+    'requireDoubleOut': true,
   },
 );
 
 const TrainingDrillDefinition compCricket2019 = TrainingDrillDefinition(
   id: 'comp_cricket_20_19',
-  titleKo: 'Cricket 20/19 집중',
-  titleEn: 'Cricket 20 & 19 Focus',
-  shortDescriptionKo: '20, 19만 집중 연습해 크리켓 MPR 2.0을 노리는 드릴',
-  shortDescriptionEn: 'Practice cricket using only 20 and 19 aiming for 2.0 MPR.',
+  titleKo: '크리켓 20↔19 실전 훈련',
+  titleEn: 'Cricket 20↔19 Real Training',
+  shortDescriptionKo: '20과 19만 번갈아 던지며 실전 MPR 2.0+을 노리는 집중 드릴',
+  shortDescriptionEn:
+  'Alternate between 20 and 19 for real-game MPR training.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.competitor,
     maxTier: rating_utils.DaoTrainingTier.competitor,
   ),
   inputMode: TrainingDrillInputMode.cricketMarks,
-  estimatedMinutes: 15,
-  recommendedDarts: 45,
-  targetLabel: 'Cricket 20 & 19 (15R)',
-  guideKo:
-  '20과 19만 사용하는 연습 크리켓을 15라운드 진행합니다. '
-      '각 라운드가 끝날 때마다 이번 3다트로 만든 총 마크 수(0~9)를 입력하세요. '
-      '앱이 자동으로 전체 MPR을 계산해 주며, 평균 2.0 이상을 1차 목표로 합니다.',
+  estimatedMinutes: 10, // ← 15분 → 10분 (8라운드라 더 짧음)
+  recommendedDarts: 24, // ← 45 → 24 (8R × 3다트)
+  targetLabel: '20 ↔ 19 (8R 실전)',
+  guideKo: '실전 크리켓에서 가장 중요한 20과 19만 집중 훈련하는 8라운드 드릴입니다.\n\n'
+      '• 1~7라운드: 20 → 19 → 20 → 19 → 20 → 19 → 20 순서 강제\n'
+      '• 8라운드: 20 또는 19 중 약한 쪽 자유 선택\n\n'
+      '각 라운드마다 3다트로 만든 마크 수를 입력하면 실시간 MPR이 표시됩니다.\n\n'
+      '목표: 평균 MPR 2.0 이상!\n'
+      '2.0 미만이면 20/19 마크 밀도가 부족하다는 뜻!',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.cricketMarks,
   extraConfig: {
-    'cricketNumbers': ['20', '19'],
-    'rounds': 15,
-    'targetMpr': 2.0,
+    // 이제 패널이 알아서 8라운드로 고정 + 20/19 번갈아가며 처리하니까
+    // extraConfig 거의 필요 없음!
   },
 );
 
+/// 컴페티터용 8R Count-Up (티어 밴드: 550~649)
 const TrainingDrillDefinition compCountUpHigh20 = TrainingDrillDefinition(
-  id: 'comp_countup_high20',
-  titleKo: '20 Only Count-Up (600점 도전)',
-  titleEn: 'Count-Up with 20 Only (600+)',
-  shortDescriptionKo: '모든 다트를 20에만 던져 600점(=PPD 25)을 노리는 드릴',
+  id: 'comp_countup_high20', // 🔹 id는 그대로 두고 내용만 변경
+  titleKo: '컴페티터 기준 Count-Up 8R',
+  titleEn: 'Competitor Standard Count-Up 8R',
+  shortDescriptionKo: '8R Count-Up에서 550~650점 구간을 노리는 컴페티터용 드릴',
   shortDescriptionEn:
-  'Throw only at 20 in Count-Up and aim for 600+ points.',
+  '8-round Count-Up drill targeting scores in the 550–650 range.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.competitor,
@@ -492,19 +548,17 @@ const TrainingDrillDefinition compCountUpHigh20 = TrainingDrillDefinition(
   inputMode: TrainingDrillInputMode.scoreOnly,
   estimatedMinutes: 8,
   recommendedDarts: 24,
-  targetLabel: '20 Only Count-Up (8R)',
+  targetLabel: '8R Count-Up (컴페티터 구간)',
   guideKo:
-  '8라운드 동안 모든 다트를 20에만 던지는 Count-Up입니다. '
-      '게임이 끝나면 최종 점수만 앱에 입력하세요. '
-      '600점(= 다트당 평균 25점) 이상을 1차 목표로 하고, '
-      '기존 최고 점수를 갱신하는 식으로 동기부여를 만들 수 있습니다.',
+  '일반 8라운드 Count-Up을 1게임 플레이한 뒤, 최종 점수만 앱에 입력하는 드릴입니다. '
+      '컴페티터 구간(550~649점)을 기준으로, 550점 → 600점 → 650점 순으로 단계 목표를 잡습니다. '
+      '예를 들어 580점을 기록했다면 “550 클리어, 다음 목표 600!”처럼 다음 목표를 정해 연습을 이어가세요.',
   difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.scoreGame,
   extraConfig: {
-    'gameType': 'countup_fixed_sector',
+    'gameType': 'countup',       // ✅ 일반 Count-Up
     'rounds': 8,
-    'fixedSector': 20,
-    'targetScore': 600,
+    'targetScores': [550, 600, 650],
   },
 );
 
@@ -548,8 +602,7 @@ TrainingDrillDefinition(
   id: 'chall_checkout_60_100_random',
   titleKo: '60~100 랜덤 체크아웃',
   titleEn: 'Random Checkout 60–100',
-  shortDescriptionKo:
-  '60~100 점수대를 랜덤으로 받아 더블 아웃 성공률을 끌어올리는 드릴',
+  shortDescriptionKo: '60~100 점수대를 랜덤으로 받아 더블 아웃 성공률을 끌어올리는 드릴',
   shortDescriptionEn:
   'Randomly practice double-out finishes between 60 and 100.',
   category: TrainingDrillCategory.finish,
@@ -557,22 +610,23 @@ TrainingDrillDefinition(
     minTier: rating_utils.DaoTrainingTier.challenger,
     maxTier: rating_utils.DaoTrainingTier.challenger,
   ),
-  inputMode: TrainingDrillInputMode.hitCount,
+  inputMode: TrainingDrillInputMode.hitCount, // ✅ 세트 성공/실패 카운트에 잘 맞는 모드
   estimatedMinutes: 25,
-  recommendedDarts: 150,
+  recommendedDarts: 180, // (참고용, 실제 진행은 totalSets 기준)
   targetLabel: '60~100 Double-Out (랜덤)',
   guideKo:
-  '앱이 60~100 사이 점수를 랜덤으로 제시하면, 각 세트마다 최대 6다트 안에 더블 아웃을 시도합니다. '
-      '세트별로 성공/실패만 기록하고, 30세트 진행 후 총 성공 세트 수와 성공률(%)을 확인합니다. '
-      '실전 3레그·5레그 기준으로도 충분히 체감될 만큼의 반복 훈련을 목표로 합니다.',
+  '60~100 사이 점수를 랜덤으로 받아 최대 6다트 안에 더블 아웃을 시도합니다. '
+      '실제로 점수를 입력하면서 남은 점수를 보고 연습하는 실전형 드릴입니다. '
+      '총 30세트 진행 후 성공률을 확인하세요!',
   difficulty: DrillDifficulty.hard,
   uiPattern: DrillUIPattern.checkoutRoute,
   extraConfig: {
-    'mode': 'random_range',
+    'mode': 'checkout_practice', // ✅ 여기 때문에 CheckoutPracticePanel로 연결됨
     'minScore': 60,
     'maxScore': 100,
-    'maxDartsPerScore': 6,
+    'maxDartsPerSet': 6,
     'totalSets': 30,
+    'requireDoubleOut': true,
   },
 );
 
@@ -664,33 +718,29 @@ const TrainingDrillDefinition challT20Focus60 = TrainingDrillDefinition(
 
 const TrainingDrillDefinition challCricketFull = TrainingDrillDefinition(
   id: 'chall_cricket_full_20_15_bull',
-  titleKo: 'Cricket 풀 MPR 드릴',
-  titleEn: 'Full Cricket MPR Drill',
-  shortDescriptionKo:
-  '20~15 + Bull 풀 보드 크리켓에서 MPR 2.2~2.5 구간을 노리는 드릴',
-  shortDescriptionEn: 'Full-board cricket drill aiming for 2.2–2.5 MPR.',
+  titleKo: '크리켓 8R 실전 훈련',
+  titleEn: 'Cricket 8R Real Training',
+  shortDescriptionKo: '20→Bull 순서 + 마지막 자유 라운드로 실전 MPR을 끌어올리는 드릴',
+  shortDescriptionEn:
+  '7 fixed rounds + 1 free round to build real cricket MPR.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.challenger,
     maxTier: rating_utils.DaoTrainingTier.challenger,
   ),
   inputMode: TrainingDrillInputMode.cricketMarks,
-  estimatedMinutes: 18,
-  recommendedDarts: 45,
-  targetLabel: 'Cricket 20–15 + Bull (15R)',
-  guideKo:
-  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀 보드 크리켓 연습입니다. '
-      '총 15라운드를 진행하며, 각 라운드가 끝날 때마다 이번 3다트로 만든 총 마크 수(0~9)를 입력합니다. '
-      '앱이 평균 MPR을 계산해 주고, 2.2~2.5 구간에 있는지 체크합니다. '
-      '2.2에 못 미치면 마크 밀도가 부족한 것으로 보고, '
-      '2.5를 넘기면 상위 챌린저~엘리트 진입 구간으로 볼 수 있습니다.',
-  difficulty: DrillDifficulty.hard,
+  estimatedMinutes: 10, // ← 15분 → 10분으로 변경 (8R이라 더 짧음)
+  recommendedDarts: 24, // ← 45 → 24로 변경 (8R × 3다트)
+  targetLabel: 'Cricket 8R (20→Bull + 자유)',
+  guideKo: '실전과 똑같은 8라운드 크리켓 훈련입니다.\n\n'
+      '• 1~7라운드: 20 → 19 → 18 → 17 → 16 → 15 → Bull 순서로 강제 진행\n'
+      '• 8라운드: 원하는 숫자 자유 선택 (약점 보완)\n'
+      '각 라운드마다 3다트로 만든 마크 수를 입력하면 실시간 MPR이 계산됩니다.\n\n'
+      '목표: 평균 MPR 2.4 이상!',
+  difficulty: DrillDifficulty.normal,
   uiPattern: DrillUIPattern.cricketMarks,
   extraConfig: {
-    'cricketNumbers': ['20', '19', '18', '17', '16', '15', 'Bull'],
-    'rounds': 15,
-    'targetMprMin': 2.2,
-    'targetMprMax': 2.5,
+    // 패널이 8R 고정 처리
   },
 );
 
@@ -762,12 +812,12 @@ const TrainingDrillDefinition eliteT20Precision60 = TrainingDrillDefinition(
 const TrainingDrillDefinition eliteT20T19TripleSwitch =
 TrainingDrillDefinition(
   id: 'elite_t20_t19_triple_switch',
-  titleKo: 'T20 ↔ T19 트리플 스위치',
-  titleEn: 'T20 ↔ T19 Triple Switch',
+  titleKo: 'T20/T19/T18 트리플 루프',
+  titleEn: 'T20–T19–T18 Triple Loop',
   shortDescriptionKo:
-  'T20→T20→T19 패턴으로 스위칭하면서도 트리플을 유지하는 능력을 기르는 드릴',
+  'T20 → T19 → T18을 반복하며 상단 트리플 3구역을 동시에 끌어올리는 엘리트용 드릴',
   shortDescriptionEn:
-  'Practice switching between T20 and T19 while keeping triple accuracy.',
+  'Elite triple loop drill cycling through T20, T19 and T18 to balance high scoring.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.elite,
@@ -776,17 +826,24 @@ TrainingDrillDefinition(
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 18,
   recommendedDarts: 90,
-  targetLabel: 'T20 / T19 트리플',
+  targetLabel: 'T20 / T19 / T18 트리플',
   guideKo:
-  '1세트 = 3다트, 1·2번째 다트는 T20, 3번째 다트는 T19를 노립니다. '
-      '이 패턴으로 총 30세트(=90발)를 진행합니다. 세션이 끝난 뒤, T20 트리플 개수와 T19 트리플 개수를 각각 버튼으로 입력하여 '
-      '총 트리플 개수(T20+T19)를 기록합니다. 30세트 기준 총 30개(세트당 평균 1개) 이상을 1차 목표로 삼고, '
-      '세트당 평균 트리플 수를 % 형태(달성률)로 확인할 수 있습니다.',
+  'T20, T19, T18 세 트리플을 순서대로 노리며 상단 스코어링 밸런스를 맞추는 엘리트용 드릴입니다.\n\n'
+      '• 1세트 = 3다트\n'
+      '  ‣ 1발째: T20 트리플\n'
+      '  ‣ 2발째: T19 트리플\n'
+      '  ‣ 3발째: T18 트리플\n\n'
+      '이 패턴으로 총 30세트(= 90발)를 진행하면서, 각 다트가 해당 타겟 트리플에 들어가면 성공으로 기록합니다.\n'
+      '세션이 끝난 뒤, 기록된 총 트리플 개수(T20+T19+T18)를 기준으로\n'
+      '• 30개 미만  → “목표 미달(세트당 1개 이하)”\n'
+      '• 30~40개    → “엘리트 기준 도달(세트당 평균 1.0~1.3개)”\n'
+      '• 40개 이상  → “상위 엘리트 존”\n'
+      '같은 피드백을 줄 수 있습니다.',
   difficulty: DrillDifficulty.hard,
   uiPattern: DrillUIPattern.segmentTarget,
   extraConfig: {
-    'patternDescription': '1~2발 T20, 3발 T19',
-    'segments': ['T20', 'T19'],
+    'patternDescription': '1발 T20, 2발 T19, 3발 T18',
+    'segments': ['T20', 'T19', 'T18'],
     'sets': 30,
     'dartsPerSet': 3,
     'totalDarts': 90,
@@ -900,32 +957,62 @@ TrainingDrillDefinition(
 const TrainingDrillDefinition eliteCricketPowerMarks15r =
 TrainingDrillDefinition(
   id: 'elite_cricket_power_marks_15r',
-  titleKo: 'Cricket 파워 15R (마크 드릴)',
-  titleEn: 'Cricket Power 15R (Marks)',
+  titleKo: 'Cricket 파워 8R (마크 드릴)',
+  titleEn: 'Cricket Power 8R (Marks)',
   shortDescriptionKo:
-  '풀 크리켓(20~15 + Bull)에서 MPR 2.8~3.0 수준을 노리는 엘리트용 마크 드릴',
+  '풀 크리켓(20~15 + Bull)에서 MPR 2.8~3.0 수준을 노리는 엘리트용 8R 마크 드릴',
   shortDescriptionEn:
-  'Full-board cricket marks drill aiming for 2.8–3.0 MPR.',
+  'Full-board cricket marks drill (8 rounds) aiming for 2.8–3.0 MPR.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.elite,
     maxTier: rating_utils.DaoTrainingTier.elite,
   ),
   inputMode: TrainingDrillInputMode.cricketMarks,
-  estimatedMinutes: 18,
-  recommendedDarts: 45,
-  targetLabel: 'Full Cricket (15R, MPR 2.8~3.0)',
+  estimatedMinutes: 10, // 15 → 10 (8R라 더 짧게)
+  recommendedDarts: 24, // 45 → 24 (8R × 3다트)
+  targetLabel: 'Full Cricket (8R, MPR 2.8~3.0)',
   guideKo:
-  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀 보드 크리켓을 15라운드 진행합니다. '
+  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀 보드 크리켓을 8라운드 진행합니다. '
       '각 라운드가 끝날 때 이번 3다트로 만든 총 마크 수(0~9)를 입력하면, 앱이 평균 MPR을 자동으로 계산합니다. '
       '평균 2.8~3.0 구간이면 “엘리트 파워 마크 유지 중”, 2.8 미만이면 “마크 밀도 보완 필요”와 같은 피드백을 줄 수 있습니다.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.cricketMarks,
   extraConfig: {
     'cricketNumbers': ['20', '19', '18', '17', '16', '15', 'Bull'],
-    'rounds': 15,
+    'rounds': 8, // 15 → 8
     'targetMprMin': 2.8,
     'targetMprMax': 3.0,
+  },
+);
+
+/// 엘리트용 8R Count-Up (티어 밴드: 750~899)
+const TrainingDrillDefinition eliteCountUp8r = TrainingDrillDefinition(
+  id: 'elite_countup_8r',
+  titleKo: '엘리트 Count-Up 8R',
+  titleEn: 'Elite Count-Up 8R',
+  shortDescriptionKo: '8R Count-Up에서 750~880점대를 노리는 엘리트용 드릴',
+  shortDescriptionEn:
+  '8-round Count-Up drill targeting 750–880 points for elite players.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.elite,
+    maxTier: rating_utils.DaoTrainingTier.elite,
+  ),
+  inputMode: TrainingDrillInputMode.scoreOnly,
+  estimatedMinutes: 8,
+  recommendedDarts: 24,
+  targetLabel: '8R Count-Up (엘리트 구간)',
+  guideKo:
+  '일반 8라운드 Count-Up을 1게임 플레이하고, 최종 점수만 앱에 입력하는 드릴입니다. '
+      '엘리트 구간(750~899점) 기준으로, 750점 → 820점 → 880점 같은 단계 목표를 제공합니다. '
+      '이전 기록과 비교하여 “엘리트 구간 유지/이탈/상승” 같은 피드백을 확인할 수 있습니다.',
+  difficulty: DrillDifficulty.hard,
+  uiPattern: DrillUIPattern.scoreGame,
+  extraConfig: {
+    'gameType': 'countup',
+    'rounds': 8,
+    'milestones': [750, 820, 880],
   },
 );
 
@@ -933,8 +1020,7 @@ TrainingDrillDefinition(
 /// 6. Pro (프로) 드릴
 /// ===============================
 
-const TrainingDrillDefinition pro501Standard18darts =
-TrainingDrillDefinition(
+const TrainingDrillDefinition pro501Standard18darts = TrainingDrillDefinition(
   id: 'pro_501_standard_18darts',
   titleKo: '501 Double-Out 18다트 스탠다드',
   titleEn: '501 Double-Out 18 Darts Standard',
@@ -969,7 +1055,8 @@ const TrainingDrillDefinition proT20_90Darts = TrainingDrillDefinition(
   id: 'pro_t20_90_darts',
   titleKo: 'T20 집중 90발',
   titleEn: 'T20 Focus 90 Darts',
-  shortDescriptionKo: 'T20 90발에서 트리플 성공률 40%를 목표로 하는 프로용 스코어링 드릴',
+  shortDescriptionKo:
+  'T20 90발에서 트리플 성공률 40%를 목표로 하는 프로용 스코어링 드릴',
   shortDescriptionEn:
   'Throw 90 darts at T20 aiming for 40% triple hit rate.',
   category: TrainingDrillCategory.scoring,
@@ -1033,30 +1120,30 @@ const TrainingDrillDefinition proHighFinishSet8 = TrainingDrillDefinition(
 
 const TrainingDrillDefinition proCricketHighMpr15r = TrainingDrillDefinition(
   id: 'pro_cricket_high_mpr_marks_15r',
-  titleKo: 'Cricket 상위 MPR 15R',
-  titleEn: 'High MPR Cricket 15R',
+  titleKo: 'Cricket 상위 MPR 8R',
+  titleEn: 'High MPR Cricket 8R',
   shortDescriptionKo:
-  '풀 크리켓에서 MPR 3.4~3.8 수준을 겨냥하는 프로용 마크 드릴',
+  '풀 크리켓에서 MPR 3.4~3.8 수준을 겨냥하는 프로용 8R 마크 드릴',
   shortDescriptionEn:
-  'Full-board cricket marks drill aiming for 3.4–3.8 MPR.',
+  'Full-board cricket marks drill (8 rounds) aiming for 3.4–3.8 MPR.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.pro,
     maxTier: rating_utils.DaoTrainingTier.pro,
   ),
   inputMode: TrainingDrillInputMode.cricketMarks,
-  estimatedMinutes: 18,
-  recommendedDarts: 45,
-  targetLabel: 'Full Cricket (15R, MPR 3.4~3.8)',
+  estimatedMinutes: 10,
+  recommendedDarts: 24,
+  targetLabel: 'Full Cricket (8R, MPR 3.4~3.8)',
   guideKo:
-  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀 크리켓을 15라운드 진행합니다. '
+  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀 크리켓을 8라운드 진행합니다. '
       '각 라운드가 끝날 때 이번 3다트로 만든 총 마크 수(0~9)를 입력하면, 앱이 평균 MPR을 자동 계산합니다. '
       '평균 3.4~3.8 구간이면 “프로 기준 달성”, 그보다 낮으면 어느 정도 마크 밀도가 부족한지 확인하는 지표로 활용할 수 있습니다.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.cricketMarks,
   extraConfig: {
     'cricketNumbers': ['20', '19', '18', '17', '16', '15', 'B'],
-    'rounds': 15,
+    'rounds': 8, // 15 → 8
     'targetMprMin': 3.4,
     'targetMprMax': 3.8,
   },
@@ -1123,6 +1210,36 @@ TrainingDrillDefinition(
     'totalSets': 30,
     'hintTargetSuccessRateMin': 0.4,
     'hintTargetSuccessRateMax': 0.6,
+  },
+);
+
+/// 프로용 8R Count-Up (티어 밴드: 900~999)
+const TrainingDrillDefinition proCountUp8r = TrainingDrillDefinition(
+  id: 'pro_countup_8r',
+  titleKo: '프로 Count-Up 8R',
+  titleEn: 'Pro Count-Up 8R',
+  shortDescriptionKo: '8R Count-Up에서 900~1000점대를 노리는 프로용 드릴',
+  shortDescriptionEn:
+  '8-round Count-Up drill targeting 900–1000+ points for pro players.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.pro,
+    maxTier: rating_utils.DaoTrainingTier.pro,
+  ),
+  inputMode: TrainingDrillInputMode.scoreOnly,
+  estimatedMinutes: 8,
+  recommendedDarts: 24,
+  targetLabel: '8R Count-Up (프로 구간)',
+  guideKo:
+  '일반 8라운드 Count-Up을 1게임 플레이하고, 최종 점수만 앱에 입력하는 드릴입니다. '
+      '프로 구간(900~999점)을 기준으로, 900점 → 950점 → 1000점 같은 단계 목표를 제공합니다. '
+      '1000점 이상 기록 시 “마스터 밴드 진입” 같은 메시지로 상위 구간 도전 욕구를 자극할 수 있습니다.',
+  difficulty: DrillDifficulty.veryHard,
+  uiPattern: DrillUIPattern.scoreGame,
+  extraConfig: {
+    'gameType': 'countup',
+    'rounds': 8,
+    'milestones': [900, 950, 1000],
   },
 );
 
@@ -1200,25 +1317,26 @@ TrainingDrillDefinition(
   },
 );
 
-const TrainingDrillDefinition masterCricket4mpr15r = TrainingDrillDefinition(
+const TrainingDrillDefinition masterCricket4mpr15r =
+TrainingDrillDefinition(
   id: 'master_cricket_4mpr_15r',
-  titleKo: 'Cricket 4.0+ MPR (15R)',
-  titleEn: 'Cricket 4.0+ MPR (15R)',
+  titleKo: 'Cricket 4.0+ MPR (8R)',
+  titleEn: 'Cricket 4.0+ MPR (8R)',
   shortDescriptionKo:
-  '풀 크리켓에서 평균 MPR 4.0 이상을 노리는 마스터 레벨 마크 드릴',
+  '풀 크리켓에서 평균 MPR 4.0 이상을 노리는 마스터 레벨 8R 마크 드릴',
   shortDescriptionEn:
-  'Master-level full-board cricket drill aiming for 4.0+ MPR.',
+  'Master-level full-board cricket drill (8 rounds) aiming for 4.0+ MPR.',
   category: TrainingDrillCategory.scoring,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.master,
     maxTier: rating_utils.DaoTrainingTier.master,
   ),
   inputMode: TrainingDrillInputMode.cricketMarks,
-  estimatedMinutes: 18,
-  recommendedDarts: 45,
-  targetLabel: 'Full Cricket (15R, MPR 4.0+)',
+  estimatedMinutes: 10,
+  recommendedDarts: 24,
+  targetLabel: 'Full Cricket (8R, MPR 4.0+)',
   guideKo:
-  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀보드 크리켓을 15라운드 진행합니다. '
+  '20, 19, 18, 17, 16, 15, Bull을 모두 사용하는 풀보드 크리켓을 8라운드 진행합니다. '
       '각 라운드가 끝날 때 이번 라운드에서 만든 총 마크 수(0~9)를 입력하면, 앱이 평균 MPR을 계산합니다. '
       '평균 MPR이 4.0 이상일 때만 “마스터 기준 도달” 배지나 메시지를 제공하고, '
       '그 아래 구간에서는 어떤 구간(20~15, Bull)에서 마크가 부족한지 스스로 체크하는 용도로 활용할 수 있습니다.',
@@ -1226,12 +1344,13 @@ const TrainingDrillDefinition masterCricket4mpr15r = TrainingDrillDefinition(
   uiPattern: DrillUIPattern.cricketMarks,
   extraConfig: {
     'cricketNumbers': ['20', '19', '18', '17', '16', '15', 'B'],
-    'rounds': 15,
+    'rounds': 8, // 15 → 8
     'targetMprMin': 4.0,
   },
 );
 
-const TrainingDrillDefinition masterBullPrecision90 = TrainingDrillDefinition(
+const TrainingDrillDefinition masterBullPrecision90 =
+TrainingDrillDefinition(
   id: 'master_bull_precision_90',
   titleKo: 'Bull 정밀 90발',
   titleEn: 'Bull Precision 90 Darts',
@@ -1263,6 +1382,36 @@ const TrainingDrillDefinition masterBullPrecision90 = TrainingDrillDefinition(
   },
 );
 
+/// 마스터용 8R Count-Up (티어 밴드: 1000+)
+const TrainingDrillDefinition masterCountUp8r = TrainingDrillDefinition(
+  id: 'master_countup_8r',
+  titleKo: '마스터 Count-Up 8R',
+  titleEn: 'Master Count-Up 8R',
+  shortDescriptionKo: '8R Count-Up에서 1000~1200+ 점대를 노리는 마스터용 드릴',
+  shortDescriptionEn:
+  '8-round Count-Up drill targeting 1000–1200+ points for master level.',
+  category: TrainingDrillCategory.scoring,
+  tierRange: DrillTierRange(
+    minTier: rating_utils.DaoTrainingTier.master,
+    maxTier: rating_utils.DaoTrainingTier.master,
+  ),
+  inputMode: TrainingDrillInputMode.scoreOnly,
+  estimatedMinutes: 8,
+  recommendedDarts: 24,
+  targetLabel: '8R Count-Up (마스터 구간)',
+  guideKo:
+  '일반 8라운드 Count-Up을 1게임 플레이하고, 최종 점수만 앱에 입력하는 드릴입니다. '
+      '1000점 → 1100점 → 1200점 같은 단계 목표를 제시하여, 마스터 구간에서 자신의 피크 스코어를 끌어올리는 데 사용합니다. '
+      '1000점을 안정적으로 넘기기 시작하면, 이후에는 1100, 1200 이상의 기록을 “개인 베스트 갱신”으로 관리할 수 있습니다.',
+  difficulty: DrillDifficulty.veryHard,
+  uiPattern: DrillUIPattern.scoreGame,
+  extraConfig: {
+    'gameType': 'countup',
+    'rounds': 8,
+    'milestones': [1000, 1100, 1200],
+  },
+);
+
 /// ===============================
 /// 티어별 드릴 매핑
 /// ===============================
@@ -1278,12 +1427,15 @@ kTrainingDrillsByTier = {
     beginnerLooseCountUp,
   ],
   rating_utils.DaoTrainingTier.learner: [
+    learnerStandardCountUp8r,
     learnerSingle20x60,
     learnerTopBottomAdvanced,
     learner20to19Switch,
+    learner17to15Line,
+    learnerStandardCountUp8r,
   ],
   rating_utils.DaoTrainingTier.competitor: [
-    comp20SectorTsd90,
+    compTriple201918,
     compDoubleClockHalf,
     compDoubleClockBack,
     compCheckout40to80,
@@ -1305,6 +1457,7 @@ kTrainingDrillsByTier = {
     eliteDoubleClusterD16D20,
     elite501PressureFinish,
     eliteCricketPowerMarks15r,
+    eliteCountUp8r,
   ],
   rating_utils.DaoTrainingTier.pro: [
     pro501Standard18darts,
@@ -1313,12 +1466,14 @@ kTrainingDrillsByTier = {
     proCricketHighMpr15r,
     proBull90,
     proClutchDouble2Darts30x,
+    proCountUp8r,
   ],
   rating_utils.DaoTrainingTier.master: [
     masterT20_120Darts,
     master170RouteFocused30,
     masterCricket4mpr15r,
     masterBullPrecision90,
+    masterCountUp8r,
   ],
 };
 
