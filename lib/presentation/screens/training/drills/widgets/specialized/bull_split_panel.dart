@@ -1,10 +1,18 @@
-// lib/presentation/screens/training/drills/widgets/specialized/bull_split_panel.dart
-
 import 'package:flutter/material.dart';
 
 /// Bull N발 – SBull / DBull / MISS를 나눠서 기록하는 패널
 class BullSplitPanel extends StatefulWidget {
+  /// 상단 제목 (예: "Bull 컨트롤 90발")
+  final String title;
+
+  /// 전체 던질 다트 수 (예: 60, 90)
   final int totalDarts;
+
+  /// 목표 SBull+DBull 개수 (없으면 표시 안 함)
+  final int? targetSbPlusDb;
+
+  /// 목표 DBull 개수 (없으면 표시 안 함)
+  final int? targetDb;
 
   /// 저장/네트워크 작업 중 비활성화 용
   final bool isBusy;
@@ -23,7 +31,10 @@ class BullSplitPanel extends StatefulWidget {
 
   const BullSplitPanel({
     super.key,
+    required this.title,
     required this.totalDarts,
+    this.targetSbPlusDb,
+    this.targetDb,
     this.isBusy = false,
     this.onProgress,
     this.onCompleted,
@@ -90,6 +101,12 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
   @override
   Widget build(BuildContext context) {
     final hitRatePercent = (_hitRate * 100).toStringAsFixed(1);
+    final totalTargetText = widget.targetSbPlusDb != null
+        ? '목표 Bull 적중: ${widget.targetSbPlusDb} / ${widget.totalDarts}'
+        : null;
+    final dbTargetText = widget.targetDb != null
+        ? '목표 DBull: ${widget.targetDb} / ${widget.totalDarts}'
+        : null;
 
     return Container(
       width: double.infinity,
@@ -108,15 +125,18 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Bull 60발 – SBull / DBull 분리 기록',
-            style: TextStyle(
+          // 🔹 상단 제목 + 총 다트 수
+          Text(
+            widget.title.isNotEmpty
+                ? widget.title
+                : 'Bull ${widget.totalDarts}발 – SBull / DBull 분리 기록',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             '던진 다트: $_thrownDarts / ${widget.totalDarts}',
             style: TextStyle(
@@ -125,7 +145,7 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
@@ -139,9 +159,51 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
 
-          // ✅ 통계 칩 – Row + Expanded 로 폭 고정해서 출렁임 최소화
+          const SizedBox(height: 10),
+
+          // 🔹 목표치 안내 (있을 때만)
+          if (totalTargetText != null || dbTargetText != null) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (totalTargetText != null)
+                  Flexible(
+                    child: Text(
+                      totalTargetText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+            if (dbTargetText != null) ...[
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      dbTargetText,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 6),
+          ],
+
+          // ✅ 통계 칩 – Row + Expanded
           Row(
             children: [
               Expanded(

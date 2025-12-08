@@ -92,19 +92,19 @@
 │   │   │   │   │   ├── fireworks_effect.dart
 │   │   │   │   │   ├── neon_glow_effect.dart
 │   │   │   │       ├──specialized/
+│   │   │   │   │   ├── around_board_panel.dart
+│   │   │   │   │   ├── bull_split_panel.dart
+│   │   │   │   │   ├── checkout_practice_panel.dart
+│   │   │   │   │   ├── countup_round_score_panel.dart
 │   │   │   │   │   ├── double_clock_panel.dart
 │   │   │   │   │   ├── fixed_route_panel.dart
-│   │   │   │   │   ├── full_cricket_panel.dart
-│   │   │   │   │   ├── random_checkout_panel.dart
-│   │   │   │   │   ├── t20_focus_panel.dart
-│   │   │   │   │   ├── sector_cycle_panel.dart
+│   │   │   │   │   ├── full_cricket_training_panel.dart
+│   │   │   │   │   ├── quadrant_board_panel.dart
+│   │   │   │   │   ├── score_game_multi_set_panel.dart
 │   │   │   │   │   ├── score_game_panel.dart
-
-countup_round_score_panel.dart
-
-twenty_nineteen_switch_panel.dart
-twenty_sector_tsd_panel.dart
-triple_switch_panel.dart
+│   │   │   │   │   ├── sector_cycle_panel.dart
+│   │   │   │   │   ├── t20_focus_panel.dart
+│   │   │   │   │   ├── top_bottom_board_panel.dart
 │   │   │   │   ├── drill_result_screen.dart
 │   │   │   │   ├── drill_run_screen.dart
 │   │   │   ├── history/    

@@ -1,5 +1,6 @@
 // lib/presentation/screens/admin/point_award_list_screen.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
@@ -7,8 +8,8 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/point_record_repository.dart';
 import 'package:daoapp/data/models/point_record_model.dart';
-import 'point_edit_screen.dart'; // ← 추가!
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'point_edit_screen.dart';
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class PointAwardListScreen extends StatefulWidget {
   const PointAwardListScreen({super.key});
@@ -23,6 +24,8 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
   DateTime? _selectedDay;
   Map<DateTime, List<PointRecord>> _events = {};
 
+  StreamSubscription<List<PointRecord>>? _subscription;
+
   @override
   void initState() {
     super.initState();
@@ -30,16 +33,25 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
     _loadAllPointEvents();
   }
 
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadAllPointEvents() async {
     final repo = sl<PointRecordRepository>();
 
-    repo.getAllPointRecords().listen((records) {
+    _subscription = repo.getAllPointRecords().listen((records) {
       final Map<DateTime, List<PointRecord>> events = {};
+
       for (var record in records) {
         final date = record.date;
         final key = DateTime(date.year, date.month, date.day);
         events.putIfAbsent(key, () => []).add(record);
       }
+
+      if (!mounted) return;
       setState(() => _events = events);
     });
   }
@@ -53,7 +65,7 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: CommonAppBar(
+      appBar: const CommonAppBar(
         title: '포인트 관리',
         showBackButton: true,
       ),
@@ -74,7 +86,7 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                   _focusedDay = focusedDay;
                 });
               },
-              onFormatChanged: null, // 터치해도 안 바뀜!
+              onFormatChanged: null,
               onPageChanged: (focusedDay) => _focusedDay = focusedDay,
               eventLoader: _getEventsForDay,
               headerStyle: const HeaderStyle(
@@ -130,24 +142,31 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
 
                 return AppCard(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding:
+                    const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
                       children: [
                         // 한글 이름 + 영문 이름
                         Expanded(
                           flex: 4,
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
                             children: [
                               Text(
                                 record.koreanName,
-                                style: theme.textTheme.titleMedium,
+                                style:
+                                theme.textTheme.titleMedium,
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
                               Text(
                                 record.englishName,
-                                style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                                style: theme
+                                    .textTheme.bodySmall
+                                    ?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
@@ -160,51 +179,68 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
                           child: SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment:
+                              MainAxisAlignment.end,
                               children: [
-                                // 포인트
                                 FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
                                     '+${record.points}pt',
                                     style: const TextStyle(
                                       fontSize: 15,
-                                      fontWeight: FontWeight.bold,
+                                      fontWeight:
+                                      FontWeight.bold,
                                       color: Colors.green,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                // 수정 버튼 → PointEditScreen으로 이동
                                 SizedBox(
                                   width: 26,
                                   height: 26,
                                   child: IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.blue, size: 14),
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                      size: 14,
+                                    ),
                                     padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
+                                    constraints:
+                                    const BoxConstraints(),
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => PointEditScreen(
-                                            record: record,
-                                            oldPoints: record.points,
-                                          ),
+                                          builder: (_) =>
+                                              PointEditScreen(
+                                                record: record,
+                                                oldPoints:
+                                                record.points,
+                                              ),
                                         ),
                                       );
                                     },
                                   ),
                                 ),
-                                // 삭제 버튼
                                 SizedBox(
                                   width: 26,
                                   height: 26,
                                   child: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red, size: 14),
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                      size: 14,
+                                    ),
                                     padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    onPressed: () => _deletePoint(context, record.id!, record.userId, record.points),
+                                    constraints:
+                                    const BoxConstraints(),
+                                    onPressed: () =>
+                                        _deletePoint(
+                                          context,
+                                          record.id!,
+                                          record.userId,
+                                          record.points,
+                                        ),
                                   ),
                                 ),
                               ],
@@ -223,25 +259,36 @@ class _PointAwardListScreenState extends State<PointAwardListScreen> {
     );
   }
 
-  void _deletePoint(BuildContext context, String recordId, String userId, int points) {
+  void _deletePoint(
+      BuildContext context, String recordId, String userId, int points) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('포인트 삭제'),
         content: const Text('정말 삭제하시겠어요?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () async {
-              await sl<PointRecordRepository>().deletePointRecord(recordId, userId, points);
+              await sl<PointRecordRepository>()
+                  .deletePointRecord(recordId, userId, points);
               if (mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('삭제 완료'), backgroundColor: Colors.red),
+                  const SnackBar(
+                    content: Text('삭제 완료'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               }
             },
-            child: const Text('삭제', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              '삭제',
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),

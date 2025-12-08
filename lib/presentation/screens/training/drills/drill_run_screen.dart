@@ -24,7 +24,8 @@ import 'widgets/specialized/around_board_panel.dart';
 import 'widgets/specialized/countup_round_score_panel.dart';
 import 'widgets/specialized/sector_cycle_panel.dart';
 import 'widgets/specialized/full_cricket_training_panel.dart';
-import 'widgets/specialized/bull_split_panel.dart'; // ✅ Bull 분리 패널
+import 'widgets/specialized/bull_split_panel.dart';
+import 'widgets/specialized/score_game_multi_set_panel.dart';
 
 class DrillRunScreen extends ConsumerStatefulWidget {
   final TrainingDrillDefinition drill;
@@ -80,6 +81,40 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
   int _calculateTotalPlannedDarts() {
     final extra = widget.drill.extraConfig ?? {};
     final mode = extra['mode'] as String?;
+    final gameType = extra['gameType'] as String?;
+    final targetArea = extra['targetArea'] as String?;
+
+    // ✅ Bull SBull/DBull 분리 기록 드릴
+    if (targetArea == 'bull_split') {
+      if (extra['totalDarts'] is num) {
+        return (extra['totalDarts'] as num).toInt(); // 예: 60, 90
+      }
+      if (widget.drill.recommendedDarts != null &&
+          widget.drill.recommendedDarts! > 0) {
+        return widget.drill.recommendedDarts!;
+      }
+      return 60; // fallback
+    }
+
+    // ✅ 0) 501 멀티 세트 드릴: "세트 수" 기준으로 진행률 계산
+    if (widget.drill.inputMode == TrainingDrillInputMode.scoreOnly &&
+        gameType != null &&
+        gameType.startsWith('501_multi')) {
+      final totalSets =
+          (extra['totalSets'] as num?)?.toInt() ??
+              (extra['suggestedSets'] as num?)?.toInt() ??
+              10; // 기본 10세트
+      return totalSets;
+    }
+
+    // ✅ 0) 세그먼트 + dartsPerSegment 기반 드릴 (예: D16/D20 각 60발)
+    if (extra['segments'] is List && extra['dartsPerSegment'] is num) {
+      final segments = (extra['segments'] as List).length;
+      final perSeg = (extra['dartsPerSegment'] as num).toInt();
+      if (segments > 0 && perSeg > 0) {
+        return segments * perSeg;
+      }
+    }
 
     // ✅ 1) 체크아웃 연습: "세트 수" 기준으로 진행률 계산
     if (mode == 'checkout_practice') {
@@ -207,6 +242,9 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
     setState(() => _isFinishing = true);
 
     try {
+      // ✅ 어떤 패널이든 finish 전에 세션은 반드시 시작
+      await _ensureSessionStarted();
+
       await ref.read(trainingDrillProvider.notifier).finishSession(
         inputMode: widget.drill.inputMode,
         totalRounds: _currentRound,
@@ -261,6 +299,7 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
     final isBusy = _isStartingSession || _isFinishing;
     final extra = widget.drill.extraConfig ?? {};
     final mode = extra['mode'] as String?;
+    final targetArea = extra['targetArea'] as String?; // 🔹 이 줄 추가
 
     // 4분할 보드
     if (mode == 'quadrant') {
@@ -420,35 +459,43 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
       );
     }
 
-    // ✅ Bull 60발 SBull / DBull 분리 기록 드릴
-    if (widget.drill.id == 'comp_bull_double_intro') {
-      return BullSplitPanel(
-        totalDarts: _totalPlannedDarts, // recommendedDarts = 60 기준
-        isBusy: isBusy,
+    // ✅ Bull SBull / DBull 분리 기록 드릴
+    if (mode == 'bull_split' || targetArea == 'bull_split') {
+      final targetSbPlusDb = (extra['targetSbPlusDb'] as num?)?.toInt();
+      final targetDb = (extra['targetDb'] as num?)?.toInt();
+      final int totalDarts =
+          (extra['totalDarts'] as num?)?.toInt() ?? _totalPlannedDarts;
 
-        // 🔹 매 다트마다 상단 진행 카드 갱신
+      return BullSplitPanel(
+        title: widget.drill.targetLabel.isNotEmpty
+            ? widget.drill.targetLabel
+            : widget.drill.titleKo,
+        totalDarts: totalDarts,
+        targetSbPlusDb: targetSbPlusDb,
+        targetDb: targetDb,
+        isBusy: isBusy,
         onProgress: (int sBullHits, int dBullHits, int thrownDarts) {
           setState(() {
-            _totalAttempts = thrownDarts; // 던진 다트 수
-            _successCount = sBullHits + dBullHits; // Bull 적중 개수
+            _totalAttempts = thrownDarts;
+            _successCount = sBullHits + dBullHits;
             _thrownDartsNotifier.value = _totalAttempts;
           });
         },
-
-        // 🔹 "드릴 종료하고 결과 저장" 눌렀을 때 최종 값 저장
         onCompleted: (int sBullHits, int dBullHits, int thrownDarts) {
           setState(() {
             _totalAttempts = thrownDarts;
             _successCount = sBullHits + dBullHits;
-            _currentMarks = dBullHits; // DBull 개수만 별도로 marks에 저장
+            _currentMarks = dBullHits;
 
             _sessionExtraData = {
               'sBullHits': sBullHits,
               'dBullHits': dBullHits,
+              'totalDarts': thrownDarts,
+              if (targetSbPlusDb != null) 'targetSbPlusDb': targetSbPlusDb,
+              if (targetDb != null) 'targetDb': targetDb,
             };
           });
         },
-
         onFinishPressed: _onManualFinish,
       );
     }
@@ -468,11 +515,22 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
       );
     }
 
-    // 170 고정 루트
-    if (widget.drill.id == 'master_170_route_focused_30') {
-      return FixedRoutePanel(
-        route: const ['T20', 'T20', 'Bull'],
-        targetScore: '170',
+    // ==========================
+    // T20 / 멀티 세그먼트 집중 패널
+    // ==========================
+    final segments = (extra['segments'] as List?)?.cast<String>();
+    final dartsPerSegment = (extra['dartsPerSegment'] as num?)?.toInt();
+
+    // 🔹 1) 단일 T20 포커스 드릴 (기존과 동일)
+    final isSingleT20 =
+        segments != null && segments.length == 1 && segments.first == 'T20';
+
+    if (isSingleT20 && dartsPerSegment == null) {
+      final totalDarts =
+          (extra['totalDarts'] as num?)?.toInt() ?? _totalPlannedDarts;
+      return T20FocusPanel(
+        totalDarts: totalDarts,
+        targetLabel: 'T20',
         onHitSuccess: () => _recordHit(true),
         onHitFail: () => _recordHit(false),
         onFinishPressed: _onManualFinish,
@@ -480,15 +538,15 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
       );
     }
 
-    // T20 집중 (segments == ['T20'] 인 경우)
-    final segments = (extra['segments'] as List?)?.cast<String>();
-    final isT20Only =
-        segments != null && segments.length == 1 && segments.first == 'T20';
-    if (isT20Only) {
-      final totalDarts =
-          (extra['totalDarts'] as num?)?.toInt() ?? _totalPlannedDarts;
+    // 🔹 2) 멀티 세그먼트 집중 드릴 (예: D16/D20 각 60발)
+    if (segments != null &&
+        segments.isNotEmpty &&
+        dartsPerSegment != null &&
+        dartsPerSegment > 0) {
       return T20FocusPanel(
-        totalDarts: totalDarts,
+        totalDarts: _totalPlannedDarts,
+        segments: segments,
+        dartsPerSegment: dartsPerSegment,
         onHitSuccess: () => _recordHit(true),
         onHitFail: () => _recordHit(false),
         onFinishPressed: _onManualFinish,
@@ -537,10 +595,6 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
       return FullCricketTrainingPanel(
         isBusy: isBusy,
         title: widget.drill.titleKo,
-
-        // 👉 fixedTargets / freeRoundChoices 안 주면
-        // 패널 내부 기본값: 20~15 + Bull 7R + 8R 자유
-
         onRoundUpdated: (int totalMarks, int playedRounds) {
           setState(() {
             _currentMarks = totalMarks;
@@ -562,51 +616,66 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
     // 🔥 scoreOnly 드릴 공통 처리
     if (widget.drill.inputMode == TrainingDrillInputMode.scoreOnly) {
       final gameType = (extra['gameType'] as String?) ?? '';
-      final is501Mode = gameType.startsWith('501');
-      final isCountUpMode = gameType.startsWith('countup');
 
-      // ============================
-      // 1) 모든 Count-Up → 라운드별 입력 패널
-      // ============================
-      if (isCountUpMode) {
-        final int totalRounds =
-            (extra['rounds'] as num?)?.toInt() ?? 8; // 기본 8R
-        const int dartsPerRound = 3;
+      final is501Multi = gameType.startsWith('501_multi'); // 501 멀티 세트 모드
+      final is501Mode = gameType.startsWith('501') && !is501Multi;
+      // final isCountUpMode = gameType.startsWith('countup'); // 필요 시 확장용
 
-        return CountUpRoundScorePanel(
-          currentRound: _currentRound,
-          totalRounds: totalRounds,
-          accumulatedScore: _currentScore,
+      if (is501Multi) {
+        final totalSets = (extra['totalSets'] as num?)?.toInt() ?? 10;
+        final minDarts = (extra['minDartsPerLeg'] as num?)?.toInt() ?? 9;
+        final maxDarts = (extra['maxDartsPerLeg'] as num?)?.toInt() ?? 30;
+        final threshold =
+            (extra['successThresholdDarts'] as num?)?.toInt() ?? 18;
+
+        return ScoreGameMultiSetPanel(
+          title: widget.drill.titleKo,
+          totalSets: totalSets,
+          minDartsPerLeg: minDarts,
+          maxDartsPerLeg: maxDarts,
+          successThresholdDarts: threshold,
           isBusy: isBusy,
-          onFinishPressed: _onManualFinish,
-          onRoundSubmitted: (roundScore) async {
+          onProgress: (List<int> perLegDarts, int successSets, int playedSets) {
+            setState(() {
+              _totalAttempts = playedSets; // 시도 = 완료된 세트 수
+              _successCount = successSets; // 성공 세트 수
+
+              // 지금까지 사용한 총 다트 수 (참고용)
+              _currentScore =
+                  perLegDarts.fold<int>(0, (sum, d) => sum + d);
+
+              _thrownDartsNotifier.value = _totalAttempts;
+            });
+          },
+          onCompleted:
+              (List<int> perLegDarts, int successSets, int playedSets) async {
             await _ensureSessionStarted();
             if (!mounted) return;
 
-            bool isLastRound = false;
+            final int totalDarts =
+            perLegDarts.fold<int>(0, (sum, d) => sum + d);
 
             setState(() {
-              _currentScore += roundScore; // 누적 점수
-              _totalAttempts += dartsPerRound; // 1R = 3다트
-              _thrownDartsNotifier.value = _totalAttempts;
-
-              if (_currentRound < totalRounds) {
-                _currentRound++;
-              } else {
-                isLastRound = true;
-              }
+              _totalAttempts = playedSets; // 총 세트 수
+              _successCount = successSets; // 성공 세트 수
+              _currentScore = totalDarts; // 전체 사용 다트 수
             });
 
-            if (isLastRound) {
-              await _finishDrill(earlyFinish: false);
-            }
+            _sessionExtraData = {
+              'perLegDarts': perLegDarts,
+              'totalDarts': totalDarts,
+              'successSets': successSets,
+              'totalSets': playedSets,
+              'successThresholdDarts': threshold,
+            };
+
+            await _finishDrill(earlyFinish: false);
           },
+          onFinishPressed: _onManualFinish,
         );
       }
 
-      // ============================
       // 2) 501 계열 → 다트 수 입력 패널
-      // ============================
       if (is501Mode) {
         final threshold =
             (extra['successThresholdDarts'] as num?)?.toInt() ?? 18;
@@ -625,11 +694,8 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
         );
       }
 
-      // ============================
-      // 3) 기타 scoreOnly 백업용 (혹시 모를 확장 대비)
-      // ============================
-      final targetScore =
-          (extra['targetScore'] as num?)?.toInt() ?? 700;
+      // 3) 기타 scoreOnly 백업용
+      final targetScore = (extra['targetScore'] as num?)?.toInt() ?? 700;
       final maxScore = (extra['maxScore'] as num?)?.toInt() ?? 1500;
 
       return ScoreGamePanel(
@@ -665,20 +731,30 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
   Widget build(BuildContext context) {
     final extra = widget.drill.extraConfig ?? {};
     final mode = extra['mode'] as String?;
+    final String? gameType = extra['gameType'] as String?;
     final bool isCheckoutPractice = mode == 'checkout_practice';
 
-    // ✅ 일반 드릴: totalRounds = (총다트 / 3)
-    // ✅ 체크아웃: totalRounds = "총 세트 수"
-    final int totalRounds = isCheckoutPractice
+    // ✅ 501 멀티 세트 드릴 여부
+    final bool isMulti501 =
+        widget.drill.inputMode == TrainingDrillInputMode.scoreOnly &&
+            gameType != null &&
+            gameType.startsWith('501_multi');
+
+    // ✅ 라운드 개수
+    final int totalRounds =
+    (isCheckoutPractice || isMulti501)
         ? _totalPlannedDarts
         : (_totalPlannedDarts / 3).ceil();
 
-    // ✅ 체크아웃: 현재 라운드를 "진행한 세트 수 + 1"로 표현
-    final int displayRound = isCheckoutPractice
+    // ✅ 현재 라운드 표시
+    final int displayRound =
+    (isCheckoutPractice || isMulti501)
         ? (_totalAttempts + 1).clamp(1, totalRounds)
         : _currentRound;
 
-    final String attemptsUnitLabel = isCheckoutPractice ? '세트' : '다트';
+    // ✅ 단위 라벨
+    final String attemptsUnitLabel =
+    (isCheckoutPractice || isMulti501) ? '세트' : '다트';
 
     return WillPopScope(
       onWillPop: () async {

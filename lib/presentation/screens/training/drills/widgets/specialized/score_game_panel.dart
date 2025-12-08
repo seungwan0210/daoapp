@@ -2,26 +2,20 @@
 
 import 'package:flutter/material.dart';
 
-/// scoreOnly 전용 패널
-///
-/// - Count-Up: 최종 점수 입력
-/// - 501 Double-Out: 사용 다트 수 입력
-///
-/// 부모(DrillRunScreen)에서:
-///   - title, valueLabel, min/max 설정
-///   - onSubmit에서 점수(or 다트 수)를 받아서
-///     _currentScore 또는 _totalAttempts 등에 반영 후 finish 호출
 class ScoreGamePanel extends StatefulWidget {
-  final String title;              // 예: "Count-Up 최종 점수 입력", "501 사용 다트 수"
-  final String valueLabel;         // 예: "최종 점수", "사용 다트 수"
-  final int minValue;              // 예: Count-Up 0, 501 다트수 9 등
-  final int maxValue;              // 예: Count-Up 1500, 501 다트수 30 등
-  final int step;                  // 기본 1
-  final int initialValue;          // 기본값
-  final String? helperText;        // 아래 안내 텍스트
-  final ValueChanged<int> onSubmit; // 값 확정 시 호출
-  final VoidCallback? onFinishPressed; // "드릴 종료하고 결과 저장" 용
+  final String title;          // 예: '501 Double-Out'
+  final String valueLabel;     // 예: '사용한 다트 수', '최종 점수'
+  final int minValue;          // 허용 최소값
+  final int maxValue;          // 허용 최대값
+  final int initialValue;      // 기본 제안값 (예: 18, 700)
+  final String helperText;     // 하단 설명문
   final bool isBusy;
+
+  /// 사용자가 최종 값을 입력 후 "확인"을 눌렀을 때 호출
+  final ValueChanged<int> onSubmit;
+
+  /// "드릴 종료하고 결과 저장" 버튼 등에서 사용하는 종료 콜백
+  final VoidCallback? onFinishPressed;
 
   const ScoreGamePanel({
     super.key,
@@ -29,12 +23,11 @@ class ScoreGamePanel extends StatefulWidget {
     required this.valueLabel,
     required this.minValue,
     required this.maxValue,
-    this.step = 1,
     required this.initialValue,
-    this.helperText,
+    required this.helperText,
+    required this.isBusy,
     required this.onSubmit,
     this.onFinishPressed,
-    this.isBusy = false,
   });
 
   @override
@@ -42,177 +35,214 @@ class ScoreGamePanel extends StatefulWidget {
 }
 
 class _ScoreGamePanelState extends State<ScoreGamePanel> {
-  late int _value;
+  late final TextEditingController _controller;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
-    _value = widget.initialValue
-        .clamp(widget.minValue, widget.maxValue)
-        .toInt(); // 🔹 num → int
+    _controller =
+        TextEditingController(text: widget.initialValue.toString());
   }
 
-  void _changeValue(int delta) {
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
     if (widget.isBusy) return;
-    setState(() {
-      _value = (_value + delta * widget.step)
-          .clamp(widget.minValue, widget.maxValue)
-          .toInt(); // 🔹 num → int
-    });
+
+    final raw = _controller.text.trim();
+    if (raw.isEmpty) {
+      setState(() {
+        _errorText = '값을 입력해 주세요.';
+      });
+      return;
+    }
+
+    final value = int.tryParse(raw);
+    if (value == null) {
+      setState(() {
+        _errorText = '숫자만 입력할 수 있습니다.';
+      });
+      return;
+    }
+
+    if (value < widget.minValue || value > widget.maxValue) {
+      setState(() {
+        _errorText =
+        '${widget.minValue} ~ ${widget.maxValue} 사이의 값만 입력할 수 있습니다.';
+      });
+      return;
+    }
+
+    setState(() => _errorText = null);
+
+    // 실제 저장/계산 로직은 부모에서 처리
+    widget.onSubmit(value);
   }
 
   @override
   Widget build(BuildContext context) {
+    final rangeText = '${widget.minValue} ~ ${widget.maxValue}';
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 1. 제목
-          Text(
-            widget.title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            widget.valueLabel,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey.shade600,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // 2. 현재 값 크게 표시
+          // ===================== 상단 카드 =====================
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+            padding: const EdgeInsets.symmetric(
+              vertical: 20,
+              horizontal: 18,
+            ),
             decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.cyan.shade400, width: 2),
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(18),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.cyan.withOpacity(0.4),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
+              border: Border.all(
+                color: Colors.grey.shade300,
+                width: 0.8,
+              ),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$_value',
+                  widget.title,
                   style: const TextStyle(
-                    fontSize: 56,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -2,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.black87,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
-                  widget.valueLabel,
+                  widget.helperText,
                   style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.cyan.shade200,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    height: 1.4,
+                    color: Colors.grey.shade700,
                   ),
                 ),
-                if (widget.helperText != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.helperText!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
-                    textAlign: TextAlign.center,
+                const SizedBox(height: 8),
+                Text(
+                  '입력 범위: $rangeText',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
+                ),
               ],
             ),
           ),
 
           const SizedBox(height: 20),
 
-          // 3. - / + 버튼 (좌우)
+          // ===================== 숫자 입력 필드 =====================
+          TextField(
+            controller: _controller,
+            enabled: !widget.isBusy,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
+            decoration: InputDecoration(
+              labelText: widget.valueLabel,
+              labelStyle: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+              ),
+              hintText: widget.valueLabel == '사용한 다트 수'
+                  ? '예: 18'
+                  : '예: ${widget.initialValue}',
+              hintStyle: TextStyle(
+                color: Colors.grey.shade400,
+              ),
+              filled: true,
+              fillColor: Colors.grey.shade100,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 14,
+                horizontal: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.grey.shade300,
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: Colors.cyan,
+                  width: 1.4,
+                ),
+              ),
+              errorText: _errorText,
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+
+          const SizedBox(height: 18),
+
+          // ===================== 확인 / 종료 버튼 =====================
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy ? null : () => _changeValue(-1),
+                  onPressed: widget.isBusy ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade100,
-                    foregroundColor: Colors.red.shade700,
+                    backgroundColor: Colors.cyan.shade600,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
+                    elevation: 3,
                   ),
-                  child: const Icon(Icons.remove, size: 28),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: widget.isBusy ? null : () => _changeValue(1),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green.shade100,
-                    foregroundColor: Colors.green.shade700,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  child: const Text(
+                    '값 입력 완료',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  child: const Icon(Icons.add, size: 28),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
 
-          // 4. 확정 버튼
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: widget.isBusy ? null : () => widget.onSubmit(_value),
-              icon: const Icon(Icons.check_circle, size: 28),
-              label: const Text(
-                "결과 확정",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyan.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
           TextButton(
             onPressed: widget.isBusy ? null : widget.onFinishPressed,
             child: const Text(
-              "드릴 종료하고 결과 저장",
+              '드릴 종료하고 결과 저장',
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.bold,
                 color: Colors.cyan,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),

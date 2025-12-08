@@ -866,22 +866,23 @@ const TrainingDrillDefinition eliteCheckout61to120 = TrainingDrillDefinition(
   ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 25,
-  recommendedDarts: 150,
+  recommendedDarts: 180, // 6다트 × 30세트 기준으로 맞춰도 되고
   targetLabel: '61~120 Double-Out (랜덤)',
   guideKo:
   '각 세트 시작 시 앱이 61~120 사이 점수를 랜덤으로 제시합니다. '
       '플레이어는 최대 6다트 안에 Double-Out을 시도하고, 세트별로 성공/실패를 기록합니다. '
       '30세트 진행 후 전체 성공 세트 수와 성공률(%)을 확인하며, 성공률 40% 근처에 도달하면 '
-      '“엘리트 타겟 도달” 메시지를 띄우는 기준으로 사용할 수 있습니다.',
+      '“엘리트 타겟 도달” 기준으로 삼을 수 있습니다.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.checkoutRoute,
   extraConfig: {
-    'mode': 'random_range',
+    'mode': 'checkout_practice',   // ✅ CheckoutPracticePanel 타도록 통일
     'minScore': 61,
     'maxScore': 120,
-    'maxDartsPerScore': 6,
+    'maxDartsPerSet': 6,           // ✅ 패널 파라미터 이름에 맞춤
     'totalSets': 30,
-    'targetSuccessRate': 0.4,
+    'requireDoubleOut': true,
+    'targetSuccessRate': 0.4,      // 🔹 나중에 결과 분석에서 쓰고 싶으면 남겨둬도 됨
   },
 );
 
@@ -916,41 +917,6 @@ TrainingDrillDefinition(
     'targetHitsPerSegment': 20,
     'dartsPerRound': 3,
     'roundsPerSegment': 20,
-  },
-);
-
-const TrainingDrillDefinition elite501PressureFinish =
-TrainingDrillDefinition(
-  id: 'elite_501_pressure_finish_30x',
-  titleKo: '501 더블 압박 피니시 (30세트)',
-  titleEn: '501 Double-Out Pressure (30 Sets)',
-  shortDescriptionKo:
-  '61~100 남은 상황에서 3다트만 들고 서 있는 상황을 반복 재현하는 압박 피니시 드릴',
-  shortDescriptionEn:
-  'Simulate 61–100 left with only 3 darts in hand, repeated 30 sets.',
-  category: TrainingDrillCategory.finish,
-  tierRange: DrillTierRange(
-    minTier: rating_utils.DaoTrainingTier.elite,
-    maxTier: rating_utils.DaoTrainingTier.pro,
-  ),
-  inputMode: TrainingDrillInputMode.hitCount,
-  estimatedMinutes: 25,
-  recommendedDarts: 90,
-  targetLabel: '501 Pressure Finish (3다트)',
-  guideKo:
-  '앱이 61~100 사이의 점수를 랜덤으로 제시하고, 플레이어는 오직 3다트 안에 Double-Out을 시도합니다. '
-      '각 세트마다 성공이면 1, 실패면 0으로 기록하고, 총 30세트를 진행합니다. '
-      '세션 종료 후 성공률(성공 세트 / 30)을 계산하여 35~45% 구간이면 '
-      '“실전 압박 피니시 기준선 통과” 같은 피드백을 줄 수 있습니다.',
-  difficulty: DrillDifficulty.veryHard,
-  uiPattern: DrillUIPattern.checkoutRoute,
-  extraConfig: {
-    'scoreRangeMin': 61,
-    'scoreRangeMax': 100,
-    'totalSets': 30,
-    'maxDartsPerSet': 3,
-    'hintTargetSuccessRateMin': 0.35,
-    'hintTargetSuccessRateMax': 0.45,
   },
 );
 
@@ -1038,18 +1004,25 @@ const TrainingDrillDefinition pro501Standard18darts = TrainingDrillDefinition(
   recommendedDarts: 180,
   targetLabel: '501 Double-Out (18다트 기준)',
   guideKo:
-  '1세트 = 501 Double-Out 1 leg입니다. 각 leg가 끝난 뒤, 사용한 총 다트 수만 앱에 입력합니다. '
+  '1세트 = 501 Double-Out 입니다. 각 set가 끝난 뒤, 사용한 총 다트 수만 앱에 입력합니다. '
       '18다트 이하면 “성공”, 19다트 이상이면 “실패”로 기록하며, 총 10세트를 진행합니다. '
       '세션 종료 후 18다트 이내 완주 비율(예: 5/10 = 50%)을 확인하여, 프로 기준 달성 여부를 체크합니다.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.scoreGame,
   extraConfig: {
-    'gameType': '501_doubleout_18darts_t20',
-    'suggestedSets': 10,
+    // 🔹 멀티 세트 501 모드 플래그
+    'gameType': '501_multi_18darts',
+
+    // 🔹 세트 수 / 다트 수 설정
+    'totalSets': 10,          // 총 10 leg
+    'minDartsPerLeg': 9,      // 이론상 최소 (9다트)
+    'maxDartsPerLeg': 30,     // 최대 허용 입력값
+
+    // 🔹 18다트 이내면 "성공 세트"
     'successThresholdDarts': 18,
-    'scoringFocus': 'T20',
   },
 );
+
 
 const TrainingDrillDefinition proT20_90Darts = TrainingDrillDefinition(
   id: 'pro_t20_90_darts',
@@ -1099,7 +1072,7 @@ const TrainingDrillDefinition proHighFinishSet8 = TrainingDrillDefinition(
   ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 25,
-  recommendedDarts: 120,
+  recommendedDarts: 120, // 40세트 × 3다트 = 120
   targetLabel: '하이 피니시 8종 (각 5세트)',
   guideKo:
   '170, 167, 164, 161, 160, 158, 157, 153 총 8가지 대표 하이 피니시를 다룹니다. '
@@ -1109,14 +1082,27 @@ const TrainingDrillDefinition proHighFinishSet8 = TrainingDrillDefinition(
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.checkoutRoute,
   extraConfig: {
+    // 🔹 여기부터 CheckoutPracticePanel과 맞춰주는 핵심 설정
+
+    // 👉 DrillRunScreen에서 mode == 'checkout_practice' 분기로 태움
+    'mode': 'checkout_practice',
+
+    // 👉 CheckoutPracticePanel에 직접 전달되는 값들
+    'minScore': 153,
+    'maxScore': 170,
+    'totalSets': 40,        // 8점수 × 5세트 = 40세트
+    'maxDartsPerSet': 3,
+    'requireDoubleOut': true,
+
+    // 👉 메타 정보(지금 패널은 안 쓰지만, 나중에 확장할 때 참고 가능)
     'scores': [170, 167, 164, 161, 160, 158, 157, 153],
     'setsPerScore': 5,
-    'totalSets': 40,
-    'maxDartsPerSet': 3,
+
     'hintTargetSuccessRateMin': 0.1,
     'hintTargetSuccessRateMax': 0.2,
   },
 );
+
 
 const TrainingDrillDefinition proCricketHighMpr15r = TrainingDrillDefinition(
   id: 'pro_cricket_high_mpr_marks_15r',
@@ -1167,12 +1153,13 @@ const TrainingDrillDefinition proBull90 = TrainingDrillDefinition(
   recommendedDarts: 90,
   targetLabel: 'Bull 90발 (SBull / DBull)',
   guideKo:
-  'Bull만 90발을 던지는 드릴입니다. 세션 중 또는 종료 후, SBull은 S 버튼, DBull은 D 버튼으로 각각 개수를 입력합니다. '
+  'Bull만 90발을 던지는 드릴입니다. SBull은 S 버튼, DBull은 D 버튼으로 각각 개수를 기록합니다. '
       '앱은 SBull+DBull 합 / 90으로 전체 Bull 성공률을, DBull / 90으로 DBull 비율을 계산합니다. '
       '목표치는 SBull+DBull 60개 이상, DBull 15개 이상으로 두고 자신의 분포와 정확도를 체크합니다.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.segmentTarget,
   extraConfig: {
+    'mode': 'bull_split', // 🔹 DrillRunScreen에서 bull 패널로 태우기 위한 키
     'targetArea': 'bull_split',
     'totalDarts': 90,
     'targetSbPlusDb': 60,
@@ -1180,15 +1167,16 @@ const TrainingDrillDefinition proBull90 = TrainingDrillDefinition(
   },
 );
 
+
 const TrainingDrillDefinition proClutchDouble2Darts30x =
 TrainingDrillDefinition(
   id: 'pro_clutch_double_2darts_30x',
-  titleKo: '클러치 더블 2다트 (30세트)',
-  titleEn: 'Clutch Doubles 2 Darts (30 Sets)',
+  titleKo: '클러치 더블 라인 컨트롤',
+  titleEn: 'Clutch Double Line Control',
   shortDescriptionKo:
-  'D16, D20, D8, D12 등 자주 쓰는 더블을 2다트만 가지고 해결하는 압박 훈련',
+  'D16, D20, D8, D12 네 가지 실전 핵심 더블 라인을 한 번에 묶어서 명중률을 체크하는 드릴',
   shortDescriptionEn:
-  'Pressure drill: finish key doubles (D16, D20, D8, D12) with only 2 darts.',
+  'Practice four key match doubles (D16, D20, D8, D12) and track hit rates by segment.',
   category: TrainingDrillCategory.doublePractice,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.pro,
@@ -1196,22 +1184,24 @@ TrainingDrillDefinition(
   ),
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 18,
-  recommendedDarts: 60,
-  targetLabel: '클러치 더블 2다트 (30세트)',
-  guideKo:
-  '집중하고 싶은 더블(D16, D20, D8, D12 중 1~2개)을 선택한 뒤, '
-      '1세트를 “선택한 더블에서 2다트 찬스”로 진행합니다. 2다트 안에 맞추면 성공, 못 맞추면 실패로 기록합니다. '
-      '총 30세트 후 성공 세트 수 / 30으로 성공률(%)을 확인하며, 40~60% 범위를 프로 기준 클러치 성공률로 볼 수 있습니다.',
+  recommendedDarts: 60, // 4개 더블 x 15발 = 60발
+  targetLabel: '클러치 더블 라인 (D16·D20·D8·D12)',
+  guideKo: '실전에서 가장 많이 쓰는 더블 라인인 D16, D20, D8, D12 네 구역을 한 번에 연습하는 드릴입니다. '
+      '각 더블마다 15발씩, 총 60발을 던지며 명중/미스를 기록합니다. '
+      '실제 게임에서는 “2다트 안에 해결한다”는 느낌으로 루틴을 가져가되, 앱에서는 전체/세그먼트별 명중률을 기준으로 '
+      '자신의 약한 더블과 강한 더블을 눈으로 확인할 수 있게 도와줍니다. '
+      '세션 종료 후에는 전체 더블 적중률과, D16·D20·D8·D12 각각의 적중률을 비교해 보세요.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.segmentTarget,
   extraConfig: {
-    'preferredDoubles': ['D16', 'D20', 'D8', 'D12'],
-    'dartsPerSet': 2,
-    'totalSets': 30,
-    'hintTargetSuccessRateMin': 0.4,
-    'hintTargetSuccessRateMax': 0.6,
+    // 🔹 T20FocusPanel 멀티 세그먼트 모드와 매칭되는 설정
+    'segments': ['D16', 'D20', 'D8', 'D12'],
+    'dartsPerSegment': 15, // 각 더블 15발씩
+    // 아래는 계산에 꼭 필요하진 않지만 명시적으로 남겨 둠
+    'totalDarts': 60,
   },
 );
+
 
 /// 프로용 8R Count-Up (티어 밴드: 900~999)
 const TrainingDrillDefinition proCountUp8r = TrainingDrillDefinition(
@@ -1300,22 +1290,38 @@ TrainingDrillDefinition(
   recommendedDarts: 90,
   targetLabel: '170 (T20 → T20 → Bull 루트)',
   guideKo:
-  '항상 170 점수 상황에서 1, 2번째 다트는 T20, 3번째 다트는 Bull을 노리는 '
+  '항상 170 점수에서 시작해서, 1·2번째 다트는 T20, 3번째 다트는 Bull을 노리는 '
       'T20 → T20 → Bull 고정 루트로만 30세트를 진행합니다. '
-      '3다트 안에 이 루트 그대로 170을 마무리하면 “성공(1)”, 루트를 어기거나 실패하면 “실패(0)”로 기록합니다. '
+      '각 세트는 “170 점수에서 3다트 찬스 1회”라고 생각하고, 다트마다 맞춘 점수를 입력하세요. '
+      '3다트 안에 170을 정확히 마무리하면 성공, 루트를 어기거나 체크아웃에 실패하면 실패로 기록합니다. '
       '30세트 중 1~2회 성공만 나와도 정상적인 난이도(성공률 3~7%)로 보고, '
       '핵심은 항상 같은 루트를 자신 있게 던질 수 있도록 패턴을 몸에 새기는 것입니다.',
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.checkoutRoute,
   extraConfig: {
-    'score': 170,
-    'route': ['T20', 'T20', 'Bull'],
+    // 🔹 CheckoutPracticePanel로 보내기 위한 모드 플래그
+    'mode': 'checkout_practice',
+
+    // 🔹 항상 170에서 시작 (min == max)
+    'minScore': 170,
+    'maxScore': 170,
+
+    // 🔹 세트/다트 설정
     'totalSets': 30,
     'maxDartsPerSet': 3,
+
+    // 🔹 더블아웃 / DBull 필수
+    'requireDoubleOut': true,
+
+    // 🔹 루트 정보(지금은 UI/결과 설명용으로만 보관)
+    'route': ['T20', 'T20', 'Bull'],
+
+    // 🔹 피드백용 목표 성공 세트 범위
     'hintTargetSuccessMin': 1,
     'hintTargetSuccessMax': 2,
   },
 );
+
 
 const TrainingDrillDefinition masterCricket4mpr15r =
 TrainingDrillDefinition(
@@ -1375,6 +1381,7 @@ TrainingDrillDefinition(
   difficulty: DrillDifficulty.veryHard,
   uiPattern: DrillUIPattern.segmentTarget,
   extraConfig: {
+    'mode': 'bull_split',          // 🔥 이 한 줄이 없어서 패널이 안 타고 있었던 거
     'targetArea': 'bull_split',
     'totalDarts': 90,
     'targetSbPlusDb': 60,
@@ -1432,7 +1439,6 @@ kTrainingDrillsByTier = {
     learnerTopBottomAdvanced,
     learner20to19Switch,
     learner17to15Line,
-    learnerStandardCountUp8r,
   ],
   rating_utils.DaoTrainingTier.competitor: [
     compTriple201918,
@@ -1455,7 +1461,6 @@ kTrainingDrillsByTier = {
     eliteT20T19TripleSwitch,
     eliteCheckout61to120,
     eliteDoubleClusterD16D20,
-    elite501PressureFinish,
     eliteCricketPowerMarks15r,
     eliteCountUp8r,
   ],

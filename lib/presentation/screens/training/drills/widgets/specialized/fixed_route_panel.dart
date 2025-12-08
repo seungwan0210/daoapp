@@ -1,16 +1,28 @@
-// lib/presentation/screens/training/drills/widgets/specialized/fixed_route_panel.dart
-
 import 'package:flutter/material.dart';
-import '../effects/neon_glow_effect.dart';
-import '../effects/confetti_effect.dart';
-import '../effects/fireworks_effect.dart';
 
+/// 170 / 167 같은 특정 점수에서
+/// 고정 루트(예: T20 → T20 → Bull)를 반복 연습하는 패널.
+///
+/// - 한 세트 = 같은 루트를 3다트 던지는 1번의 찬스
+/// - 이 위젯 자체는 "성공/실패"만 판단하고,
+///   세트 수 / 성공 세트 수 카운트는 상위(DrillRunScreen)에서 처리하도록 단순화.
 class FixedRoutePanel extends StatefulWidget {
-  final List<String> route;        // 예: ['T20', 'T20', 'Bull']
-  final String targetScore;        // 예: "170"
+  /// 예: ['T20', 'T20', 'Bull']
+  final List<String> route;
+
+  /// 예: "170"
+  final String targetScore;
+
+  /// 세트 1회 성공 시 호출 (상위에서 _recordHit(true) 같은 거 연결)
   final VoidCallback? onHitSuccess;
+
+  /// 세트 1회 실패 시 호출
   final VoidCallback? onHitFail;
+
+  /// "드릴 종료하고 결과 저장" 눌렀을 때 호출
   final VoidCallback? onFinishPressed;
+
+  /// 저장/네트워크 작업 중 비활성화 용
   final bool isBusy;
 
   const FixedRoutePanel({
@@ -28,196 +40,235 @@ class FixedRoutePanel extends StatefulWidget {
 }
 
 class _FixedRoutePanelState extends State<FixedRoutePanel> {
-  int currentDartIndex = 0;
-  bool justSuccess = false;
-  bool justFinished = false;
+  /// 현재 세트에서 몇 번째 다트까지 진행했는지 (0~route.length)
+  int _currentDartIndex = 0;
 
-  String get currentTarget => widget.route[currentDartIndex];
-  int get currentDart => currentDartIndex + 1;
-  int get totalDarts => widget.route.length;
+  /// 세트 직후에 잠깐 띄워줄 성공/실패 플래그
+  bool _justSucceeded = false;
+  bool _justFailed = false;
 
-  void _record(bool success) {
+  void _resetSet() {
+    setState(() {
+      _currentDartIndex = 0;
+      _justSucceeded = false;
+      _justFailed = false;
+    });
+  }
+
+  void _onMarkSuccess() {
     if (widget.isBusy) return;
 
-    setState(() => justSuccess = success);
+    setState(() {
+      _justSucceeded = true;
+      _justFailed = false;
+      _currentDartIndex = widget.route.length; // 세 다트 완료 상태로
+    });
 
-    if (success) {
-      widget.onHitSuccess?.call();
+    widget.onHitSuccess?.call();
 
-      if (currentDartIndex < totalDarts - 1) {
-        setState(() => currentDartIndex++);
-      } else {
-        // 170 성공!!!
-        setState(() => justFinished = true);
-        Future.delayed(const Duration(seconds: 6), () {
-          if (mounted) setState(() => justFinished = false);
-        });
-        widget.onFinishPressed?.call();
-      }
-    } else {
-      widget.onHitFail?.call();
-    }
+    // 짧게 성공 상태 보여주고 다음 세트로 리셋
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      _resetSet();
+    });
+  }
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (mounted) setState(() => justSuccess = false);
+  void _onMarkFail() {
+    if (widget.isBusy) return;
+
+    setState(() {
+      _justSucceeded = false;
+      _justFailed = true;
+      _currentDartIndex = widget.route.length;
+    });
+
+    widget.onHitFail?.call();
+
+    // 짧게 실패 상태 보여주고 다음 세트로 리셋
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      _resetSet();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return ConfettiEffect(
-      trigger: justFinished,
-      duration: const Duration(seconds: 6),
-      child: FireworksEffect(
-        trigger: justFinished,
-        duration: const Duration(seconds: 6),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 1. 목표 점수 (강렬하지만 작게!)
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+    final routeText = widget.route.join(' → ');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 🔹 상단: 목표 점수
+          Text(
+            '${widget.targetScore} CHECKOUT',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            routeText,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 🔹 현재 세트 진행 표시 (각 다트칸)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(widget.route.length, (index) {
+              final isDone = index < _currentDartIndex;
+              final isCurrent = index == _currentDartIndex;
+
+              Color bg;
+              Color fg;
+              if (isDone) {
+                bg = Colors.cyan.shade600;
+                fg = Colors.white;
+              } else if (isCurrent) {
+                bg = Colors.white;
+                fg = Colors.cyan.shade700;
+              } else {
+                bg = Colors.grey.shade100;
+                fg = Colors.grey.shade600;
+              }
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.red.shade700, Colors.orange.shade800],
+                  color: bg,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: isCurrent
+                        ? Colors.cyan.shade600
+                        : Colors.grey.shade300,
                   ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(color: Colors.red.withOpacity(0.6), blurRadius: 20),
-                  ],
                 ),
                 child: Text(
-                  "${widget.targetScore} 체크아웃!",
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                  widget.route[index],
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: fg,
+                  ),
+                ),
+              );
+            }),
+          ),
+
+          const SizedBox(height: 10),
+
+          // 🔹 안내 메시지 (성공/실패 플래그)
+          if (_justSucceeded || _justFailed) ...[
+            Text(
+              _justSucceeded
+                  ? '성공! 다음 세트로 넘어갑니다.'
+                  : '실패! 다음 세트로 넘어갑니다.',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _justSucceeded
+                    ? Colors.green.shade600
+                    : Colors.red.shade600,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ] else ...[
+            const Text(
+              '이 세트의 결과를 성공 / 실패로 기록하세요.',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // 🔹 성공 / 실패 버튼
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: widget.isBusy ? null : _onMarkSuccess,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.check_circle, size: 18),
+                  label: const Text(
+                    '성공',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 32),
-
-              // 2. 현재 타겟 + 다트 번호
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    "다트 $currentDart/$totalDarts",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                  ),
-                  const SizedBox(width: 24),
-                  NeonGlowEffect(
-                    trigger: justSuccess,
-                    glowColor: Colors.green,
-                    maxGlowSize: 50,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
-                      decoration: BoxDecoration(
-                        color: Colors.black,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.green, width: 3),
-                      ),
-                      child: Text(
-                        currentTarget,
-                        style: const TextStyle(
-                          fontSize: 56,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                        ),
-                      ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: widget.isBusy ? null : _onMarkFail,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade500,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // 3. 루트 전체 보기 (작고 깔끔한 칩!)
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: widget.route.asMap().entries.map((entry) {
-                  final index = entry.key;
-                  final segment = entry.value;
-                  final isCurrent = index == currentDartIndex;
-                  final isDone = index < currentDartIndex;
-
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isDone
-                          ? Colors.green.shade600
-                          : isCurrent
-                          ? Colors.orange.shade600
-                          : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isCurrent ? Colors.orange.shade800 : Colors.transparent,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      segment,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isDone || isCurrent ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-
-              const SizedBox(height: 40),
-
-              // 4. 성공 / 실패 버튼 (적당한 크기!)
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: widget.isBusy ? null : () => _record(true),
-                      icon: const Icon(Icons.check_circle, size: 32),
-                      label: const Text("성공", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 22),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      ),
+                  icon: const Icon(Icons.cancel, size: 18),
+                  label: const Text(
+                    '실패',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: widget.isBusy ? null : () => _record(false),
-                      icon: const Icon(Icons.cancel, size: 32),
-                      label: const Text("실패", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 22),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: widget.isBusy ? null : widget.onFinishPressed,
-                child: const Text(
-                  "드릴 종료하고 결과 저장",
-                  style: TextStyle(fontSize: 16, color: Colors.cyan, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-        ),
+
+          const SizedBox(height: 12),
+
+          // 🔹 드릴 종료 버튼
+          TextButton(
+            onPressed: widget.isBusy ? null : widget.onFinishPressed,
+            child: const Text(
+              '드릴 종료하고 결과 저장',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.cyan,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

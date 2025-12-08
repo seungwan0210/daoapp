@@ -25,7 +25,7 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
 
   @override
   Future<void> updatePointRecord(PointRecord record, int oldPoints) async {
-    if (record.id == null || record.id!.isEmpty) {  // ← ?.isEmpty 대신 이렇게!
+    if (record.id == null || record.id!.isEmpty) {
       throw Exception('포인트 기록 ID가 없습니다.');
     }
 
@@ -72,9 +72,11 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         .where('userId', isEqualTo: userId)
         .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => PointRecord.fromMap(doc.id, doc.data(), userData))
-        .toList());
+        .map(
+          (snapshot) => snapshot.docs
+          .map((doc) => PointRecord.fromMap(doc.id, doc.data(), userData))
+          .toList(),
+    );
   }
 
   @override
@@ -94,11 +96,14 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         final userId = data['userId'] as String;
 
         if (!userCache.containsKey(userId)) {
-          final userDoc = await _firestore.collection('users').doc(userId).get();
+          final userDoc =
+          await _firestore.collection('users').doc(userId).get();
           userCache[userId] = userDoc.data() ?? {};
         }
 
-        records.add(PointRecord.fromMap(doc.id, data, userCache[userId]));
+        records.add(
+          PointRecord.fromMap(doc.id, data, userCache[userId]),
+        );
       }
 
       return records;
@@ -121,22 +126,33 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
     }
 
     return query.snapshots().asyncMap((snapshot) async {
+      // 1) 랭킹에 참여하는 userId 모으기
       final userIds = <String>{};
       for (var doc in snapshot.docs) {
         userIds.add(doc['userId'] as String);
       }
       if (userIds.isEmpty) return [];
 
-      final usersSnapshot = await _firestore
-          .collection('users')
-          .where(FieldPath.documentId, whereIn: userIds.toList())
-          .get();
-
+      // 2) users 컬렉션에서 정보 가져오기 (whereIn 배치 처리)
       final userMap = <String, Map<String, dynamic>>{};
-      for (var doc in usersSnapshot.docs) {
-        userMap[doc.id] = doc.data();
+      const int batchSize = 10; // Firestore whereIn 최대 10개
+
+      final ids = userIds.toList();
+      for (int i = 0; i < ids.length; i += batchSize) {
+        final end = (i + batchSize < ids.length) ? i + batchSize : ids.length;
+        final batchIds = ids.sublist(i, end);
+
+        final usersSnapshot = await _firestore
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: batchIds)
+            .get();
+
+        for (var doc in usersSnapshot.docs) {
+          userMap[doc.id] = doc.data();
+        }
       }
 
+      // 3) 포인트 합산 + 성별 필터 + Top9 계산 준비
       final rankingMap = <String, RankingUser>{};
       final userPointsList = <String, List<int>>{};
 
@@ -146,31 +162,38 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         final points = data['points'] as int;
         final userData = userMap[userId];
 
+        // users 컬렉션에 문서가 없으면 스킵
+        if (userData == null) continue;
+
         // 성별 필터
-        if (gender != 'all' && (userData == null || userData['gender'] != gender)) {
+        if (gender != 'all' && userData['gender'] != gender) {
           continue;
         }
 
         userPointsList.putIfAbsent(userId, () => []).add(points);
 
-        rankingMap.putIfAbsent(userId, () => RankingUser(
-          userId: userId,
-          koreanName: userData?['koreanName'] ?? 'Unknown',
-          englishName: userData?['englishName'] ?? '',
-          shopName: userData?['shopName'] ?? '',
-          gender: userData?['gender'] ?? '',
-          totalPoints: 0,
-        ));
+        rankingMap.putIfAbsent(
+          userId,
+              () => RankingUser(
+            userId: userId,
+            koreanName: userData['koreanName'] ?? 'Unknown',
+            englishName: userData['englishName'] ?? '',
+            shopName: userData['shopName'] ?? '',
+            gender: userData['gender'] ?? '',
+            totalPoints: 0,
+          ),
+        );
 
         rankingMap[userId]!.totalPoints += points;
       }
 
+      // 4) Top9 모드 처리 (통합은 항상 전체)
       if (top9Mode && phase != 'total') {
         for (var entry in userPointsList.entries) {
           final userId = entry.key;
           final pointsList = entry.value;
           if (pointsList.isNotEmpty) {
-            pointsList.sort((a, b) => b.compareTo(a));
+            pointsList.sort((a, b) => b.compareTo(a)); // 내림차순
             final top9Sum = pointsList.length > 9
                 ? pointsList.take(9).reduce((a, b) => a + b)
                 : pointsList.reduce((a, b) => a + b);
@@ -179,13 +202,17 @@ class PointRecordRepositoryImpl implements PointRecordRepository {
         }
       }
 
+      // 5) 정렬 + rank 부여
       final rankings = rankingMap.values.toList();
-      rankings.sort((a, b) =>
-          (b.top9Points ?? b.totalPoints).compareTo(a.top9Points ?? a.totalPoints));
+      rankings.sort(
+            (a, b) => (b.top9Points ?? b.totalPoints)
+            .compareTo(a.top9Points ?? a.totalPoints),
+      );
 
       for (int i = 0; i < rankings.length; i++) {
         rankings[i].rank = i + 1;
       }
+
       return rankings;
     });
   }

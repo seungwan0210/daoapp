@@ -1,5 +1,6 @@
 // lib/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
@@ -31,6 +32,8 @@ class _SteelLeaguePointCalendarScreenState
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  StreamSubscription<List<PointRecord>>? _eventsSub;
+
   @override
   void initState() {
     super.initState();
@@ -43,19 +46,25 @@ class _SteelLeaguePointCalendarScreenState
 
   @override
   void dispose() {
+    _eventsSub?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadAllPointEvents() async {
     final repo = sl<PointRecordRepository>();
-    repo.getAllPointRecords().listen((records) {
+    _eventsSub?.cancel();
+    _eventsSub = repo.getAllPointRecords().listen((records) {
       final Map<DateTime, List<PointRecord>> events = {};
       for (var record in records) {
-        final date =
-        DateTime(record.date.year, record.date.month, record.date.day);
+        final date = DateTime(
+          record.date.year,
+          record.date.month,
+          record.date.day,
+        );
         events.putIfAbsent(date, () => []).add(record);
       }
+      if (!mounted) return;
       setState(() => _events = events);
     });
   }
@@ -102,6 +111,39 @@ class _SteelLeaguePointCalendarScreenState
       _searchController.clear();
       _searchQuery = '';
     });
+  }
+
+  // 시즌/통합 라벨 텍스트
+  String _buildSeasonLabel(PointRecord record) {
+    final seasonId = record.seasonId; // 예: '2026'
+    switch (record.phase) {
+      case 'season1':
+        return '$seasonId 시즌 1';
+      case 'season2':
+        return '$seasonId 시즌 2';
+      case 'season3':
+        return '$seasonId 시즌 3';
+      case 'total':
+        return '$seasonId 통합';
+      default:
+        return record.phase;
+    }
+  }
+
+  // 시즌/통합 칩 색상
+  Color _phaseColor(String phase) {
+    switch (phase) {
+      case 'season1':
+        return Colors.blueAccent;
+      case 'season2':
+        return Colors.purple;
+      case 'season3':
+        return Colors.teal;
+      case 'total':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -287,6 +329,7 @@ class _SteelLeaguePointCalendarScreenState
       BuildContext context, ThemeData theme, PointRecord record, int rank) {
     final dateStr =
         '${record.date.year}.${record.date.month.toString().padLeft(2, '0')}.${record.date.day.toString().padLeft(2, '0')}';
+    final seasonLabel = _buildSeasonLabel(record);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -323,6 +366,7 @@ class _SteelLeaguePointCalendarScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 이름 + 배지
                     Row(
                       children: [
                         Expanded(
@@ -366,7 +410,9 @@ class _SteelLeaguePointCalendarScreenState
                                   message:
                                   BadgeUtils.getBadgeTooltip(key),
                                   child: BadgeWidget(
-                                      badgeKey: key, size: 18),
+                                    badgeKey: key,
+                                    size: 18,
+                                  ),
                                 ),
                               )
                                   .toList(),
@@ -375,6 +421,7 @@ class _SteelLeaguePointCalendarScreenState
                         ),
                       ],
                     ),
+                    // 영어 이름
                     Text(
                       record.englishName,
                       style: theme.textTheme.bodySmall
@@ -383,12 +430,40 @@ class _SteelLeaguePointCalendarScreenState
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      dateStr,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
-                        fontSize: 11,
-                      ),
+                    // 날짜 + 시즌(통합/시즌1/2/3) 라벨 → Wrap으로 overflow 방지
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Text(
+                          dateStr,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey.shade500,
+                            fontSize: 11,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _phaseColor(record.phase).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: _phaseColor(record.phase),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Text(
+                            seasonLabel,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: _phaseColor(record.phase),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
