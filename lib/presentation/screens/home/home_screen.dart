@@ -5,11 +5,16 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:daoapp/presentation/providers/home_provider.dart'; // ★ 기존 user_home_provider.dart → 이름 변경된 파일
+import 'package:daoapp/presentation/providers/home_provider.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/data/models/ranking_user.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
+
+// 아레나 스틸리그 상세 화면들
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -46,7 +51,7 @@ class HomeScreenBody extends ConsumerWidget {
           AppCard(child: _buildNextEventCard(context)),
           const SizedBox(height: 4),
 
-          // === TOP 3 랭킹 ===
+          // === 스틸리그 포인트 TOP3 ===
           AppCard(child: _buildTop3Ranking(rankingState, context)),
           const SizedBox(height: 4),
 
@@ -215,8 +220,11 @@ class HomeScreenBody extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
                 TextButton(
-                  // 전체 보기 → 아레나 탭으로 이동 (index=2)
-                  onPressed: () => MainScreen.changeTab(context, 2),
+                  // 🔹 전체 보기 → 아레나 탭 + 스틸리그 리그 일정 화면
+                  onPressed: () => _navigateToTab(
+                    context,
+                    RouteConstants.steelLeagueSchedule,
+                  ),
                   child: const Text('전체 보기'),
                 ),
               ],
@@ -269,7 +277,7 @@ class HomeScreenBody extends ConsumerWidget {
   }
 
   // =========================
-  // TOP 3 랭킹
+  // 스틸리그 포인트 TOP 3 랭킹
   // =========================
   static Widget _buildTop3Ranking(
       AsyncValue<List<RankingUser>> rankingState, BuildContext context) {
@@ -278,12 +286,16 @@ class HomeScreenBody extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Text('현재 TOP 3 (통합)',
+            // 🔹 제목 변경
+            Text('스틸리그 포인트',
                 style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
             TextButton(
-              // 전체 랭킹 → 아레나 탭으로 이동 (index=2)
-              onPressed: () => MainScreen.changeTab(context, 2),
+              // 🔹 전체 보기 → 아레나 탭 + 스틸리그 랭킹 화면
+              onPressed: () => _navigateToTab(
+                context,
+                RouteConstants.steelLeagueRanking,
+              ),
               child: const Text('전체 보기'),
             ),
           ],
@@ -397,8 +409,7 @@ class HomeScreenBody extends ConsumerWidget {
                       else
                         Container(
                           color: Colors.grey[300],
-                          child:
-                          const Icon(Icons.image, size: 60),
+                          child: const Icon(Icons.image, size: 60),
                         ),
                       Positioned(
                         bottom: 0,
@@ -467,7 +478,8 @@ class HomeScreenBody extends ConsumerWidget {
               }
             }
             return items.isEmpty
-                ? const Text('스폰서 없음', style: TextStyle(color: Colors.grey))
+                ? const Text('스폰서 없음',
+                style: TextStyle(color: Colors.grey))
                 : _buildSponsorCarousel(context, items);
           },
           loading: () => _buildShimmerBanner(height: 180),
@@ -553,43 +565,73 @@ class HomeScreenBody extends ConsumerWidget {
   }
 
   // =========================
-  // 탭 전환
-  // (기존 actionRoute 문자열 그대로 써도 동작하게 매핑)
+  // 탭 전환 + 아레나 상세 화면 진입
   // =========================
   static void _navigateToTab(BuildContext context, String route) {
-    int? tabIndex;
-
+    // 1) 문자열이 RouteConstants 값인 경우도 지원
     switch (route) {
     // 홈
+      case RouteConstants.home:
       case '/home':
-        tabIndex = 0;
+        MainScreen.changeTab(context, 0);
         break;
 
-    // 예전 구조에서 쓰던 값들 → 이제 아레나 탭으로 모으기
-      case '/ranking':
-      case '/calendar':
-      case '/point-calendar':
-      case '/arena/home':
-        tabIndex = 2; // 아레나
-        break;
-
-    // 트레이닝 관련 (나중에 /training 같은 route 쓰면 여기 매핑)
+    // 트레이닝
+      case RouteConstants.trainingHome:
       case '/training':
       case '/checkout':
-        tabIndex = 1;
+        MainScreen.changeTab(context, 1);
         break;
 
+    // 아레나 홈
+      case RouteConstants.arenaHome:
+      case '/arena':
+      case '/arena/home':
+      case '/ranking': // 과거 값 호환
+      case '/calendar':
+      case '/point-calendar':
+        MainScreen.changeTab(context, 2);
+        break;
+
+    // 🔹 스틸리그 리그 일정
+      case RouteConstants.steelLeagueSchedule:
+      case '/arena/steel/schedule':
+        MainScreen.changeTab(context, 2);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SteelLeagueScheduleScreen(),
+          ),
+        );
+        break;
+
+    // 🔹 스틸리그 랭킹
+      case RouteConstants.steelLeagueRanking:
+      case '/arena/steel/ranking':
+        MainScreen.changeTab(context, 2);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SteelLeagueRankingScreen(),
+          ),
+        );
+        break;
+
+    // 커뮤니티
+      case RouteConstants.community:
       case '/community':
-        tabIndex = 3;
+        MainScreen.changeTab(context, 3);
         break;
 
+    // 마이페이지
+      case RouteConstants.myPage:
       case '/my-page':
-        tabIndex = 4;
+        MainScreen.changeTab(context, 4);
         break;
-    }
 
-    if (tabIndex != null) {
-      MainScreen.changeTab(context, tabIndex);
+      default:
+      // 알 수 없는 route는 일단 무시
+        break;
     }
   }
 
@@ -600,11 +642,9 @@ class HomeScreenBody extends ConsumerWidget {
       ['월', '화', '수', '목', '금', '토', '일'][weekday - 1];
 
   static Widget _buildEmptyCard(BuildContext context, String msg) {
-    return AppCard(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(msg, style: const TextStyle(color: Colors.grey)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Text(msg, style: const TextStyle(color: Colors.grey)),
     );
   }
 
@@ -638,7 +678,7 @@ class HomeScreenBody extends ConsumerWidget {
       case 2:
         return Colors.grey;
       case 3:
-        return Colors.brown[700]!;
+        return Colors.brown;
       default:
         return const Color(0xFF1565C0);
     }
