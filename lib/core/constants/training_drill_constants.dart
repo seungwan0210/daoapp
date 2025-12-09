@@ -149,28 +149,45 @@ const TrainingDrillDefinition beginnerBigBull = TrainingDrillDefinition(
   id: 'beginner_big_bull',
   titleKo: '빅 Bull 감각',
   titleEn: 'Big Bull Feel',
-  shortDescriptionKo: 'Bull 링 전체를 노리며 “그루핑을 중점으로”만드는 드릴',
+  shortDescriptionKo: 'Bull 링 전체를 노리며 “그루핑” 감각을 만드는 드릴',
   shortDescriptionEn: 'Aim at the whole Bull ring to feel the center.',
   category: TrainingDrillCategory.bull,
   tierRange: DrillTierRange(
     minTier: rating_utils.DaoTrainingTier.beginner,
     maxTier: rating_utils.DaoTrainingTier.beginner,
   ),
+  // ✅ 명중 개수 기반 드릴
   inputMode: TrainingDrillInputMode.hitCount,
   estimatedMinutes: 15,
   recommendedDarts: 60,
-  targetLabel: '전체 Bull ',
+  targetLabel: '전체 Bull 60발',
+
   guideKo:
   'BULL 링(SBull+DBull)을 모두 포함하는 큰 원만 노리고 60발을 던집니다. '
-      '20라운드(3다트 × 20R) 동안 매 라운드 Bull 링 안에 들어간 개수(0~3)를 입력하세요. '
-      '세션 종료 후 총 Bull 히트 수와 성공률(%)을 보고, 예를 들어 10/60 이상을 1차 기준으로 삼아 '
+      '20라운드(3다트 × 20R) 동안 매 다트마다 SBull / DBull / MISS를 눌러 기록하세요. '
+      '세션 종료 후 총 Bull 히트 수와 성공률(%)을 보고, 예를 들어 SBull+DBull 10/60 이상을 1차 기준으로 삼아 '
       '점차 목표치를 올려갈 수 있습니다.',
+
   difficulty: DrillDifficulty.easy,
+
+  // ※ uiPattern은 필터/분류용으로만 쓰고, 실제 런 모드는 extraConfig의 mode/targetArea로 결정됨
   uiPattern: DrillUIPattern.segmentTarget,
+
   extraConfig: {
-    'targetArea': 'big_bull',
-    'dartsPerRound': 3,
-    'rounds': 20, // 총 60발
+    // 🔥 DrillRunScreen에서 BullSplitPanel을 타게 하는 스위치
+    //   - _calculateTotalPlannedDarts(): targetArea == 'bull_split'일 때 totalDarts 사용
+    //   - _buildDrillPanel(): mode == 'bull_split' || targetArea == 'bull_split' 이면 BullSplitPanel 사용
+    'mode': 'bull_split',
+    'targetArea': 'bull_split',
+
+    // 🔢 총 던질 다트 수
+    'totalDarts': 60,
+
+    // 🎯 목표치(선택): 없애고 싶으면 주석 처리해도 됨
+    //   → DrillRunScreen의 BullSplitPanel 브랜치에서
+    //      targetSbPlusDb / targetDb 읽어서 상단 텍스트로만 사용
+    'targetSbPlusDb': 10, // 예시: SBull+DBull 10개 이상을 1차 목표
+    // 'targetDb': 2,     // 필요하면 더블불 목표도 넣을 수 있음
   },
 );
 

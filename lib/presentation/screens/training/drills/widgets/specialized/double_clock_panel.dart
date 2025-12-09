@@ -29,7 +29,8 @@ class DoubleClockPanel extends StatefulWidget {
 
 class _DoubleClockPanelState extends State<DoubleClockPanel> {
   late List<String> _targets;
-  late int _currentIndex = 0;
+  int _currentIndex = 0;      // 현재 타겟 인덱스 (0-based)
+  bool _finished = false;     // 전체 드릴 완료 여부
 
   @override
   void initState() {
@@ -38,7 +39,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
   }
 
   void _buildTargetList() {
-    List<String> doubles = [];
+    final List<String> doubles = [];
 
     if (widget.reverse) {
       for (int i = 20; i >= 1; i--) {
@@ -50,33 +51,63 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
       }
     }
 
-    if (widget.includeBull) doubles.add('DBull');
+    if (widget.includeBull) {
+      doubles.add('DBull');
+    }
+
     _targets = doubles;
   }
 
-  String get currentTarget => _targets[_currentIndex];
   int get totalTargets => _targets.length;
-  double get progress => totalTargets == 0 ? 0.0 : _currentIndex / totalTargets;
+
+  String get currentTarget {
+    if (_targets.isEmpty) return '-';
+    final clamped = _currentIndex.clamp(0, totalTargets - 1);
+    return _targets[clamped];
+  }
+
+  /// 1-based 표시용: 1 / N, 2 / N ... N / N
+  int get displayStep {
+    if (totalTargets == 0) return 0;
+    if (_finished) return totalTargets;
+    return (_currentIndex.clamp(0, totalTargets - 1)) + 1;
+  }
+
+  /// 게이지 진행도 (0.0 ~ 1.0)
+  double get progress {
+    if (totalTargets == 0) return 0.0;
+
+    final completedCount = _finished ? totalTargets : _currentIndex;
+    // 시작: 0 / N → 0%
+    // 마지막 성공 후: N / N → 100%
+    return (completedCount / totalTargets).clamp(0.0, 1.0);
+  }
+
+  bool get isFinished => _finished;
 
   void _record(bool success) {
-    if (widget.isBusy || _currentIndex >= totalTargets) return;
+    if (widget.isBusy || _finished || totalTargets == 0) return;
 
     if (success) {
       widget.onHitSuccess?.call();
-      if (_currentIndex < totalTargets - 1) {
-        setState(() => _currentIndex++);
-      } else {
-        widget.onFinishPressed?.call();
-      }
+
+      setState(() {
+        if (_currentIndex < totalTargets - 1) {
+          // 다음 더블로 이동
+          _currentIndex++;
+        } else {
+          // 마지막 타겟까지 성공 → 드릴 완료 상태
+          _finished = true;
+        }
+      });
     } else {
       widget.onHitFail?.call();
+      // 실패해도 인덱스는 그대로, 같은 더블 다시 도전
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isFinished = _currentIndex >= totalTargets;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -84,7 +115,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
         children: [
           const SizedBox(height: 12),
 
-          // 상단 진행 정보 (작고 간결)
+          // 상단 진행 정보
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -94,7 +125,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Text(
-              "더블 시계${widget.startFrom > 1 ? " (뒤 절반)" : ""} · $_currentIndex / $totalTargets",
+              "더블 시계${widget.startFrom > 1 ? " (뒤 절반)" : ""} · $displayStep / $totalTargets",
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -102,7 +133,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
           const SizedBox(height: 20),
 
-          // 원형 프로그레스 + 타겟 (크기 대폭 ↓, 기존 패널들과 통일)
+          // 원형 프로그레스 + 타겟
           SizedBox(
             width: 160,
             height: 160,
@@ -116,7 +147,9 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
                     value: progress,
                     strokeWidth: 9,
                     backgroundColor: Colors.grey.shade300,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.cyan.shade600),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Colors.cyan.shade600,
+                    ),
                   ),
                 ),
                 Container(
@@ -144,32 +177,52 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
           const SizedBox(height: 28),
 
-          // 성공 / 실패 버튼 (기존과 동일한 크기)
+          // 성공 / 실패 버튼
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy || isFinished ? null : () => _record(true),
+                  onPressed: widget.isBusy || isFinished
+                      ? null
+                      : () => _record(true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text("성공", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "성공",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy || isFinished ? null : () => _record(false),
+                  onPressed: widget.isBusy || isFinished
+                      ? null
+                      : () => _record(false),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
-                  child: const Text("실패", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "실패",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -185,16 +238,28 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
                 backgroundColor: Colors.cyan.shade600,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
               ),
-              child: const Text("결과 확인하기", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              child: const Text(
+                "결과 확인하기",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             )
           else
             TextButton(
               onPressed: widget.isBusy ? null : widget.onFinishPressed,
               child: const Text(
                 "드릴 종료하고 결과 저장",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.cyan),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.cyan,
+                ),
               ),
             ),
 

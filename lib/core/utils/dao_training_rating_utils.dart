@@ -678,11 +678,11 @@ double? getLiveRatingPreciseAdjusted({double? mpr, double? ppd}) {
 /// =======================================
 
 DaoTrainingTier tierFromBoardTest(int dartsUsed) {
-  if (dartsUsed <= 22) return DaoTrainingTier.master; // 거의 퍼펙트 수준
-  if (dartsUsed <= 26) return DaoTrainingTier.pro;
-  if (dartsUsed <= 32) return DaoTrainingTier.elite;
-  if (dartsUsed <= 40) return DaoTrainingTier.challenger;
-  if (dartsUsed <= 50) return DaoTrainingTier.competitor;
+  if (dartsUsed <= 24) return DaoTrainingTier.master;
+  if (dartsUsed <= 28) return DaoTrainingTier.pro;
+  if (dartsUsed <= 33) return DaoTrainingTier.elite;
+  if (dartsUsed <= 42) return DaoTrainingTier.challenger;
+  if (dartsUsed <= 55) return DaoTrainingTier.competitor;
   if (dartsUsed <= 70) return DaoTrainingTier.learner;
   return DaoTrainingTier.beginner; // 71발 이상
 }
