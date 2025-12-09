@@ -28,6 +28,12 @@ class TrainingSessionModel {
   final int successCount;
   final int failCount;
 
+  /// 🔹 이번 세션으로 획득한 XP
+  ///
+  /// - 드릴 정의의 baseXp + 성과 기반 보너스 XP
+  /// - 과거 기록에는 필드가 없으므로 fromJson에서 기본값 0 처리
+  final int xpEarned;
+
   /// 부가 정보 / 통계
   ///
   /// - inputMode: 'hitCount' / 'scoreOnly' / 'cricketMarks'
@@ -49,6 +55,7 @@ class TrainingSessionModel {
     required this.successCount,
     required this.failCount,
     this.extra,
+    this.xpEarned = 0, // 기본 0
   });
 
   TrainingSessionModel copyWith({
@@ -64,6 +71,7 @@ class TrainingSessionModel {
     int? successCount,
     int? failCount,
     Map<String, dynamic>? extra,
+    int? xpEarned,
   }) {
     return TrainingSessionModel(
       id: id ?? this.id,
@@ -78,6 +86,7 @@ class TrainingSessionModel {
       successCount: successCount ?? this.successCount,
       failCount: failCount ?? this.failCount,
       extra: extra ?? this.extra,
+      xpEarned: xpEarned ?? this.xpEarned,
     );
   }
 
@@ -140,6 +149,7 @@ class TrainingSessionModel {
       successCount: (json['successCount'] as num?)?.toInt() ?? 0,
       failCount: (json['failCount'] as num?)?.toInt() ?? 0,
       extra: (json['extra'] as Map<String, dynamic>?) ?? const {},
+      xpEarned: (json['xpEarned'] as num?)?.toInt() ?? 0, // 🔹 과거 데이터 대응
     );
   }
 
@@ -157,6 +167,7 @@ class TrainingSessionModel {
       'successCount': successCount,
       'failCount': failCount,
       'extra': extra ?? <String, dynamic>{},
+      'xpEarned': xpEarned, // 🔹 새 필드
     };
   }
 }

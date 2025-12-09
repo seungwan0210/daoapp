@@ -19,9 +19,13 @@ import 'package:daoapp/data/repositories/arena_repository_impl.dart';
 // Storage
 import 'package:daoapp/services/storage_service.dart';
 
-// ★★★★★ Training 추가 ★★★★★
+// ★★★★★ Training Session 저장용 ★★★★★
 import 'package:daoapp/data/repositories/training_repository.dart';
 import 'package:daoapp/data/repositories/training_repository_impl.dart';
+
+// ★★★★★ Training Progress (XP/게이지) 저장용 ★★★★★
+import 'package:daoapp/data/repositories/training_progress_repository.dart';
+import 'package:daoapp/data/repositories/training_progress_repository_impl.dart';
 
 final sl = GetIt.instance;
 
@@ -39,15 +43,30 @@ void setupDependencies() {
 
   // === Point & Ranking ===
   sl.registerLazySingleton<PointRecordRepository>(
-          () => PointRecordRepositoryImpl());
+        () => PointRecordRepositoryImpl(),
+  );
 
   // === Arena ===
-  sl.registerLazySingleton<ArenaRepository>(() => ArenaRepositoryImpl());
+  sl.registerLazySingleton<ArenaRepository>(
+        () => ArenaRepositoryImpl(),
+  );
 
   // === Storage ===
-  sl.registerLazySingleton<StorageService>(() => StorageService());
+  sl.registerLazySingleton<StorageService>(
+        () => StorageService(),
+  );
 
-  // ★★★★★ Training Repository 등록 (핵심) ★★★★★
+  // ★★★★★ Training Session Repository 등록 ★★★★★
   sl.registerLazySingleton<TrainingRepository>(
-          () => TrainingRepositoryImpl(firestore: sl<FirebaseFirestore>()));
+        () => TrainingRepositoryImpl(
+      firestore: sl<FirebaseFirestore>(),
+    ),
+  );
+
+  // ★★★★★ Training Progress Repository 등록 (XP / 게이지) ★★★★★
+  sl.registerLazySingleton<TrainingProgressRepository>(
+        () => TrainingProgressRepositoryImpl(
+      firestore: sl<FirebaseFirestore>(),
+    ),
+  );
 }

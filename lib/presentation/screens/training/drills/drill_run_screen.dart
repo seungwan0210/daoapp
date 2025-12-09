@@ -238,12 +238,17 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
   }
 
   Future<void> _finishDrill({required bool earlyFinish}) async {
+    // 👉 이미 dispose 된 상태라면 바로 종료
+    if (!mounted) return;
+
     if (_isFinishing) return;
     setState(() => _isFinishing = true);
 
     try {
       // ✅ 어떤 패널이든 finish 전에 세션은 반드시 시작
       await _ensureSessionStarted();
+
+      if (!mounted) return;
 
       await ref.read(trainingDrillProvider.notifier).finishSession(
         inputMode: widget.drill.inputMode,
@@ -260,7 +265,10 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
         },
       );
 
+      if (!mounted) return;
+
       final session = ref.read(trainingDrillProvider).activeSession;
+
       if (!mounted) return;
 
       if (session != null) {
@@ -274,21 +282,27 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
             ),
           ),
         );
+
+        if (!mounted) return;
         ref.read(trainingDrillProvider.notifier).clearSession();
       } else {
+        if (!mounted) return;
         Navigator.pop(context);
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('저장 실패: $e')),
       );
     } finally {
-      if (mounted) setState(() => _isFinishing = false);
+      if (!mounted) return;
+      setState(() => _isFinishing = false);
     }
   }
 
   void _onManualFinish() {
     if (!_hasAnyRecord) {
+      if (!mounted) return;
       Navigator.pop(context);
       return;
     }

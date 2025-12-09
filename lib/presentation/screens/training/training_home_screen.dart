@@ -1,5 +1,6 @@
 // lib/presentation/screens/training/training_home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -7,6 +8,7 @@ import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/constants/training_drill_constants.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
+import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
 import 'widgets/dual_neon_gauge_row.dart';
@@ -15,16 +17,27 @@ import 'drills/drill_run_screen.dart';
 import 'package:daoapp/core/constants/training_program_constants.dart'
 as program_constants;
 
-class TrainingHomeScreen extends StatefulWidget {
+// 🔹 XP/게이지 Progress Provider
+import 'package:daoapp/presentation/providers/training/training_progress_provider.dart';
+
+// 🔹 레이팅 체크 후 게이지 리셋에 사용할 Repository
+import 'package:daoapp/data/repositories/training_progress_repository.dart';
+import 'package:daoapp/di/service_locator.dart';
+
+class TrainingHomeScreen extends ConsumerStatefulWidget {
   const TrainingHomeScreen({super.key});
 
   @override
-  State<TrainingHomeScreen> createState() => _TrainingHomeScreenState();
+  ConsumerState<TrainingHomeScreen> createState() =>
+      _TrainingHomeScreenState();
 }
 
-class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
+class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   DaoTrainingProfile? _profile;
   bool _isLoadingProfile = true;
+
+  /// 🔥 한 사이클(게이지 0→100%) 동안 팝업을 딱 1번만 띄우기 위한 플래그
+  bool _ratingDialogShownForThisCycle = false;
 
   // ========= Firestore 헬퍼 =========
 
@@ -139,23 +152,48 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
     });
   }
 
-  // ========= 내비게이션 =========
+  // ========= 레이팅/레벨 테스트 완료 후: XP 게이지 리셋 =========
+
+  Future<void> _updateProgressAfterRatingCheck(DaoTrainingTier tier) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final repo = sl<TrainingProgressRepository>();
+      await repo.markRatingChecked(
+        userId: user.uid,
+        newTier: tier,
+      );
+    } catch (e) {
+      debugPrint('Failed to mark rating checked: $e');
+    }
+  }
+
+  // ========= 레이팅/레벨 테스트 화면 이동 =========
 
   Future<void> _openRatingInput() async {
     final result =
     await Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
+
     if (result is DaoTrainingProfile) {
       setState(() => _profile = result);
-      _saveProfileToFirestore();
+      await _saveProfileToFirestore();
+
+      // 🔹 레이팅 입력으로 티어 확정 → XP 게이지도 새 티어 기준으로 리셋
+      await _updateProgressAfterRatingCheck(result.tier);
     }
   }
 
   Future<void> _openBoardLevelTest() async {
     final result =
     await Navigator.pushNamed(context, RouteConstants.boardLevelTest);
+
     if (result is DaoTrainingProfile) {
       setState(() => _profile = result);
-      _saveProfileToFirestore();
+      await _saveProfileToFirestore();
+
+      // 🔹 보드 레벨 테스트로 티어 확정 → XP 게이지 리셋
+      await _updateProgressAfterRatingCheck(result.tier);
     }
   }
 
@@ -164,6 +202,61 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
     if (rating == null) return "-";
     if (rating % 1 == 0) return rating.toInt().toString();
     return rating.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+  }
+
+  /// 🔥 성장 게이지 100% 달성 시 호출되는 다이얼로그
+  Future<void> _showRatingCheckDialog() async {
+    if (!mounted) return;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text(
+          '🔥 성장 게이지 100% 달성!',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          '훈련을 통해 성장 게이지가 가득 찼어요.\n\n'
+              '지금 레이팅을 다시 측정하여\n'
+              '성장한 실력을 확인해볼까요?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('나중에 하기'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              '레이팅 / 레벨 테스트 하기',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+
+    if (result == true) {
+      Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
+    }
+  }
+
+  /// 🔍 Progress를 보고, 게이지 100% 도달 시 다이얼로그 한 번만 띄우는 로직
+  void _handleProgressForRatingDialog(TrainingProgressModel progress) {
+    if (progress.isCycleComplete) {
+      if (!_ratingDialogShownForThisCycle) {
+        _ratingDialogShownForThisCycle = true;
+        Future.microtask(_showRatingCheckDialog);
+      }
+    } else {
+      // 새 사이클 (xpSinceLastCheck 리셋 등) 시작되면 다시 false로
+      if (_ratingDialogShownForThisCycle) {
+        _ratingDialogShownForThisCycle = false;
+      }
+    }
   }
 
   @override
@@ -178,6 +271,9 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
         _profile?.phoenixClass != null || _profile?.liveRating != null;
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // 🔹 XP/게이지 Progress 구독
+    final progressAsync = ref.watch(trainingProgressProvider);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -189,6 +285,18 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
             // === 프로필 없으면 입력 유도 ===
             if (_profile == null) ...[
               _buildEmptyState(),
+              const SizedBox(height: 24),
+
+              // 프로필 없을 때도 기본 게이지(0%)는 보여줄 수 있음
+              progressAsync.when(
+                data: (progress) {
+                  _handleProgressForRatingDialog(progress);
+                  return _buildXpGauge(progress);
+                },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
               const SizedBox(height: 60),
             ] else ...[
               // === DAO 티어 크게 표시 ===
@@ -210,7 +318,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
               ),
               const SizedBox(height: 24),
 
-              // === 네온 듀얼 게이지 (반응형 크기) ===
+              // === 네온 듀얼 게이지 (PHOENIX / LIVE) ===
               Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: screenWidth > 400 ? 20 : 0,
@@ -221,6 +329,26 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                   gaugeSize: screenWidth > 400 ? 160 : 140,
                 ),
               ),
+              const SizedBox(height: 20),
+
+              // 🔹 XP 성장 게이지
+              progressAsync.when(
+                data: (progress) {
+                  _handleProgressForRatingDialog(progress);
+                  return _buildXpGauge(progress);
+                },
+                loading: () => const SizedBox(
+                  height: 72,
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+                error: (e, _) {
+                  debugPrint('Progress load error: $e');
+                  return const SizedBox.shrink();
+                },
+              ),
+
               const SizedBox(height: 24),
 
               // === 상세 정보 카드 + 수정 / 초기화 ===
@@ -330,16 +458,14 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
             // === 오늘의 추천 연습 ===
             Text(
               "오늘의 추천 연습",
-              style:
-              Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
@@ -348,14 +474,92 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
             // === 연습 모드 ===
             Text(
               "연습 모드",
-              style:
-              Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 16),
             ..._buildPracticeItems(),
             const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// ✅ XP 성장 게이지 카드
+  Widget _buildXpGauge(TrainingProgressModel progress) {
+    final ratio = progress.progressRatio; // 0.0 ~ 1.0
+    final percentText =
+    (ratio * 100).clamp(0, 100).toStringAsFixed(0);
+    final remain = progress.remainingXp;
+
+    String subtitle;
+    if (ratio >= 1.0) {
+      subtitle = "게이지가 가득 찼습니다! 레이팅/레벨 테스트를 진행해 보세요.";
+    } else if (ratio >= 0.7) {
+      subtitle = "거의 다 왔어요. 집중해서 한두 세션만 더!";
+    } else {
+      subtitle =
+      "연습을 할수록 XP가 쌓이고, 가득 차면 레이팅을 다시 체크합니다.";
+    }
+
+    return AppCard(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 상단 텍스트
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "성장 게이지",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  "$percentText%",
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: ratio.clamp(0, 1),
+                minHeight: 8,
+                backgroundColor: Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.cyan.shade600,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              ratio >= 1.0
+                  ? "다음 레이팅 체크를 진행해주세요."
+                  : "레이팅/레벨 재평가까지 남은 XP: $remain",
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[500],
+              ),
+            ),
           ],
         ),
       ),
@@ -393,7 +597,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
@@ -409,7 +614,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.cyan, width: 2),
                   foregroundColor: Colors.cyan,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
@@ -422,10 +628,12 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
   /// 티어 기반 "오늘의 추천 드릴" 카드
   Widget _buildRecommendationCards(DaoTrainingTier? tier) {
     // 프로필 없으면 일단 Beginner(비기너) 기준으로 보여주기
-    final DaoTrainingTier effectiveTier = tier ?? DaoTrainingTier.beginner;
+    final DaoTrainingTier effectiveTier =
+        tier ?? DaoTrainingTier.beginner;
 
     final List<TrainingDrillDefinition> drills =
-    program_constants.getRecommendedDrillsForToday(effectiveTier);
+    program_constants.getRecommendedDrillsForToday(
+        effectiveTier);
 
     if (drills.isEmpty) {
       return const Text(
@@ -461,7 +669,8 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundColor: _categoryColor(drill.category)
+                      backgroundColor:
+                      _categoryColor(drill.category)
                           .withOpacity(0.12),
                       child: Icon(
                         _categoryIcon(drill.category),
@@ -502,13 +711,11 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
                               ),
                               _pill(
                                 Colors.blueGrey,
-                                _inputModeLabel(
-                                    drill.inputMode),
+                                _inputModeLabel(drill.inputMode),
                               ),
                               _pill(
                                 Colors.deepPurple,
-                                _tierRangeLabel(
-                                    drill.tierRange),
+                                _tierRangeLabel(drill.tierRange),
                               ),
                             ],
                           ),
@@ -537,7 +744,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
         Colors.blueGrey,
       ),
 
-      // 🔹 체크아웃 연습 (기존 기능)
+      // 🔹 체크아웃 연습
       _practiceTile(
         Icons.sports_score,
         "체크아웃 연습",
@@ -636,7 +843,6 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
   }
 
   String _tierRangeLabel(DrillTierRange range) {
-    // 예: "비기너~러너", "컴페티터~엘리트"
     if (range.minTier == range.maxTier) {
       return range.minTier.labelKo;
     }
@@ -645,8 +851,7 @@ class _TrainingHomeScreenState extends State<TrainingHomeScreen> {
 
   Widget _pill(Color color, String text) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(999),

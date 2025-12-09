@@ -170,6 +170,16 @@ class TrainingDrillDefinition {
   /// 지정하지 않으면 genericHit 패널 사용.
   final TrainingDrillRunPanelType runPanelType;
 
+  /// 🔹 이 드릴을 한 번 완료했을 때 기본으로 주는 XP
+  ///
+  /// - 난이도/티어에 따라 나중에 드릴 상수에서 개별 조정 가능
+  final int baseXp;
+
+  /// 🔹 성과(명중률, 점수 등)에 따라 추가로 줄 수 있는 최대 보너스 XP
+  ///
+  /// - `calculateXpForSession()`에서 performance 비율로 계산
+  final int maxBonusXp;
+
   const TrainingDrillDefinition({
     required this.id,
     required this.titleKo,
@@ -188,5 +198,9 @@ class TrainingDrillDefinition {
     this.uiPattern,     // UI 패턴
     this.extraConfig,   // 추가 설정
     this.runPanelType = TrainingDrillRunPanelType.genericHit, // 기본값
+
+    // 🔹 XP 기본값 (기존 드릴 정의 전부 안 고쳐도 빌드는 됨)
+    this.baseXp = 50,
+    this.maxBonusXp = 50,
   });
 }

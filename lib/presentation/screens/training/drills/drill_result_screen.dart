@@ -1,12 +1,10 @@
 // lib/presentation/screens/training/drills/drill_result_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:daoapp/data/models/training_session_model.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-
-import '../history/training_session_detail_screen.dart';
-import 'drill_run_screen.dart';
 
 class DrillResultScreen extends StatelessWidget {
   final TrainingSessionModel session;
@@ -20,362 +18,499 @@ class DrillResultScreen extends StatelessWidget {
     required this.tier,
   });
 
-  // ✅ 7티어 구조 + labelEn 활용
-  String _tierLabel(DaoTrainingTier tier) {
-    // Beginner → BEGINNER 이런 느낌
-    return tier.labelEn.toUpperCase();
-  }
-
-  String _commentByHitRate(double rate) {
-    if (rate >= 0.8) {
-      return "완벽에 가까운 스코어! 지금 감각을 그대로 가져가면 실전에서도 큰 무기입니다.";
-    } else if (rate >= 0.6) {
-      return "좋은 흐름이에요. 조금만 더 집중해서 성공률 80%를 노려볼까요?";
-    } else if (rate >= 0.4) {
-      return "기복이 있는 구간입니다. 다시 한 번 천천히 폼과 타이밍을 점검해보면 좋아요.";
-    } else {
-      return "조금 어려운 날이네요. 그래도 이 기록이 다음 성장의 기준이 됩니다.";
-    }
+  int get _xpEarned {
+    // 모델 필드 우선, 없으면 extra에서 백업
+    if (session.xpEarned > 0) return session.xpEarned;
+    final extraXp = session.extra?['xpEarned'];
+    if (extraXp is num) return extraXp.toInt();
+    return 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 null-safe 처리
-    final double hitRate = (session.hitRate ?? 0.0);
-    final double hitRatePercent = hitRate * 100;
-    final String hitRateText = hitRatePercent.toStringAsFixed(1);
-
-    final int successCount = session.successCount ?? 0;
-    final int totalAttempts = session.totalAttempts ?? 0;
-
-    Color rateColor;
-    if (hitRatePercent >= 80) {
-      rateColor = Colors.cyan;
-    } else if (hitRatePercent >= 60) {
-      rateColor = Colors.green;
-    } else if (hitRatePercent >= 40) {
-      rateColor = Colors.amber;
-    } else {
-      rateColor = Colors.orange;
-    }
-
-    final extra = session.extra ?? {};
-    final finishedEarly = (extra['finishedEarly'] as bool?) ?? false;
+    final mode = session.inputModeString;
+    final started = session.startedAt;
+    final ended = session.endedAt;
+    final duration = ended.difference(started);
+    final minutes = duration.inMinutes;
+    final seconds = duration.inSeconds % 60;
 
     return Scaffold(
-      backgroundColor: Colors.white, // 🔹 라이트 모드 배경
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0.5,
         title: const Text(
-          "드릴 결과",
+          '연습 결과',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0.5,
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
-            // 드릴 제목 + 티어 정보
+            // 1) 드릴 / 티어 정보
             AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      drill.titleKo,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black87,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    drill.titleKo,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      drill.shortDescriptionKo,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[800],
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    drill.titleEn,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: Colors.cyan[700]!,
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            "DAO TIER · ${_tierLabel(tier)}",
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.cyan[700],
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          "드릴 ID: ${session.drillId}",
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.access_time_filled,
-                          size: 16,
-                          color: Colors.deepPurple[400],
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          "${session.startedAt.toLocal().toString().substring(0, 16)} ~ "
-                              "${session.endedAt.toLocal().toString().substring(0, 16)}",
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 성공률 / 성공 / 시도 카드
-            AppCard(
-              child: Padding(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        children: [
-                          const Text(
-                            "성공률",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "$hitRateText%",
-                            style: TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.w900,
-                              color: rateColor,
-                              shadows: [
-                                Shadow(
-                                  offset: const Offset(0, 0),
-                                  blurRadius: 12,
-                                  color: rateColor.withOpacity(0.5),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 2,
-                      height: 70,
-                      color: Colors.grey[300],
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          const Text(
-                            "성공 / 시도",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            successCount.toString(),
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.cyan[700],
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            "/ $totalAttempts 다트",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 18),
-
-            // 코멘트 카드
-            AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      color: Colors.cyan[700],
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _commentByHitRate(hitRate),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            if (finishedEarly) ...[
-              const SizedBox(height: 12),
-              AppCard(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: Colors.orange,
-                        size: 18,
+                      _ChipLabel(
+                        label: '티어',
+                        value: '${tier.labelKo} (${tier.labelEn})',
                       ),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "이번 세션은 계획된 라운드보다 조금 일찍 종료되었습니다.",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.orange[800],
-                          ),
-                        ),
+                      _ChipLabel(
+                        label: '카테고리',
+                        value: drill.category.name,
                       ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    session.drillTitle.isNotEmpty
+                        ? session.drillTitle
+                        : drill.shortDescriptionKo,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // 2) XP 카드 (이번 세션에서 획득)
+            _XpResultCard(xp: _xpEarned),
+
+            const SizedBox(height: 16),
+
+            // 3) 성과(명중률 / PPD / MPR 등) 요약
+            _MainStatsCard(
+              session: session,
+              mode: mode,
+            ),
+
+            const SizedBox(height: 16),
+
+            // 4) 세부 정보
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '세션 요약',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _RowItem(
+                    label: '총 시도',
+                    value:
+                    '${session.totalAttempts}회 (라운드: ${session.totalRounds}R)',
+                  ),
+                  const SizedBox(height: 6),
+                  if (session.hitRate != null) ...[
+                    _RowItem(
+                      label: '성공 / 실패',
+                      value:
+                      '${session.successCount} / ${session.failCount}',
+                    ),
+                    const SizedBox(height: 6),
+                    _RowItem(
+                      label: '명중률',
+                      value:
+                      '${(session.hitRate! * 100).toStringAsFixed(1)}%',
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                  if (session.ppd != null && session.threeDartAvg != null)
+                    _RowItem(
+                      label: 'PPD / 3다트 평균',
+                      value:
+                      '${session.ppd!.toStringAsFixed(2)} PPD / ${session.threeDartAvg!.toStringAsFixed(2)}',
+                    ),
+                  if (session.mpr != null) ...[
+                    const SizedBox(height: 6),
+                    _RowItem(
+                      label: 'Cricket MPR',
+                      value: session.mpr!.toStringAsFixed(2),
+                    ),
+                  ],
+                  const SizedBox(height: 6),
+                  _RowItem(
+                    label: '소요 시간',
+                    value: minutes > 0
+                        ? '${minutes}분 ${seconds}초'
+                        : '${seconds}초',
+                  ),
+                  const SizedBox(height: 6),
+                  _RowItem(
+                    label: '시작 / 종료',
+                    value:
+                    '${_formatTime(started)} ~ ${_formatTime(ended)}',
+                  ),
+                ],
+              ),
+            ),
 
             const SizedBox(height: 24),
 
-            // 버튼들: 다시 하기
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(
-                          builder: (_) => DrillRunScreen(
-                            drill: drill,
-                            tier: tier,
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text(
-                      "같은 드릴 다시하기",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyan[700],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                      ),
-                    ),
+            // 5) 닫기 버튼
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            // 상세 기록 보기
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        TrainingSessionDetailScreen(session: session),
+                child: const Text(
+                  '확인',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
                   ),
-                );
-              },
-              icon: const Icon(Icons.description_outlined),
-              label: const Text(
-                "상세 기록 보기",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple[600],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            // 트레이닝 홈으로
-            OutlinedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.cyan[700]!),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: Text(
-                "트레이닝 홈으로",
-                style: TextStyle(
-                  color: Colors.cyan[700],
-                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
-
-            const SizedBox(height: 40),
           ],
         ),
       ),
+    );
+  }
+
+  static String _formatTime(DateTime dt) {
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+}
+
+/// 큰 XP 카드
+class _XpResultCard extends StatelessWidget {
+  final int xp;
+
+  const _XpResultCard({
+    required this.xp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasXp = xp > 0;
+    final String mainText = hasXp ? '+$xp XP' : 'XP 0 (테스트 중)';
+    final String subText = hasXp
+        ? '이번 연습으로 획득한 경험치입니다.'
+        : 'XP 계산 테스트용 기록입니다.';
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '이번 세션 XP',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                mainText,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: hasXp ? Colors.cyan.shade600 : Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (hasXp)
+                Container(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.cyan.shade50,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    '성장 포인트',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.teal,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subText,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 메인 성과 카드 (모드별로 가장 중요한 수치 1~2개만 강조)
+class _MainStatsCard extends StatelessWidget {
+  final TrainingSessionModel session;
+  final String? mode;
+
+  const _MainStatsCard({
+    required this.session,
+    required this.mode,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final inputMode = mode ?? session.inputModeString;
+
+    String title = '주요 성과';
+    Widget content;
+
+    if (inputMode == 'hitCount') {
+      final hitRate = session.hitRate != null
+          ? (session.hitRate! * 100).toStringAsFixed(1)
+          : '--';
+      title = '명중률 드릴 결과';
+      content = Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _BigStat(
+            label: '명중률',
+            value: '$hitRate%',
+          ),
+          _BigStat(
+            label: '성공 / 실패',
+            value: '${session.successCount} / ${session.failCount}',
+          ),
+        ],
+      );
+    } else if (inputMode == 'scoreOnly') {
+      final ppdText =
+      session.ppd != null ? session.ppd!.toStringAsFixed(2) : '--';
+      final threeDartText = session.threeDartAvg != null
+          ? session.threeDartAvg!.toStringAsFixed(2)
+          : '--';
+      title = '점수형 드릴 결과';
+
+      content = Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _BigStat(
+            label: 'PPD',
+            value: ppdText,
+          ),
+          _BigStat(
+            label: '3다트 평균',
+            value: threeDartText,
+          ),
+        ],
+      );
+    } else if (inputMode == 'cricketMarks') {
+      final mprText =
+      session.mpr != null ? session.mpr!.toStringAsFixed(2) : '--';
+      title = '크리켓 드릴 결과';
+      content = Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _BigStat(
+            label: 'Cricket MPR',
+            value: mprText,
+          ),
+          _BigStat(
+            label: '총 마크',
+            value: '${session.totalMarksExtra ?? '-'}',
+          ),
+        ],
+      );
+    } else {
+      content = Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _BigStat(
+            label: '시도 수',
+            value: '${session.totalAttempts}',
+          ),
+          _BigStat(
+            label: '라운드',
+            value: '${session.totalRounds}R',
+          ),
+        ],
+      );
+    }
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          content,
+        ],
+      ),
+    );
+  }
+}
+
+/// 작은 라벨+값 칩
+class _ChipLabel extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ChipLabel({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 8,
+        vertical: 4,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$label ',
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BigStat extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _BigStat({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey.shade600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RowItem extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _RowItem({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
