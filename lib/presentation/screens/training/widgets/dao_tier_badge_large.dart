@@ -14,7 +14,7 @@ class DaoTierBadgeLarge extends StatelessWidget {
 
   /// 각 DAO 티어별 대표 색상 지정
   Color get color => switch (tier) {
-    DaoTrainingTier.beginner   => Colors.grey,
+    DaoTrainingTier.beginner   => const Color(0xFFFF8EC7),
     DaoTrainingTier.learner    => Colors.blueGrey,
     DaoTrainingTier.competitor => Colors.blue,
     DaoTrainingTier.challenger => Colors.green,

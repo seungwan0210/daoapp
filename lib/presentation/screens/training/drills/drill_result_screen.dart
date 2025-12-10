@@ -14,6 +14,9 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/screens/training/report/training_report_overlay.dart';
 import 'package:daoapp/presentation/screens/training/widgets/report/training_report_viewmodel.dart';
 
+// ✅ 히스토리 화면으로 이동할 수 있도록 import
+import 'package:daoapp/presentation/screens/training/history/training_history_screen.dart';
+
 class DrillResultScreen extends StatefulWidget {
   final TrainingSessionModel session;
   final TrainingDrillDefinition drill;
@@ -83,14 +86,35 @@ class _DrillResultScreenState extends State<DrillResultScreen> {
           .get();
       if (!doc.exists) return;
 
+      // ✅ fromJson 첫 번째 인자는 userId 라서 user.uid 로 넘기도록 수정
       final progressAfter = TrainingProgressModel.fromJson(
-        doc.id,
+        user.uid,
         doc.data() ?? <String, dynamic>{},
       );
 
       final int earned = _xpEarned;
 
-      /// 🔹 Before 계산
+      // ✅ 세션이 이미 Firestore에 저장된 상태라면 xp / cycleId도 문서에 merge 업데이트
+      if (widget.session.id != null && widget.session.id!.isNotEmpty) {
+        final sessionRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('trainingSessions')
+            .doc(widget.session.id);
+
+        await sessionRef.set(
+          {
+            'xpEarned': earned,
+            // 세션에 cycleId가 아직 없다면, progressAfter.currentCycleId 로 채워준다.
+            if (widget.session.cycleId == null ||
+                widget.session.cycleId!.isEmpty)
+              'cycleId': progressAfter.currentCycleId,
+          },
+          SetOptions(merge: true),
+        );
+      }
+
+      /// 🔹 Before 계산 (earned 만큼 빼서 이전 상태 추정)
       final beforeProgress = progressAfter.copyWith(
         totalXp:
         (progressAfter.totalXp - earned).clamp(0, progressAfter.totalXp),
@@ -123,9 +147,21 @@ class _DrillResultScreenState extends State<DrillResultScreen> {
       await showTrainingReportOverlayDialog(
         context: context,
         report: viewModel,
-        tier: widget.tier, // 🔹 요 줄이 필수!!!
+        tier: widget.tier, // 🔹 티어 전달
+
+        // ✅ 닫기: 현재 화면 pop
         onClose: () => Navigator.of(context).pop(),
-        onGoHistory: null,
+
+        // ✅ 히스토리로 이동: 히스토리 화면 푸시
+        onGoHistory: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => const TrainingHistoryScreen(),
+            ),
+          );
+        },
+
+        // 지금은 아직 안 쓰는 콜백은 null 유지
         onGoNextDrill: null,
         onGoRatingCheck: null,
       );
@@ -148,8 +184,8 @@ class _DrillResultScreenState extends State<DrillResultScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title:
-        const Text('연습 결과', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('연습 결과',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
@@ -314,9 +350,8 @@ class _XpResultCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: hasXp
-                      ? Colors.cyan.shade600
-                      : Colors.grey.shade600,
+                  color:
+                  hasXp ? Colors.cyan.shade600 : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(width: 8),

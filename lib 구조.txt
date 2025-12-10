@@ -130,7 +130,6 @@
 │   │   │   │   ├── checkout_ranking_screen.dart
 │   │   │   │   └── checkout_practice_detail_screen.dart
 │   │   │   ├── report/
-│   │   │   │   └── training_report_animator..dart
 │   │   │   │   └── training_report_overlay.dart
 │   │   │   │
 │   │   │   └── widgets/
@@ -153,6 +152,7 @@
 │   │   │       │     └── report_neon_separator.dart
 │   │   │       │     └── report_stat_item.dart
 │   │   │       │     └── training_report_viewmodel.dart
+│   │   │       │     └── training_report_animator..dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

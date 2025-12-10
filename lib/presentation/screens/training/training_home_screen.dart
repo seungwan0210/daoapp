@@ -793,7 +793,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       case TrainingDrillCategory.bull:
         return Colors.green;
       case TrainingDrillCategory.other:
-        return Colors.grey;
+        return Color(0xFFFF8EC7);
     }
   }
 

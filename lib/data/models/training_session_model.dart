@@ -1,5 +1,3 @@
-// lib/data/models/training_session_model.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 
@@ -42,6 +40,14 @@ class TrainingSessionModel {
   /// - finishedEarly, plannedRounds, plannedDartsPerRound ...
   final Map<String, dynamic>? extra;
 
+  /// 🔹 이 세션이 속한 사이클 ID (예: "cycle_001")
+  final String? cycleId;
+
+  /// 🔹 이 세션 시점의 레이팅 스냅샷 (옵션)
+  final double? daoRatingAtThatTime;
+  final double? phoenixRatingAtThatTime;
+  final double? dartsliveRatingAtThatTime;
+
   const TrainingSessionModel({
     this.id,
     required this.userId,
@@ -56,6 +62,10 @@ class TrainingSessionModel {
     required this.failCount,
     this.extra,
     this.xpEarned = 0, // 기본 0
+    this.cycleId,
+    this.daoRatingAtThatTime,
+    this.phoenixRatingAtThatTime,
+    this.dartsliveRatingAtThatTime,
   });
 
   TrainingSessionModel copyWith({
@@ -72,6 +82,10 @@ class TrainingSessionModel {
     int? failCount,
     Map<String, dynamic>? extra,
     int? xpEarned,
+    String? cycleId,
+    double? daoRatingAtThatTime,
+    double? phoenixRatingAtThatTime,
+    double? dartsliveRatingAtThatTime,
   }) {
     return TrainingSessionModel(
       id: id ?? this.id,
@@ -87,6 +101,13 @@ class TrainingSessionModel {
       failCount: failCount ?? this.failCount,
       extra: extra ?? this.extra,
       xpEarned: xpEarned ?? this.xpEarned,
+      cycleId: cycleId ?? this.cycleId,
+      daoRatingAtThatTime:
+      daoRatingAtThatTime ?? this.daoRatingAtThatTime,
+      phoenixRatingAtThatTime:
+      phoenixRatingAtThatTime ?? this.phoenixRatingAtThatTime,
+      dartsliveRatingAtThatTime:
+      dartsliveRatingAtThatTime ?? this.dartsliveRatingAtThatTime,
     );
   }
 
@@ -150,6 +171,13 @@ class TrainingSessionModel {
       failCount: (json['failCount'] as num?)?.toInt() ?? 0,
       extra: (json['extra'] as Map<String, dynamic>?) ?? const {},
       xpEarned: (json['xpEarned'] as num?)?.toInt() ?? 0, // 🔹 과거 데이터 대응
+      cycleId: json['cycleId'] as String?,
+      daoRatingAtThatTime:
+      (json['daoRatingAtThatTime'] as num?)?.toDouble(),
+      phoenixRatingAtThatTime:
+      (json['phoenixRatingAtThatTime'] as num?)?.toDouble(),
+      dartsliveRatingAtThatTime:
+      (json['dartsliveRatingAtThatTime'] as num?)?.toDouble(),
     );
   }
 
@@ -168,6 +196,13 @@ class TrainingSessionModel {
       'failCount': failCount,
       'extra': extra ?? <String, dynamic>{},
       'xpEarned': xpEarned, // 🔹 새 필드
+      if (cycleId != null) 'cycleId': cycleId,
+      if (daoRatingAtThatTime != null)
+        'daoRatingAtThatTime': daoRatingAtThatTime,
+      if (phoenixRatingAtThatTime != null)
+        'phoenixRatingAtThatTime': phoenixRatingAtThatTime,
+      if (dartsliveRatingAtThatTime != null)
+        'dartsliveRatingAtThatTime': dartsliveRatingAtThatTime,
     };
   }
 }

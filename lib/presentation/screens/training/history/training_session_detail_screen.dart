@@ -14,15 +14,13 @@ class TrainingSessionDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 null-safe 처리
     final double hitRate = session.hitRate ?? 0.0;
     final double hitRatePercent = hitRate * 100;
     final String rateText = hitRatePercent.toStringAsFixed(1);
 
-    final int successCount = session.successCount ?? 0;
-    final int totalAttempts = session.totalAttempts ?? 0;
+    final int successCount = session.successCount;
+    final int totalAttempts = session.totalAttempts;
 
-    // 성공률에 따라 색상 결정
     Color rateColor;
     if (hitRatePercent >= 80) {
       rateColor = Colors.cyan[700]!;
@@ -34,8 +32,11 @@ class TrainingSessionDetailScreen extends StatelessWidget {
       rateColor = Colors.orange[700]!;
     }
 
+    final String tierLabel = session.tierAtThatTime.name.toUpperCase();
+    final String? cycleLabel = _cycleDisplayLabelFromId(session.cycleId);
+
     return Scaffold(
-      backgroundColor: Colors.white, // 🔹 라이트 모드 배경
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0.5,
@@ -94,11 +95,104 @@ class TrainingSessionDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "${session.startedAt.toLocal().toString().substring(0, 16)}\n→ ${session.endedAt.toLocal().toString().substring(0, 16)}",
+                      "${_formatDateTime(session.startedAt)}\n→ ${_formatDateTime(session.endedAt)}",
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[700],
                         height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // 🔹 티어 / XP / 사이클 정보 카드
+            AppCard(
+              child: Padding(
+                padding:
+                const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "티어",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            tierLabel,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.grey[300],
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            "획득 XP",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            "+${session.xpEarned}",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepPurple[400],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: Colors.grey[300],
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            "사이클",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            cycleLabel ?? "-",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -244,4 +338,24 @@ class TrainingSessionDetailScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatDateTime(DateTime dt) {
+  final local = dt.toLocal();
+  final y = local.year.toString().padLeft(4, '0');
+  final m = local.month.toString().padLeft(2, '0');
+  final d = local.day.toString().padLeft(2, '0');
+  final hh = local.hour.toString().padLeft(2, '0');
+  final mm = local.minute.toString().padLeft(2, '0');
+  return '$y-$m-$d $hh:$mm';
+}
+
+String? _cycleDisplayLabelFromId(String? id) {
+  if (id == null || id.isEmpty) return null;
+  if (id.startsWith('cycle_')) {
+    final numStr = id.substring(6);
+    final n = int.tryParse(numStr);
+    if (n != null) return '사이클 $n';
+  }
+  return id;
 }

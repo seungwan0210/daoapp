@@ -34,7 +34,8 @@ Color gaugeColorForTier(DaoTrainingTier tier) {
       return Colors.blue;
     case DaoTrainingTier.beginner:
     default:
-      return Colors.grey;
+    // 비기너: 너무 어둡지 않게 살짝 튀는 핑크톤
+      return const Color(0xFFFF8EC7);
   }
 }
 
@@ -42,7 +43,7 @@ Color gaugeColorForTier(DaoTrainingTier tier) {
 class TrainingReportOverlay extends StatelessWidget {
   final TrainingReportViewModel report;
 
-  /// 현재 세션의 티어 (게이지 색상에 사용)
+  /// ✅ DrillResultScreen 쪽에서 넘겨준 현재 티어
   final DaoTrainingTier tier;
 
   /// 닫기만 할 때
@@ -60,7 +61,7 @@ class TrainingReportOverlay extends StatelessWidget {
   const TrainingReportOverlay({
     super.key,
     required this.report,
-    required this.tier, // 🔹 티어 전달
+    required this.tier,      // ✅ 추가
     required this.onClose,
     this.onGoHistory,
     this.onGoNextDrill,
@@ -78,10 +79,13 @@ class TrainingReportOverlay extends StatelessWidget {
     final dateText = DateFormat('yyyy.MM.dd HH:mm').format(current.endedAt);
 
     // === 티어 기반 게이지 색상 ===
-    final Color tierGaugeColor = gaugeColorForTier(tier);
+    // ✅ 더 이상 Progress에서 currentTier를 뽑지 않고,
+    // DrillResultScreen에서 넘겨준 tier를 사용
+    final DaoTrainingTier currentTier = tier;
+    final Color tierGaugeColor = gaugeColorForTier(currentTier);
     const Color fullGaugeColor = Colors.deepPurpleAccent;
 
-    // === 메인 지표 계산 ===
+    // === 메인 지표 계산 (이번 / 이전 최고 비교) ===
     final String mainMetricLabel;
     final String mainMetricUnit;
     final double? currentMetric;
@@ -104,8 +108,9 @@ class TrainingReportOverlay extends StatelessWidget {
       default:
         mainMetricLabel = '명중률';
         mainMetricUnit = '%';
-        currentMetric =
-        _calcHitRate(current) != null ? _calcHitRate(current)! * 100 : null;
+        currentMetric = _calcHitRate(current) != null
+            ? _calcHitRate(current)! * 100
+            : null;
         previousMetric = (previous == null || _calcHitRate(previous) == null)
             ? null
             : _calcHitRate(previous)! * 100;
@@ -242,7 +247,9 @@ class TrainingReportOverlay extends StatelessWidget {
                           : ReportStatItem(
                         label: "이전 최고 ($mainMetricLabel)",
                         value: _formatMetric(
-                            previousMetric, mainMetricUnit),
+                          previousMetric,
+                          mainMetricUnit,
+                        ),
                         delta: diffMetric,
                       ),
                     ),
@@ -251,33 +258,13 @@ class TrainingReportOverlay extends StatelessWidget {
 
                 const SizedBox(height: 10),
 
-                // ===== 보조 지표 (다트 수, 라운드 수) =====
-                Row(
-                  children: [
-                    Expanded(
-                      child: ReportStatItem(
-                        label: "던진 다트 수",
-                        value: "${current.totalAttempts} darts",
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ReportStatItem(
-                        label: "라운드 수",
-                        value: "${current.totalRounds} R",
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                // ===== XP 지표 =====
+                // ===== XP 지표 (핵심) =====
                 ReportStatItem(
                   label: "이번 세션으로 획득한 XP",
                   value: "+$xpGained XP",
-                  description:
-                  cycleSize > 0 ? "현재 회차 목표: $cycleSize XP" : null,
+                  description: cycleSize > 0
+                      ? "이번 회차 목표: $cycleSize XP 기준"
+                      : null,
                   highlight: xpGained > 0,
                 ),
 
@@ -295,7 +282,7 @@ class TrainingReportOverlay extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 _GaugeDiffRow(
                   beforeRatio: beforeRatio,
@@ -310,7 +297,7 @@ class TrainingReportOverlay extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // ===== 요약 메시지 =====
+                // ===== 요약 + 다음 미션 느낌 메시지 =====
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -321,7 +308,7 @@ class TrainingReportOverlay extends StatelessWidget {
                       isGaugeFull: isGaugeFull,
                     ),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[700],
+                      color: Colors.grey[800],
                       height: 1.4,
                     ),
                   ),
@@ -352,11 +339,17 @@ class TrainingReportOverlay extends StatelessWidget {
     required double? diffMetric,
     required bool isGaugeFull,
   }) {
+    // 🔹 이전 기록이 없는 첫 저장
     if (diffMetric == null) {
-      // 이전 기록 없음 = 첫 기록
-      return isGaugeFull
-          ? "DAO 트레이닝 첫 기록과 함께 성장 게이지가 가득 찼어요.\n레이팅/레벨 테스트로 현재 실력을 다시 확인해보세요."
-          : "DAO 트레이닝 첫 기록이 저장되었습니다.\n앞으로의 연습이 모두 성장 게이지에 쌓입니다.";
+      if (isGaugeFull) {
+        return "DAO 트레이닝 첫 기록과 함께 성장 게이지가 가득 찼어요.\n"
+            "이제 한 번, 레이팅/레벨 테스트로 현재 실력을 다시 확인해볼까요?\n"
+            "👉 오늘 미션: 레이팅 체크 후, 이 드릴을 기준으로 루틴을 만들어보세요.";
+      } else {
+        return "DAO 트레이닝 첫 기록이 저장되었습니다.\n"
+            "앞으로의 모든 연습이 성장 게이지에 쌓이면서 당신의 티어를 만들어갈 거예요.\n"
+            "👉 오늘 미션: 같은 드릴을 한 번 더 반복해서 '내 기준 기록'을 만들어보세요.";
+      }
     }
 
     final bool improved = diffMetric > 0;
@@ -369,18 +362,38 @@ class TrainingReportOverlay extends StatelessWidget {
       diffText = absDiff.toStringAsFixed(2);
     }
 
+    // 🔹 게이지가 꽉 찼을 때: 레벨 재평가 미션
     if (isGaugeFull) {
-      return improved
-          ? "이전보다 $diffText 만큼 $mainMetricLabel이 좋아졌고,\n이번 회차 성장 게이지가 가득 찼습니다.\n레이팅/레벨 테스트로 현재 티어를 다시 점검해보세요!"
-          : "이번 회차 성장 게이지가 가득 찼습니다.\n레이팅/레벨 테스트로 현재 티어를 다시 점검해보세요.";
+      if (improved) {
+        return "이전보다 $diffText 만큼 $mainMetricLabel이 좋아졌고,\n"
+            "이번 회차 성장 게이지가 가득 찼습니다.\n"
+            "👉 지금이 레이팅/레벨 재평가 딱 좋은 타이밍이에요.\n"
+            "레이팅/레벨 테스트로 현재 티어를 다시 점검해보고,\n"
+            "새로운 목표 티어를 하나 정해볼까요?";
+      } else {
+        return "이번 회차 성장 게이지가 가득 찼습니다.\n"
+            "조금 기복이 있더라도 누적 실력은 분명히 올라가고 있어요.\n"
+            "👉 지금 레이팅/레벨을 한 번 정리하고,\n"
+            "다음 회차는 새 목표 티어를 향한 시즌 2처럼 시작해볼까요?";
+      }
     }
 
+    // 🔹 게이지가 아직 덜 찼을 때: 연습 지속 미션
     if (improved) {
-      return "이전 기록보다 $diffText 만큼 $mainMetricLabel이 상승했습니다.\n이 페이스로 계속 연습하면 곧 레벨업을 기대할 수 있어요.";
+      return "이전 기록보다 $diffText 만큼 $mainMetricLabel이 상승했습니다.\n"
+          "페이스가 아주 좋아요.\n"
+          "👉 오늘 미션: 같은 드릴을 한 번 더 진행해서\n"
+          "방금 기록을 한 번 더 넘겨보는 '연속 성공'에 도전해볼까요?";
     } else if (absDiff < 0.01) {
-      return "이번 연습은 이전과 비슷한 수준의 결과였어요.\n조금 더 집중해서 같은 드릴을 한 번 더 반복해볼까요?";
+      return "이번 연습은 이전과 거의 비슷한 수준의 결과였어요.\n"
+          "이건 '내 안정적인 평균'을 잡아가는 과정입니다.\n"
+          "👉 오늘 미션: 같은 드릴을 한 번 더 빠르게 진행해 보면서\n"
+          "리듬과 템포를 바꾸는 실험을 해보는 건 어떨까요?";
     } else {
-      return "이번 결과는 이전보다 조금 낮았지만,\n누적 연습량은 계속 쌓이고 있습니다.\n내일 다시 리프레시하는 느낌으로 도전해봐요.";
+      return "이번 결과는 이전보다 조금 낮았지만,\n"
+          "누적 연습량과 XP는 계속 쌓이고 있습니다.\n"
+          "👉 오늘 미션: 이 드릴은 여기까지, 다른 유형의 드릴로\n"
+          "마무리 한 번 더 해주고 내일 다시 리프레시하는 느낌으로 도전해봐요.";
     }
   }
 
@@ -551,7 +564,7 @@ class _GaugeDiffRow extends StatelessWidget {
 Future<void> showTrainingReportOverlayDialog({
   required BuildContext context,
   required TrainingReportViewModel report,
-  required DaoTrainingTier tier, // 🔹 티어 추가
+  required DaoTrainingTier tier,      // ✅ tier 파라미터 추가
   required VoidCallback onClose,
   VoidCallback? onGoHistory,
   VoidCallback? onGoNextDrill,
@@ -564,7 +577,7 @@ Future<void> showTrainingReportOverlayDialog({
     builder: (_) {
       return TrainingReportOverlay(
         report: report,
-        tier: tier, // 🔹 여기서 전달
+        tier: tier,                  // ✅ Overlay에 전달
         onClose: onClose,
         onGoHistory: onGoHistory,
         onGoNextDrill: onGoNextDrill,

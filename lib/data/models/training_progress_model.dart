@@ -1,5 +1,3 @@
-// lib/data/models/training_progress_model.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 
@@ -11,6 +9,9 @@ import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 /// - ratingCheckCount: 지금까지 레이팅 체크를 몇 번 했는지
 /// - lastUpdatedAt: 마지막으로 Progress가 갱신된 시각
 /// - lastRatingCheckAt: 마지막 레이팅 체크 시각
+/// - currentCycleId: 현재 사이클 ID (예: "cycle_001")
+/// - cycleIndex: 몇 번째 사이클인지 (1, 2, 3…)
+/// - cycleStartAt: 이 사이클이 시작된 시각
 class TrainingProgressModel {
   final String userId;
   final DaoTrainingTier tierAtThatTime;
@@ -33,6 +34,15 @@ class TrainingProgressModel {
   /// 마지막 레이팅 체크 시각 (없을 수도 있음)
   final DateTime? lastRatingCheckAt;
 
+  /// 🔹 현재 사이클 ID (예: "cycle_001")
+  final String currentCycleId;
+
+  /// 🔹 몇 번째 사이클인지 (1부터 시작)
+  final int cycleIndex;
+
+  /// 🔹 이 사이클이 시작된 시각
+  final DateTime cycleStartAt;
+
   const TrainingProgressModel({
     required this.userId,
     required this.tierAtThatTime,
@@ -42,7 +52,10 @@ class TrainingProgressModel {
     required this.ratingCheckCount,
     required this.lastUpdatedAt,
     this.lastRatingCheckAt,
-  });
+    this.currentCycleId = 'cycle_001',
+    this.cycleIndex = 1,
+    DateTime? cycleStartAt,
+  }) : cycleStartAt = cycleStartAt ?? lastUpdatedAt;
 
   /// 🔹 게이지 비율 0.0 ~ 1.0
   double get progressRatio {
@@ -76,6 +89,9 @@ class TrainingProgressModel {
     int? ratingCheckCount,
     DateTime? lastUpdatedAt,
     DateTime? lastRatingCheckAt,
+    String? currentCycleId,
+    int? cycleIndex,
+    DateTime? cycleStartAt,
   }) {
     return TrainingProgressModel(
       userId: userId ?? this.userId,
@@ -86,6 +102,9 @@ class TrainingProgressModel {
       ratingCheckCount: ratingCheckCount ?? this.ratingCheckCount,
       lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
       lastRatingCheckAt: lastRatingCheckAt ?? this.lastRatingCheckAt,
+      currentCycleId: currentCycleId ?? this.currentCycleId,
+      cycleIndex: cycleIndex ?? this.cycleIndex,
+      cycleStartAt: cycleStartAt ?? this.cycleStartAt,
     );
   }
 
@@ -118,11 +137,15 @@ class TrainingProgressModel {
   /// - lastRatingCheckAt / lastUpdatedAt: 지금 시각으로 갱신
   /// - tierAtThatTime: 새로 평가된 티어로 업데이트
   /// - newCycleSize가 주어지면, 다음 사이클 목표 XP도 조정
+  /// - 🔹 동시에 새로운 사이클 시작 (cycleIndex + 1, currentCycleId 갱신)
   TrainingProgressModel withRatingChecked({
     required DaoTrainingTier newTier,
     int? newCycleSize,
   }) {
     final now = DateTime.now();
+    final nextIndex = cycleIndex + 1;
+    final nextCycleId = 'cycle_${nextIndex.toString().padLeft(3, '0')}';
+
     return copyWith(
       tierAtThatTime: newTier,
       xpSinceLastCheck: 0,
@@ -130,6 +153,9 @@ class TrainingProgressModel {
       ratingCheckCount: ratingCheckCount + 1,
       lastUpdatedAt: now,
       lastRatingCheckAt: now,
+      cycleIndex: nextIndex,
+      currentCycleId: nextCycleId,
+      cycleStartAt: now,
     );
   }
 
@@ -160,6 +186,20 @@ class TrainingProgressModel {
       String userId,
       Map<String, dynamic> json,
       ) {
+    final lastUpdated = _toDate(json['lastUpdatedAt']);
+    final lastCheckRaw = json['lastRatingCheckAt'];
+    final lastCheck = lastCheckRaw != null ? _toDate(lastCheckRaw) : null;
+
+    final cycleIndex =
+        (json['cycleIndex'] as num?)?.toInt() ?? 1;
+    final currentCycleId = json['currentCycleId'] as String? ??
+        'cycle_${cycleIndex.toString().padLeft(3, '0')}';
+
+    final cycleStartAtRaw = json['cycleStartAt'];
+    final cycleStartAt = cycleStartAtRaw != null
+        ? _toDate(cycleStartAtRaw)
+        : (lastCheck ?? lastUpdated);
+
     return TrainingProgressModel(
       userId: userId,
       tierAtThatTime: _tierFromRaw(json['tierAtThatTime']),
@@ -167,10 +207,11 @@ class TrainingProgressModel {
       xpSinceLastCheck: (json['xpSinceLastCheck'] as num?)?.toInt() ?? 0,
       cycleSize: (json['cycleSize'] as num?)?.toInt() ?? 100,
       ratingCheckCount: (json['ratingCheckCount'] as num?)?.toInt() ?? 0,
-      lastUpdatedAt: _toDate(json['lastUpdatedAt']),
-      lastRatingCheckAt: json['lastRatingCheckAt'] != null
-          ? _toDate(json['lastRatingCheckAt'])
-          : null,
+      lastUpdatedAt: lastUpdated,
+      lastRatingCheckAt: lastCheck,
+      currentCycleId: currentCycleId,
+      cycleIndex: cycleIndex,
+      cycleStartAt: cycleStartAt,
     );
   }
 
@@ -184,6 +225,9 @@ class TrainingProgressModel {
       'lastUpdatedAt': Timestamp.fromDate(lastUpdatedAt),
       if (lastRatingCheckAt != null)
         'lastRatingCheckAt': Timestamp.fromDate(lastRatingCheckAt!),
+      'currentCycleId': currentCycleId,
+      'cycleIndex': cycleIndex,
+      'cycleStartAt': Timestamp.fromDate(cycleStartAt),
     };
   }
 
@@ -203,6 +247,9 @@ class TrainingProgressModel {
       ratingCheckCount: 0,
       lastUpdatedAt: now,
       lastRatingCheckAt: null,
+      currentCycleId: 'cycle_001',
+      cycleIndex: 1,
+      cycleStartAt: now,
     );
   }
 

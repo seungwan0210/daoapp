@@ -229,7 +229,7 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
       DaoTrainingTier.challenger => Colors.green,
       DaoTrainingTier.competitor => Colors.teal,
       DaoTrainingTier.learner => Colors.blue,
-      DaoTrainingTier.beginner => Colors.grey,
+      DaoTrainingTier.beginner => Color(0xFFFF8EC7),
     };
   }
 }

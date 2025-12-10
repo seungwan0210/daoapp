@@ -54,7 +54,7 @@ Provider.autoDispose.family<List<TrainingSessionModel>, String>(
           final todayEnd = todayStart.add(const Duration(days: 1));
 
           return sessions.where((session) {
-            final endedAt = session.endedAt; // ✅ 새 모델 필드 사용
+            final endedAt = session.endedAt;
             return endedAt.isAfter(todayStart) && endedAt.isBefore(todayEnd);
           }).toList();
         },
@@ -76,3 +76,30 @@ FutureProvider.autoDispose.family<TrainingSessionModel?, String>(
         drillId: drillId,
       );
     });
+
+/// =======================
+/// 🔹 히스토리 사이클 필터
+/// =======================
+
+/// 선택된 사이클 ID (null 이면 "전체")
+final selectedCycleIdProvider = StateProvider<String?>((ref) => null);
+
+/// 선택된 사이클 기준으로 필터링된 히스토리
+///
+/// - trainingRecentSessionsProvider 에서 전체 세션을 가져오고
+/// - selectedCycleIdProvider 에 따라 필터링한 AsyncValue를 제공
+final filteredTrainingHistoryProvider =
+Provider.autoDispose<AsyncValue<List<TrainingSessionModel>>>((ref) {
+  final baseAsync = ref.watch(trainingRecentSessionsProvider);
+  final selectedCycleId = ref.watch(selectedCycleIdProvider);
+
+  return baseAsync.whenData((sessions) {
+    if (selectedCycleId == null || selectedCycleId.isEmpty) {
+      // 🔹 전체 보기
+      return sessions;
+    }
+
+    // 🔹 해당 cycleId만 보기
+    return sessions.where((s) => s.cycleId == selectedCycleId).toList();
+  });
+});

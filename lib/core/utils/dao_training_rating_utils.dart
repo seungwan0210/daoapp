@@ -373,7 +373,7 @@ double? _getPhoenixClassPreciseFromTable({
   double? mpr,
   double? ppd,
   required List<PhoenixClassRange> table,
-  double mprWeight = 0.556, // 기본값은 기존 비율
+  double mprWeight = 0.5, // 기본값은 기존 비율
 }) {
   if (mpr == null && ppd == null) return null;
 
@@ -402,7 +402,7 @@ double? getPhoenixClassPrecise({double? mpr, double? ppd}) {
     mpr: mpr,
     ppd: ppd,
     table: _phoenixTable,
-    mprWeight: 0.556, // 기본 공식 비율 유지
+    mprWeight: 0.5, // 기본 공식 비율 유지
   );
 }
 
@@ -626,7 +626,7 @@ double? _getLiveRatingPreciseFromTable({
   double? mpr,
   double? ppd,
   required List<LiveRatingRange> table,
-  double mprWeight = 0.529, // 기본값은 기존 비율
+  double mprWeight = 0.5, // 기본값은 기존 비율
 }) {
   if (mpr == null && ppd == null) return null;
 
@@ -655,7 +655,7 @@ double? getLiveRatingPrecise({double? mpr, double? ppd}) {
     mpr: mpr,
     ppd: ppd,
     table: _liveTable,
-    mprWeight: 0.529, // 기본 공식 비율 유지
+    mprWeight: 0.5, // 기본 공식 비율 유지
   );
 }
 
