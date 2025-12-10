@@ -24,6 +24,7 @@
 │       ├── ranking_utils.dart
 │       └── arena_utils.dart
 │       └── dao_training_rating_utils.dart
+│       └── dao_training_xp_utils.dart
 │
 ├── data/
 │   ├── repositories/
@@ -37,6 +38,8 @@
 │   │   └── (기타 레포지토리들)
 │   │   └── training_repository.dart
 │   │   └── training_repository_impl.dart
+│   │   └── training_progress_repository.dart
+│   │   └── training_progress_repository_impl.dart
 
 │   └── models/
 │       ├── point_record_model.dart
@@ -48,6 +51,8 @@
 │       └── my_log_model.dart
 │       └── training_drill_model.dart
 │       └── training_session_model.dart
+│       └── training_progress_model.dart
+│       └── training_report_model.dart
 │
 ├── presentation/
 │   ├── providers/
@@ -64,6 +69,7 @@
 │   │   │   └── training_drill_provider.dart
 │   │   │   └── training_history_provider.dart
 │   │   │   └── training_home_provider.dart
+│   │   │   └── training_progress_provider.dart
 │   │
 │   ├── screens/
 │   │   ├── splash_screen.dart
@@ -123,6 +129,9 @@
 │   │   │   │   ├── checkout_my_history_screen.dart
 │   │   │   │   ├── checkout_ranking_screen.dart
 │   │   │   │   └── checkout_practice_detail_screen.dart
+│   │   │   ├── report/
+│   │   │   │   └── training_report_animator..dart
+│   │   │   │   └── training_report_overlay.dart
 │   │   │   │
 │   │   │   └── widgets/
 │   │   │       ├── dartboard_widget.dart
@@ -138,7 +147,12 @@
 │   │   │       └── round_input_panel.dart
 │   │   │       └── beginner_board_area_widget.dart
 │   │   │       └── drill_stat_summary.dart
-quadrant_board_panel.dart
+│   │   │
+│   │   │       └──report/
+│   │   │       │     └── report_action_buttons.dart
+│   │   │       │     └── report_neon_separator.dart
+│   │   │       │     └── report_stat_item.dart
+│   │   │       │     └── training_report_viewmodel.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

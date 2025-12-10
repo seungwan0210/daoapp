@@ -1,12 +1,20 @@
 // lib/presentation/screens/training/drills/drill_result_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import 'package:daoapp/data/models/training_session_model.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
+import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
-import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/data/models/training_report_model.dart';
 
-class DrillResultScreen extends StatelessWidget {
+import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/screens/training/report/training_report_overlay.dart';
+import 'package:daoapp/presentation/screens/training/widgets/report/training_report_viewmodel.dart';
+
+class DrillResultScreen extends StatefulWidget {
   final TrainingSessionModel session;
   final TrainingDrillDefinition drill;
   final DaoTrainingTier tier;
@@ -18,30 +26,130 @@ class DrillResultScreen extends StatelessWidget {
     required this.tier,
   });
 
+  @override
+  State<DrillResultScreen> createState() => _DrillResultScreenState();
+}
+
+class _DrillResultScreenState extends State<DrillResultScreen> {
+  bool _reportTried = false;
+
   int get _xpEarned {
-    // 모델 필드 우선, 없으면 extra에서 백업
-    if (session.xpEarned > 0) return session.xpEarned;
-    final extraXp = session.extra?['xpEarned'];
+    if (widget.session.xpEarned > 0) return widget.session.xpEarned;
+    final extraXp = widget.session.extra?['xpEarned'];
     if (extraXp is num) return extraXp.toInt();
     return 0;
   }
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showTrainingReportIfPossible();
+    });
+  }
+
+  /// 🔍 같은 드릴의 이전 기록 1개 가져오기
+  Future<TrainingSessionModel?> _fetchPreviousSession(
+      String userId, TrainingSessionModel current) async {
+    final snap = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('trainingSessions')
+        .where('drillId', isEqualTo: current.drillId)
+        .where('endedAt', isLessThan: current.endedAt)
+        .orderBy('endedAt', descending: true)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+    final doc = snap.docs.first;
+    return TrainingSessionModel.fromJson(doc.id, doc.data());
+  }
+
+  Future<void> _showTrainingReportIfPossible() async {
+    if (_reportTried) return;
+    _reportTried = true;
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      /// 🔹 Progress After 불러오기
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('trainingMeta')
+          .doc('trainingProgress')
+          .get();
+      if (!doc.exists) return;
+
+      final progressAfter = TrainingProgressModel.fromJson(
+        doc.id,
+        doc.data() ?? <String, dynamic>{},
+      );
+
+      final int earned = _xpEarned;
+
+      /// 🔹 Before 계산
+      final beforeProgress = progressAfter.copyWith(
+        totalXp:
+        (progressAfter.totalXp - earned).clamp(0, progressAfter.totalXp),
+        xpSinceLastCheck: (progressAfter.xpSinceLastCheck - earned)
+            .clamp(0, progressAfter.cycleSize),
+      );
+
+      /// 🔥 이전 최고 기록 로드
+      final previousBest =
+      await _fetchPreviousSession(user.uid, widget.session);
+
+      /// 🔹 Report Model 생성
+      final reportModel = TrainingReportBuilder.build(
+        session: widget.session,
+        progressBefore: beforeProgress,
+        progressAfter: progressAfter,
+      );
+
+      /// 🔹 ViewModel 구성
+      final viewModel = TrainingReportViewModel(
+        currentSession: widget.session,
+        previousBestSession: previousBest,
+        previousProgress: beforeProgress,
+        updatedProgress: progressAfter,
+        reportModel: reportModel,
+      );
+
+      if (!mounted) return;
+
+      await showTrainingReportOverlayDialog(
+        context: context,
+        report: viewModel,
+        tier: widget.tier, // 🔹 요 줄이 필수!!!
+        onClose: () => Navigator.of(context).pop(),
+        onGoHistory: null,
+        onGoNextDrill: null,
+        onGoRatingCheck: null,
+      );
+    } catch (e) {
+      debugPrint('Training report overlay error: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final session = widget.session;
+    final drill = widget.drill;
+    final tier = widget.tier;
+
     final mode = session.inputModeString;
-    final started = session.startedAt;
-    final ended = session.endedAt;
-    final duration = ended.difference(started);
+    final duration = session.endedAt.difference(session.startedAt);
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          '연습 결과',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title:
+        const Text('연습 결과', style: TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
@@ -51,7 +159,6 @@ class DrillResultScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
           children: [
-            // 1) 드릴 / 티어 정보
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,23 +205,11 @@ class DrillResultScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
-
-            // 2) XP 카드 (이번 세션에서 획득)
             _XpResultCard(xp: _xpEarned),
-
             const SizedBox(height: 16),
-
-            // 3) 성과(명중률 / PPD / MPR 등) 요약
-            _MainStatsCard(
-              session: session,
-              mode: mode,
-            ),
-
+            _MainStatsCard(session: session, mode: mode),
             const SizedBox(height: 16),
-
-            // 4) 세부 정보
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,76 +225,49 @@ class DrillResultScreen extends StatelessWidget {
                   _RowItem(
                     label: '총 시도',
                     value:
-                    '${session.totalAttempts}회 (라운드: ${session.totalRounds}R)',
+                    '${session.totalAttempts}회 (${session.totalRounds}R)',
                   ),
-                  const SizedBox(height: 6),
-                  if (session.hitRate != null) ...[
-                    _RowItem(
-                      label: '성공 / 실패',
-                      value:
-                      '${session.successCount} / ${session.failCount}',
-                    ),
-                    const SizedBox(height: 6),
+                  if (session.hitRate != null)
                     _RowItem(
                       label: '명중률',
                       value:
                       '${(session.hitRate! * 100).toStringAsFixed(1)}%',
                     ),
-                    const SizedBox(height: 6),
-                  ],
-                  if (session.ppd != null && session.threeDartAvg != null)
+                  if (session.ppd != null)
                     _RowItem(
-                      label: 'PPD / 3다트 평균',
-                      value:
-                      '${session.ppd!.toStringAsFixed(2)} PPD / ${session.threeDartAvg!.toStringAsFixed(2)}',
+                      label: 'PPD',
+                      value: session.ppd!.toStringAsFixed(2),
                     ),
-                  if (session.mpr != null) ...[
-                    const SizedBox(height: 6),
+                  if (session.mpr != null)
                     _RowItem(
-                      label: 'Cricket MPR',
+                      label: 'MPR',
                       value: session.mpr!.toStringAsFixed(2),
                     ),
-                  ],
-                  const SizedBox(height: 6),
                   _RowItem(
                     label: '소요 시간',
                     value: minutes > 0
-                        ? '${minutes}분 ${seconds}초'
-                        : '${seconds}초',
-                  ),
-                  const SizedBox(height: 6),
-                  _RowItem(
-                    label: '시작 / 종료',
-                    value:
-                    '${_formatTime(started)} ~ ${_formatTime(ended)}',
+                        ? '$minutes분 $seconds초'
+                        : '$seconds초',
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 24),
-
-            // 5) 닫기 버튼
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan.shade600,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.cyan.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  '확인',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                  ),
+              ),
+              child: const Text(
+                '확인',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -207,12 +275,6 @@ class DrillResultScreen extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static String _formatTime(DateTime dt) {
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mm = dt.minute.toString().padLeft(2, '0');
-    return '$hh:$mm';
   }
 }
 
@@ -252,14 +314,18 @@ class _XpResultCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w900,
-                  color: hasXp ? Colors.cyan.shade600 : Colors.grey.shade600,
+                  color: hasXp
+                      ? Colors.cyan.shade600
+                      : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(width: 8),
               if (hasXp)
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.cyan.shade50,
                     borderRadius: BorderRadius.circular(999),

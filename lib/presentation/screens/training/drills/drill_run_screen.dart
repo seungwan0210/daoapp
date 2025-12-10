@@ -49,6 +49,9 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
   int _currentScore = 0;
   int _currentMarks = 0;
 
+  /// ✅ 크리켓/카운트업 등에서 "실제 플레이한 라운드 수" 저장용
+  int _effectiveRounds = 0;
+
   bool _isStartingSession = false;
   bool _isFinishing = false;
 
@@ -237,6 +240,35 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
     await _finishDrill(earlyFinish: false);
   }
 
+  /// ✅ 세션 저장용 라운드 수를 일관되게 계산
+  int _calculateRoundsToSave() {
+    final extra = widget.drill.extraConfig ?? {};
+    final String gameType = (extra['gameType'] as String?) ?? '';
+
+    // 1) 크리켓/특수 드릴: 패널에서 넘겨준 실제 라운드 수 우선
+    if (_effectiveRounds > 0) {
+      return _effectiveRounds;
+    }
+
+    // 2) 501 멀티 세트: 세트 수 = 라운드 수로 해석
+    final bool isMulti501 =
+        widget.drill.inputMode == TrainingDrillInputMode.scoreOnly &&
+            gameType.startsWith('501_multi');
+
+    if (isMulti501) {
+      // _totalAttempts = 완료된 세트 수
+      return _totalAttempts;
+    }
+
+    // 3) 그 외 일반 드릴: 3다트 = 1라운드 기준
+    if (_totalAttempts <= 0) {
+      return 0;
+    }
+
+    // 예: 1~3발 → 1R, 4~6발 → 2R ...
+    return ((_totalAttempts + 2) ~/ 3);
+  }
+
   Future<void> _finishDrill({required bool earlyFinish}) async {
     // 👉 이미 dispose 된 상태라면 바로 종료
     if (!mounted) return;
@@ -250,9 +282,12 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
 
       if (!mounted) return;
 
+      // ✅ 라운드 수는 여기서만 계산해서 통일
+      final int roundsToSave = _calculateRoundsToSave();
+
       await ref.read(trainingDrillProvider.notifier).finishSession(
         inputMode: widget.drill.inputMode,
-        totalRounds: _currentRound,
+        totalRounds: roundsToSave,
         totalDarts: _totalAttempts,
         hitCount: _successCount,
         totalScore: _currentScore,
@@ -585,6 +620,7 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
           setState(() {
             _currentMarks = totalMarks;
             _totalAttempts = playedRounds * 3; // 1R = 3다트
+            _effectiveRounds = playedRounds;
             _thrownDartsNotifier.value = _totalAttempts;
           });
         },
@@ -594,6 +630,7 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
           setState(() {
             _currentMarks = totalMarks; // 총 마크
             _totalAttempts = playedRounds * 3;
+            _effectiveRounds = playedRounds;
             _thrownDartsNotifier.value = _totalAttempts;
           });
         },
@@ -613,6 +650,7 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
           setState(() {
             _currentMarks = totalMarks;
             _totalAttempts = playedRounds * 3;
+            _effectiveRounds = playedRounds;
             _thrownDartsNotifier.value = _totalAttempts;
           });
         },
@@ -620,6 +658,7 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
           setState(() {
             _currentMarks = totalMarks;
             _totalAttempts = playedRounds * 3;
+            _effectiveRounds = playedRounds;
             _thrownDartsNotifier.value = _totalAttempts;
           });
         },
