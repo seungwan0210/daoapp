@@ -58,24 +58,49 @@ class CheckoutState {
     );
   }
 
-  // 이 getter들이 없어서 에러 났음!!!
+  // 계산기에서 되돌리기 가능 여부
   bool get canUndo => history.isNotEmpty && !isPracticing;
-  int get currentOptimalDarts => checkoutTable[remainingScore.toString()]?.primary.length ?? 3;
-  double get currentEfficiency => currentTurn.isEmpty ? 0 : (currentOptimalDarts / currentTurn.length).clamp(0.0, 2.0) * 100;
-  bool get isBust => remainingScore == 1 || (remainingScore == 0 && !currentTurn.any((s) => s.startsWith('D') || s == 'Bull'));
+
+  // 현재 남은 점수에 대한 최적 다트 수 (없으면 3다트 기준)
+  int get currentOptimalDarts =>
+      checkoutTable[remainingScore.toString()]?.primary.length ?? 3;
+
+  // 간단 효율 지표 (최적/실제 다트 수 비율 → %)
+  double get currentEfficiency =>
+      currentTurn.isEmpty
+          ? 0
+          : (currentOptimalDarts / currentTurn.length)
+          .clamp(0.0, 2.0) *
+          100;
+
+  // 1점이 남았거나, 0점인데 더블/불로 끝나지 않은 경우 BUST
+  bool get isBust =>
+      remainingScore == 1 ||
+          (remainingScore == 0 &&
+              !currentTurn.any(
+                    (s) => s.startsWith('D') || s == 'Bull',
+              ));
 }
 
 class Turn {
   final List<String> darts;
   final int scoreBefore;
-  const Turn({required this.darts, required this.scoreBefore});
+
+  const Turn({
+    required this.darts,
+    required this.scoreBefore,
+  });
 }
 
 class CheckoutProvider extends StateNotifier<CheckoutState> {
   CheckoutProvider() : super(CheckoutState.initial());
+
   Timer? _timer;
 
-  // 계산기 전용
+  // =========================
+  // ✅ 계산기 전용 API
+  // =========================
+
   void setInitialScore(int score) {
     if (score < 2 || score > 170) return;
     state = CheckoutState.initial().copyWith(remainingScore: score);
@@ -94,14 +119,19 @@ class CheckoutProvider extends StateNotifier<CheckoutState> {
   void undoLast() {
     if (!state.canUndo) return;
     final last = state.history.last;
+    final newHistory = List<int>.from(state.history)..removeLast();
+
     state = state.copyWith(
       remainingScore: state.remainingScore + last,
-      history: state.history..removeLast(),
+      history: newHistory,
     );
     _updateRoutes();
   }
 
-  // 연습 모드 전용
+  // =========================
+  // ✅ 연습 모드 전용 API
+  // =========================
+
   void startPractice() {
     state = CheckoutState.initial().copyWith(
       isPracticing: true,
@@ -127,13 +157,17 @@ class CheckoutProvider extends StateNotifier<CheckoutState> {
   void finishTurn(BuildContext context) {
     if (state.currentTurn.isEmpty) return;
 
-    final turnScore = state.currentTurn.map(_segmentValue).fold(0, (a, b) => a + b);
+    final turnScore =
+    state.currentTurn.map(_segmentValue).fold(0, (a, b) => a + b);
     final scoreBefore = state.remainingScore + turnScore;
 
     state = state.copyWith(
       practiceHistory: [
         ...state.practiceHistory,
-        Turn(darts: List.from(state.currentTurn), scoreBefore: scoreBefore)
+        Turn(
+          darts: List.from(state.currentTurn),
+          scoreBefore: scoreBefore,
+        ),
       ],
       currentTurn: [],
     );
@@ -148,20 +182,26 @@ class CheckoutProvider extends StateNotifier<CheckoutState> {
 
   void _finishPractice(BuildContext context) {
     _timer?.cancel();
+
     final summary = PracticeSessionSummary(
       elapsedSeconds: state.elapsedSeconds,
-      results: state.practiceHistory.map((t) => PracticeResult(
-        scoreBefore: t.scoreBefore,
-        darts: t.darts,
-        isSuccess: true,
-        dartsUsed: t.darts.length,
-      )).toList(),
+      results: state.practiceHistory
+          .map(
+            (t) => PracticeResult(
+          scoreBefore: t.scoreBefore,
+          darts: t.darts,
+          isSuccess: true,
+          dartsUsed: t.darts.length,
+        ),
+      )
+          .toList(),
     );
 
     if (context.mounted) {
       Navigator.pushReplacementNamed(
         context,
-        RouteConstants.checkoutResult,
+        // 🔥 여기만 새 피니쉬 루트 결과 라우트로 변경
+        RouteConstants.finishRouteResult,
         arguments: summary,
       );
     }
@@ -170,23 +210,35 @@ class CheckoutProvider extends StateNotifier<CheckoutState> {
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      state = state.copyWith(elapsedSeconds: state.elapsedSeconds + 1);
+      state = state.copyWith(
+        elapsedSeconds: state.elapsedSeconds + 1,
+      );
     });
   }
 
   int _randomScore() {
-    final scores = checkoutTable.keys.map(int.parse).where((s) => s >= 61 && s <= 170).toList();
+    final scores = checkoutTable.keys
+        .map(int.parse)
+        .where((s) => s >= 61 && s <= 170)
+        .toList();
     return scores[Random().nextInt(scores.length)];
   }
 
   void _updateRoutes() {
     final routes = <CheckoutRoute>[];
+
     if (state.remainingScore >= 2 && state.remainingScore <= 170) {
       final data = checkoutTable[state.remainingScore.toString()];
       if (data != null) {
-        routes.add(CheckoutRoute(primary: data.primary, alts: data.alts));
+        routes.add(
+          CheckoutRoute(
+            primary: data.primary,
+            alts: data.alts,
+          ),
+        );
       }
     }
+
     state = state.copyWith(routes: routes);
   }
 
@@ -194,8 +246,10 @@ class CheckoutProvider extends StateNotifier<CheckoutState> {
     if (s == 'Bull') return 50;
     final match = RegExp(r'([STD])(\d+)').firstMatch(s);
     if (match == null) return 0;
+
     final type = match.group(1);
     final num = int.parse(match.group(2)!);
+
     return switch (type) {
       'S' => num,
       'D' => num * 2,
@@ -211,6 +265,7 @@ class CheckoutProvider extends StateNotifier<CheckoutState> {
   }
 }
 
-final checkoutProvider = StateNotifierProvider<CheckoutProvider, CheckoutState>((ref) {
-  return CheckoutProvider();
-});
+final checkoutProvider =
+StateNotifierProvider<CheckoutProvider, CheckoutState>(
+      (ref) => CheckoutProvider(),
+);

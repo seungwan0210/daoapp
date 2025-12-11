@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:daoapp/presentation/providers/home_provider.dart';
 import 'package:daoapp/presentation/providers/ranking_provider.dart';
@@ -11,6 +12,11 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/data/models/ranking_user.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+
+// 🔹 트레이닝 관련
+import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
+import 'package:daoapp/presentation/providers/training/training_progress_provider.dart';
+import 'package:daoapp/data/models/training_progress_model.dart';
 
 // 아레나 스틸리그 상세 화면들
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
@@ -47,6 +53,10 @@ class HomeScreenBody extends ConsumerWidget {
           AppCard(child: _buildNewsSection(context, ref)),
           const SizedBox(height: 4),
 
+          // === 오늘의 트레이닝 미니 카드 ===
+          AppCard(child: _buildTrainingMiniCard(context, ref)),
+          const SizedBox(height: 4),
+
           // === 다음 경기 ===
           AppCard(child: _buildNextEventCard(context)),
           const SizedBox(height: 4),
@@ -74,6 +84,293 @@ class HomeScreenBody extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  // =========================
+  // 🔥 오늘의 트레이닝 미니 카드
+  // =========================
+  static Widget _buildTrainingMiniCard(BuildContext context, WidgetRef ref) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // 로그인 안 되어 있으면 → 티어 없는 유저용 카드와 동일한 UI 사용
+    if (user == null) {
+      return _buildNoTierTrainingCard(context);
+    }
+
+    // 로그인 된 경우: 프로필 + XP 게이지 함께
+    final progressAsync = ref.watch(trainingProgressProvider);
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('trainingProfiles')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        DaoTrainingTier? tier;
+        if (snapshot.hasData && snapshot.data!.data() != null) {
+          final data = snapshot.data!.data()!;
+          final tierIndex = (data['tierIndex'] as int?) ?? 0;
+          tier = DaoTrainingTier
+              .values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
+        }
+
+        // 티어 없으면: 처음 유저용 버전 (로그인 여부와 상관없이 같은 디자인)
+        if (tier == null) {
+          return _buildNoTierTrainingCard(context);
+        }
+
+        // --- 🔥 티어 있는 유저용 카드
+        final tierColor = _tierColor(tier);
+        String percentText = '--';
+
+        final Widget gaugeArea = progressAsync.when(
+          data: (TrainingProgressModel progress) {
+            // ✅ ratio를 double로 확실하게 맞춰주기
+            final double ratio =
+            (progress.progressRatio).clamp(0.0, 1.0).toDouble();
+
+            percentText =
+                (ratio * 100).clamp(0.0, 100.0).toStringAsFixed(0);
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: ratio, // 🔹 이제 에러 안 남
+                    minHeight: 6,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '성장 게이지 $percentText%',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                ),
+              ],
+            );
+          },
+          loading: () {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: null,
+                    minHeight: 6,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '성장 게이지 --',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[700]),
+                ),
+              ],
+            );
+          },
+          error: (_, __) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: 0.0, // 🔹 여기도 double로
+                    minHeight: 6,
+                    backgroundColor: Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(tierColor),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '성장 게이지를 불러오지 못했습니다.',
+                  style: TextStyle(fontSize: 11, color: Colors.red[300]),
+                ),
+              ],
+            );
+          },
+        );
+
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 윗줄: 티어 뱃지 + 텍스트 + 바로가기 버튼
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22,
+                    backgroundColor: tierColor,
+                    child: Text(
+                      tier.labelKo,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'DAO 트레이닝',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${tier.labelKo} 티어,\n오늘도 연습 시작해볼까요?',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () =>
+                        _navigateToTab(context, RouteConstants.trainingHome),
+                    child: const Text('바로가기'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // 아래: XP 게이지 바
+              gaugeArea,
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 🔹 티어가 없거나, 로그인 안 되어 있는 경우 공통 카드
+  static Widget _buildNoTierTrainingCard(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // 마이로그 요약 카드에서 쓰던 🎯 느낌으로 맞춤
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [
+                      Color(0xFF0F172A),
+                      Color(0xFF1E293B),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Text(
+                  '🎯',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '연습을 시작해볼까요?',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '내 등급을 등록하면 DAO가 딱 맞는 드릴을 추천해줄게요.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () =>
+                    _navigateToTab(context, RouteConstants.trainingHome),
+                child: const Text('내 등급 확인'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // 빈 게이지(0%) 살짝 보여주기
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: 0,
+              minHeight: 6,
+              backgroundColor: Colors.grey.shade200,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary.withOpacity(0.4),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '아직 기록된 트레이닝이 없습니다.',
+            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 티어별 대표 색상 – (네가 지정한 팔레트)
+  static Color _tierColor(DaoTrainingTier tier) {
+    switch (tier) {
+      case DaoTrainingTier.beginner:
+      // 핑크
+        return const Color(0xFFFF8EC7);
+      case DaoTrainingTier.learner:
+      // 파란색
+        return Colors.blue;
+      case DaoTrainingTier.competitor:
+      // 청록
+        return Colors.teal;
+      case DaoTrainingTier.challenger:
+      // 초록
+        return Colors.green;
+      case DaoTrainingTier.elite:
+      // 주황
+        return Colors.orange;
+      case DaoTrainingTier.pro:
+      // 레드 액센트
+        return Colors.redAccent;
+      case DaoTrainingTier.master:
+      // 딥 퍼플
+        return Colors.deepPurpleAccent;
+    }
   }
 
   // =========================
@@ -286,7 +583,7 @@ class HomeScreenBody extends ConsumerWidget {
       children: [
         Row(
           children: [
-            // 🔹 제목 변경
+            // 🔹 제목
             Text('스틸리그 포인트',
                 style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
@@ -326,8 +623,8 @@ class HomeScreenBody extends ConsumerWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Text(
-                            '${user.koreanName} (${user.englishName})'),
+                        child:
+                        Text('${user.koreanName} (${user.englishName})'),
                       ),
                       Text(
                         '${user.displayPoints} pt',

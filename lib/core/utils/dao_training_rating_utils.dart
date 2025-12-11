@@ -33,6 +33,17 @@ extension DaoTrainingTierX on DaoTrainingTier {
     DaoTrainingTier.pro => 'Pro',
     DaoTrainingTier.master => 'Master',
   };
+
+/// 🔹 미니 뱃지/칩용 짧은 라벨 (필요하면 나중에 더 줄여도 됨)
+String get shortLabelKo => switch (this) {
+  DaoTrainingTier.beginner => '비기너',
+  DaoTrainingTier.learner => '러너',
+  DaoTrainingTier.competitor => '컴페티터',
+  DaoTrainingTier.challenger => '챌린저',
+  DaoTrainingTier.elite => '엘리트',
+  DaoTrainingTier.pro => '프로',
+  DaoTrainingTier.master => '마스터',
+};
 }
 
 /// =======================================

@@ -24,6 +24,9 @@ import 'package:daoapp/presentation/providers/training/training_progress_provide
 import 'package:daoapp/data/repositories/training_progress_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
 
+// 🔹 마이로그 홈 스크린
+import 'package:daoapp/presentation/screens/my_page/my_log/my_log_home_screen.dart';
+
 class TrainingHomeScreen extends ConsumerStatefulWidget {
   const TrainingHomeScreen({super.key});
 
@@ -362,7 +365,8 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                         children: [
                           const Text(
                             "PHOENIX CLASS",
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.phoenixClass),
@@ -380,7 +384,8 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                         children: [
                           const Text(
                             "DARTSLIVE RATING",
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.liveRating),
@@ -410,7 +415,8 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                                 foregroundColor: Colors.cyan,
                                 side: const BorderSide(
                                     color: Colors.cyan),
-                                padding: const EdgeInsets.symmetric(
+                                padding:
+                                const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
                               ),
@@ -465,18 +471,25 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             const SizedBox(height: 8),
             Text(
               "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style:
+              TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
             const SizedBox(height: 40),
 
-            // === 연습 모드 ===
+            // === 훈련 도구 ===
             Text(
-              "연습 모드",
+              "훈련 도구",
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "기록을 확인하고, 체크아웃 연습과 계산을 도와주는 도구들입니다.",
+              style:
+              TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             ..._buildPracticeItems(),
@@ -744,12 +757,53 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         Colors.blueGrey,
       ),
 
-      // 🔹 체크아웃 연습
+      // 🔹 피니시 루트 연습
       _practiceTile(
         Icons.sports_score,
-        "체크아웃 연습",
-        RouteConstants.checkoutPracticeHome,
+        "피니시 루트 연습",
+        RouteConstants.finishRouteHome,
         Colors.green,
+      ),
+
+      // 🔹 체크아웃 계산기
+      _practiceTile(
+        Icons.calculate,
+        "체크아웃 계산기",
+        RouteConstants.checkoutCalculator,
+        Colors.deepPurple,
+      ),
+
+      // 🔹 나만의 다트 이야기 (마이로그)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: AppCard(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MyLogHomeScreen(),
+              ),
+            );
+          },
+          child: const ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Color(0xFFFFF3E0),
+              child: Icon(Icons.menu_book, color: Color(0xFFFF9800)),
+            ),
+            title: Text(
+              "나만의 다트 이야기",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Text(
+              "오늘의 경기, 느낌, 기록을 마이로그에 남겨보세요.",
+              style: TextStyle(fontSize: 12),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios),
+          ),
+        ),
       ),
     ];
   }
@@ -793,7 +847,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       case TrainingDrillCategory.bull:
         return Colors.green;
       case TrainingDrillCategory.other:
-        return Color(0xFFFF8EC7);
+        return const Color(0xFFFF8EC7);
     }
   }
 

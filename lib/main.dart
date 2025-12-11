@@ -24,11 +24,13 @@ import 'package:daoapp/presentation/screens/home/home_screen.dart';
 // 트레이닝
 import 'package:daoapp/presentation/screens/training/training_home_screen.dart';
 import 'package:daoapp/presentation/screens/training/calculator/training_calculator_screen.dart';
-import 'package:daoapp/presentation/screens/training/checkout/checkout_practice_home_screen.dart';
-import 'package:daoapp/presentation/screens/training/checkout/checkout_practice_screen.dart';
-import 'package:daoapp/presentation/screens/training/checkout/checkout_result_screen.dart';
-import 'package:daoapp/presentation/screens/training/checkout/checkout_ranking_screen.dart';
-import 'package:daoapp/presentation/screens/training/checkout/checkout_my_history_screen.dart';
+
+// 🔥 피니쉬 루트 연습 (기존 checkout 연습 → finish_route)
+import 'package:daoapp/presentation/screens/training/finish_route/finish_route_home_screen.dart';
+import 'package:daoapp/presentation/screens/training/finish_route/finish_route_practice_screen.dart';
+import 'package:daoapp/presentation/screens/training/finish_route/finish_route_result_screen.dart';
+import 'package:daoapp/presentation/screens/training/finish_route/finish_route_ranking_screen.dart';
+import 'package:daoapp/presentation/screens/training/finish_route/finish_route_my_history_screen.dart';
 
 // 🔹 트레이닝 프로필/레벨 테스트 스크린
 import 'package:daoapp/presentation/screens/training/training_rating_input_screen.dart';
@@ -147,17 +149,22 @@ class DaoApp extends StatelessWidget {
         // 홈
         RouteConstants.home: (_) => const HomeScreen(),
 
-        // 트레이닝
+        // 트레이닝 메인
         RouteConstants.trainingHome: (_) => const TrainingHomeScreen(),
-        RouteConstants.checkoutPracticeHome: (_) =>
-        const CheckoutPracticeHomeScreen(),
-        RouteConstants.checkoutPracticePlay: (_) =>
-        const CheckoutPracticeScreen(),
-        RouteConstants.checkoutResult: (_) => const CheckoutResultScreen(),
-        RouteConstants.checkoutRanking: (_) =>
-        const CheckoutRankingScreen(),
-        RouteConstants.checkoutMyHistory: (_) =>
-        const CheckoutMyHistoryScreen(),
+
+        // 🔥 피니쉬 루트 연습 (Finish Route)
+        RouteConstants.finishRouteHome: (_) =>
+        const FinishRouteHomeScreen(),
+        RouteConstants.finishRoutePractice: (_) =>
+        const FinishRoutePracticeScreen(),
+        RouteConstants.finishRouteResult: (_) =>
+        const FinishRouteResultScreen(),
+        RouteConstants.finishRouteRanking: (_) =>
+        const FinishRouteRankingScreen(),
+        RouteConstants.finishRouteMyHistory: (_) =>
+        const FinishRouteMyHistoryScreen(),
+
+        // 체크아웃 계산기 (이름은 그대로, 위치는 training/calculator)
         RouteConstants.checkoutCalculator: (_) =>
         const TrainingCalculatorScreen(),
 
@@ -208,7 +215,8 @@ class DaoApp extends StatelessWidget {
         RouteConstants.eventList: (_) => const EventListScreen(),
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
-        RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
+        RouteConstants.sponsorForm: (_) =>
+        const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) =>
         const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) =>
@@ -217,11 +225,10 @@ class DaoApp extends StatelessWidget {
         const AdminReportListScreen(),
         RouteConstants.adminMemberList: (_) =>
         const AdminMemberListScreen(),
-        // 🔹 여기 추가
         RouteConstants.selectionPlayersAdmin: (_) =>
         const SelectionPlayersAdminScreen(),
 
-        // (선택) 스틸리그 선발 공개 화면도 라우트로 쓰고 싶으면
+        // 스틸리그 선발 공개 화면
         RouteConstants.steelLeagueSelection: (_) =>
         const SelectionPlayersScreen(),
       },

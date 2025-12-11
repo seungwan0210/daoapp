@@ -123,25 +123,25 @@
 │   │   │   │   └──  widgets/
 │   │   │   │       ├── route_card.dart
 │   │   │   │      
-│   │   │   ├── checkout/
-│   │   │   │   ├── checkout_practice_home_screen.dart
-│   │   │   │   ├── checkout_practice_screen.dart
-│   │   │   │   ├── checkout_result_screen.dart
-│   │   │   │   ├── checkout_my_history_screen.dart
-│   │   │   │   ├── checkout_ranking_screen.dart
-│   │   │   │   └── checkout_practice_detail_screen.dart
+│   │   │   ├── finish_route/
+│   │   │   │   ├── finish_route_detail_screen.dart
+│   │   │   │   ├── finish_route_home_screen.dart
+│   │   │   │   ├── finish_route_my_history_screen.dart
+│   │   │   │   ├── finish_route_practice_screen.dart
+│   │   │   │   ├── finish_route_ranking_screen.dart
+│   │   │   │   └── finish_route_result_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │      ├── dartboard_widget.dart
+│   │   │   │      ├── dart_input_panel.dart
+│   │   │   │      ├── practice_stats_card.dart
+│   │   │   │      ├── finish_route_ranking_mini.dart
+│   │   │   │      ├── remaining_score_display.dart
+│   │   │   │      ├── my_recent_record_mini.dart
 │   │   │   ├── report/
 │   │   │   │   └── training_report_overlay.dart
 │   │   │   │
 │   │   │   └── widgets/
-│   │   │       ├── dartboard_widget.dart
-│   │   │       ├── dart_input_panel.dart
-│   │   │       ├── remaining_score_display.dart
-│   │   │       ├── practice_stats_card.dart
-│   │   │       ├── checkout_ranking_mini.dart
-│   │   │       └── my_recent_record_mini.dart
 │   │   │       └── training_recommendation_card.dart
-│   │   │       └── neon_glow_container.dart
 │   │   │       └── dual_neon_gauge_row.dart
 │   │   │       └── dao_tier_badge_large.dart
 │   │   │       └── round_input_panel.dart
