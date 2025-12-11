@@ -25,6 +25,7 @@
 │       └── arena_utils.dart
 │       └── dao_training_rating_utils.dart
 │       └── dao_training_xp_utils.dart
+│       └── training_cycle_utils.dart
 │
 ├── data/
 │   ├── repositories/

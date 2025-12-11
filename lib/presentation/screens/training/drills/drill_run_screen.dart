@@ -749,7 +749,7 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
 
       // 3) 기타 scoreOnly 백업용
       final targetScore = (extra['targetScore'] as num?)?.toInt() ?? 700;
-      final maxScore = (extra['maxScore'] as num?)?.toInt() ?? 1500;
+      final maxScore = (extra['maxScore'] as num?)?.toInt() ?? 1440;
 
       return ScoreGamePanel(
         title: '최종 값 입력',

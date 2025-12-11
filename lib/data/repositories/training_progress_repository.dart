@@ -3,15 +3,22 @@
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 import 'package:daoapp/data/models/training_progress_model.dart';
 
-/// 트레이닝 XP / 게이지 상태 관리용 Repository
+/// 트레이닝 XP / 게이지 / 사이클 상태 관리용 Repository
 ///
 /// - users/{userId}/trainingMeta/trainingProgress 문서를 읽고/쓰기
 abstract class TrainingProgressRepository {
   /// 현재 유저의 Progress 한 번만 가져오기
+  ///
+  /// - 문서가 없으면 기본값으로 생성해서 반환해도 됨
   Future<TrainingProgressModel> getProgress(String userId);
 
   /// 현재 유저의 Progress 실시간 구독 (게이지 UI용)
   Stream<TrainingProgressModel> watchProgress(String userId);
+
+  /// Progress 문서가 없으면 생성 후 반환
+  ///
+  /// - getProgress와 달리 "존재 보장" 용도로 사용
+  Future<TrainingProgressModel> ensureProgress(String userId);
 
   /// XP 추가 (드릴 1세션 종료 시 호출)
   ///
@@ -32,5 +39,24 @@ abstract class TrainingProgressRepository {
   Future<TrainingProgressModel> markRatingChecked({
     required String userId,
     required DaoTrainingTier newTier,
+  });
+
+  /// 새 트레이닝 사이클 시작
+  ///
+  /// - lastCycleIndex += 1
+  /// - currentCycleId = "cycle_XXX" (예: cycle_001, cycle_002 ...)
+  /// - lastCycleStartedAt = now
+  /// - 필요하다면 currentCycleSessionCount = 0 으로 리셋
+  Future<TrainingProgressModel> startNewCycle({
+    required String userId,
+  });
+
+  /// 현재 사이클 ID를 명시적으로 변경
+  ///
+  /// - 히스토리 화면에서 특정 cycleId로 강제로 맞추거나,
+  ///   마이그레이션/복구용으로 사용할 수 있음
+  Future<TrainingProgressModel> setCurrentCycle({
+    required String userId,
+    required String cycleId,
   });
 }

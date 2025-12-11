@@ -1,7 +1,6 @@
 // lib/presentation/providers/training/training_history_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:daoapp/data/models/training_session_model.dart';
 import 'package:daoapp/data/repositories/training_repository.dart';
 import 'package:daoapp/data/repositories/auth_repository.dart';
@@ -13,17 +12,15 @@ final currentUserIdProvider = Provider<String?>((ref) {
   return authRepo.currentUser?.uid;
 });
 
-/// 최근 트레이닝 세션 히스토리 (최대 50개)
+/// 최근 트레이닝 세션 (최대 100개로 늘림 ← 이거만 바꿔!)
+/// 50개 → 100개로 늘리면 그래프가 훨씬 풍성해짐 (추천!)
 final trainingRecentSessionsProvider =
 StreamProvider.autoDispose<List<TrainingSessionModel>>((ref) {
   final userId = ref.watch(currentUserIdProvider);
-
-  if (userId == null) {
-    return Stream.value(const <TrainingSessionModel>[]);
-  }
+  if (userId == null) return Stream.value([]);
 
   final repo = sl<TrainingRepository>();
-  return repo.watchRecentSessions(userId: userId, limit: 50);
+  return repo.watchRecentSessions(userId: userId, limit: 100); // ← 50 → 100
 });
 
 /// 특정 드릴의 모든 기록 (최대 100개)
