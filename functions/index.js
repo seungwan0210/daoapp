@@ -1,3 +1,5 @@
+// functions/index.js
+
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
@@ -38,15 +40,11 @@ function calculateCheckoutScore(data) {
   return { score, timeScore, optimizationRate, routeMatchRate };
 }
 
-const BADGE_MAP = [
-  null, 'pro', 'emerald', 'diamond',
-  'platinum1', 'platinum2', 'gold1', 'gold2',
-  'silver1', 'silver2', 'bronze1', 'bronze2', 'bronze3'
-];
-
 // ====================== 기존 함수들 ======================
 exports.setHasProfile = functions.https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', '로그인 필요');
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', '로그인 필요');
+  }
   await admin.auth().setCustomUserClaims(context.auth.uid, { hasProfile: true });
   return { success: true };
 });
@@ -54,15 +52,20 @@ exports.setHasProfile = functions.https.onCall(async (data, context) => {
 exports.cleanupOnlineUsers = functions.pubsub
   .schedule('every 5 minutes')
   .onRun(async () => {
-    const cutoff = admin.firestore.Timestamp.fromDate(new Date(Date.now() - 60 * 1000));
-    const snapshot = await admin.firestore()
+    const cutoff = admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() - 60 * 1000),
+    );
+
+    const snapshot = await admin
+      .firestore()
       .collection('online_users')
       .where('lastSeen', '<', cutoff)
       .get();
 
     if (snapshot.empty) return null;
+
     const batch = admin.firestore().batch();
-    snapshot.docs.forEach(doc => batch.delete(doc.ref));
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref));
     await batch.commit();
     return null;
   });
@@ -76,8 +79,8 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
     try {
       const userDoc = await admin.firestore().collection('users').doc(uid).get();
       if (!userDoc.exists) return null;
-      const koreanName = userDoc.data()?.koreanName || '이름 없음';
 
+      const koreanName = userDoc.data()?.koreanName || '이름 없음';
       const collectionName = getMonthlyRankingCollection();
       const rankingRef = admin.firestore().collection(collectionName).doc(uid);
       const { score } = calculateCheckoutScore(data);
@@ -98,7 +101,9 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
       const rankingSnap = await rankingRef.get();
       if (!rankingSnap.exists || (rankingSnap.data()?.score || 0) < score) {
         await rankingRef.set(newRecord);
-        console.log(`[랭킹 ${rankingSnap.exists ? '갱신' : '등록'}] ${koreanName} → ${score}점`);
+        console.log(
+          `[랭킹 ${rankingSnap.exists ? '갱신' : '등록'}] ${koreanName} → ${score}점`,
+        );
       }
     } catch (e) {
       console.error('랭킹 업데이트 실패:', e);
@@ -106,77 +111,47 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
     return null;
   });
 
-exports.grantMonthlyBadges = functions.pubsub
-  .schedule('5 0 1 * *')
-  .timeZone('Asia/Seoul')
-  .onRun(async () => {
-    try {
-      const now = new Date();
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const collectionName = getMonthlyRankingCollection(lastMonth);
+// 🔻🔻🔻 여기 있던 grantMonthlyBadges + BADGE_MAP 은 제거됨 🔻🔻🔻
+// exports.grantMonthlyBadges ... (삭제)
 
-      const top12 = await admin.firestore()
-        .collection(collectionName)
-        .orderBy('score', 'desc')
-        .limit(12)
-        .get();
-
-      if (top12.empty) {
-        console.log(`[${collectionName}] 랭킹 없음`);
-        return null;
-      }
-
-      const year = lastMonth.getFullYear();
-      const month = String(lastMonth.getMonth() + 1).padStart(2, '0');
-      const currentPrefix = `monthly_${year}_${month}`;
-      const batch = admin.firestore().batch();
-
-      top12.docs.forEach((doc, i) => {
-        const rank = i + 1;
-        const badgeKey = BADGE_MAP[rank];
-        if (badgeKey) {
-          const userRef = admin.firestore().collection('users').doc(doc.id);
-          batch.set(userRef, {
-            [`badges.${currentPrefix}_${badgeKey}`]: true,
-            lastMonthlyBadge: `${year}년 ${month}월 ${rank}위`,
-          }, { merge: true });
-        }
-      });
-
-      await batch.commit();
-      console.log(`월간 배지 부여 완료: ${year}-${month} (${top12.size}명)`);
-      return null;
-    } catch (e) {
-      console.error('월간 배지 작업 실패:', e);
-      throw e;
-    }
-  });
-
+// ====================== Arena: 참가자 수 카운트 ======================
 exports.onTournamentEntryCreated = functions.firestore
   .document('tournaments/{tournamentId}/entries/{entryId}')
   .onCreate(async (snap, context) => {
     const { tournamentId } = context.params;
-    await admin.firestore().collection('tournaments').doc(tournamentId)
-      .update({ entryCount: admin.firestore.FieldValue.increment(1) })
-      .catch(e => console.error('[Arena] entryCount 증가 실패:', e));
+    await admin
+      .firestore()
+      .collection('tournaments')
+      .doc(tournamentId)
+      .update({
+        entryCount: admin.firestore.FieldValue.increment(1),
+      })
+      .catch((e) => console.error('[Arena] entryCount 증가 실패:', e));
   });
 
 exports.onTournamentEntryDeleted = functions.firestore
   .document('tournaments/{tournamentId}/entries/{entryId}')
   .onDelete(async (snap, context) => {
     const { tournamentId } = context.params;
-    await admin.firestore().collection('tournaments').doc(tournamentId)
-      .update({ entryCount: admin.firestore.FieldValue.increment(-1) })
-      .catch(e => console.error('[Arena] entryCount 감소 실패:', e));
+    await admin
+      .firestore()
+      .collection('tournaments')
+      .doc(tournamentId)
+      .update({
+        entryCount: admin.firestore.FieldValue.increment(-1),
+      })
+      .catch((e) => console.error('[Arena] entryCount 감소 실패:', e));
   });
 
 // ====================== 참가자 명단 CSV 생성 ======================
 function buildEntriesCsv(entriesSnap) {
   let csv = '\uFEFFnameKo,nameEn,phone,email,rating,homeShop,createdAt\n';
-  entriesSnap.forEach(doc => {
+  entriesSnap.forEach((doc) => {
     const e = doc.data();
     const createdAt = e.createdAt ? e.createdAt.toDate().toISOString() : '';
-    const line = `"${e.nameKo || ''}","${e.nameEn || ''}","${e.phone || ''}","${e.email || ''}","${e.rating || ''}","${e.homeShop || ''}","${createdAt}"\n`;
+    const line = `"${e.nameKo || ''}","${e.nameEn || ''}","${e.phone || ''}","${
+      e.email || ''
+    }","${e.rating || ''}","${e.homeShop || ''}","${createdAt}"\n`;
     csv += line;
   });
   return csv;
@@ -191,7 +166,9 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
     .get();
 
   let organizerEmails = Array.isArray(tournamentData.organizerEmails)
-    ? tournamentData.organizerEmails.filter(e => typeof e === 'string' && e.includes('@'))
+    ? tournamentData.organizerEmails.filter(
+        (e) => typeof e === 'string' && e.includes('@'),
+      )
     : [];
 
   if (organizerEmails.length === 0) {
@@ -208,13 +185,19 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
       from: `"DAO Arena" <${functions.config().email.user}>`,
       to: organizerEmails.join(','),
       subject: `[DAO Arena] ${rawTitle} 참가자 명단`,
-      text: `"${rawTitle}" 대회의 참가자 명단입니다.\n\n참가자 수: ${entriesSnap.size}명\n첨부된 CSV 파일을 확인해주세요!`,
-      attachments: [{
-        filename: `${safeTitle}_참가자명단.csv`,
-        content: Buffer.from(csv, 'utf-8'),
-      }],
+      text: `"${rawTitle}" 대회의 참가자 명단입니다.\n\n참가자 수: ${
+        entriesSnap.size
+      }명\n첨부된 CSV 파일을 확인해주세요!`,
+      attachments: [
+        {
+          filename: `${safeTitle}_참가자명단.csv`,
+          content: Buffer.from(csv, 'utf-8'),
+        },
+      ],
     });
-    console.log(`[Arena] ${tournamentId} 메일 발송 성공 → ${organizerEmails.join(', ')}`);
+    console.log(
+      `[Arena] ${tournamentId} 메일 발송 성공 → ${organizerEmails.join(', ')}`,
+    );
   } catch (error) {
     console.error(`[Arena] ${tournamentId} 메일 발송 실패:`, error.message);
   }
@@ -246,7 +229,9 @@ exports.sendTournamentEntrySummary = functions.pubsub
       } catch (e) {
         console.error('개별 메일 처리 실패:', e);
       } finally {
-        await db.collection('tournaments').doc(tournamentId)
+        await db
+          .collection('tournaments')
+          .doc(tournamentId)
           .update({ entrySummarySent: true })
           .catch(() => {});
       }
@@ -257,15 +242,21 @@ exports.sendTournamentEntrySummary = functions.pubsub
     return null;
   });
 
-// 관리자 전용 테스트 함수 (나중에 필요 없으면 주석 처리하거나 삭제 가능)
+// 관리자 전용 테스트 함수
 exports.testSendEntrySummary = functions.https.onCall(async (data, context) => {
-  if (!context.auth || context.auth.uid !== "NanHPgCdsbMCFkHEs7MtxS51OSX2") {
-    throw new functions.https.HttpsError('permission-denied', '관리자 전용 기능입니다');
+  if (!context.auth || context.auth.uid !== 'NanHPgCdsbMCFkHEs7MtxS51OSX2') {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      '관리자 전용 기능입니다',
+    );
   }
 
   const tournamentId = data.tournamentId;
   if (!tournamentId) {
-    throw new functions.https.HttpsError('invalid-argument', 'tournamentId가 필요합니다');
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'tournamentId가 필요합니다',
+    );
   }
 
   const db = admin.firestore();
