@@ -7,7 +7,7 @@ class ScoreGamePanel extends StatefulWidget {
   final String valueLabel;     // 예: '사용한 다트 수', '최종 점수'
   final int minValue;          // 허용 최소값
   final int maxValue;          // 허용 최대값
-  final int initialValue;      // 기본 제안값 (예: 18, 700)
+  final int initialValue;      // 기본 제안값 (예: 18, 700) -> ✅ "예시(hint)"로만 사용
   final String helperText;     // 하단 설명문
   final bool isBusy;
 
@@ -38,23 +38,77 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
   late final TextEditingController _controller;
   String? _errorText;
 
+  /// ✅ 입력값 Undo(1단계)용: 직전 텍스트 저장
+  String _prevText = '';
+
+  bool get _canUndo =>
+      !widget.isBusy &&
+          _prevText.isNotEmpty &&
+          _prevText != _controller.text;
+
   @override
   void initState() {
     super.initState();
-    _controller =
-        TextEditingController(text: widget.initialValue.toString());
+
+    // ✅ 핵심: 초기값을 controller에 넣지 않는다 (700이 박혀 보이는 문제 해결)
+    _controller = TextEditingController();
+
+    // 초기 prevText는 빈 값
+    _prevText = _controller.text;
+
+    // 입력이 바뀔 때마다 "직전 값"을 관리하기 위해 리스너 등록
+    _controller.addListener(_handleTextChanged);
+  }
+
+  void _handleTextChanged() {
+    // Busy 중에는 기록하지 않음 (불필요한 변경 방지)
+    if (widget.isBusy) return;
+
+    // 너무 공격적으로 prevText를 덮어쓰면 Undo가 무력해지니까,
+    // "에러 초기화"와 함께, 이전값은 외부에서 갱신(_stashPrev)로만 관리
+    // 여기서는 에러만 정리
+    if (_errorText != null) {
+      setState(() => _errorText = null);
+    }
   }
 
   @override
   void dispose() {
+    _controller.removeListener(_handleTextChanged);
     _controller.dispose();
     super.dispose();
+  }
+
+  /// ✅ 현재 값을 "Undo용 직전값"으로 저장
+  void _stashPrev() {
+    _prevText = _controller.text;
+  }
+
+  /// ✅ 입력값 되돌리기(1단계)
+  void _undoInput() {
+    if (!_canUndo) return;
+
+    final String current = _controller.text;
+    setState(() {
+      _controller.text = _prevText;
+      _controller.selection = TextSelection.collapsed(offset: _controller.text.length);
+
+      // 한번 되돌렸으면, 다시 누르면 또 되돌리는 느낌 방지:
+      // 되돌리기 전 값은 prevText에 넣어둬서 "한 번 더"는 안 되게 함(1단계 Undo)
+      _prevText = current;
+
+      _errorText = null;
+    });
   }
 
   void _submit() {
     if (widget.isBusy) return;
 
     final raw = _controller.text.trim();
+
+    // ✅ 제출 직전 값을 Undo 후보로 저장
+    _stashPrev();
+
     if (raw.isEmpty) {
       setState(() {
         _errorText = '값을 입력해 주세요.';
@@ -72,8 +126,7 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
 
     if (value < widget.minValue || value > widget.maxValue) {
       setState(() {
-        _errorText =
-        '${widget.minValue} ~ ${widget.maxValue} 사이의 값만 입력할 수 있습니다.';
+        _errorText = '${widget.minValue} ~ ${widget.maxValue} 사이의 값만 입력할 수 있습니다.';
       });
       return;
     }
@@ -87,6 +140,11 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
   @override
   Widget build(BuildContext context) {
     final rangeText = '${widget.minValue} ~ ${widget.maxValue}';
+
+    // ✅ label이 '사용한 다트 수'면 18 예시, 아니면 initialValue를 예시로
+    final hint = widget.valueLabel == '사용한 다트 수'
+        ? '예: 18'
+        : '예: ${widget.initialValue}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -166,9 +224,7 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
                 fontSize: 13,
                 color: Colors.grey.shade700,
               ),
-              hintText: widget.valueLabel == '사용한 다트 수'
-                  ? '예: 18'
-                  : '예: ${widget.initialValue}',
+              hintText: hint, // ✅ 예시만 보여주고 값은 비움
               hintStyle: TextStyle(
                 color: Colors.grey.shade400,
               ),
@@ -201,12 +257,17 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
               ),
               errorText: _errorText,
             ),
+            onTap: () {
+              // ✅ 사용자가 입력 시작하기 전 "현재값"을 prev로 저장
+              // (빈칸->입력)도 Undo가 의미 있게 동작
+              _stashPrev();
+            },
             onSubmitted: (_) => _submit(),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
 
-          // ===================== 확인 / 종료 버튼 =====================
+          // ===================== 확인 / 되돌리기 =====================
           Row(
             children: [
               Expanded(
@@ -228,6 +289,23 @@ class _ScoreGamePanelState extends State<ScoreGamePanel> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 54,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: _canUndo ? _undoInput : null,
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    side: BorderSide(
+                      color: _canUndo ? Colors.grey.shade400 : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: const Icon(Icons.undo, size: 20),
                 ),
               ),
             ],

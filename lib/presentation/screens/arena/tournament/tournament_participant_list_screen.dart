@@ -1,4 +1,4 @@
-// lib/presentation/screens/community/arena/tournament_participant_list_screen.dart
+// lib/presentation/screens/arena/tournament/tournament_participant_list_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -6,7 +6,7 @@ import 'package:daoapp/data/models/tournament_entry_model.dart';
 import 'package:daoapp/data/repositories/arena_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:intl/intl.dart'; // ← 이거 꼭 추가!!
+import 'package:intl/intl.dart';
 
 class TournamentParticipantListScreen extends StatelessWidget {
   final String tournamentId;
@@ -19,6 +19,15 @@ class TournamentParticipantListScreen extends StatelessWidget {
   });
 
   ArenaRepository get _repo => sl<ArenaRepository>();
+
+  CollectionReference<Map<String, dynamic>> get _tournamentCol =>
+      FirebaseFirestore.instance.collection('tournaments');
+
+  DocumentReference<Map<String, dynamic>> get _tournamentDoc =>
+      _tournamentCol.doc(tournamentId);
+
+  CollectionReference<Map<String, dynamic>> get _entriesCol =>
+      _tournamentDoc.collection('entries');
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +43,11 @@ class TournamentParticipantListScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final entries = snapshot.data!;
+          final entries = List<TournamentEntryModel>.from(snapshot.data ?? []);
+
+          // ✅ 안전 정렬(오래된 신청이 위로)
+          // createdAt은 required Timestamp라 null 고려 불필요
+          entries.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
           if (entries.isEmpty) {
             return const Center(
@@ -53,19 +66,25 @@ class TournamentParticipantListScreen extends StatelessWidget {
 
               final subtitleLines = <String>[];
               subtitleLines.add(e.phone);
-              if (e.homeShop != null && e.homeShop!.isNotEmpty) {
+
+              if ((e.homeShop ?? '').trim().isNotEmpty) {
                 subtitleLines.add('홈샵: ${e.homeShop}');
               }
-              if (e.email != null && e.email!.isNotEmpty) {
+              if ((e.email ?? '').trim().isNotEmpty) {
                 subtitleLines.add('이메일: ${e.email}');
               }
+
+              // ✅ B안: entries/{docId} = userUid
+              final docId = e.userUid.trim();
+              final canEditDelete = docId.isNotEmpty;
 
               return Card(
                 elevation: 2,
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    backgroundColor:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.1),
                     child: Text(
                       '${index + 1}',
                       style: TextStyle(
@@ -85,11 +104,11 @@ class TournamentParticipantListScreen extends StatelessWidget {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (e.rating != null && e.rating!.isNotEmpty)
+                      if ((e.rating ?? '').trim().isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(right: 4),
+                          padding: const EdgeInsets.only(right: 6),
                           child: Text(
-                            e.rating!,
+                            e.rating!.trim(),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -98,17 +117,28 @@ class TournamentParticipantListScreen extends StatelessWidget {
                         ),
                       PopupMenuButton<String>(
                         onSelected: (value) {
+                          if (!canEditDelete) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('userUid가 없어 수정/삭제할 수 없습니다'),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
+
                           switch (value) {
                             case 'edit':
                               _showEditDialog(context, e);
                               break;
                             case 'delete':
-                              _deleteEntry(context, e);
+                              _deleteEntryB(context, e);
                               break;
                           }
                         },
-                        itemBuilder: (ctx) => [
-                          const PopupMenuItem(
+                        itemBuilder: (ctx) => const [
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
@@ -118,13 +148,15 @@ class TournamentParticipantListScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                Icon(Icons.delete_outline,
+                                    size: 18, color: Colors.red),
                                 SizedBox(width: 8),
-                                Text('삭제(엔트리 취소)', style: TextStyle(color: Colors.red)),
+                                Text('삭제(엔트리 취소)',
+                                    style: TextStyle(color: Colors.red)),
                               ],
                             ),
                           ),
@@ -142,9 +174,12 @@ class TournamentParticipantListScreen extends StatelessWidget {
     );
   }
 
-  // 완전히 개선된 풀스크린 바텀시트 (드래그 + 스크롤 + 크게 보기)
+  // ✅ 풀스크린 바텀시트 (드래그 + 스크롤 + 크게 보기)
   void _showDetailBottomSheet(
-      BuildContext context, TournamentEntryModel e, int order) {
+      BuildContext context,
+      TournamentEntryModel e,
+      int order,
+      ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -186,29 +221,31 @@ class TournamentParticipantListScreen extends StatelessWidget {
                     ),
                   ),
                   const Divider(height: 40, thickness: 1),
-
                   _infoRowBig('연락처', e.phone),
-                  _infoRowBig('레이팅', e.rating ?? '-'),
-                  _infoRowBig('홈샵', e.homeShop ?? '-'),
-                  _infoRowBig('이메일', e.email ?? '-'),
-                  if (e.createdAt != null)
-                    _infoRowBig(
-                      '신청 시각',
-                      DateFormat('yyyy년 M월 d일 HH:mm').format(e.createdAt.toDate()),
-                    ),
-
+                  _infoRowBig(
+                      '레이팅', (e.rating ?? '').trim().isEmpty ? '-' : e.rating!),
+                  _infoRowBig('홈샵',
+                      (e.homeShop ?? '').trim().isEmpty ? '-' : e.homeShop!),
+                  _infoRowBig('이메일',
+                      (e.email ?? '').trim().isEmpty ? '-' : e.email!),
+                  _infoRowBig(
+                    '신청 시각',
+                    DateFormat('yyyy년 M월 d일 HH:mm').format(e.createdAt.toDate()),
+                  ),
                   const SizedBox(height: 40),
-
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
+                          onPressed: e.userUid.trim().isEmpty
+                              ? null
+                              : () {
                             Navigator.pop(context);
                             _showEditDialog(context, e);
                           },
                           icon: const Icon(Icons.edit, size: 20),
-                          label: const Text('수정하기', style: TextStyle(fontSize: 17)),
+                          label: const Text('수정하기',
+                              style: TextStyle(fontSize: 17)),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 18),
                           ),
@@ -217,12 +254,18 @@ class TournamentParticipantListScreen extends StatelessWidget {
                       const SizedBox(width: 16),
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () {
+                          onPressed: e.userUid.trim().isEmpty
+                              ? null
+                              : () {
                             Navigator.pop(context);
-                            _deleteEntry(context, e);
+                            _deleteEntryB(context, e);
                           },
-                          icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                          label: const Text('삭제', style: TextStyle(color: Colors.red, fontSize: 17)),
+                          icon: const Icon(Icons.delete_outline,
+                              color: Colors.red, size: 20),
+                          label: const Text(
+                            '삭제',
+                            style: TextStyle(color: Colors.red, fontSize: 17),
+                          ),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 18),
                             foregroundColor: Colors.red,
@@ -242,7 +285,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
     );
   }
 
-  // 크게 보기 좋게 만든 정보 행
   Widget _infoRowBig(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -272,8 +314,9 @@ class TournamentParticipantListScreen extends StatelessWidget {
     );
   }
 
-  // 참가자 정보 수정 다이얼로그 (기존 그대로 유지)
   void _showEditDialog(BuildContext context, TournamentEntryModel e) {
+    final docId = e.userUid.trim();
+
     final nameKoCtrl = TextEditingController(text: e.nameKo);
     final nameEnCtrl = TextEditingController(text: e.nameEn);
     final phoneCtrl = TextEditingController(text: e.phone);
@@ -284,7 +327,8 @@ class TournamentParticipantListScreen extends StatelessWidget {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('참가자 정보 수정'),
           content: SingleChildScrollView(
             child: Column(
@@ -319,43 +363,61 @@ class TournamentParticipantListScreen extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('취소'),
+            ),
             TextButton(
               onPressed: () async {
-                try {
-                  if (e.id == null) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('엔트리 ID가 없어 수정할 수 없습니다'), backgroundColor: Colors.red),
-                    );
-                    return;
-                  }
+                if (docId.isEmpty) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('userUid가 없어 수정할 수 없습니다'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
 
-                  await FirebaseFirestore.instance
-                      .collection('tournaments')
-                      .doc(tournamentId)
-                      .collection('entries')
-                      .doc(e.id)
-                      .update({
+                try {
+                  await _entriesCol.doc(docId).update({
                     'nameKo': nameKoCtrl.text.trim(),
                     'nameEn': nameEnCtrl.text.trim(),
                     'phone': phoneCtrl.text.trim(),
-                    'rating': ratingCtrl.text.trim().isEmpty ? null : ratingCtrl.text.trim(),
-                    'homeShop': homeShopCtrl.text.trim().isEmpty ? null : homeShopCtrl.text.trim(),
+                    'rating': ratingCtrl.text.trim().isEmpty
+                        ? null
+                        : ratingCtrl.text.trim(),
+                    'homeShop': homeShopCtrl.text.trim().isEmpty
+                        ? null
+                        : homeShopCtrl.text.trim(),
+
+                    // ✅ 운영상 유용 (모델에 없어도 필드 저장 OK)
+                    'updatedAt': Timestamp.now(),
                   });
 
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('참가자 정보가 수정되었습니다'), backgroundColor: Colors.green),
+                    const SnackBar(
+                      content: Text('참가자 정보가 수정되었습니다'),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                    ),
                   );
-                } catch (e) {
+                } catch (err) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('수정 실패: $e'), backgroundColor: Colors.red),
+                    SnackBar(
+                      content: Text('수정 실패: $err'),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
                   );
                 }
               },
-              child: const Text('저장', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('저장',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -363,19 +425,25 @@ class TournamentParticipantListScreen extends StatelessWidget {
     );
   }
 
-  // 엔트리 삭제 (기존 그대로 유지)
-  Future<void> _deleteEntry(BuildContext context, TournamentEntryModel e) async {
+  /// ✅ B안 삭제: 트랜잭션으로 entryCount -1 + entries/{userUid} 삭제
+  Future<void> _deleteEntryB(BuildContext context, TournamentEntryModel e) async {
+    final docId = e.userUid.trim();
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('엔트리 삭제'),
         content: Text(
           '"${e.nameKo} (${e.nameEn})" 참가자를 명단에서 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.',
           style: const TextStyle(fontSize: 15),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('삭제하기', style: TextStyle(color: Colors.red)),
@@ -386,27 +454,53 @@ class TournamentParticipantListScreen extends StatelessWidget {
 
     if (confirmed != true) return;
 
-    try {
-      if (e.id == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('엔트리 ID가 없어 삭제할 수 없습니다'), backgroundColor: Colors.red),
-        );
-        return;
-      }
+    if (docId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('userUid가 없어 삭제할 수 없습니다'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
-      await FirebaseFirestore.instance
-          .collection('tournaments')
-          .doc(tournamentId)
-          .collection('entries')
-          .doc(e.id)
-          .delete();
+    try {
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final tSnap = await tx.get(_tournamentDoc);
+        if (!tSnap.exists) return;
+
+        final entryRef = _entriesCol.doc(docId);
+        final entrySnap = await tx.get(entryRef);
+
+        // 이미 없으면 카운트도 건드리지 않음 (중복 삭제 방지)
+        if (!entrySnap.exists) return;
+
+        final data = tSnap.data() ?? {};
+        final current = (data['entryCount'] as int?) ?? 0;
+        final next = (current - 1) < 0 ? 0 : (current - 1);
+
+        tx.update(_tournamentDoc, {
+          'entryCount': next,
+          'updatedAt': Timestamp.now(),
+        });
+        tx.delete(entryRef);
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('엔트리가 삭제되었습니다'), backgroundColor: Colors.green),
+        const SnackBar(
+          content: Text('엔트리가 삭제되었습니다'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } catch (err) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('삭제 실패: $err'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('삭제 실패: $err'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }

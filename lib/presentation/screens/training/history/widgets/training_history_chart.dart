@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:daoapp/data/models/training_session_model.dart';
 
-class TrainingHistoryChart extends StatelessWidget {
+class TrainingHistoryChart extends StatefulWidget {
   final List<TrainingSessionModel> sessions;
 
   const TrainingHistoryChart({
@@ -13,7 +13,24 @@ class TrainingHistoryChart extends StatelessWidget {
   });
 
   @override
+  State<TrainingHistoryChart> createState() => _TrainingHistoryChartState();
+}
+
+enum _MetricView { all, hitRate, ppd, mpr }
+
+class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
+  // 🔹 어떤 지표를 볼지 (전체 / 명중률 / PPD / MPR)
+  _MetricView _view = _MetricView.all;
+
+  // 공통 색상 (그래프/범례/카드 전부 맞춰 쓰기)
+  static const Color _hitRateColor = Color(0xFFFFA000); // 주황 - 명중률
+  static const Color _ppdColor = Color(0xFF00ACC1); // 민트/청록 - PPD
+  static const Color _mprColor = Color(0xFFAB47BC); // 보라 - MPR
+
+  @override
   Widget build(BuildContext context) {
+    final sessions = widget.sessions;
+
     if (sessions.isEmpty) {
       return const Center(
         child: Text(
@@ -24,71 +41,76 @@ class TrainingHistoryChart extends StatelessWidget {
       );
     }
 
-    // 🔹 1) 세션들을 "날짜(연/월/일)" 단위로 묶어서 하루 평균 만들기
+    // 🔹 1) 날짜(연/월/일) 단위로 묶어서 하루 평균 만들기
     final Map<DateTime, _DailyAggregate> dailyMap = {};
 
     for (final s in sessions) {
       final ended = s.endedAt.toLocal();
-      final dayKey = DateTime(ended.year, ended.month, ended.day); // 날짜만
+      final dayKey = DateTime(ended.year, ended.month, ended.day);
 
       final agg = dailyMap.putIfAbsent(dayKey, () => _DailyAggregate());
-
-      // inputMode 기준으로 나눠서 평균에 포함
       final mode = s.inputModeString;
 
-      // 명중률: hitCount 모드만
       if (mode == 'hitCount' && s.hitRate != null) {
-        agg.hitRateSum += s.hitRate! * 100; // 0~1 -> 0~100
+        agg.hitRateSum += s.hitRate! * 100; // 0~1 → 0~100
         agg.hitRateCount++;
       }
 
-      // PPD: scoreOnly 모드만
       if (mode == 'scoreOnly' && s.ppd != null) {
         agg.ppdSum += s.ppd!;
         agg.ppdCount++;
       }
 
-      // MPR: cricketMarks 모드만
       if (mode == 'cricketMarks' && s.mpr != null) {
         agg.mprSum += s.mpr!;
         agg.mprCount++;
       }
     }
 
-    // 🔹 2) 날짜 정렬 후, 최근 N일(예: 7일)만 사용
+    if (dailyMap.isEmpty) {
+      return const Center(
+        child: Text(
+          '표시할 수 있는 데이터가 없어요',
+          style: TextStyle(fontSize: 13, color: Colors.grey),
+        ),
+      );
+    }
+
+    // 🔹 2) 날짜 정렬 후, 최근 N일만 사용
     const int maxDays = 7;
-    List<DateTime> days = dailyMap.keys.toList()
-      ..sort((a, b) => a.compareTo(b));
+    List<DateTime> days = dailyMap.keys.toList()..sort((a, b) => a.compareTo(b));
 
     if (days.length > maxDays) {
-      days = days.sublist(days.length - maxDays); // 최근 7일만
+      days = days.sublist(days.length - maxDays);
     }
 
     // 🔹 3) 그래프용 포인트 & 라벨 생성
     final hitRateSpots = <FlSpot>[];
     final ppdSpots = <FlSpot>[];
     final mprSpots = <FlSpot>[];
-    final xLabels = <String>[];   // X축 라벨
-    final dayList = <DateTime>[]; // 툴팁용 날짜
+
+    final xLabels = <String>[];
+    final dayList = <DateTime>[];
 
     for (int i = 0; i < days.length; i++) {
       final day = days[i];
       final agg = dailyMap[day]!;
 
-      // 각 지표별 "하루 평균" 계산 (없으면 건너뜀)
       if (agg.hitRateCount > 0) {
-        final avg = (agg.hitRateSum / agg.hitRateCount)
-            .clamp(0.0, 100.0) as double;
+        final avg =
+        (agg.hitRateSum / agg.hitRateCount).clamp(0.0, 100.0).toDouble();
         hitRateSpots.add(FlSpot(i.toDouble(), avg));
       }
+
       if (agg.ppdCount > 0) {
-        final avgPpd = agg.ppdSum / agg.ppdCount; // 실제 PPD
-        final scaled = (avgPpd * 2).clamp(0.0, 100.0) as double; // 0~100 스케일
+        final avgPpd = agg.ppdSum / agg.ppdCount;
+        final scaled = (avgPpd * 2).clamp(0.0, 100.0).toDouble();
         ppdSpots.add(FlSpot(i.toDouble(), scaled));
       }
+
       if (agg.mprCount > 0) {
-        final avgMpr = agg.mprSum / agg.mprCount; // 실제 MPR
-        final scaled = (avgMpr * 10).clamp(0.0, 100.0) as double; // 0~100 스케일
+        final avgMpr = agg.mprSum / agg.mprCount;
+        final scaled = (avgMpr * 10).clamp(0.0, 100.0).toDouble();
         mprSpots.add(FlSpot(i.toDouble(), scaled));
       }
 
@@ -105,12 +127,79 @@ class TrainingHistoryChart extends StatelessWidget {
       );
     }
 
+    // 🔹 4) 현재 뷰에 따라 실제로 그릴 라인 선택
+    final List<LineChartBarData> lineBars = [];
+
+    if (_view == _MetricView.all || _view == _MetricView.hitRate) {
+      if (hitRateSpots.isNotEmpty) {
+        lineBars.add(
+          LineChartBarData(
+            spots: hitRateSpots,
+            isCurved: true,
+            barWidth: 3.5,
+            color: _hitRateColor,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  _hitRateColor.withOpacity(0.25),
+                  Colors.transparent,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (_view == _MetricView.all || _view == _MetricView.ppd) {
+      if (ppdSpots.isNotEmpty) {
+        lineBars.add(
+          LineChartBarData(
+            spots: ppdSpots,
+            isCurved: true,
+            barWidth: 3.0,
+            color: _ppdColor,
+            dotData: const FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [
+                  _ppdColor.withOpacity(0.20),
+                  Colors.transparent,
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    if (_view == _MetricView.all || _view == _MetricView.mpr) {
+      if (mprSpots.isNotEmpty) {
+        lineBars.add(
+          LineChartBarData(
+            spots: mprSpots,
+            isCurved: true,
+            barWidth: 3.0,
+            color: _mprColor,
+            dotData: const FlDotData(show: true),
+          ),
+        );
+      }
+    }
+
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       margin: const EdgeInsets.all(16),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 20, 20, 16),
+        padding: const EdgeInsets.fromLTRB(12, 16, 20, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -119,31 +208,39 @@ class TrainingHistoryChart extends StatelessWidget {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Row(
+            Text(
+              "그래프는 최근 7일 동안의 하루 평균값을 보여줘요.",
+              style: TextStyle(fontSize: 11, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+
+            // 🔹 범례 (Wrap으로 – 좁은 화면에서도 자동 줄바꿈)
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
               children: [
                 if (hitRateSpots.isNotEmpty)
-                  _legendItem(Colors.cyan, "명중률 (%)"),
+                  _legendItem(_hitRateColor, "명중률 (%)"),
                 if (ppdSpots.isNotEmpty)
-                  _legendItem(Colors.amber.shade600, "PPD"),
+                  _legendItem(_ppdColor, "PPD (스케일 x2)"),
                 if (mprSpots.isNotEmpty)
-                  _legendItem(Colors.purple.shade400, "MPR"),
+                  _legendItem(_mprColor, "MPR (스케일 x10)"),
               ],
             ),
-            const SizedBox(height: 16),
+
+            const SizedBox(height: 12),
+
             SizedBox(
-              height: 260,
+              height: 240,
               child: LineChart(
                 LineChartData(
                   minX: 0,
                   maxX: (days.length - 1).toDouble(),
                   minY: 0,
-                  maxY: 100, // 🔹 모든 지표를 0~100 스케일로
-                  lineTouchData: _touchData(
-                    hitRateSpots,
-                    ppdSpots,
-                    mprSpots,
-                    dayList,
-                  ),
+                  maxY: 100,
+                  lineBarsData: lineBars,
+                  lineTouchData:
+                  _touchData(hitRateSpots, ppdSpots, mprSpots, dayList),
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
@@ -157,31 +254,29 @@ class TrainingHistoryChart extends StatelessWidget {
                     topTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
                     ),
-                    // 오른쪽 축: % 표시
                     rightTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 38,
+                        reservedSize: 30,
                         interval: 20,
                         getTitlesWidget: (value, meta) {
                           return Text(
-                            "${value.toInt()}%",
-                            style: const TextStyle(
+                            value.toInt().toString(),
+                            style: TextStyle(
                               fontSize: 10,
-                              color: Colors.cyan,
+                              color: Colors.grey[600],
                             ),
                           );
                         },
                       ),
                     ),
-                    // 왼쪽 축은 숨김 (혼동 줄이기)
                     leftTitles: const AxisTitles(
                       sideTitles: SideTitles(showTitles: false),
                     ),
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
-                        reservedSize: 28,
+                        reservedSize: 24,
                         interval: 1,
                         getTitlesWidget: (value, meta) {
                           final i = value.toInt();
@@ -207,93 +302,86 @@ class TrainingHistoryChart extends StatelessWidget {
                     horizontalLines: [
                       HorizontalLine(
                         y: 70,
-                        color: Colors.cyan.withOpacity(0.4),
+                        color: _hitRateColor.withOpacity(0.5),
                         strokeWidth: 1.5,
                         dashArray: const [8, 4],
                         label: HorizontalLineLabel(
                           show: true,
                           style: const TextStyle(
                             fontSize: 10,
-                            color: Colors.cyan,
+                            color: _hitRateColor,
                           ),
-                          labelResolver: (_) => "목표 70%",
+                          labelResolver: (_) => "목표 명중률 70%",
                         ),
                       ),
                     ],
                   ),
-                  lineBarsData: [
-                    if (hitRateSpots.isNotEmpty)
-                      LineChartBarData(
-                        spots: hitRateSpots,
-                        isCurved: true,
-                        barWidth: 3.5,
-                        color: Colors.cyan,
-                        dotData: const FlDotData(show: true),
-                        belowBarData: BarAreaData(
-                          show: true,
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.cyan.withOpacity(0.25),
-                              Colors.transparent,
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                      ),
-                    if (ppdSpots.isNotEmpty)
-                      LineChartBarData(
-                        spots: ppdSpots,
-                        isCurved: true,
-                        barWidth: 3.0,
-                        color: Colors.amber.shade600,
-                        dotData: const FlDotData(show: true),
-                        belowBarData: BarAreaData(
-                          show: true,
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.amber.withOpacity(0.20),
-                              Colors.transparent,
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                      ),
-                    if (mprSpots.isNotEmpty)
-                      LineChartBarData(
-                        spots: mprSpots,
-                        isCurved: true,
-                        barWidth: 3.0,
-                        color: Colors.purple.shade400,
-                        dotData: const FlDotData(show: true),
-                      ),
-                  ],
                 ),
               ),
             ),
+
+            const SizedBox(height: 12),
+
+            // 🔹 그래프 아래 토글 (예전 “최근 7일 요약” 위치 느낌)
+            Center(child: _buildToggle()),
           ],
         ),
       ),
     );
   }
 
-  // ───── helpers ─────
+  // ───── UI helpers ─────
+
+  Widget _buildToggle() {
+    // Wrap 으로 만들어서 절대 오버플로우 안 나게
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      alignment: WrapAlignment.center,
+      children: [
+        _toggleChip(_MetricView.all, "전체"),
+        _toggleChip(_MetricView.hitRate, "명중률"),
+        _toggleChip(_MetricView.ppd, "PPD"),
+        _toggleChip(_MetricView.mpr, "MPR"),
+      ],
+    );
+  }
+
+  Widget _toggleChip(_MetricView value, String label) {
+    final bool selected = _view == value;
+    return ChoiceChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          color: selected ? Colors.white : Colors.grey[700],
+        ),
+      ),
+      selected: selected,
+      onSelected: (_) {
+        setState(() {
+          _view = value;
+        });
+      },
+      selectedColor: Colors.black87,
+      backgroundColor: Colors.grey[200],
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+    );
+  }
 
   Widget _legendItem(Color color, String text) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 12, height: 3, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(fontSize: 11),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 12, height: 3, color: color),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 11),
+        ),
+      ],
     );
   }
 
@@ -308,12 +396,10 @@ class TrainingHistoryChart extends StatelessWidget {
       touchTooltipData: LineTouchTooltipData(
         getTooltipColor: (_) => Colors.black87,
         tooltipRoundedRadius: 12,
-        tooltipPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 8,
-        ),
+        tooltipPadding:
+        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         tooltipMargin: 12,
-        maxContentWidth: 140,
+        maxContentWidth: 160,
         getTooltipItems: (touchedSpots) {
           return touchedSpots.map((touchedSpot) {
             final index = touchedSpot.x.toInt();
@@ -324,13 +410,13 @@ class TrainingHistoryChart extends StatelessWidget {
             String tooltipText = date;
 
             if (touchedSpot.bar.spots == hitRateSpots) {
-              final percent = touchedSpot.y; // 이미 % 값
+              final percent = touchedSpot.y;
               tooltipText += "\n명중률: ${percent.toStringAsFixed(1)}%";
             } else if (touchedSpot.bar.spots == ppdSpots) {
-              final realPpd = touchedSpot.y / 2; // 다시 PPD로
+              final realPpd = touchedSpot.y / 2;
               tooltipText += "\nPPD: ${realPpd.toStringAsFixed(2)}";
             } else if (touchedSpot.bar.spots == mprSpots) {
-              final realMpr = touchedSpot.y / 10; // 다시 MPR로
+              final realMpr = touchedSpot.y / 10;
               tooltipText += "\nMPR: ${realMpr.toStringAsFixed(2)}";
             }
 

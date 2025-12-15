@@ -1,3 +1,5 @@
+// lib/presentation/screens/training/drills/widgets/specialized/t20_focus_panel.dart
+
 import 'package:flutter/material.dart';
 
 class T20FocusPanel extends StatefulWidget {
@@ -14,6 +16,13 @@ class T20FocusPanel extends StatefulWidget {
   final VoidCallback? onFinishPressed;
   final bool isBusy;
 
+  /// ✅ RunScreen의 thrownDarts를 그대로 받아서 UI 표시/세그먼트 계산 동기화
+  final ValueNotifier<int>? thrownDartsNotifier;
+
+  /// ✅ Undo 지원 (선택)
+  final bool canUndo;
+  final VoidCallback? onUndo;
+
   const T20FocusPanel({
     super.key,
     required this.totalDarts,
@@ -24,6 +33,9 @@ class T20FocusPanel extends StatefulWidget {
     this.onHitFail,
     this.onFinishPressed,
     this.isBusy = false,
+    this.thrownDartsNotifier,
+    this.canUndo = false,
+    this.onUndo,
   });
 
   @override
@@ -31,21 +43,22 @@ class T20FocusPanel extends StatefulWidget {
 }
 
 class _T20FocusPanelState extends State<T20FocusPanel> {
-  int dartsThrown = 0;
-  int totalHitCount = 0;
-
   // 멀티 세그먼트용
   late final bool _isMultiSegment;
   late final int _effectiveTotalDarts;
-  late List<int> _segmentHits;
-  late List<int> _segmentDarts;
+
+  late List<int> _segmentHits;  // 세그별 명중 수
+  late List<int> _segmentDarts; // 세그별 던진 수
+
+  /// ✅ Undo를 위해 "마지막 입력" 히스토리 저장
+  /// - each: { segIndex, isHit }
+  final List<_T20HitRecord> _hitHistory = <_T20HitRecord>[];
 
   @override
   void initState() {
     super.initState();
 
-    _isMultiSegment =
-        widget.segments != null && widget.dartsPerSegment != null;
+    _isMultiSegment = widget.segments != null && widget.dartsPerSegment != null;
 
     if (_isMultiSegment) {
       final segCount = widget.segments!.length;
@@ -59,46 +72,58 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
     }
   }
 
-  double get successRate =>
-      dartsThrown == 0 ? 0 : totalHitCount / dartsThrown;
-
-  int get remainingDarts => _effectiveTotalDarts - dartsThrown;
-  bool get isFinished => dartsThrown >= _effectiveTotalDarts;
-
-  int get _currentSegmentIndex {
+  int _currentSegmentIndex(int thrown) {
     if (!_isMultiSegment) return 0;
     final segLen = widget.segments!.length;
     final dartsPerSeg = widget.dartsPerSegment!;
-    final idx = dartsThrown ~/ dartsPerSeg;
+    final idx = thrown ~/ dartsPerSeg;
     return idx.clamp(0, segLen - 1);
   }
 
-  String get _currentLabel {
+  String _currentLabel(int thrown) {
     if (_isMultiSegment) {
-      return widget.segments![_currentSegmentIndex];
+      return widget.segments![_currentSegmentIndex(thrown)];
     }
     return widget.targetLabel;
   }
 
-  int get _currentSegmentDarts {
+  int _currentSegmentDarts(int thrown) {
     if (!_isMultiSegment) return 0;
-    return _segmentDarts[_currentSegmentIndex];
+    final segIdx = _currentSegmentIndex(thrown);
+    return _segmentDarts[segIdx];
   }
 
-  void _record(bool isHit) {
-    if (widget.isBusy || isFinished) return;
+  int _totalHitCount() {
+    if (!_isMultiSegment) {
+      // 단일 모드에서는 성공수 누적을 따로 들고 있지 않으니,
+      // 히스토리 기반으로 계산
+      return _hitHistory.where((e) => e.isHit).length;
+    }
+    return _segmentHits.fold<int>(0, (sum, v) => sum + v);
+  }
+
+  double _successRate(int thrown) {
+    if (thrown == 0) return 0;
+    final hits = _totalHitCount();
+    return hits / thrown;
+  }
+
+  bool _isFinished(int thrown) => thrown >= _effectiveTotalDarts;
+
+  int _remainingDarts(int thrown) => (_effectiveTotalDarts - thrown).clamp(0, 999999);
+
+  void _record(bool isHit, int thrown) {
+    if (widget.isBusy) return;
+    if (_isFinished(thrown)) return;
+
+    final segIdx = _currentSegmentIndex(thrown);
 
     setState(() {
-      dartsThrown++;
-      if (isHit) {
-        totalHitCount++;
-      }
+      _hitHistory.add(_T20HitRecord(segIndex: segIdx, isHit: isHit));
 
       if (_isMultiSegment) {
-        _segmentDarts[_currentSegmentIndex]++;
-        if (isHit) {
-          _segmentHits[_currentSegmentIndex]++;
-        }
+        _segmentDarts[segIdx] += 1;
+        if (isHit) _segmentHits[segIdx] += 1;
       }
     });
 
@@ -109,305 +134,357 @@ class _T20FocusPanelState extends State<T20FocusPanel> {
     }
   }
 
+  void _handleUndo(int thrown) {
+    if (widget.isBusy) return;
+    if (!widget.canUndo) return;
+    if (_hitHistory.isEmpty) return;
+    if (thrown <= 0) return;
+
+    setState(() {
+      final last = _hitHistory.removeLast();
+
+      if (_isMultiSegment) {
+        final segIdx = last.segIndex.clamp(0, _segmentDarts.length - 1);
+        if (_segmentDarts[segIdx] > 0) _segmentDarts[segIdx] -= 1;
+        if (last.isHit && _segmentHits[segIdx] > 0) _segmentHits[segIdx] -= 1;
+      }
+      // 단일 모드는 히스토리만 줄이면 OK (성공률/명중수는 히스토리로 계산)
+    });
+
+    widget.onUndo?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final successPercent = (successRate * 100).toStringAsFixed(1);
+    Widget content(int thrown) {
+      final isFinished = _isFinished(thrown);
+      final hits = _totalHitCount();
+      final successRate = _successRate(thrown);
+      final successPercent = (successRate * 100).toStringAsFixed(1);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // ===================== 상단 타겟 카드 =====================
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black,
-                  Colors.grey.shade900,
+      final currentLabel = _currentLabel(thrown);
+      final currentSegDarts = _currentSegmentDarts(thrown);
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ===================== 상단 타겟 카드 =====================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black,
+                    Colors.grey.shade900,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.grey.shade800, width: 1.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.35),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: Colors.grey.shade800, width: 1.5),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.35),
-                  blurRadius: 14,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _isMultiSegment
-                      ? '멀티 더블 집중 연습'
-                      : '${_currentLabel} 집중 연습',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _currentLabel,
-                  style: const TextStyle(
-                    fontSize: 40, // 🔻 64 → 40 (가독성 위해 축소)
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -2,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '총 $_effectiveTotalDarts발',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Colors.white54,
-                  ),
-                ),
-
-                // 🔹 멀티 세그먼트일 때: 현재 세그먼트 정보 표기
-                if (_isMultiSegment) ...[
-                  const SizedBox(height: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Text(
-                    '세그먼트 ${_currentSegmentIndex + 1}/${widget.segments!.length} · '
-                        '${_currentLabel} ${_currentSegmentDarts}/${widget.dartsPerSegment}발',
+                    _isMultiSegment ? '멀티 더블 집중 연습' : '$currentLabel 집중 연습',
                     style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.cyanAccent,
+                      fontSize: 13,
+                      color: Colors.white70,
                       fontWeight: FontWeight.w600,
                     ),
-                    textAlign: TextAlign.center,
                   ),
-                ],
-              ],
-            ),
-          ),
+                  const SizedBox(height: 6),
+                  Text(
+                    currentLabel,
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -2,
+                      height: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '총 $_effectiveTotalDarts발',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.white54,
+                    ),
+                  ),
 
-          const SizedBox(height: 16),
-
-          // ===================== 진행/통계 카드 =====================
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade900,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 진행 바
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                  // 🔹 멀티 세그먼트일 때: 현재 세그먼트 정보 표기
+                  if (_isMultiSegment) ...[
+                    const SizedBox(height: 8),
                     Text(
-                      '진행 상황',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade300,
+                      '세그먼트 ${_currentSegmentIndex(thrown) + 1}/${widget.segments!.length} · '
+                          '$currentLabel ${currentSegDarts}/${widget.dartsPerSegment}발',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.cyanAccent,
                         fontWeight: FontWeight.w600,
                       ),
+                      textAlign: TextAlign.center,
                     ),
-                    Text(
-                      '$dartsThrown / $_effectiveTotalDarts 발',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.cyan.shade300,
-                        fontWeight: FontWeight.w500,
+                  ],
+
+                  // ✅ Undo (선택)
+                  if (widget.onUndo != null) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: (widget.isBusy || !widget.canUndo)
+                            ? null
+                            : () => _handleUndo(thrown),
+                        icon: const Icon(Icons.undo, size: 18),
+                        label: const Text(
+                          'UNDO',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: _effectiveTotalDarts == 0
-                        ? 0
-                        : (dartsThrown / _effectiveTotalDarts).clamp(0, 1),
-                    minHeight: 6,
-                    backgroundColor: Colors.grey.shade800,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      Colors.cyanAccent,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                ],
+              ),
+            ),
 
-                // 통계 칩들 (전체 기준)
-                Row(
-                  children: [
-                    Expanded(
-                      child: _InfoStat(
-                        label: '던진',
-                        value: '$dartsThrown',
-                        color: Colors.cyanAccent,
+            const SizedBox(height: 16),
+
+            // ===================== 진행/통계 카드 =====================
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade900,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 진행 바
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '진행 상황',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade300,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _InfoStat(
-                        label: '명중',
-                        value: '$totalHitCount',
-                        color: Colors.redAccent,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _InfoStat(
-                        label: '성공률',
-                        value: '$successPercent%',
-                        color: successRate >= 0.5
-                            ? Colors.greenAccent
-                            : Colors.orangeAccent,
-                      ),
-                    ),
-                    if (!isFinished) ...[
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: _InfoStat(
-                          label: '남은',
-                          value: '$remainingDarts',
-                          color: Colors.white70,
+                      Text(
+                        '$thrown / $_effectiveTotalDarts 발',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.cyan.shade300,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                // 🔹 세그먼트별 통계 (D16 / D20 각각)
-                if (_isMultiSegment) ...[
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: List.generate(widget.segments!.length, (i) {
-                      final segLabel = widget.segments![i];
-                      final darts = _segmentDarts[i];
-                      final hits = _segmentHits[i];
-                      final rate =
-                      darts == 0 ? 0.0 : (hits / darts) * 100.0;
-                      final rateText = rate.toStringAsFixed(1);
-
-                      return _InfoStat(
-                        label: segLabel,
-                        value: '$hits/$darts ($rateText%)',
-                        color: Colors.lightBlueAccent,
-                      );
-                    }),
                   ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: _effectiveTotalDarts == 0
+                          ? 0
+                          : (thrown / _effectiveTotalDarts).clamp(0, 1),
+                      minHeight: 6,
+                      backgroundColor: Colors.grey.shade800,
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Colors.cyanAccent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 통계 칩들 (전체 기준)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _InfoStat(
+                          label: '던진',
+                          value: '$thrown',
+                          color: Colors.cyanAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _InfoStat(
+                          label: '명중',
+                          value: '$hits',
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _InfoStat(
+                          label: '성공률',
+                          value: '$successPercent%',
+                          color: successRate >= 0.5
+                              ? Colors.greenAccent
+                              : Colors.orangeAccent,
+                        ),
+                      ),
+                      if (!isFinished) ...[
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: _InfoStat(
+                            label: '남은',
+                            value: '${_remainingDarts(thrown)}',
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  // 🔹 세그먼트별 통계 (D16 / D20 각각)
+                  if (_isMultiSegment) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: List.generate(widget.segments!.length, (i) {
+                        final segLabel = widget.segments![i];
+                        final darts = _segmentDarts[i];
+                        final hits = _segmentHits[i];
+                        final rate = darts == 0 ? 0.0 : (hits / darts) * 100.0;
+                        final rateText = rate.toStringAsFixed(1);
+
+                        return _InfoStat(
+                          label: segLabel,
+                          value: '$hits/$darts ($rateText%)',
+                          color: Colors.lightBlueAccent,
+                        );
+                      }),
+                    ),
+                  ],
                 ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // ===================== 명중 / 미스 버튼 =====================
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: widget.isBusy || isFinished
+                        ? null
+                        : () => _record(true, thrown),
+                    icon: const Icon(Icons.check_circle, size: 22),
+                    label: const Text(
+                      '명중',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade600,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: widget.isBusy || isFinished
+                        ? null
+                        : () => _record(false, thrown),
+                    icon: const Icon(Icons.close, size: 20),
+                    label: const Text(
+                      '미스',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
 
-          const SizedBox(height: 18),
+            const SizedBox(height: 16),
 
-          // ===================== 명중 / 미스 버튼 =====================
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: widget.isBusy || isFinished
-                      ? null
-                      : () => _record(true),
-                  icon: const Icon(Icons.check_circle, size: 22),
-                  label: const Text(
-                    '명중',
-                    style: TextStyle(
-                      fontSize: 16, // 🔻 18 → 16
-                      fontWeight: FontWeight.bold,
-                    ),
+            // ===================== 종료/저장 버튼 =====================
+            if (isFinished) ...[
+              ElevatedButton(
+                onPressed: widget.onFinishPressed,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan.shade600,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 32,
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red.shade600,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  '결과 확인하기',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: widget.isBusy || isFinished
-                      ? null
-                      : () => _record(false),
-                  icon: const Icon(Icons.close, size: 20),
-                  label: const Text(
-                    '미스',
-                    style: TextStyle(
-                      fontSize: 16, // 🔻 18 → 16
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey.shade700,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+            ] else ...[
+              TextButton(
+                onPressed: widget.isBusy ? null : widget.onFinishPressed,
+                child: const Text(
+                  '드릴 종료하고 결과 저장',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.cyan,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // ===================== 종료/저장 버튼 =====================
-          if (isFinished) ...[
-            ElevatedButton(
-              onPressed: widget.onFinishPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyan.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 32,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Text(
-                '결과 확인하기',
-                style: TextStyle(
-                  fontSize: 16, // 🔻 18 → 16
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ] else ...[
-            TextButton(
-              onPressed: widget.isBusy ? null : widget.onFinishPressed,
-              child: const Text(
-                '드릴 종료하고 결과 저장',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.cyan,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
           ],
-        ],
-      ),
-    );
+        ),
+      );
+    }
+
+    // ✅ notifier가 있으면 UI 완전 동기화
+    if (widget.thrownDartsNotifier != null) {
+      return ValueListenableBuilder<int>(
+        valueListenable: widget.thrownDartsNotifier!,
+        builder: (_, thrown, __) => content(thrown),
+      );
+    }
+
+    // ✅ notifier가 없으면 (구버전 호환) 0으로 표시 (권장: notifier 넘겨라)
+    return content(0);
   }
 }
 
@@ -440,7 +517,7 @@ class _InfoStat extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 10, // 🔻 11 → 10
+              fontSize: 10,
               color: Colors.white70,
             ),
           ),
@@ -448,7 +525,7 @@ class _InfoStat extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontSize: 13, // 🔻 14 → 13
+              fontSize: 13,
               fontWeight: FontWeight.w800,
               color: color,
             ),
@@ -457,4 +534,14 @@ class _InfoStat extends StatelessWidget {
       ),
     );
   }
+}
+
+class _T20HitRecord {
+  final int segIndex;
+  final bool isHit;
+
+  const _T20HitRecord({
+    required this.segIndex,
+    required this.isHit,
+  });
 }

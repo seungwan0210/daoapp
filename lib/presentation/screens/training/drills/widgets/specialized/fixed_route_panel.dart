@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 /// 170 / 167 같은 특정 점수에서
 /// 고정 루트(예: T20 → T20 → Bull)를 반복 연습하는 패널.
 ///
-/// - 한 세트 = 같은 루트를 3다트 던지는 1번의 찬스
-/// - 이 위젯 자체는 "성공/실패"만 판단하고,
-///   세트 수 / 성공 세트 수 카운트는 상위(DrillRunScreen)에서 처리하도록 단순화.
+/// - 한 세트 = 루트 1회(3다트 찬스)
+/// - 이 위젯은 "세트 성공/실패"만 입력받고,
+///   세트 수/성공 수 카운트는 상위(DrillRunScreen)가 관리.
+/// - ✅ 되돌리기(Undo): 방금 입력한 1세트 결과를 취소(상위 카운트도 되돌림)
 class FixedRoutePanel extends StatefulWidget {
   /// 예: ['T20', 'T20', 'Bull']
   final List<String> route;
@@ -13,11 +14,15 @@ class FixedRoutePanel extends StatefulWidget {
   /// 예: "170"
   final String targetScore;
 
-  /// 세트 1회 성공 시 호출 (상위에서 _recordHit(true) 같은 거 연결)
+  /// 세트 1회 성공 시 호출 (상위에서 _recordHit(true) 연결)
   final VoidCallback? onHitSuccess;
 
-  /// 세트 1회 실패 시 호출
+  /// 세트 1회 실패 시 호출 (상위에서 _recordHit(false) 연결)
   final VoidCallback? onHitFail;
+
+  /// ✅ 방금 입력한 세트 결과 되돌리기
+  /// - wasSuccess: true면 성공을 취소, false면 실패를 취소
+  final ValueChanged<bool>? onUndoSetResult;
 
   /// "드릴 종료하고 결과 저장" 눌렀을 때 호출
   final VoidCallback? onFinishPressed;
@@ -31,6 +36,7 @@ class FixedRoutePanel extends StatefulWidget {
     required this.targetScore,
     this.onHitSuccess,
     this.onHitFail,
+    this.onUndoSetResult,
     this.onFinishPressed,
     this.isBusy = false,
   });
@@ -40,16 +46,19 @@ class FixedRoutePanel extends StatefulWidget {
 }
 
 class _FixedRoutePanelState extends State<FixedRoutePanel> {
-  /// 현재 세트에서 몇 번째 다트까지 진행했는지 (0~route.length)
-  int _currentDartIndex = 0;
+  /// 직전 세트 입력이 있었는지
+  bool _hasLastSet = false;
+
+  /// 직전 세트가 성공이었는지
+  bool _lastWasSuccess = false;
 
   /// 세트 직후에 잠깐 띄워줄 성공/실패 플래그
   bool _justSucceeded = false;
   bool _justFailed = false;
 
-  void _resetSet() {
+  void _clearJustFlags() {
+    if (!mounted) return;
     setState(() {
-      _currentDartIndex = 0;
       _justSucceeded = false;
       _justFailed = false;
     });
@@ -59,17 +68,18 @@ class _FixedRoutePanelState extends State<FixedRoutePanel> {
     if (widget.isBusy) return;
 
     setState(() {
+      _hasLastSet = true;
+      _lastWasSuccess = true;
       _justSucceeded = true;
       _justFailed = false;
-      _currentDartIndex = widget.route.length; // 세 다트 완료 상태로
     });
 
     widget.onHitSuccess?.call();
 
-    // 짧게 성공 상태 보여주고 다음 세트로 리셋
+    // 짧게 상태 보여주고 메시지만 내려줌(다음 세트 입력 준비)
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
-      _resetSet();
+      _clearJustFlags();
     });
   }
 
@@ -77,17 +87,32 @@ class _FixedRoutePanelState extends State<FixedRoutePanel> {
     if (widget.isBusy) return;
 
     setState(() {
+      _hasLastSet = true;
+      _lastWasSuccess = false;
       _justSucceeded = false;
       _justFailed = true;
-      _currentDartIndex = widget.route.length;
     });
 
     widget.onHitFail?.call();
 
-    // 짧게 실패 상태 보여주고 다음 세트로 리셋
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
-      _resetSet();
+      _clearJustFlags();
+    });
+  }
+
+  void _undoLastSet() {
+    if (widget.isBusy) return;
+    if (!_hasLastSet) return;
+
+    // 상위 카운트(세트/성공수) 되돌리기
+    widget.onUndoSetResult?.call(_lastWasSuccess);
+
+    setState(() {
+      _hasLastSet = false;
+      _lastWasSuccess = false;
+      _justSucceeded = false;
+      _justFailed = false;
     });
   }
 
@@ -132,52 +157,32 @@ class _FixedRoutePanelState extends State<FixedRoutePanel> {
           ),
           const SizedBox(height: 12),
 
-          // 🔹 현재 세트 진행 표시 (각 다트칸)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(widget.route.length, (index) {
-              final isDone = index < _currentDartIndex;
-              final isCurrent = index == _currentDartIndex;
-
-              Color bg;
-              Color fg;
-              if (isDone) {
-                bg = Colors.cyan.shade600;
-                fg = Colors.white;
-              } else if (isCurrent) {
-                bg = Colors.white;
-                fg = Colors.cyan.shade700;
-              } else {
-                bg = Colors.grey.shade100;
-                fg = Colors.grey.shade600;
-              }
-
+          // 🔹 루트 칩(표시용)
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.route.map((seg) {
               return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: bg,
+                  color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: isCurrent
-                        ? Colors.cyan.shade600
-                        : Colors.grey.shade300,
-                  ),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
                 child: Text(
-                  widget.route[index],
+                  seg,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: fg,
+                    color: Colors.grey.shade700,
                   ),
                 ),
               );
-            }),
+            }).toList(),
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           // 🔹 안내 메시지 (성공/실패 플래그)
           if (_justSucceeded || _justFailed) ...[
@@ -254,7 +259,27 @@ class _FixedRoutePanelState extends State<FixedRoutePanel> {
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
+
+          // ✅ 되돌리기 버튼 (직전 입력이 있을 때만)
+          if (_hasLastSet)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: widget.isBusy ? null : _undoLastSet,
+                icon: const Icon(Icons.undo, size: 18, color: Colors.black54),
+                label: const Text(
+                  '방금 입력 되돌리기',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black54,
+                  ),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 2),
 
           // 🔹 드릴 종료 버튼
           TextButton(

@@ -12,6 +12,11 @@ class GenericHitPanel extends StatelessWidget {
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
+
+  // ✅ 추가
+  final VoidCallback? onUndo;
+  final bool canUndo;
+
   final bool isBusy;
 
   const GenericHitPanel({
@@ -25,6 +30,9 @@ class GenericHitPanel extends StatelessWidget {
     this.onHitSuccess,
     this.onHitFail,
     this.onFinishPressed,
+    // ✅ 추가
+    this.onUndo,
+    this.canUndo = false,
     this.isBusy = false,
   });
 
@@ -35,7 +43,7 @@ class GenericHitPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. 진행 정보 (라운드 / 다트)
+        // 1. 진행 정보
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -67,7 +75,7 @@ class GenericHitPanel extends StatelessWidget {
 
         const SizedBox(height: 20),
 
-        // 2. 현재 타겟 표시 영역
+        // 2. 현재 타겟 표시
         Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
@@ -128,15 +136,11 @@ class GenericHitPanel extends StatelessWidget {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed:
-                (isBusy || onHitSuccess == null) ? null : onHitSuccess,
+                onPressed: (isBusy || onHitSuccess == null) ? null : onHitSuccess,
                 icon: const Icon(Icons.check_circle_outline),
                 label: const Text(
                   "성공",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
@@ -155,10 +159,7 @@ class GenericHitPanel extends StatelessWidget {
                 icon: const Icon(Icons.close),
                 label: const Text(
                   "실패",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
@@ -173,12 +174,29 @@ class GenericHitPanel extends StatelessWidget {
           ],
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
+
+        // ✅ 3.5 Undo 버튼 (오입력 방지 핵심)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: (isBusy || !canUndo || onUndo == null) ? null : onUndo,
+            icon: const Icon(Icons.undo_rounded, size: 18),
+            label: const Text(
+              "이전 입력 되돌리기",
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 4),
 
         // 4. 종료 버튼
         TextButton(
-          onPressed:
-          (isBusy || onFinishPressed == null) ? null : onFinishPressed,
+          onPressed: (isBusy || onFinishPressed == null) ? null : onFinishPressed,
           child: const Text(
             "드릴 종료하고 결과 저장",
             style: TextStyle(

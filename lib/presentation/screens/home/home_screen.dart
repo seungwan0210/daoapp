@@ -299,7 +299,7 @@ class HomeScreenBody extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      '연습을 시작해볼까요?',
+                      'DAO 트레이닝',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,

@@ -45,19 +45,26 @@ class BullSplitPanel extends StatefulWidget {
   State<BullSplitPanel> createState() => _BullSplitPanelState();
 }
 
+enum _BullThrowType { sbull, dbull, miss }
+
 class _BullSplitPanelState extends State<BullSplitPanel> {
   int _thrownDarts = 0;
   int _sBullHits = 0;
   int _dBullHits = 0;
 
+  /// ✅ Undo용 히스토리
+  final List<_BullThrowType> _history = <_BullThrowType>[];
+
   double get _hitRate =>
       _thrownDarts == 0 ? 0 : (_sBullHits + _dBullHits) / _thrownDarts;
+
+  bool get _isLimitReached => _thrownDarts >= widget.totalDarts;
+
+  bool get _canUndo => !widget.isBusy && _history.isNotEmpty;
 
   void _notifyProgress() {
     widget.onProgress?.call(_sBullHits, _dBullHits, _thrownDarts);
   }
-
-  bool get _isLimitReached => _thrownDarts >= widget.totalDarts;
 
   void _showAllUsedSnack() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -65,7 +72,32 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
     );
   }
 
-  void _handleThrow({required bool isSBull, required bool isDBull}) {
+  void _showNoUndoSnack() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('되돌릴 기록이 없습니다.')),
+    );
+  }
+
+  void _applyThrow(_BullThrowType type) {
+    _thrownDarts++;
+    _history.add(type);
+
+    if (type == _BullThrowType.sbull) _sBullHits++;
+    if (type == _BullThrowType.dbull) _dBullHits++;
+  }
+
+  void _revertLastThrow() {
+    if (_history.isEmpty || _thrownDarts == 0) return;
+
+    final last = _history.removeLast();
+    _thrownDarts--;
+
+    if (last == _BullThrowType.sbull && _sBullHits > 0) _sBullHits--;
+    if (last == _BullThrowType.dbull && _dBullHits > 0) _dBullHits--;
+    // miss는 카운트 감소 없음
+  }
+
+  void _handleThrow(_BullThrowType type) {
     if (widget.isBusy) return;
     if (_isLimitReached) {
       _showAllUsedSnack();
@@ -73,17 +105,36 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
     }
 
     setState(() {
-      _thrownDarts++;
-      if (isSBull) _sBullHits++;
-      if (isDBull) _dBullHits++;
+      _applyThrow(type);
+    });
+
+    _notifyProgress();
+
+    // ✅ 전부 사용했으면 자동 안내(저장은 사용자가 누르게 유지)
+    if (_isLimitReached) {
+      _showAllUsedSnack();
+    }
+  }
+
+  void _onTapSBull() => _handleThrow(_BullThrowType.sbull);
+  void _onTapDBull() => _handleThrow(_BullThrowType.dbull);
+  void _onTapMiss() => _handleThrow(_BullThrowType.miss);
+
+  /// ✅ Undo: 직전 1발 되돌리기
+  void _onTapUndo() {
+    if (widget.isBusy) return;
+
+    if (_history.isEmpty) {
+      _showNoUndoSnack();
+      return;
+    }
+
+    setState(() {
+      _revertLastThrow();
     });
 
     _notifyProgress();
   }
-
-  void _onTapSBull() => _handleThrow(isSBull: true, isDBull: false);
-  void _onTapDBull() => _handleThrow(isSBull: false, isDBull: true);
-  void _onTapMiss() => _handleThrow(isSBull: false, isDBull: false);
 
   void _onTapSaveAndFinish() {
     if (widget.isBusy) return;
@@ -229,7 +280,28 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
             ],
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
+
+          // ✅ Undo 버튼 (패널 자체)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _canUndo ? _onTapUndo : null,
+              icon: const Icon(Icons.undo_rounded, size: 18),
+              label: const Text(
+                '1발 되돌리기',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.redAccent,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 6),
 
           // SBull / DBull / MISS 버튼 – Expanded로 3등분
           Row(
@@ -337,7 +409,7 @@ class _StatChip extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade300),
       ),
       child: FittedBox(
-        fit: BoxFit.scaleDown, // ✅ 텍스트 길어져도 칩 안에서만 줄어듦
+        fit: BoxFit.scaleDown,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [

@@ -1,7 +1,6 @@
-// lib/presentation/screens/community/arena/widgets/tournament_card.dart
-
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
@@ -17,19 +16,90 @@ class TournamentCard extends StatelessWidget {
     required this.onTap,
   });
 
+  Widget _pill({
+    required IconData icon,
+    required String text,
+    required Color color,
+    Color? fill,
+  }) {
+    final bg = fill ?? color.withOpacity(0.10);
+    final bd = color.withOpacity(0.35);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: bg,
+        border: Border.all(color: bd, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.0,
+              fontWeight: FontWeight.w800,
+              color: color,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _ddayColor(String dday, BuildContext context) {
+    final theme = Theme.of(context);
+    if (dday == '오늘!') return Colors.redAccent;
+    if (dday.startsWith('D-')) return Colors.orange.shade700;
+    return theme.textTheme.bodySmall?.color?.withOpacity(0.55) ?? Colors.grey;
+  }
+
+  Color _capacityColor({
+    required int count,
+    required int maxP,
+    required Color primary,
+  }) {
+    if (maxP <= 0) return primary;
+    if (count >= maxP) return Colors.redAccent;
+
+    final ratio = count / maxP;
+    if (ratio >= 0.8) return Colors.orange.shade700;
+
+    return primary;
+  }
+
+  String _formatMoney(int value) {
+    final raw = value.toString();
+    return raw.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+          (m) => '${m[1]},',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // 상태 (엔트리 예정/중/마감/진행중/종료)
-    final status = ArenaUtils.getEntryStatus(
-      entryStartDate: tournament.entryStartDate,
-      entryEndDate: tournament.entryEndDate,
-      eventDate: tournament.eventDate,
+    // 대회일 기준 D-DAY
+    final eventDday = ArenaUtils.eventDday(tournament.eventDate);
+    final ddayColor = _ddayColor(eventDday, context);
+
+    final int maxP = tournament.maxParticipants;
+    final int count = tournament.entryCount; // ✅ 단일 소스 (문서 필드)
+
+    final Color capacityColor = _capacityColor(
+      count: count,
+      maxP: maxP,
+      primary: theme.colorScheme.primary,
     );
 
-    // 👇 아래쪽에 보여줄 "대회일 기준" D-DAY
-    final eventDday = ArenaUtils.eventDday(tournament.eventDate);
+    final bool unlimited = (maxP <= 0 || maxP >= 9999);
+    final String capacityText = unlimited ? '$count명' : '$count/$maxP';
 
     return AppCard(
       onTap: onTap,
@@ -41,23 +111,29 @@ class TournamentCard extends StatelessWidget {
           // 포스터 이미지
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: tournament.posterUrl != null &&
-                tournament.posterUrl!.isNotEmpty
+            child: (tournament.posterUrl ?? '').trim().isNotEmpty
                 ? CachedNetworkImage(
-              imageUrl: tournament.posterUrl!,
+              imageUrl: tournament.posterUrl!.trim(),
               height: 160,
               width: double.infinity,
               fit: BoxFit.cover,
               placeholder: (_, __) => Container(
+                height: 160,
                 color: Colors.grey[200],
-                child:
-                const Center(child: CircularProgressIndicator()),
+                child: const Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
               ),
               errorWidget: (_, __, ___) => Container(
+                height: 160,
                 color: Colors.grey[300],
                 child: const Icon(
                   Icons.image_not_supported,
-                  size: 60,
+                  size: 56,
                   color: Colors.white70,
                 ),
               ),
@@ -74,37 +150,28 @@ class TournamentCard extends StatelessWidget {
               child: const Center(
                 child: Icon(
                   Icons.emoji_events,
-                  size: 80,
+                  size: 76,
                   color: Colors.white,
                 ),
               ),
             ),
           ),
 
+          // 본문
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 상태 뱃지 + 참가 인원
+                // 상태 뱃지 + 참가 인원 pill
                 Row(
                   children: [
                     EntryStatusBadge(tournament: tournament),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        '${tournament.entryCount}/${tournament.maxParticipants}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
+                    _pill(
+                      icon: Icons.people_rounded,
+                      text: unlimited ? '참가 $count' : capacityText,
+                      color: capacityColor,
                     ),
                   ],
                 ),
@@ -115,8 +182,9 @@ class TournamentCard extends StatelessWidget {
                 Text(
                   tournament.title,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    height: 1.2,
+                    fontWeight: FontWeight.w900,
+                    height: 1.15,
+                    letterSpacing: -0.2,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -136,8 +204,10 @@ class TournamentCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         tournament.location,
-                        style: theme.textTheme.bodyMedium
-                            ?.copyWith(color: Colors.grey[700]),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey.shade800,
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -147,7 +217,7 @@ class TournamentCard extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // 참가비
+                // 참가비 + D-day pill
                 Row(
                   children: [
                     Icon(
@@ -156,39 +226,27 @@ class TournamentCard extends StatelessWidget {
                       color: theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      tournament.entryFee > 0
-                          ? '${tournament.entryFee.toString().replaceAllMapped(
-                        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-                            (m) => '${m[1]},',
-                      )}원'
-                          : '무료 입장',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: tournament.entryFee > 0
-                            ? theme.colorScheme.primary
-                            : Colors.green[700],
+                    Expanded(
+                      child: Text(
+                        tournament.entryFee > 0
+                            ? '${_formatMoney(tournament.entryFee)}원'
+                            : '무료 입장',
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w900,
+                          color: tournament.entryFee > 0
+                              ? theme.colorScheme.primary
+                              : Colors.green[700],
+                        ),
                       ),
                     ),
-                  ],
-                ),
-
-                // 🔥 항상 "대회일 기준 D-day" 표시
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    eventDday,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: eventDday.startsWith('D-')
-                          ? Colors.orange[700]
-                          : (eventDday == '오늘!'
-                          ? Colors.red[600]
-                          : Colors.grey[600]),
+                    _pill(
+                      icon: Icons.event_rounded,
+                      text: eventDday,
+                      color: ddayColor,
+                      fill: ddayColor.withOpacity(0.10),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),

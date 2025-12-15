@@ -8,10 +8,10 @@ part 'tournament_entry_model.g.dart';
 @freezed
 class TournamentEntryModel with _$TournamentEntryModel {
   const factory TournamentEntryModel({
-    /// Firestore document ID (로컬에서만 사용)
+    /// Firestore document ID (doc.id)
     String? id,
 
-    /// 참가자 유저 UID (반드시 로그인 유저)
+    /// 참가자 유저 UID (entries/{userUid} = userUid 정책이면 사실상 key)
     required String userUid,
 
     /// 한글 이름
@@ -34,6 +34,12 @@ class TournamentEntryModel with _$TournamentEntryModel {
 
     /// 신청 시간
     @TimestampConverter() required Timestamp createdAt,
+
+    /// (권장) 수정 시간
+    @TimestampConverter() Timestamp? updatedAt,
+
+    /// (권장) 운영 상태값 (지금 당장은 없어도 됨)
+    @Default('applied') String status, // applied / canceled / confirmed ...
   }) = _TournamentEntryModel;
 
   factory TournamentEntryModel.fromJson(Map<String, dynamic> json) =>

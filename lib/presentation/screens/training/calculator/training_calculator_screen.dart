@@ -1,21 +1,20 @@
-// lib/presentation/screens/training/calculator/training_calculator_screen.dart
-
+// lib/presentation/screens/training/calculator/checkout_calculator_screen.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:daoapp/presentation/providers/checkout_provider.dart';
+import 'package:provider/provider.dart';
+
+import 'package:daoapp/presentation/providers/training/calculator/checkout_calculator_provider.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/core/constants/checkout_table.dart';
 
-/// 체크아웃 계산기 (트레이닝 탭)
-class TrainingCalculatorScreen extends ConsumerStatefulWidget {
-  const TrainingCalculatorScreen({super.key});
+class CheckoutCalculatorScreen extends StatefulWidget {
+  const CheckoutCalculatorScreen({super.key});
 
   @override
-  ConsumerState<TrainingCalculatorScreen> createState() => _TrainingCalculatorScreenState();
+  State<CheckoutCalculatorScreen> createState() =>
+      _CheckoutCalculatorScreenState();
 }
 
-class _TrainingCalculatorScreenState extends ConsumerState<TrainingCalculatorScreen> {
+class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
   final TextEditingController _initialController = TextEditingController();
   final List<int> _currentInput = [];
   int? _initialScore;
@@ -26,237 +25,357 @@ class _TrainingCalculatorScreenState extends ConsumerState<TrainingCalculatorScr
     super.dispose();
   }
 
-  void _startWithScore() {
-    final scoreText = _initialController.text.trim();
-    final score = int.tryParse(scoreText);
+  void _startWithScore(BuildContext context) {
+    final score = int.tryParse(_initialController.text);
     if (score == null || score < 2 || score > 170) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("2~170 사이의 점수를 입력하세요")),
       );
       return;
     }
-
     setState(() => _initialScore = score);
-    ref.read(checkoutProvider.notifier).setInitialScore(score);
+    context.read<CheckoutCalculatorProvider>().setInitialScore(score);
   }
 
-  void _onKeyPressed(String key) {
+  void _onKeyPressed(BuildContext context, String key) {
     setState(() {
       if (key == 'backspace') {
         if (_currentInput.isNotEmpty) _currentInput.removeLast();
-      } else if (key == 'confirm') {
-        if (_currentInput.isEmpty) return;
-        final score = int.parse(_currentInput.join());
-        final notifier = ref.read(checkoutProvider.notifier);
+        return;
+      }
 
-        if (score > notifier.state.remainingScore) {
+      if (key == 'confirm') {
+        if (_currentInput.isEmpty) return;
+
+        final score = int.parse(_currentInput.join());
+        final provider = context.read<CheckoutCalculatorProvider>();
+
+        if (score <= provider.remainingScore) {
+          provider.subtractScore(score);
+          _currentInput.clear();
+        } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("남은 점수보다 클 수 없어요")),
           );
-          return;
         }
+        return;
+      }
 
-        notifier.subtractScore(score);
-        _currentInput.clear();
-      } else {
-        if (_currentInput.length < 3) {
-          _currentInput.add(int.parse(key));
-        }
+      // 숫자 입력
+      if (_currentInput.length < 3) {
+        _currentInput.add(int.parse(key));
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final state = ref.watch(checkoutProvider);
-    final currentInputStr = _currentInput.isEmpty ? '' : _currentInput.join();
-    final bottomInset = MediaQuery.of(context).padding.bottom;
+    return ChangeNotifierProvider(
+      create: (_) => CheckoutCalculatorProvider(),
+      child: Builder(
+        builder: (innerContext) {
+          final theme = Theme.of(innerContext);
 
-    return Scaffold(
-      appBar: const CommonAppBar(title: "체크아웃 계산기"),
-      body: SafeArea(
-        child: _initialScore == null
-            ? _buildInitialInput(theme)
-            : _buildCalculator(theme, state, currentInputStr, bottomInset),
-      ),
-    );
-  }
+          return Scaffold(
+            appBar: const CommonAppBar(title: "체크아웃 계산기"),
+            body: SafeArea(
+              child: Consumer<CheckoutCalculatorProvider>(
+                builder: (ctx, provider, _) {
+                  final currentInputStr =
+                  _currentInput.isEmpty ? '' : _currentInput.join();
+                  final bottomInset = MediaQuery.of(ctx).padding.bottom;
 
-  Widget _buildInitialInput(ThemeData theme) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: AppCard(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "시작 점수를 입력하세요",
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _initialController,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  hintText: "2 ~ 170",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 20),
-                ),
-                onSubmitted: (_) => _startWithScore(),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _startWithScore,
-                  child: const Text("시작하기", style: TextStyle(fontSize: 18)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCalculator(ThemeData theme, CheckoutState state, String currentInputStr, double bottomInset) {
-    final notifier = ref.read(checkoutProvider.notifier);
-
-    return Column(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Column(
-              children: [
-                AppCard(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text("남은 점수", style: TextStyle(fontSize: 16, color: Colors.grey)),
-                            if (state.history.isNotEmpty)
-                              TextButton.icon(
-                                onPressed: () {
-                                  notifier.undoLast();
-                                  setState(() => _currentInput.clear());
-                                },
-                                icon: const Icon(Icons.undo, size: 18),
-                                label: const Text("되돌리기"),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "${state.remainingScore}",
-                          style: TextStyle(
-                            fontSize: 56,
-                            fontWeight: FontWeight.bold,
-                            color: state.remainingScore <= 60 ? Colors.red[700] : theme.colorScheme.primary,
+                  // ==========================
+                  // 1) 시작 점수 입력 화면
+                  // ==========================
+                  if (_initialScore == null) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: AppCard(
+                          margin: EdgeInsets.zero,
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "시작 점수를 입력하세요",
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                TextField(
+                                  controller: _initialController,
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: "2 ~ 170",
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                  onSubmitted: (_) =>
+                                      _startWithScore(innerContext),
+                                ),
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () =>
+                                        _startWithScore(innerContext),
+                                    child: const Text("시작하기"),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        if (currentInputStr.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Text("이번 턴: $currentInputStr", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: Colors.orange[700])),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (state.routes.isNotEmpty)
-                  AppCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
+                      ),
+                    );
+                  }
+
+                  // ==========================
+                  // 2) 계산기 화면
+                  // ==========================
+                  return Column(
+                    children: [
+                      // 상단: 남은 점수 + 추천 루트
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Icon(Icons.lightbulb, color: Colors.amber),
-                              SizedBox(width: 8),
-                              Text("추천 체크아웃 루트", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                              // 남은 점수 + 되돌리기
+                              AppCard(
+                                margin: EdgeInsets.zero,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.stretch,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "남은 점수",
+                                            style: TextStyle(
+                                                color: Colors.grey[600]),
+                                          ),
+                                          if (provider.canUndo)
+                                            TextButton.icon(
+                                              onPressed: () {
+                                                provider.undoLast();
+                                                setState(() =>
+                                                    _currentInput.clear());
+                                              },
+                                              icon: const Icon(Icons.undo,
+                                                  size: 18),
+                                              label: const Text("되돌리기"),
+                                              style: TextButton.styleFrom(
+                                                padding: const EdgeInsets
+                                                    .symmetric(horizontal: 8),
+                                                tapTargetSize:
+                                                MaterialTapTargetSize
+                                                    .shrinkWrap,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "${provider.remainingScore}",
+                                        style: TextStyle(
+                                          fontSize: 48,
+                                          fontWeight: FontWeight.bold,
+                                          color: provider.remainingScore <= 50
+                                              ? Colors.red[700]
+                                              : theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                      if (currentInputStr.isNotEmpty) ...[
+                                        const SizedBox(height: 12),
+                                        Text(
+                                          "이번 턴: $currentInputStr",
+                                          style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.orange[700],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+
+                              // 추천 루트
+                              if (provider.routes.isNotEmpty)
+                                AppCard(
+                                  margin: EdgeInsets.zero,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: const [
+                                            Icon(Icons.lightbulb,
+                                                color: Colors.amber, size: 26),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              "추천 체크아웃 루트",
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+
+                                        // 최적 루트
+                                        Text(
+                                          provider.routes.first.primary
+                                              .join(" → "),
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+
+                                        // 대안 루트
+                                        if (provider.routes.first.alts
+                                            .isNotEmpty) ...[
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            "대안 루트:",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          ...provider.routes.first.alts.map(
+                                                (alt) => Padding(
+                                              padding: const EdgeInsets.only(
+                                                  left: 16, top: 4),
+                                              child: Text(
+                                                "• ${alt.join(" → ")}",
+                                                style: const TextStyle(
+                                                    fontSize: 15),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
-                          const SizedBox(height: 12),
-                          Text(state.routes.first.primary.join(" → "), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                          if (state.routes.first.alts.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            const Text("대안 루트", style: TextStyle(fontWeight: FontWeight.w600)),
-                            const SizedBox(height: 6),
-                            ...state.routes.first.alts.map((alt) => Padding(
-                              padding: const EdgeInsets.only(left: 12, top: 4),
-                              child: Text("• ${alt.join(" → ")}", style: const TextStyle(fontSize: 15)),
-                            )),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
 
-        // 키패드
-        Padding(
-          padding: EdgeInsets.only(bottom: bottomInset > 20 ? bottomInset - 10 : 10, left: 8, right: 8),
-          child: AppCard(
-            padding: const EdgeInsets.all(12),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              childAspectRatio: 1.6,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: [
-                _key('7'), _key('8'), _key('9'),
-                _key('4'), _key('5'), _key('6'),
-                _key('1'), _key('2'), _key('3'),
-                _key('backspace', icon: Icons.backspace_outlined, color: Colors.red[100]),
-                _key('0'),
-                _key('confirm', icon: Icons.check, color: _currentInput.isEmpty ? Colors.grey[300] : theme.colorScheme.primary),
-              ],
+                      // 하단 키패드
+                      Padding(
+                        padding: EdgeInsets.only(
+                          left: 8,
+                          right: 8,
+                          top: 4,
+                          bottom: bottomInset > 0 ? bottomInset : 4,
+                        ),
+                        child: AppCard(
+                          margin: EdgeInsets.zero,
+                          padding: const EdgeInsets.all(12),
+                          child: GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: 3,
+                            childAspectRatio: 1.6,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            children: [
+                              _buildKey(ctx, '7'),
+                              _buildKey(ctx, '8'),
+                              _buildKey(ctx, '9'),
+                              _buildKey(ctx, '4'),
+                              _buildKey(ctx, '5'),
+                              _buildKey(ctx, '6'),
+                              _buildKey(ctx, '1'),
+                              _buildKey(ctx, '2'),
+                              _buildKey(ctx, '3'),
+                              _buildKey(ctx, 'backspace', isBackspace: true),
+                              _buildKey(ctx, '0'),
+                              _buildKey(ctx, 'confirm', isConfirm: true),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 
-  Widget _key(String label, {IconData? icon, Color? color}) {
+  Widget _buildKey(
+      BuildContext context,
+      String label, {
+        bool isBackspace = false,
+        bool isConfirm = false,
+      }) {
     final theme = Theme.of(context);
-    final isConfirm = label == 'confirm';
-    final isBackspace = label == 'backspace';
 
     return GestureDetector(
-      onTap: () => _onKeyPressed(label),
+      onTap: () => _onKeyPressed(context, label),
       child: Container(
         decoration: BoxDecoration(
-          color: color ?? Colors.grey[100],
+          color: isBackspace
+              ? Colors.red[50]
+              : isConfirm
+              ? (_currentInput.isEmpty
+              ? Colors.grey[300]
+              : theme.colorScheme.primary)
+              : Colors.grey[100],
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.grey[300]!),
         ),
         child: Center(
-          child: icon != null
-              ? Icon(icon, color: isBackspace ? Colors.red : (isConfirm && _currentInput.isNotEmpty ? Colors.white : Colors.grey[700]))
+          child: isBackspace
+              ? const Icon(Icons.backspace_outlined, color: Colors.red)
+              : isConfirm
+              ? Icon(
+            Icons.check,
+            color: _currentInput.isNotEmpty
+                ? Colors.white
+                : Colors.grey[700],
+          )
               : Text(
             label,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isConfirm && _currentInput.isNotEmpty ? Colors.white : null,
+              color: isConfirm && _currentInput.isNotEmpty
+                  ? Colors.white
+                  : null,
             ),
           ),
         ),

@@ -1,25 +1,39 @@
 // lib/presentation/screens/arena/widgets/arena_preview.dart
-// 100% 컴파일 에러 없는 최종본 (수정 버전)
+// ✅ 카드(사진) 탭 이동 제거 버전
+// ✅ 이동은 "전체 보기" 버튼만 동작
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:daoapp/data/models/tournament_model.dart';
+
 import 'package:daoapp/core/utils/arena_utils.dart';
+import 'package:daoapp/core/utils/date_utils.dart'; // nowKst()
+import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/presentation/providers/arena_provider.dart';
-import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
 
 class ArenaPreview extends ConsumerWidget {
   final VoidCallback onSeeAllPressed;
 
-  const ArenaPreview({super.key, required this.onSeeAllPressed});
+  const ArenaPreview({
+    super.key,
+    required this.onSeeAllPressed,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final arenaState = ref.watch(arenaProvider);
 
-    final openTournaments = arenaState.tournaments
+    // ✅ 내부 계산 필요 시 사용 (안 쓰면 삭제해도 됨)
+    final now = nowKst();
+    // ignore: unused_local_variable
+    final _ = now;
+
+    // ✅ 프리뷰는 "원본(all)" 기준
+    final sourceList = arenaState.allTournaments;
+
+    final openTournaments = sourceList
         .where(
-          (t) => ArenaUtils.getEntryStatus(
+          (t) =>
+      ArenaUtils.getEntryStatus(
         entryStartDate: t.entryStartDate,
         entryEndDate: t.entryEndDate,
         eventDate: t.eventDate,
@@ -29,9 +43,10 @@ class ArenaPreview extends ConsumerWidget {
         .take(8)
         .toList();
 
-    final upcomingTournaments = arenaState.tournaments
+    final upcomingTournaments = sourceList
         .where(
-          (t) => ArenaUtils.getEntryStatus(
+          (t) =>
+      ArenaUtils.getEntryStatus(
         entryStartDate: t.entryStartDate,
         entryEndDate: t.entryEndDate,
         eventDate: t.eventDate,
@@ -41,7 +56,7 @@ class ArenaPreview extends ConsumerWidget {
         .take(8)
         .toList();
 
-    final isLoading = arenaState.isLoading && arenaState.tournaments.isEmpty;
+    final isLoading = arenaState.isLoading && sourceList.isEmpty;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -54,6 +69,7 @@ class ArenaPreview extends ConsumerWidget {
             showSeeAll: true,
             showDday: true,
             isLoading: isLoading,
+            onSeeAllPressed: onSeeAllPressed,
           ),
           const SizedBox(height: 12),
           _buildSection(
@@ -63,6 +79,7 @@ class ArenaPreview extends ConsumerWidget {
             showSeeAll: false,
             showDday: true,
             isLoading: isLoading,
+            onSeeAllPressed: onSeeAllPressed, // required라 유지
           ),
         ],
       ),
@@ -76,6 +93,7 @@ class ArenaPreview extends ConsumerWidget {
     required bool showSeeAll,
     required bool showDday,
     required bool isLoading,
+    required VoidCallback onSeeAllPressed,
   }) {
     if (isLoading) {
       return const Padding(
@@ -102,7 +120,7 @@ class ArenaPreview extends ConsumerWidget {
               ),
               if (showSeeAll)
                 TextButton(
-                  onPressed: onSeeAllPressed,
+                  onPressed: onSeeAllPressed, // ✅ 이동은 여기만
                   child: const Text('전체 보기'),
                 ),
             ],
@@ -117,19 +135,10 @@ class ArenaPreview extends ConsumerWidget {
             itemCount: tournaments.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (_, i) {
-              final t = tournaments[i];
-              return GestureDetector(
-                onTap: () {
-                  if (t.id == null) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          TournamentDetailScreen(tournamentId: t.id!),
-                    ),
-                  );
-                },
-                child: _buildCard(t, showDday: showDday),
+              // ✅ 카드 탭 이동 제거 (그냥 카드만 보여줌)
+              return _buildCard(
+                tournaments[i],
+                showDday: showDday,
               );
             },
           )
@@ -213,8 +222,7 @@ class ArenaPreview extends ConsumerWidget {
                     const SizedBox(width: 3),
                     Text(
                       '${t.entryCount}/${t.maxParticipants}',
-                      style:
-                      const TextStyle(color: Colors.white, fontSize: 10),
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
                     ),
                   ],
                 ),

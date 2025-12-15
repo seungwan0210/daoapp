@@ -12,6 +12,9 @@ class CountUpRoundScorePanel extends StatefulWidget {
   /// 라운드 점수가 확정되면 호출 (예: 1R 45점, 2R 60점 등)
   final ValueChanged<int> onRoundSubmitted;
 
+  /// ✅ Undo(1단계): 직전 라운드 확정을 취소(부모가 점수/라운드 되돌림 처리)
+  final VoidCallback? onUndoLastRound;
+
   /// 유저가 중간에 그만두고 싶을 때
   final VoidCallback? onFinishPressed;
 
@@ -23,6 +26,7 @@ class CountUpRoundScorePanel extends StatefulWidget {
     required this.totalRounds,
     required this.accumulatedScore,
     required this.onRoundSubmitted,
+    this.onUndoLastRound,
     this.onFinishPressed,
     this.isBusy = false,
   });
@@ -35,14 +39,63 @@ class _CountUpRoundScorePanelState extends State<CountUpRoundScorePanel> {
   final TextEditingController _controller = TextEditingController();
   String? _errorText;
 
+  /// ✅ 입력값 Undo(텍스트 입력 1단계)용
+  String _prevText = '';
+
+  bool get _canUndoInput =>
+      !widget.isBusy &&
+          _prevText.isNotEmpty &&
+          _prevText != _controller.text;
+
+  /// ✅ 라운드 Undo 가능 여부(직전 라운드가 존재할 때)
+  bool get _canUndoRound =>
+      !widget.isBusy &&
+          widget.onUndoLastRound != null &&
+          widget.currentRound > 1;
+
+  @override
+  void initState() {
+    super.initState();
+    _prevText = _controller.text;
+
+    _controller.addListener(() {
+      if (_errorText != null) {
+        setState(() => _errorText = null);
+      }
+    });
+  }
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
 
+  void _stashPrev() {
+    _prevText = _controller.text;
+  }
+
+  void _undoInput() {
+    if (!_canUndoInput) return;
+
+    final String current = _controller.text;
+    setState(() {
+      _controller.text = _prevText;
+      _controller.selection =
+          TextSelection.collapsed(offset: _controller.text.length);
+
+      // 1단계 Undo 느낌 유지
+      _prevText = current;
+
+      _errorText = null;
+    });
+  }
+
   void _submit() {
     if (widget.isBusy) return;
+
+    // ✅ 제출 직전 값을 입력 Undo 후보로 저장
+    _stashPrev();
 
     final raw = _controller.text.trim();
 
@@ -65,7 +118,10 @@ class _CountUpRoundScorePanelState extends State<CountUpRoundScorePanel> {
     setState(() => _errorText = null);
 
     widget.onRoundSubmitted(value);
-    _controller.clear(); // 다음 라운드 준비
+
+    // ✅ 다음 라운드 준비
+    _controller.clear();
+    _prevText = ''; // 다음 라운드에서는 입력 Undo 기준을 새로 시작
   }
 
   @override
@@ -108,7 +164,7 @@ class _CountUpRoundScorePanelState extends State<CountUpRoundScorePanel> {
 
           const SizedBox(height: 6),
 
-          // 🔹 지금까지 누적된 총점 표시
+          // 지금까지 누적된 총점 표시
           Text(
             '현재까지 총점: ${widget.accumulatedScore}점',
             style: TextStyle(
@@ -161,35 +217,83 @@ class _CountUpRoundScorePanelState extends State<CountUpRoundScorePanel> {
               ),
               errorText: _errorText,
             ),
+            onTap: _stashPrev,
+            onSubmitted: (_) => _submit(),
           ),
 
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
 
-          // 라운드 점수 확정
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: widget.isBusy ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.cyan.shade600,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+          // ✅ 확정 + 입력 Undo
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: widget.isBusy ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.cyan.shade600,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 4,
+                  ),
+                  child: const Text(
+                    '이번 라운드 점수 확정',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-                elevation: 4,
               ),
-              child: const Text(
-                '이번 라운드 점수 확정',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 54,
+                height: 48,
+                child: OutlinedButton(
+                  onPressed: _canUndoInput ? _undoInput : null,
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    side: BorderSide(
+                      color: _canUndoInput
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: const Icon(Icons.undo, size: 20),
                 ),
               ),
-            ),
+            ],
           ),
 
           const SizedBox(height: 10),
+
+          // ✅ 직전 라운드 Undo (부모가 라운드/누적점 되돌림)
+          if (widget.onUndoLastRound != null) ...[
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _canUndoRound ? widget.onUndoLastRound : null,
+                icon: const Icon(Icons.undo),
+                label: const Text(
+                  '직전 라운드 되돌리기',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.black87,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
 
           // 드릴 중단 버튼
           TextButton(

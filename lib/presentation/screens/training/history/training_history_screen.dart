@@ -5,16 +5,203 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/training/training_history_provider.dart';
 import 'package:daoapp/presentation/screens/training/history/training_session_detail_screen.dart';
 import 'package:daoapp/data/models/training_session_model.dart';
-import 'package:daoapp/core/utils/dao_training_rating_utils.dart'; // DaoTrainingTier 사용
+import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 
-// 우리가 만든 듀얼축 그래프
 import 'widgets/training_history_chart.dart';
 
 class TrainingHistoryScreen extends ConsumerWidget {
   const TrainingHistoryScreen({super.key});
+
+  bool _determineHasProfile(Map<String, dynamic> data) {
+    final hasProfile = data['hasProfile'] as bool? ?? false;
+    final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
+    final koreanName = data['koreanName']?.toString().trim();
+    return hasProfile &&
+        isPhoneVerified &&
+        koreanName != null &&
+        koreanName.isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: Colors.grey[50],
+        appBar: _buildDefaultAppBar(),
+        body: _buildLoginPrompt(context),
+      );
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Scaffold(
+            backgroundColor: Colors.grey,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final data = snap.data!.data() as Map<String, dynamic>? ?? {};
+        final hasProfile = _determineHasProfile(data);
+
+        if (!hasProfile) {
+          return Scaffold(
+            backgroundColor: Colors.grey[50],
+            appBar: _buildDefaultAppBar(),
+            body: _buildProfilePrompt(context, data),
+          );
+        }
+
+        return const _TrainingHistoryAuthedBody();
+      },
+    );
+  }
+
+  AppBar _buildDefaultAppBar() {
+    return AppBar(
+      title: const Text(
+        "트레이닝 히스토리",
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      centerTitle: true,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black87,
+      elevation: 0,
+      bottom: const PreferredSize(
+        preferredSize: Size.fromHeight(1),
+        child: Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
+      ),
+    );
+  }
+
+  Widget _buildLoginPrompt(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          elevation: 2,
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.history, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  "히스토리는 로그인 후 이용 가능해요",
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "로그인하면 내 연습 기록을 저장하고\n추이를 확인할 수 있어요.",
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, RouteConstants.login),
+                    child: const Text("로그인 하러 가기"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfilePrompt(BuildContext context, Map<String, dynamic> data) {
+    final theme = Theme.of(context);
+
+    final hasProfile = data['hasProfile'] as bool? ?? false;
+    final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Card(
+          elevation: 2,
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.verified_user_outlined,
+                    size: 64, color: Colors.grey[700]),
+                const SizedBox(height: 16),
+                Text(
+                  "프로필 등록 후 이용 가능해요",
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  "기록(히스토리)은 계정 신뢰/중복 방지를 위해\n프로필 등록 유저만 사용할 수 있어요.",
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    if (!hasProfile)
+                      const Chip(
+                        avatar: Icon(Icons.person_add, size: 18),
+                        label: Text("프로필 등록 필요"),
+                      ),
+                    if (!isPhoneVerified)
+                      const Chip(
+                        avatar: Icon(Icons.phone_android, size: 18),
+                        label: Text("휴대폰 인증 필요"),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(
+                        context, RouteConstants.profileRegister),
+                    child: const Text("프로필 등록하러 가기"),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingHistoryAuthedBody extends ConsumerWidget {
+  const _TrainingHistoryAuthedBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -22,10 +209,15 @@ class TrainingHistoryScreen extends ConsumerWidget {
     final allAsync = ref.watch(trainingRecentSessionsProvider);
     final selectedCycleId = ref.watch(selectedCycleIdProvider);
 
-    // 전체 세션에서 사이클 목록 추출
     final allSessions =
     allAsync.maybeWhen(data: (v) => v, orElse: () => <TrainingSessionModel>[]);
     final cycleInfos = _buildCycleInfos(allSessions);
+
+    String _cycleLabelForDelete(String cycleId) {
+      final matched = cycleInfos.where((c) => c.cycleId == cycleId).toList();
+      if (matched.isNotEmpty) return matched.first.label; // ✅ 등급 라벨
+      return _cycleDisplayLabelFromId(cycleId) ?? cycleId;
+    }
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -43,7 +235,6 @@ class TrainingHistoryScreen extends ConsumerWidget {
           child: Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
         ),
         actions: [
-          // 🔥 선택된 사이클이 있을 때만 "사이클 삭제" 버튼 표시
           if (selectedCycleId != null)
             IconButton(
               icon: const Icon(Icons.delete_outline),
@@ -52,6 +243,7 @@ class TrainingHistoryScreen extends ConsumerWidget {
                 context,
                 ref,
                 selectedCycleId,
+                cycleLabel: _cycleLabelForDelete(selectedCycleId),
               ),
             ),
         ],
@@ -91,7 +283,6 @@ class TrainingHistoryScreen extends ConsumerWidget {
             length: 2,
             child: Column(
               children: [
-                // 사이클 선택 칩 (가로 스크롤)
                 if (cycleInfos.isNotEmpty)
                   Container(
                     width: double.infinity,
@@ -101,12 +292,7 @@ class TrainingHistoryScreen extends ConsumerWidget {
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _cycleChip(
-                            ref,
-                            null,
-                            "전체",
-                            selectedCycleId == null,
-                          ),
+                          _cycleChip(ref, null, "전체", selectedCycleId == null),
                           ...cycleInfos.map(
                                 (info) => _cycleChip(
                               ref,
@@ -119,8 +305,6 @@ class TrainingHistoryScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-
-                // 탭바
                 Container(
                   color: Colors.white,
                   child: TabBar(
@@ -136,15 +320,10 @@ class TrainingHistoryScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-
-                // 탭 내용
                 Expanded(
                   child: TabBarView(
                     children: [
-                      // 추이 탭 – 그래프 + 요약
                       _TrendTab(sessions: sessions),
-
-                      // 목록 탭 – 기존 리스트보다 훨씬 깔끔한 카드
                       _ListTab(sessions: sessions),
                     ],
                   ),
@@ -157,8 +336,7 @@ class TrainingHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _cycleChip(
-      WidgetRef ref, String? cycleId, String label, bool selected) {
+  Widget _cycleChip(WidgetRef ref, String? cycleId, String label, bool selected) {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
@@ -182,20 +360,19 @@ class TrainingHistoryScreen extends ConsumerWidget {
   }
 }
 
-// MARK: - 사이클 삭제 로직 (A안: 실제 삭제)
-
 Future<void> _onDeleteCyclePressed(
     BuildContext context,
     WidgetRef ref,
-    String cycleId,
-    ) async {
+    String cycleId, {
+      required String cycleLabel,
+    }) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (ctx) {
       return AlertDialog(
         title: const Text("사이클 삭제"),
         content: Text(
-          "사이클 '$cycleId'에 포함된 모든 연습 기록을\n정말 삭제할까요?\n\n"
+          "‘$cycleLabel’ 사이클에 포함된 모든 연습 기록을\n정말 삭제할까요?\n\n"
               "⚠️ 이 작업은 되돌릴 수 없습니다.",
           style: const TextStyle(fontSize: 14),
         ),
@@ -206,10 +383,7 @@ Future<void> _onDeleteCyclePressed(
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              "삭제",
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text("삭제", style: TextStyle(color: Colors.red)),
           ),
         ],
       );
@@ -229,8 +403,6 @@ Future<void> _onDeleteCyclePressed(
   try {
     final firestore = FirebaseFirestore.instance;
 
-    // 🔥 경로는 네가 쓰는 실제 컬렉션 구조에 맞게 조정해도 됨.
-    // 예시: users/{uid}/trainingSessions 컬렉션
     final query = await firestore
         .collection('users')
         .doc(user.uid)
@@ -240,7 +412,7 @@ Future<void> _onDeleteCyclePressed(
 
     if (query.docs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("삭제할 기록이 없어요 (cycleId: $cycleId)")),
+        SnackBar(content: Text("삭제할 기록이 없어요 ($cycleLabel)")),
       );
       return;
     }
@@ -251,14 +423,11 @@ Future<void> _onDeleteCyclePressed(
     }
     await batch.commit();
 
-    // 선택 초기화
     ref.read(selectedCycleIdProvider.notifier).state = null;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          "사이클 '$cycleId'의 연습 기록 ${query.docs.length}개가 삭제되었습니다.",
-        ),
+        content: Text("‘$cycleLabel’ 기록 ${query.docs.length}개가 삭제되었습니다."),
       ),
     );
   } catch (e) {
@@ -268,15 +437,13 @@ Future<void> _onDeleteCyclePressed(
   }
 }
 
-// MARK: - 추이 탭
-
 class _TrendTab extends StatelessWidget {
   final List<TrainingSessionModel> sessions;
   const _TrendTab({required this.sessions});
 
   @override
   Widget build(BuildContext context) {
-    // 🔹 모드별로 나눠서 평균/최고 계산
+    // (네 기존 로직 그대로 유지)
     final hitRates = sessions
         .where((s) => s.inputModeString == 'hitCount' && s.hitRate != null)
         .map((s) => s.hitRate! * 100)
@@ -310,10 +477,7 @@ class _TrendTab extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         children: [
-          // 🔹 메인 그래프 (하루 평균, 최근 7일)
           TrainingHistoryChart(sessions: sessions),
-
-          // 🔹 요약 카드들
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: GridView.count(
@@ -326,14 +490,12 @@ class _TrendTab extends StatelessWidget {
               children: [
                 _SummaryCard(
                   title: "평균 명중률",
-                  value:
-                  hitRates.isEmpty ? "-" : "${avgHitRate.toStringAsFixed(1)}%",
+                  value: hitRates.isEmpty ? "-" : "${avgHitRate.toStringAsFixed(1)}%",
                   color: Colors.amber.shade700,
                 ),
                 _SummaryCard(
                   title: "최고 명중률",
-                  value:
-                  hitRates.isEmpty ? "-" : "${bestHitRate.toStringAsFixed(1)}%",
+                  value: hitRates.isEmpty ? "-" : "${bestHitRate.toStringAsFixed(1)}%",
                   color: Colors.amber[800]!,
                 ),
                 _SummaryCard(
@@ -359,15 +521,12 @@ class _TrendTab extends StatelessWidget {
               ],
             ),
           ),
-
           const SizedBox(height: 20),
         ],
       ),
     );
   }
 }
-
-// MARK: - 목록 탭
 
 class _ListTab extends StatelessWidget {
   final List<TrainingSessionModel> sessions;
@@ -385,8 +544,7 @@ class _ListTab extends StatelessWidget {
         return Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: 12),
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: ListTile(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(
@@ -397,8 +555,7 @@ class _ListTab extends StatelessWidget {
               backgroundColor: Colors.cyan[700],
               child: Text(
                 s.drillTitle.isNotEmpty ? s.drillTitle[0] : "?",
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
             title: Text(
@@ -455,11 +612,9 @@ class _ListTab extends StatelessWidget {
   }
 }
 
-// MARK: - 목록용 Metric 계산 (hitRate / PPD / MPR 분기)
-
 class _SessionMetric {
-  final String mainValue; // 예: "72.5%", "27.31", "2.43"
-  final String subText; // 예: "명중률 / 12/18 다트", "PPD / 총점 712", "MPR / 총 Marks 42"
+  final String mainValue;
+  final String subText;
   final Color color;
 
   _SessionMetric({
@@ -472,73 +627,31 @@ class _SessionMetric {
 _SessionMetric _buildSessionMetric(TrainingSessionModel s) {
   final mode = s.inputModeString;
 
-  // 🔹 hitCount: 명중률 → 명중률 색상은 연한 노랑/주황 계열
   if (mode == 'hitCount') {
     final rate = (s.hitRate ?? 0.0) * 100.0;
     final mainValue = "${rate.toStringAsFixed(1)}%";
-
-    final success = s.successCount;
-    final total = s.totalAttempts;
-    final subText = "명중률 · $success/$total 다트";
-
-    // 🔥 명중률 색 → 항상 주황/노랑 계열로 통일
-    final color = Colors.amber[700]!;
-
-    return _SessionMetric(
-      mainValue: mainValue,
-      subText: subText,
-      color: color,
-    );
+    final subText = "명중률 · ${s.successCount}/${s.totalAttempts} 다트";
+    return _SessionMetric(mainValue: mainValue, subText: subText, color: Colors.amber[700]!);
   }
 
-  // 🔹 scoreOnly: Count-Up → 카운트업은 청록 계열로 통일
   if (mode == 'scoreOnly') {
     final ppd = s.ppd ?? 0.0;
     final mainValue = ppd > 0 ? ppd.toStringAsFixed(2) : "-";
     final totalScore = s.totalScoreExtra;
-    final subText =
-    totalScore != null ? "PPD · 총점 $totalScore" : "PPD";
-
-    // 🔥 Count-Up 색 → 항상 cyan 계열로 통일
-    final color = Colors.cyan[700]!;
-
-    return _SessionMetric(
-      mainValue: mainValue,
-      subText: subText,
-      color: color,
-    );
+    final subText = totalScore != null ? "PPD · 총점 $totalScore" : "PPD";
+    return _SessionMetric(mainValue: mainValue, subText: subText, color: Colors.cyan[700]!);
   }
 
-  // 🔹 cricketMarks: MPR → 항상 보라색
   if (mode == 'cricketMarks') {
     final mpr = s.mpr ?? 0.0;
     final mainValue = mpr > 0 ? mpr.toStringAsFixed(2) : "-";
     final totalMarks = s.totalMarksExtra;
-    final subText =
-    totalMarks != null ? "MPR · 총 Marks $totalMarks" : "MPR";
-
-    // 🔥 MPR 색 → 항상 퍼플
-    final color = Colors.purple[700]!;
-
-    return _SessionMetric(
-      mainValue: mainValue,
-      subText: subText,
-      color: color,
-    );
+    final subText = totalMarks != null ? "MPR · 총 Marks $totalMarks" : "MPR";
+    return _SessionMetric(mainValue: mainValue, subText: subText, color: Colors.purple[700]!);
   }
 
-  // 🔸 fallback
-  final rate = (s.hitRate ?? 0.0) * 100.0;
-  final mainValue = rate > 0 ? "${rate.toStringAsFixed(1)}%" : "-";
-
-  return _SessionMetric(
-    mainValue: mainValue,
-    subText: "기록 없음",
-    color: Colors.grey[600]!,
-  );
+  return _SessionMetric(mainValue: "-", subText: "기록 없음", color: Colors.grey[600]!);
 }
-
-// MARK: - 요약 카드
 
 class _SummaryCard extends StatelessWidget {
   final String title;
@@ -558,10 +671,7 @@ class _SummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 1.5,
-        ),
+        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -576,21 +686,11 @@ class _SummaryCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12.5,
-                color: Colors.grey[600],
-              ),
-            ),
+            Text(title, style: TextStyle(fontSize: 12.5, color: Colors.grey[600])),
             const SizedBox(height: 6),
             Text(
               value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: color,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color),
             ),
           ],
         ),
@@ -599,12 +699,13 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-// 기존에 있던 사이클 정보 추출 함수들 (정렬만 잘 유지)
+// ===============================
+// Cycle info (그대로 유지)
+// ===============================
 
-/// ✅ 사이클 = "해당 티어에서 시작한 연습 묶음"
 class _CycleInfo {
   final String cycleId;
-  final DaoTrainingTier? tier; // ← 이 사이클의 기준 티어
+  final DaoTrainingTier? tier;
   final DateTime startAt;
   final int sessionCount;
 
@@ -615,11 +716,9 @@ class _CycleInfo {
     required this.sessionCount,
   });
 
-  /// 칩/라벨에 표시할 문자열
   String get label => _tierDisplayLabel(tier);
 }
 
-/// ✅ 티어 → 한글 라벨 매핑
 String _tierDisplayLabel(DaoTrainingTier? tier) {
   if (tier == null) return '기타 사이클';
 
@@ -641,7 +740,6 @@ String _tierDisplayLabel(DaoTrainingTier? tier) {
   }
 }
 
-/// ✅ cycle_001, cycle_002 ... 묶음별로 "티어 사이클" 정보 만들기
 List<_CycleInfo> _buildCycleInfos(List<TrainingSessionModel> sessions) {
   final Map<String, _CycleInfo> map = {};
 
@@ -651,10 +749,9 @@ List<_CycleInfo> _buildCycleInfos(List<TrainingSessionModel> sessions) {
 
     final existing = map[id];
     if (existing == null) {
-      // 🔹 이 cycleId 에서 처음 등장한 세션 → 이때의 티어를 대표 티어로 사용
       map[id] = _CycleInfo(
         cycleId: id,
-        tier: s.tierAtThatTime, // ← TrainingSessionModel 안에 있는 필드 사용
+        tier: s.tierAtThatTime,
         startAt: s.startedAt,
         sessionCount: 1,
       );
@@ -663,7 +760,7 @@ List<_CycleInfo> _buildCycleInfos(List<TrainingSessionModel> sessions) {
       s.startedAt.isBefore(existing.startAt) ? s.startedAt : existing.startAt;
       map[id] = _CycleInfo(
         cycleId: id,
-        tier: existing.tier, // 이미 잡힌 티어 유지
+        tier: existing.tier,
         startAt: earliest,
         sessionCount: existing.sessionCount + 1,
       );
@@ -671,13 +768,9 @@ List<_CycleInfo> _buildCycleInfos(List<TrainingSessionModel> sessions) {
   }
 
   final list = map.values.toList();
-
-  // 🔹 "가장 최근에 시작된 사이클" 순으로 정렬 (최신 → 예전)
   list.sort((a, b) => b.startAt.compareTo(a.startAt));
   return list;
 }
-
-
 
 String? _cycleDisplayLabelFromId(String? id) {
   if (id == null || id.isEmpty) return null;

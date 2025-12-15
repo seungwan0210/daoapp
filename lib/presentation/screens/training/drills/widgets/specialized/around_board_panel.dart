@@ -2,9 +2,11 @@
 
 import 'package:flutter/material.dart';
 
+enum _AroundThrowResult { success, fail }
+
 class AroundBoardPanel extends StatefulWidget {
   final List<String> sequence;
-  final ValueNotifier<int> thrownDartsNotifier; // 사용은 안 하지만 시그니처 유지
+  final ValueNotifier<int> thrownDartsNotifier; // 시그니처 유지
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
@@ -29,12 +31,15 @@ class AroundBoardPanel extends StatefulWidget {
 class _AroundBoardPanelState extends State<AroundBoardPanel> {
   int currentIndex = 0;
 
+  /// ✅ Undo용 히스토리
+  final List<_AroundThrowResult> _history = [];
+
   String get currentTarget => widget.sequence[currentIndex];
   int get totalTargets => widget.sequence.length;
 
+  bool get _canUndo => !widget.isBusy && _history.isNotEmpty;
+
   /// 🔹 진행률 보정
-  /// - 0번 타겟일 때 0.0
-  /// - 마지막 타겟(인덱스 totalTargets - 1)일 때 1.0
   double get progress {
     if (totalTargets <= 1) return 0;
     return currentIndex / (totalTargets - 1);
@@ -43,22 +48,52 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
   void _record(bool success) {
     if (widget.isBusy) return;
 
-    if (success) {
-      widget.onHitSuccess?.call();
+    setState(() {
+      _history.add(success ? _AroundThrowResult.success : _AroundThrowResult.fail);
 
-      if (currentIndex < totalTargets - 1) {
-        setState(() => currentIndex++);
-      } else {
-        // 마지막 타겟까지 성공
-        if (widget.onCompleted != null) {
-          widget.onCompleted!.call();
-        } else if (widget.onFinishPressed != null) {
-          widget.onFinishPressed!.call();
+      if (success) {
+        widget.onHitSuccess?.call();
+
+        if (currentIndex < totalTargets - 1) {
+          currentIndex++;
+        } else {
+          // 마지막 타겟까지 성공
+          if (widget.onCompleted != null) {
+            widget.onCompleted!.call();
+          } else {
+            widget.onFinishPressed?.call();
+          }
         }
+      } else {
+        widget.onHitFail?.call();
       }
-    } else {
-      widget.onHitFail?.call();
+    });
+  }
+
+  /// ✅ Undo: 직전 시도 1회 되돌리기
+  void _onUndo() {
+    if (!_canUndo) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('되돌릴 기록이 없습니다.')),
+      );
+      return;
     }
+
+    setState(() {
+      final last = _history.removeLast();
+
+      if (last == _AroundThrowResult.success) {
+        // 성공 → 인덱스 되돌리기
+        if (currentIndex > 0) {
+          currentIndex--;
+        }
+        // 런 스크린에도 성공 취소 반영
+        widget.onHitFail?.call();
+      } else {
+        // 실패 → 그냥 시도 수만 되돌림
+        widget.onHitSuccess?.call();
+      }
+    });
   }
 
   @override
@@ -78,7 +113,6 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Text(
-            // 🔹 "완료" 대신 "현재 타겟" 기준으로 텍스트 수정
             "싱글 한 바퀴: ${currentIndex + 1} / $totalTargets 타겟",
             style: const TextStyle(
               fontSize: 14,
@@ -86,6 +120,7 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
             ),
           ),
         ),
+
         const SizedBox(height: 16),
 
         // 2. 원형 진행 + 현재 타겟
@@ -143,7 +178,28 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
           ),
         ),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 18),
+
+        // ✅ Undo 버튼
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: _canUndo ? _onUndo : null,
+            icon: const Icon(Icons.undo_rounded, size: 18),
+            label: const Text(
+              '1회 되돌리기',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.redAccent,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 6),
 
         // 3. 성공 / 실패 버튼
         Row(

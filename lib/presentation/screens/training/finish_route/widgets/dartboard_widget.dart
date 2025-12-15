@@ -1,4 +1,4 @@
-// lib/presentation/screens/community/checkout/practice/widgets/dartboard_widget.dart
+// lib/presentation/screens/training/finish_route/widgets/dartboard_widget.dart
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

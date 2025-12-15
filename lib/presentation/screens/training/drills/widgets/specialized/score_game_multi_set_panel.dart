@@ -54,8 +54,7 @@ class ScoreGameMultiSetPanel extends StatefulWidget {
   });
 
   @override
-  State<ScoreGameMultiSetPanel> createState() =>
-      _ScoreGameMultiSetPanelState();
+  State<ScoreGameMultiSetPanel> createState() => _ScoreGameMultiSetPanelState();
 }
 
 class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
@@ -75,8 +74,7 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
       widget.minDartsPerLeg,
       widget.maxDartsPerLeg,
     );
-    _dartsController =
-        TextEditingController(text: _currentDarts.toString());
+    _dartsController = TextEditingController(text: _currentDarts.toString());
   }
 
   @override
@@ -87,16 +85,16 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
 
   int get _playedSets => _dartsPerSet.length;
 
-  int get _totalDartsUsed =>
-      _dartsPerSet.fold(0, (sum, v) => sum + v);
+  int get _totalDartsUsed => _dartsPerSet.fold(0, (sum, v) => sum + v);
 
-  double get _avgDartsPerLeg =>
-      _playedSets == 0 ? 0 : _totalDartsUsed / _playedSets;
+  double get _avgDartsPerLeg => _playedSets == 0 ? 0 : _totalDartsUsed / _playedSets;
 
-  double get _successRate =>
-      _playedSets == 0 ? 0 : _successCount / _playedSets;
+  double get _successRate => _playedSets == 0 ? 0 : _successCount / _playedSets;
 
   bool get _isCompleted => _finishedAllSets;
+
+  // ✅ 되돌리기 가능 여부 (완료 전 + 최소 1세트 기록됨)
+  bool get _canUndo => _dartsPerSet.isNotEmpty && !_isCompleted;
 
   void _submitCurrentSet() {
     if (widget.isBusy || _isCompleted) return;
@@ -117,12 +115,10 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
       return;
     }
 
-    if (parsed < widget.minDartsPerLeg ||
-        parsed > widget.maxDartsPerLeg) {
+    if (parsed < widget.minDartsPerLeg || parsed > widget.maxDartsPerLeg) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              '${widget.minDartsPerLeg} ~ ${widget.maxDartsPerLeg} 다트 사이에서 입력해주세요.'),
+          content: Text('${widget.minDartsPerLeg} ~ ${widget.maxDartsPerLeg} 다트 사이에서 입력해주세요.'),
         ),
       );
       return;
@@ -166,6 +162,41 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
     });
   }
 
+  // ✅ 마지막 기록 세트 되돌리기
+  void _undoLastSet() {
+    if (widget.isBusy || !_canUndo) return;
+
+    setState(() {
+      final last = _dartsPerSet.removeLast();
+
+      // 성공 카운트 복구
+      if (last <= widget.successThresholdDarts) {
+        _successCount--;
+      }
+
+      // 완료 상태 해제
+      _finishedAllSets = false;
+
+      // 현재 세트 번호는 "기록된 세트 + 1"
+      _currentSet = _playedSets + 1;
+
+      // 입력값은 되돌린 값으로 복원 (바로 수정 가능하게)
+      _currentDarts = last.clamp(widget.minDartsPerLeg, widget.maxDartsPerLeg);
+      _dartsController.text = _currentDarts.toString();
+
+      // 상위에도 되돌린 진행상황 전달
+      widget.onProgress?.call(
+        List<int>.from(_dartsPerSet),
+        _successCount,
+        _playedSets,
+      );
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('이전 세트를 되돌렸습니다.')),
+    );
+  }
+
   void _onTapFinish() {
     // 중간 종료 시에도 현재까지의 결과를 상위로 전달
     widget.onCompleted?.call(
@@ -180,10 +211,8 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
   @override
   Widget build(BuildContext context) {
     final successPercent = (_successRate * 100).toStringAsFixed(1);
-    final avgDartsText =
-    _playedSets == 0 ? '--' : _avgDartsPerLeg.toStringAsFixed(1);
-    final successText =
-    _playedSets == 0 ? '--' : '$successPercent%';
+    final avgDartsText = _playedSets == 0 ? '--' : _avgDartsPerLeg.toStringAsFixed(1);
+    final successText = _playedSets == 0 ? '--' : '$successPercent%';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -195,8 +224,7 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
           // ===================== 상단 카드 (타이틀 + 세트 진행) =====================
           Container(
             width: double.infinity,
-            padding:
-            const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -267,8 +295,7 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
           // ===================== 통계 카드 =====================
           Container(
             width: double.infinity,
-            padding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             decoration: BoxDecoration(
               color: Colors.grey.shade900,
               borderRadius: BorderRadius.circular(18),
@@ -302,10 +329,7 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(99),
                   child: LinearProgressIndicator(
-                    value: widget.totalSets == 0
-                        ? 0
-                        : (_playedSets / widget.totalSets)
-                        .clamp(0, 1),
+                    value: widget.totalSets == 0 ? 0 : (_playedSets / widget.totalSets).clamp(0, 1),
                     minHeight: 6,
                     backgroundColor: Colors.grey.shade800,
                     valueColor: const AlwaysStoppedAnimation<Color>(
@@ -351,8 +375,7 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
           // ===================== 현재 세트 입력 영역 =====================
           Container(
             width: double.infinity,
-            padding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(18),
@@ -383,8 +406,7 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
                     hintText: '예: 18',
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding:
-                    const EdgeInsets.symmetric(vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
@@ -402,30 +424,47 @@ class _ScoreGameMultiSetPanelState extends State<ScoreGameMultiSetPanel> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: widget.isBusy || _isCompleted
-                        ? null
-                        : _submitCurrentSet,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyan.shade600,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+
+                // ✅ 기록 + 되돌리기(Undo) 버튼 묶음
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: widget.isBusy || _isCompleted ? null : _submitCurrentSet,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyan.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          _currentSet >= widget.totalSets ? '마지막 세트 기록' : '세트 $_currentSet 기록',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ),
                     ),
-                    child: Text(
-                      _currentSet >= widget.totalSets
-                          ? '마지막 세트 기록'
-                          : '세트 $_currentSet 기록',
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      height: 44,
+                      child: OutlinedButton.icon(
+                        onPressed: (widget.isBusy || !_canUndo) ? null : _undoLastSet,
+                        icon: const Icon(Icons.undo, size: 18),
+                        label: const Text('되돌리기'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.orangeAccent,
+                          side: BorderSide(color: Colors.orangeAccent.withOpacity(0.7)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -490,8 +529,7 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-      const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.25),
         borderRadius: BorderRadius.circular(12),

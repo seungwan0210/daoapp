@@ -1,5 +1,3 @@
-// lib/data/repositories/arena_repository_impl.dart
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/data/models/tournament_entry_model.dart';
@@ -12,34 +10,83 @@ class ArenaRepositoryImpl implements ArenaRepository {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   // ======================
-  // 토너먼트 생성/수정/삭제
+  // Internal helpers
+  // ======================
+
+  Map<String, dynamic> _tournamentDocJson(TournamentModel t) {
+    final json = t.toJson();
+    json.remove('id'); // Firestore 문서에는 id 저장 안 함
+    return json;
+  }
+
+  Map<String, dynamic> _entryDocJson(TournamentEntryModel e) {
+    final json = e.toJson();
+    json.remove('id');
+    return json;
+  }
+
+  // ======================
+  // Tournament CRUD
   // ======================
 
   @override
   Future<String> createTournament(TournamentModel tournament) async {
-    final ref =
-    await _firestore.collection('tournaments').add(tournament.toJson());
+    final ref = await _firestore
+        .collection('tournaments')
+        .add(_tournamentDocJson(tournament));
     return ref.id;
   }
 
   @override
   Future<void> updateTournament(TournamentModel tournament) async {
-    if (tournament.id == null) {
-      throw ArgumentError('ID required');
-    }
+    final tid = (tournament.id ?? '').trim();
+    if (tid.isEmpty) throw ArgumentError('updateTournament: id required');
+
     await _firestore
         .collection('tournaments')
-        .doc(tournament.id)
-        .update(tournament.toJson());
+        .doc(tid)
+        .update(_tournamentDocJson(tournament));
   }
 
   @override
   Future<void> deleteTournament(String tournamentId) async {
-    await _firestore.collection('tournaments').doc(tournamentId).delete();
+    final tid = tournamentId.trim();
+    if (tid.isEmpty) return;
+    await _firestore.collection('tournaments').doc(tid).delete();
+  }
+
+  @override
+  Future<TournamentModel?> getTournament(String tournamentId) async {
+    final tid = tournamentId.trim();
+    if (tid.isEmpty) return null;
+
+    final doc = await _firestore.collection('tournaments').doc(tid).get();
+    if (!doc.exists) return null;
+
+    return TournamentModel.fromJson(doc.data() as Map<String, dynamic>)
+        .copyWith(id: doc.id);
+  }
+
+  @override
+  Stream<TournamentModel?> watchTournament(String tournamentId) {
+    final tid = tournamentId.trim();
+    if (tid.isEmpty) return const Stream.empty();
+
+    return _firestore
+        .collection('tournaments')
+        .doc(tid)
+        .snapshots()
+        .map(
+          (doc) => doc.exists
+          ? TournamentModel.fromJson(
+        doc.data() as Map<String, dynamic>,
+      ).copyWith(id: doc.id)
+          : null,
+    );
   }
 
   // ======================
-  // 대회 리스트 (필터별)
+  // Tournament lists
   // ======================
 
   @override
@@ -48,55 +95,51 @@ class ArenaRepositoryImpl implements ArenaRepository {
     required int limit,
     DocumentSnapshot? startAfter,
   }) {
-    final now = Timestamp.fromDate(DateTime.now());
     Query query = _firestore.collection('tournaments');
+    final now = Timestamp.now();
 
-    // filter 값은 UI에서 사용하는 값에 맞춰서 조정
     switch (filter) {
-      case 'entryOpen':
+      case 'open':
         query = query
             .where('entryStartDate', isLessThanOrEqualTo: now)
             .where('entryEndDate', isGreaterThanOrEqualTo: now)
-            .orderBy('entryEndDate', descending: false)
-            .orderBy('eventDate', descending: false);
+            .orderBy('entryEndDate')
+            .orderBy('eventDate');
         break;
+
       case 'upcoming':
         query = query
-            .where('eventDate', isGreaterThanOrEqualTo: now)
-            .orderBy('eventDate', descending: false);
+            .where('entryStartDate', isGreaterThan: now)
+            .orderBy('entryStartDate')
+            .orderBy('eventDate');
         break;
-      case 'ended':
+
+      case 'closed':
         query = query
-            .where('eventDate', isLessThan: now)
+            .where('entryEndDate', isLessThan: now)
+            .orderBy('entryEndDate', descending: true)
             .orderBy('eventDate', descending: true);
         break;
+
       case 'all':
       default:
         query = query.orderBy('eventDate', descending: true);
         break;
     }
 
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    if (limit > 0) {
-      query = query.limit(limit);
-    }
+    if (startAfter != null) query = query.startAfterDocument(startAfter);
+    if (limit > 0) query = query.limit(limit);
 
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
+    return query.snapshots().map(
+          (snapshot) => snapshot.docs
           .map(
             (doc) => TournamentModel.fromJson(
           doc.data() as Map<String, dynamic>,
         ).copyWith(id: doc.id),
       )
-          .toList();
-    });
+          .toList(),
+    );
   }
-
-  // ======================
-  // 내가 주최/공동주최한 대회
-  // ======================
 
   @override
   Stream<List<TournamentModel>> getMyHostedTournaments({
@@ -111,77 +154,37 @@ class ArenaRepositoryImpl implements ArenaRepository {
     if (userEmail.isEmpty) {
       whereFilter = createdByFilter;
     } else {
-      final organizerFilter =
-      Filter('organizerEmails', arrayContains: userEmail);
-      whereFilter = Filter.or(createdByFilter, organizerFilter);
+      whereFilter = Filter.or(
+        createdByFilter,
+        Filter('organizerEmails', arrayContains: userEmail),
+      );
     }
 
     Query query = _firestore.collection('tournaments').where(whereFilter);
 
-    if (startAfter != null) {
-      query = query.startAfterDocument(startAfter);
-    }
-    if (limit > 0) {
-      query = query.limit(limit);
-    }
+    if (startAfter != null) query = query.startAfterDocument(startAfter);
+    if (limit > 0) query = query.limit(limit);
 
     return query.snapshots().map((snapshot) {
-      final Map<String, TournamentModel> unique = {};
+      final map = <String, TournamentModel>{};
+
       for (final doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final model =
-        TournamentModel.fromJson(data).copyWith(id: doc.id);
-        if (model.id != null) {
-          unique[model.id!] = model;
-        }
+        final model = TournamentModel.fromJson(
+          doc.data() as Map<String, dynamic>,
+        ).copyWith(id: doc.id);
+        final id = (model.id ?? '').trim();
+        if (id.isNotEmpty) map[id] = model;
       }
 
-      final list = unique.values.toList();
-      list.sort((a, b) {
-        final aDate = (a.eventDate is Timestamp)
-            ? (a.eventDate as Timestamp).toDate()
-            : DateTime.fromMillisecondsSinceEpoch(0);
-        final bDate = (b.eventDate is Timestamp)
-            ? (b.eventDate as Timestamp).toDate()
-            : DateTime.fromMillisecondsSinceEpoch(0);
-        return bDate.compareTo(aDate);
-      });
+      final list = map.values.toList();
+      list.sort((a, b) =>
+          b.eventDate.toDate().compareTo(a.eventDate.toDate()));
       return list;
     });
   }
 
   // ======================
-  // 단일 대회 조회/감시
-  // ======================
-
-  @override
-  Future<TournamentModel?> getTournament(String tournamentId) async {
-    final doc =
-    await _firestore.collection('tournaments').doc(tournamentId).get();
-    if (!doc.exists) return null;
-    return TournamentModel.fromJson(doc.data() as Map<String, dynamic>)
-        .copyWith(id: doc.id);
-  }
-
-  @override
-  Stream<TournamentModel?> watchTournament(String tournamentId) {
-    return _firestore
-        .collection('tournaments')
-        .doc(tournamentId)
-        .snapshots()
-        .map(
-          (doc) => doc.exists
-          ? TournamentModel.fromJson(
-        doc.data() as Map<String, dynamic>,
-      ).copyWith(id: doc.id)
-          : null,
-    );
-  }
-
-  // ======================
-  // 참가 엔트리 관련
-  //   - 문서 ID = userUid 고정
-  //   - 인원 수는 entries 컬렉션 개수로만 판단 (entryCount 사용 X)
+  // Entries (🔥 핵심 수정 완료)
   // ======================
 
   @override
@@ -189,35 +192,47 @@ class ArenaRepositoryImpl implements ArenaRepository {
     required String tournamentId,
     required TournamentEntryModel entry,
   }) async {
-    final tRef = _firestore.collection('tournaments').doc(tournamentId);
-    final entriesRef = tRef.collection('entries');
-    final entryRef = entriesRef.doc(entry.userUid); // userUid를 엔트리 ID로
+    final tid = tournamentId.trim();
+    if (tid.isEmpty) throw Exception('대회 ID가 비어있습니다.');
 
-    // 1. 대회 문서에서 최대 인원만 확인
-    final tSnap = await tRef.get();
-    if (!tSnap.exists) {
-      throw Exception('대회를 찾을 수 없습니다.');
-    }
+    final userUid = entry.userUid.trim();
+    if (userUid.isEmpty) throw Exception('유저 UID가 비어있습니다.');
 
-    final data = tSnap.data() as Map<String, dynamic>;
-    final int maxParticipants = (data['maxParticipants'] as int?) ?? 9999;
+    final tRef = _firestore.collection('tournaments').doc(tid);
+    final eRef = tRef.collection('entries').doc(userUid);
 
-    // 2. 이미 신청했는지 확인
-    final existingEntry = await entryRef.get();
-    if (existingEntry.exists) {
-      throw Exception('이미 참가 신청하셨습니다.');
-    }
+    await _firestore.runTransaction((tx) async {
+      final tSnap = await tx.get(tRef);
+      if (!tSnap.exists) throw Exception('대회를 찾을 수 없습니다.');
 
-    // 3. 현재 인원 = entries 컬렉션 문서 개수
-    final aggregateSnapshot = await entriesRef.count().get();
-    final int currentCount = aggregateSnapshot.count ?? 0;
+      final tData = tSnap.data() as Map<String, dynamic>;
 
-    if (currentCount >= maxParticipants) {
-      throw Exception('정원이 마감되었습니다.');
-    }
+      final int maxParticipants =
+          (tData['maxParticipants'] as int?) ?? 9999;
+      final bool isCanceled = (tData['isCanceled'] as bool?) ?? false;
+      if (isCanceled) throw Exception('취소된 대회입니다.');
 
-    // 4. 엔트리 저장 (entryCount 필드 건드리지 않음)
-    await entryRef.set(entry.toJson());
+      // 이미 참가 여부
+      final eSnap = await tx.get(eRef);
+      if (eSnap.exists) throw Exception('이미 참가 신청했습니다.');
+
+      // 정원 체크
+      final int currentCount = (tData['entryCount'] as int?) ?? 0;
+      if (currentCount >= maxParticipants) {
+        throw Exception('정원이 마감되었습니다.');
+      }
+
+      // 엔트리 생성
+      tx.set(eRef, {
+        ..._entryDocJson(entry),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // ✅ rules 통과: entryCount만 변경
+      tx.update(tRef, {
+        'entryCount': FieldValue.increment(1),
+      });
+    });
   }
 
   @override
@@ -225,23 +240,41 @@ class ArenaRepositoryImpl implements ArenaRepository {
     required String tournamentId,
     required String userUid,
   }) async {
-    final tRef = _firestore.collection('tournaments').doc(tournamentId);
-    final entryRef = tRef.collection('entries').doc(userUid);
+    final tid = tournamentId.trim();
+    final uid = userUid.trim();
+    if (tid.isEmpty || uid.isEmpty) return;
 
-    final snap = await entryRef.get();
-    if (!snap.exists) {
-      throw Exception('참가 기록이 없습니다.');
-    }
+    final tRef = _firestore.collection('tournaments').doc(tid);
+    final eRef = tRef.collection('entries').doc(uid);
 
-    // 엔트리 삭제 (entryCount 필드 건드리지 않음)
-    await entryRef.delete();
+    await _firestore.runTransaction((tx) async {
+      final tSnap = await tx.get(tRef);
+      if (!tSnap.exists) throw Exception('대회를 찾을 수 없습니다.');
+
+      final eSnap = await tx.get(eRef);
+      if (!eSnap.exists) throw Exception('참가 기록이 없습니다.');
+
+      tx.delete(eRef);
+
+      final tData = tSnap.data() as Map<String, dynamic>;
+      final int currentCount = (tData['entryCount'] as int?) ?? 0;
+
+      tx.update(tRef, {
+        'entryCount': currentCount <= 0
+            ? 0
+            : FieldValue.increment(-1),
+      });
+    });
   }
 
   @override
   Stream<List<TournamentEntryModel>> getEntries(String tournamentId) {
+    final tid = tournamentId.trim();
+    if (tid.isEmpty) return const Stream.empty();
+
     return _firestore
         .collection('tournaments')
-        .doc(tournamentId)
+        .doc(tid)
         .collection('entries')
         .orderBy('createdAt', descending: false)
         .snapshots()

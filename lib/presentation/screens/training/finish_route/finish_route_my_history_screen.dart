@@ -1,15 +1,27 @@
-// lib/presentation/screens/training/finish_route/finish_route_my_history_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+
+// ✅ 실제 파일명에 맞춰 import 수정
 import 'finish_route_detail_screen.dart';
 
 class FinishRouteMyHistoryScreen extends StatelessWidget {
   const FinishRouteMyHistoryScreen({super.key});
+
+  DateTime? _resolveCreatedAt(Map<String, dynamic> data) {
+    // 1) serverTimestamp (Timestamp)
+    final ts = (data['timestamp'] ?? data['createdAt']);
+    if (ts is Timestamp) return ts.toDate();
+
+    // 2) clientTimestamp (int ms)
+    final ms = data['clientTimestamp'];
+    if (ms is int) return DateTime.fromMillisecondsSinceEpoch(ms);
+
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,30 +33,33 @@ class FinishRouteMyHistoryScreen extends StatelessWidget {
       );
     }
 
-    // ✅ 실제 기록 저장 위치는 그대로 사용: users/{uid}/checkout_practice
     final historyRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .collection('checkout_practice');
+        .collection('finish_route_practice');
 
     return Scaffold(
-      appBar: const CommonAppBar(title: '내 피니쉬 루트 연습 기록'),
+      appBar: const CommonAppBar(title: '내 피니시 루트 연습 기록'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: AppCard(
           child: StreamBuilder<QuerySnapshot>(
             stream: historyRef
-                .orderBy('timestamp', descending: true) // ✅ 최신순
-                .limit(10) // ✅ 최근 10개만
+            // ✅ 가장 안정적인 정렬: timestamp(서버) → clientTimestamp(로컬 백업)
+            // - timestamp가 없거나 null인 데이터가 섞여도 최대한 안정적
+                .orderBy('timestamp', descending: true)
+                .orderBy('clientTimestamp', descending: true)
+                .limit(10)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
+
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return const Center(
                   child: Text(
-                    '아직 저장된 피니쉬 루트 연습 기록이 없어요.\n먼저 피니쉬 루트 연습을 해보세요!',
+                    '아직 저장된 연습 기록이 없어요.\n피니시 루트 연습을 먼저 해보세요!',
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -59,35 +74,24 @@ class FinishRouteMyHistoryScreen extends StatelessWidget {
                   final doc = docs[index];
                   final data = doc.data() as Map<String, dynamic>? ?? {};
 
-                  // ✅ timestamp / createdAt 둘 다 대응
-                  final ts =
-                  (data['timestamp'] ?? data['createdAt']) as Timestamp?;
-                  final createdAt = ts?.toDate();
+                  final createdAt = _resolveCreatedAt(data);
 
                   final elapsed =
                       (data['elapsedSeconds'] as num?)?.toDouble() ?? 0.0;
-
-                  // successRate 는 0~1 로 저장되어 있음
                   final successRate =
                       (data['successRate'] as num?)?.toDouble() ?? 0.0;
-
                   final avgDarts =
                       (data['avgDarts'] as num?)?.toDouble() ?? 0.0;
 
-                  // 새 구조: problemCount
-                  // 옛 구조: totalAttempts
                   final totalAttempts =
                       (data['problemCount'] as num?)?.toInt() ??
                           (data['totalAttempts'] as num?)?.toInt() ??
                           0;
 
-                  // 새 구조에선 successCount 가 없으니,
-                  // 있으면 쓰고, 없으면 successRate * totalAttempts 로 근사
                   int successCount =
                       (data['successCount'] as num?)?.toInt() ?? 0;
                   if (successCount == 0 && totalAttempts > 0) {
-                    successCount =
-                        (successRate * totalAttempts).round();
+                    successCount = (successRate * totalAttempts).round();
                   }
 
                   String dateText = '날짜 없음';
@@ -100,9 +104,7 @@ class FinishRouteMyHistoryScreen extends StatelessWidget {
                   return ListTile(
                     title: Text(
                       dateText,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                     subtitle: Text(
                       '시간: ${elapsed.toStringAsFixed(1)}초 · '
@@ -126,10 +128,7 @@ class FinishRouteMyHistoryScreen extends StatelessWidget {
                         const SizedBox(height: 2),
                         const Text(
                           '성공 / 시도',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -137,7 +136,7 @@ class FinishRouteMyHistoryScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => FinishRouteDetailScreen(
+                          builder: (_) => FinishRoutePracticeDetailScreen(
                             recordId: doc.id,
                             data: data,
                           ),

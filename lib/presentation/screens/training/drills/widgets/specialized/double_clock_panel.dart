@@ -9,6 +9,11 @@ class DoubleClockPanel extends StatefulWidget {
 
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
+
+  /// ✅ Undo(1단계) - 부모(DrillRunScreen) attempts/success 되돌림용
+  /// - wasSuccess=true면 successCount도 1 감소 처리하면 됨
+  final void Function(bool wasSuccess)? onUndoResult;
+
   final VoidCallback? onFinishPressed;
   final bool isBusy;
 
@@ -19,6 +24,7 @@ class DoubleClockPanel extends StatefulWidget {
     this.includeBull = true,
     this.onHitSuccess,
     this.onHitFail,
+    this.onUndoResult,
     this.onFinishPressed,
     this.isBusy = false,
   });
@@ -29,8 +35,12 @@ class DoubleClockPanel extends StatefulWidget {
 
 class _DoubleClockPanelState extends State<DoubleClockPanel> {
   late List<String> _targets;
-  int _currentIndex = 0;      // 현재 타겟 인덱스 (0-based)
-  bool _finished = false;     // 전체 드릴 완료 여부
+
+  int _currentIndex = 0; // 현재 타겟 인덱스 (0-based)
+  bool _finished = false;
+
+  /// ✅ 로컬 Undo용 입력 히스토리 (성공/실패)
+  final List<bool> _history = <bool>[];
 
   @override
   void initState() {
@@ -66,44 +76,75 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
     return _targets[clamped];
   }
 
-  /// 1-based 표시용: 1 / N, 2 / N ... N / N
+  bool get isFinished => _finished;
+
+  bool get _canUndo =>
+      !widget.isBusy && _history.isNotEmpty && totalTargets > 0;
+
+  /// 1-based 표시용
   int get displayStep {
     if (totalTargets == 0) return 0;
     if (_finished) return totalTargets;
     return (_currentIndex.clamp(0, totalTargets - 1)) + 1;
   }
 
-  /// 게이지 진행도 (0.0 ~ 1.0)
+  /// 진행도 (0.0~1.0)
   double get progress {
     if (totalTargets == 0) return 0.0;
 
     final completedCount = _finished ? totalTargets : _currentIndex;
-    // 시작: 0 / N → 0%
-    // 마지막 성공 후: N / N → 100%
     return (completedCount / totalTargets).clamp(0.0, 1.0);
   }
 
-  bool get isFinished => _finished;
-
   void _record(bool success) {
     if (widget.isBusy || _finished || totalTargets == 0) return;
+
+    // ✅ 히스토리 기록 (Undo 가능)
+    _history.add(success);
 
     if (success) {
       widget.onHitSuccess?.call();
 
       setState(() {
         if (_currentIndex < totalTargets - 1) {
-          // 다음 더블로 이동
           _currentIndex++;
         } else {
-          // 마지막 타겟까지 성공 → 드릴 완료 상태
           _finished = true;
         }
       });
     } else {
       widget.onHitFail?.call();
-      // 실패해도 인덱스는 그대로, 같은 더블 다시 도전
+      // 실패해도 인덱스 변화 없음
+      setState(() {}); // 버튼 비활성/상태 등 갱신 필요할 때 대비
     }
+  }
+
+  void _undoLast() {
+    if (!_canUndo) return;
+
+    final bool last = _history.removeLast();
+
+    setState(() {
+      if (last) {
+        // ✅ 성공을 되돌릴 때
+        if (_finished) {
+          // 마지막 성공으로 finished=true가 된 케이스
+          // (현재Index는 이미 마지막 타겟 인덱스 상태)
+          _finished = false;
+          // _currentIndex는 그대로(마지막 타겟 다시 도전)
+        } else {
+          // 중간 성공으로 인덱스가 +1 되었던 케이스
+          if (_currentIndex > 0) _currentIndex--;
+        }
+      } else {
+        // ✅ 실패 Undo는 UI 진행엔 변화 없음 (같은 타겟 유지)
+        // 단, 부모 attempts는 1 감소해야 하므로 콜백은 호출
+      }
+    });
+
+    // ✅ 부모(DrillRunScreen)에도 되돌렸다고 알려서
+    // attempts/successCount를 같이 되돌리게 함
+    widget.onUndoResult?.call(last);
   }
 
   @override
@@ -175,7 +216,19 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
             ),
           ),
 
-          const SizedBox(height: 28),
+          const SizedBox(height: 18),
+
+          // ✅ Undo 버튼 (1단계)
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              onPressed: _canUndo ? _undoLast : null,
+              icon: const Icon(Icons.undo),
+              tooltip: '되돌리기',
+            ),
+          ),
+
+          const SizedBox(height: 8),
 
           // 성공 / 실패 버튼
           Row(

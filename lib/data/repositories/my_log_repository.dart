@@ -1,11 +1,14 @@
 // lib/data/repositories/my_log_repository.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/my_log_model.dart';
 
 class MyLogRepository {
-  final CollectionReference _myLogsCollection =
+  // ✅ 타입까지 명시 (Map<String, dynamic>)
+  final CollectionReference<Map<String, dynamic>> _myLogsCollection =
   FirebaseFirestore.instance.collection('my_logs');
-  final CollectionReference _communityCollection =
+
+  final CollectionReference<Map<String, dynamic>> _communityCollection =
   FirebaseFirestore.instance.collection('community');
 
   // 🔹 내 마이로그 전체 가져오기 (최신순)
@@ -17,9 +20,7 @@ class MyLogRepository {
         .map(
           (snapshot) => snapshot.docs
           .map(
-            (doc) => MyLogModel.fromJson(
-            doc.data() as Map<String, dynamic>)
-            .copyWith(id: doc.id),
+            (doc) => MyLogModel.fromJson(doc.data()).copyWith(id: doc.id),
       )
           .toList(),
     );
@@ -29,19 +30,28 @@ class MyLogRepository {
   Stream<MyLogModel?> watchLog(String logId) {
     return _myLogsCollection.doc(logId).snapshots().map((doc) {
       if (!doc.exists || doc.data() == null) return null;
-      final data = doc.data() as Map<String, dynamic>;
+      final data = doc.data()!;
       return MyLogModel.fromJson(data).copyWith(id: doc.id);
     });
   }
 
   // 🔹 마이로그 저장 (생성 or 수정) → 항상 logId 반환
   Future<String> saveLog(MyLogModel log) async {
-    final data = log.toJson()..remove('id');
+    // toJson에서 id는 제거하고, userId는 반드시 포함되도록 보정
+    final data = <String, dynamic>{
+      ...log.toJson()..remove('id'),
+    };
+
+    // ⚠️ 혹시라도 모델에 userId가 안 들어왔을 경우 대비 (규칙 통과용)
+    if (!data.containsKey('userId') || data['userId'] == null) {
+      data['userId'] = log.userId;
+    }
 
     if (log.id == null) {
       // 신규 생성
       final docRef = await _myLogsCollection.add(data);
-      await docRef.update({'id': docRef.id}); // 문서 안에도 id 저장 (옵션)
+      // 문서 안에도 id 저장 (선택 사항이지만 디버깅에 도움)
+      await docRef.update({'id': docRef.id});
       return docRef.id;
     } else {
       // 기존 수정

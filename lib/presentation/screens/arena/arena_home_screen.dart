@@ -2,25 +2,33 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-// ── 공용 카드 위젯 ─────────────────────────────────────────────
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
-// ── 스틸리그 화면들 ─────────────────────────────────────────────
+// 스틸리그
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
 
-// ── 토너먼트 관련 ─────────────────────────────────────────────
+// 토너먼트
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/my_tournaments_screen.dart';
+import 'package:daoapp/presentation/screens/arena/tournament/tournaments_home_screen.dart';
 
-// 아레나 프리뷰 위젯
+// ✅ 관리자 테스트 툴 스크린
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_debug_tools_screen.dart';
+
+// 아레나 프리뷰
 import 'package:daoapp/presentation/screens/arena/widgets/arena_preview.dart';
 
-/// 탭에서 사용되는 진입용 위젯
+// 🔹 아레나 상태
+import 'package:daoapp/presentation/providers/arena_provider.dart';
+
+const String kAdminUid = 'NanHPgCdsbMCFkHEs7MtxS51OSX2';
+
 class ArenaHomeScreen extends ConsumerWidget {
   const ArenaHomeScreen({super.key});
 
@@ -32,7 +40,6 @@ class ArenaHomeScreen extends ConsumerWidget {
   }
 }
 
-/// 실제 내용 렌더링
 class ArenaHomeBody extends ConsumerWidget {
   const ArenaHomeBody({super.key});
 
@@ -40,18 +47,18 @@ class ArenaHomeBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
+    final user = FirebaseAuth.instance.currentUser;
+    final isAdmin = user?.uid == kAdminUid;
+
     return SafeArea(
       top: true,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 🔹 상단 Row(아레나 + 대회 만들기/내가 주최한 대회)는 제거
-          //    → 최상단 AppBar(CommonAppBar)에서 타이틀/설정 아이콘 처리
-
           const SizedBox(height: 8),
 
           // ==========================
-          // 스틸리그 카드 섹션
+          // 스틸리그 카드
           // ==========================
           Text(
             '스틸리그',
@@ -105,8 +112,7 @@ class ArenaHomeBody extends ConsumerWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                          const SteelLeaguePointCalendarScreen(),
+                          builder: (_) => const SteelLeaguePointCalendarScreen(),
                         ),
                       );
                     },
@@ -183,11 +189,12 @@ class ArenaHomeBody extends ConsumerWidget {
                     label: '참가 가능',
                     color: Colors.green,
                     onTap: () {
-                      // TODO: tournaments_home_screen.dart와 연동해서
-                      // "참가 가능" 탭으로 이동하도록 확장 가능
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('참가 가능 대회 화면은 준비 중입니다.'),
+                      // 👉 참가 가능 필터로 진입
+                      ref.read(arenaProvider.notifier).changeFilter('open');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TournamentsHomeScreen(),
                         ),
                       );
                     },
@@ -197,10 +204,12 @@ class ArenaHomeBody extends ConsumerWidget {
                     label: '예정 경기',
                     color: Colors.blueGrey,
                     onTap: () {
-                      // TODO: tournaments_home_screen.dart의 "예정" 탭과 연동 예정
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('예정 경기 화면은 준비 중입니다.'),
+                      // 👉 예정 필터로 진입
+                      ref.read(arenaProvider.notifier).changeFilter('upcoming');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TournamentsHomeScreen(),
                         ),
                       );
                     },
@@ -208,7 +217,7 @@ class ArenaHomeBody extends ConsumerWidget {
                   _ArenaGridItem(
                     icon: Icons.emoji_events_outlined,
                     label: '내 주최 경기',
-                    color: Colors.amber.shade700,
+                    color: Colors.amber,
                     onTap: () {
                       Navigator.push(
                         context,
@@ -218,6 +227,22 @@ class ArenaHomeBody extends ConsumerWidget {
                       );
                     },
                   ),
+
+                  // ✅ 관리자 전용: 메일 테스트 버튼
+                  if (isAdmin)
+                    _ArenaGridItem(
+                      icon: Icons.bug_report_outlined,
+                      label: '메일 테스트',
+                      color: Colors.redAccent,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TournamentDebugToolsScreen(),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -226,14 +251,16 @@ class ArenaHomeBody extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // ==========================
-          // 토너먼트 프리뷰 (참가 가능 / 예정)
+          // 토너먼트 프리뷰
           // ==========================
           ArenaPreview(
             onSeeAllPressed: () {
-              // TODO: 추후 "참가 가능 대회 전체 리스트" 화면으로 교체
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('대회 전체 보기 화면은 준비 중입니다.'),
+              // "지금 참가 가능한 대회" 전체 보기 → open 필터로 진입
+              ref.read(arenaProvider.notifier).changeFilter('open');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const TournamentsHomeScreen(),
                 ),
               );
             },

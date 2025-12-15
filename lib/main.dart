@@ -166,7 +166,7 @@ class DaoApp extends StatelessWidget {
 
         // 체크아웃 계산기 (이름은 그대로, 위치는 training/calculator)
         RouteConstants.checkoutCalculator: (_) =>
-        const TrainingCalculatorScreen(),
+        const CheckoutCalculatorScreen(),
 
         // 🔹 트레이닝 프로필 관련 라우트
         RouteConstants.trainingRatingInput: (_) =>

@@ -1,4 +1,4 @@
-// lib/presentation/screens/community/checkout/practice/widgets/practice_stats_card.dart
+// lib/presentation/screens/training/finish_route/widgets/practice_stats_card.dart
 import 'package:flutter/material.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 

@@ -1,5 +1,3 @@
-// lib/presentation/screens/community/arena/tournament_edit_screen.dart
-
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,6 +8,7 @@ import 'package:daoapp/services/storage_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/cupertino.dart'; // ✅ 알람 휠 UI
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
@@ -30,15 +29,17 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
 
   final _titleCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
-  final _hostNameCtrl = TextEditingController();   // 🔹 담당자 이름
-  final _hostPhoneCtrl = TextEditingController();  // 🔹 담당자 연락처
+  final _hostNameCtrl = TextEditingController();
+  final _hostPhoneCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _maxCtrl = TextEditingController();
 
-  DateTime? _eventDate;
-  DateTime? _entryStartDate;
-  DateTime? _entryEndDate;
+  // ✅ 날짜/시간 분리
+  DateTime? _eventDay; // 대회 날짜(YYYY-MM-DD)
+  TimeOfDay? _eventTime; // 대회 시간(HH:mm)
+  DateTime? _entryStartDay; // 엔트리 시작 날짜
+  DateTime? _entryEndDay; // 엔트리 마감 날짜
 
   File? _posterFile; // 새로 선택한 포스터
   String? _posterUrl; // 기존 포스터 URL
@@ -55,7 +56,10 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
           _locationCtrl.text.trim().isNotEmpty &&
           _hostNameCtrl.text.trim().isNotEmpty &&
           _hostPhoneCtrl.text.trim().isNotEmpty &&
-          _eventDate != null &&
+          _eventDay != null &&
+          _eventTime != null &&
+          _entryStartDay != null &&
+          _entryEndDay != null &&
           _feeCtrl.text.trim().isNotEmpty &&
           _maxCtrl.text.trim().isNotEmpty;
 
@@ -63,6 +67,20 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
   void initState() {
     super.initState();
     _loadTournament();
+
+    // ✅ 입력 변화에 따라 상단 저장 버튼 상태 갱신
+    void attach(TextEditingController c) {
+      c.addListener(() {
+        if (mounted) setState(() {});
+      });
+    }
+
+    attach(_titleCtrl);
+    attach(_locationCtrl);
+    attach(_hostNameCtrl);
+    attach(_hostPhoneCtrl);
+    attach(_feeCtrl);
+    attach(_maxCtrl);
   }
 
   @override
@@ -77,6 +95,160 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     super.dispose();
   }
 
+  // =========================
+  // ✅ 날짜/시간 유틸
+  // =========================
+  DateTime _stripToDay(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  DateTime _combineDayTime(DateTime day, TimeOfDay time) {
+    return DateTime(day.year, day.month, day.day, time.hour, time.minute);
+  }
+
+  DateTime _entryStartDateTime() {
+    final d = _entryStartDay!;
+    return DateTime(d.year, d.month, d.day, 0, 0); // 00:00 고정
+  }
+
+  DateTime _entryEndDateTime() {
+    final d = _entryEndDay!;
+    return DateTime(d.year, d.month, d.day, 23, 59); // 23:59 고정
+  }
+
+  String _formatDay(DateTime d) =>
+      DateFormat('yyyy년 M월 d일 (EEE)', 'ko_KR').format(d);
+
+  String _formatTimeOfDay(TimeOfDay t) {
+    final hh = t.hour.toString().padLeft(2, '0');
+    final mm = t.minute.toString().padLeft(2, '0');
+    return '$hh:$mm';
+  }
+
+  // =========================
+  // ✅ 알람 스타일(휠) 시간 선택기
+  // =========================
+  Future<TimeOfDay?> _showAlarmStyleTimePicker(
+      BuildContext context, {
+        required TimeOfDay initial,
+        int minuteInterval = 5,
+        String title = '시간 선택',
+      }) async {
+    int hour = initial.hour;
+    int minute = (initial.minute ~/ minuteInterval) * minuteInterval;
+
+    return showModalBottomSheet<TimeOfDay>(
+      context: context,
+      isScrollControlled: false,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SizedBox(
+          height: 320,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+                child: Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('취소'),
+                    ),
+                    const Spacer(),
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => Navigator.pop(
+                        ctx,
+                        TimeOfDay(hour: hour, minute: minute),
+                      ),
+                      child: const Text('완료'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController:
+                        FixedExtentScrollController(initialItem: hour),
+                        itemExtent: 40,
+                        onSelectedItemChanged: (v) => hour = v,
+                        children: List.generate(
+                          24,
+                              (i) => Center(
+                            child: Text(i.toString().padLeft(2, '0')),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Text(
+                      ':',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Expanded(
+                      child: CupertinoPicker(
+                        scrollController: FixedExtentScrollController(
+                          initialItem: minute ~/ minuteInterval,
+                        ),
+                        itemExtent: 40,
+                        onSelectedItemChanged: (idx) =>
+                        minute = idx * minuteInterval,
+                        children: List.generate(
+                          (60 / minuteInterval).round(),
+                              (i) => Center(
+                            child: Text(
+                              (i * minuteInterval)
+                                  .toString()
+                                  .padLeft(2, '0'),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // =========================
+  // ✅ 이메일 정리/중복제거
+  // =========================
+  List<String> _dedupeEmails(List<String> raw) {
+    final seen = <String>{};
+    final out = <String>[];
+
+    for (final e in raw) {
+      final t = e.trim();
+      if (t.isEmpty) continue;
+      final key = t.toLowerCase();
+      if (seen.add(key)) out.add(t);
+    }
+    return out;
+  }
+
+  // =========================
+  // ✅ 로드
+  // =========================
   Future<void> _loadTournament() async {
     try {
       final repo = sl<ArenaRepository>();
@@ -89,6 +261,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
           const SnackBar(
             content: Text('대회 정보를 찾을 수 없습니다.'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
         Navigator.pop(context);
@@ -98,13 +271,12 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       _original = data;
 
       final user = sl<FirebaseAuth>().currentUser;
-      final hostEmail = user?.email ?? '';
+      final hostEmail = (user?.email ?? '').trim();
 
-      // 컨트롤러/상태 초기값 세팅
       _titleCtrl.text = data.title;
       _locationCtrl.text = data.location;
-      _hostNameCtrl.text = data.hostName;     // 🔹 담당자 이름 초기값
-      _hostPhoneCtrl.text = data.hostPhone;   // 🔹 담당자 연락처 초기값
+      _hostNameCtrl.text = data.hostName;
+      _hostPhoneCtrl.text = data.hostPhone;
       _descCtrl.text = data.description;
       _feeCtrl.text = NumberFormat('#,###').format(data.entryFee);
 
@@ -114,27 +286,28 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         _maxCtrl.text = NumberFormat('#,###').format(data.maxParticipants);
       }
 
-      _eventDate = data.eventDate.toDate();
-      _entryStartDate = data.entryStartDate.toDate();
-      _entryEndDate = data.entryEndDate.toDate();
+      // ✅ 기존 Timestamp -> 화면 값으로 정규화
+      final eventDt = data.eventDate.toDate();
+      final entryStartDt = data.entryStartDate.toDate();
+      final entryEndDt = data.entryEndDate.toDate();
+
+      _eventDay = _stripToDay(eventDt);
+      _eventTime = TimeOfDay(hour: eventDt.hour, minute: eventDt.minute);
+
+      _entryStartDay = _stripToDay(entryStartDt);
+      _entryEndDay = _stripToDay(entryEndDt);
 
       _posterUrl = data.posterUrl;
 
-      // 공동주최자 (본인 이메일은 제외)
-      _coOrganizers = data.organizerEmails
-          .where(
-            (e) =>
-        e.isNotEmpty &&
-            (hostEmail.isEmpty ||
-                e.toLowerCase() != hostEmail.toLowerCase()),
-      )
-          .toList();
+      // hostEmail 제외한 공동주최자 목록
+      _coOrganizers = data.organizerEmails.where((e) {
+        final email = e.trim();
+        if (email.isEmpty) return false;
+        if (hostEmail.isEmpty) return true;
+        return email.toLowerCase() != hostEmail.toLowerCase();
+      }).toList();
 
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -142,12 +315,16 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         SnackBar(
           content: Text('대회 정보를 불러오는 중 오류: $e'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       Navigator.pop(context);
     }
   }
 
+  // =========================
+  // ✅ 포스터
+  // =========================
   Future<void> _pickPoster() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(
@@ -155,20 +332,56 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       imageQuality: 85,
     );
     if (picked != null) {
-      setState(() {
-        _posterFile = File(picked.path);
-      });
+      setState(() => _posterFile = File(picked.path));
     }
   }
 
+  // =========================
+  // ✅ 저장
+  // =========================
   Future<void> _submit() async {
+    if (_isSaving) return; // ✅ 연타 방지
     if (!_formKey.currentState!.validate()) return;
-    if (_eventDate == null ||
-        _entryStartDate == null ||
-        _entryEndDate == null) {
+
+    if (_eventDay == null ||
+        _eventTime == null ||
+        _entryStartDay == null ||
+        _entryEndDay == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('날짜를 모두 선택해주세요'),
+          content: Text('날짜/시간을 모두 선택해주세요'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // ✅ 로그인 방어 (CreateScreen과 동일하게)
+    final user = sl<FirebaseAuth>().currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인 후 수정이 가능합니다'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final eventDateTime = _combineDayTime(_eventDay!, _eventTime!);
+    final entryStart = _entryStartDateTime();
+    final entryEnd = _entryEndDateTime();
+
+    // ✅ CreateScreen과 동일 규칙: 시작 < 마감 < 대회일시
+    if (!(entryStart.isBefore(entryEnd) && entryEnd.isBefore(eventDateTime))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            '날짜/시간 설정을 다시 확인해주세요.\n'
+                '엔트리 시작 < 엔트리 마감 < 대회 일시 순서여야 합니다.',
+          ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -179,12 +392,9 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final user = sl<FirebaseAuth>().currentUser!;
-      String hostEmail = user.email ?? '';
+      final hostEmail = (user.email ?? '').trim();
 
       String? posterUrl = _posterUrl;
-
-      // 새 포스터 업로드
       if (_posterFile != null) {
         posterUrl = await sl<StorageService>().uploadFile(
           _posterFile!.path,
@@ -198,27 +408,30 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
           ? 9999
           : int.tryParse(maxText) ?? (_original?.maxParticipants ?? 64);
 
-      final int entryFee = int.parse(_feeCtrl.text.replaceAll(',', ''));
+      final int entryFee = int.parse(_feeCtrl.text.replaceAll(',', '').trim());
 
-      // 업데이트할 필드만 구성
+      // ✅ 이메일 중복 제거 + hostEmail 포함
+      final organizerEmails = _dedupeEmails([
+        if (hostEmail.isNotEmpty) hostEmail,
+        ..._coOrganizers,
+      ]);
+
       final Map<String, dynamic> updateData = {
         'title': _titleCtrl.text.trim(),
         'location': _locationCtrl.text.trim(),
-        'hostName': _hostNameCtrl.text.trim(),     // 🔹 담당자 이름
-        'hostPhone': _hostPhoneCtrl.text.trim(),   // 🔹 담당자 연락처
+        'hostName': _hostNameCtrl.text.trim(),
+        'hostPhone': _hostPhoneCtrl.text.trim(),
         'description': _descCtrl.text.trim(),
         'entryFee': entryFee,
         'maxParticipants': maxParticipants,
-        'eventDate': Timestamp.fromDate(_eventDate!),
-        'entryStartDate': Timestamp.fromDate(_entryStartDate!),
-        'entryEndDate': Timestamp.fromDate(_entryEndDate!),
-        'organizerEmails': [
-          if (hostEmail.isNotEmpty) hostEmail,
-          ..._coOrganizers,
-        ],
+        'eventDate': Timestamp.fromDate(eventDateTime),
+        'entryStartDate': Timestamp.fromDate(entryStart),
+        'entryEndDate': Timestamp.fromDate(entryEnd),
+        'organizerEmails': organizerEmails,
         'updatedAt': Timestamp.now(),
       };
 
+      // ✅ 포스터는 (기존 유지 or 새 업로드)만 반영
       if (posterUrl != null && posterUrl.isNotEmpty) {
         updateData['posterUrl'] = posterUrl;
       }
@@ -230,7 +443,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
 
       if (!mounted) return;
 
-      Navigator.pop(context); // 수정 화면 닫기
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('대회 정보가 수정되었습니다'),
@@ -238,6 +450,8 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -252,6 +466,9 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     }
   }
 
+  // =========================
+  // ✅ UI
+  // =========================
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -287,10 +504,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                   ? const SizedBox(
                 width: 18,
                 height: 18,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
                   : Text(
                 '저장',
@@ -316,15 +530,14 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 포스터
                 GestureDetector(
                   onTap: _pickPoster,
                   child: _buildPosterArea(theme),
                 ),
                 const SizedBox(height: 36),
 
-                // 대회명
-                TextField(
+                // ✅ FIX 1: title도 Form validator에 포함되도록 TextFormField로 변경
+                TextFormField(
                   controller: _titleCtrl,
                   style: const TextStyle(
                     fontSize: 16,
@@ -332,20 +545,16 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                   ),
                   decoration: InputDecoration(
                     hintText: '대회명을 입력하세요',
-                    hintStyle: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[400],
-                    ),
+                    hintStyle: TextStyle(fontSize: 16, color: Colors.grey[400]),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
+                    contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
+                  validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? '대회명을 입력해주세요' : null,
                 ),
                 const SizedBox(height: 32),
 
-                // 장소
                 TextFormField(
                   controller: _locationCtrl,
                   decoration: const InputDecoration(
@@ -360,7 +569,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 담당자 이름
                 TextFormField(
                   controller: _hostNameCtrl,
                   decoration: const InputDecoration(
@@ -375,7 +583,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🔹 담당자 연락처
                 TextFormField(
                   controller: _hostPhoneCtrl,
                   keyboardType: TextInputType.phone,
@@ -387,12 +594,12 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                     contentPadding:
                     EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
-                  validator: (v) =>
-                  v == null || v.trim().isEmpty ? '담당자 연락처를 입력해주세요' : null,
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? '담당자 연락처를 입력해주세요'
+                      : null,
                 ),
                 const SizedBox(height: 20),
 
-                // 참가비 + 최대 인원
                 Row(
                   children: [
                     Expanded(
@@ -405,21 +612,14 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                           prefixIcon: Icon(Icons.paid_outlined),
                           suffixText: ' 원',
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 16),
+                          contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return '필수 입력';
-                          }
-                          final fee = int.tryParse(
-                              v.replaceAll(',', '').trim());
-                          if (fee == null || fee < 0) {
-                            return '0원 이상 숫자로 입력';
-                          }
-                          if (fee > 0 && fee % 1000 != 0) {
-                            return '1,000원 단위로 입력';
-                          }
+                          if (v == null || v.trim().isEmpty) return '필수 입력';
+                          final fee = int.tryParse(v.replaceAll(',', '').trim());
+                          if (fee == null || fee < 0) return '0원 이상 숫자로 입력';
+                          if (fee > 0 && fee % 1000 != 0) return '1,000원 단위로 입력';
                           return null;
                         },
                       ),
@@ -428,35 +628,28 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _maxCtrl,
-                        keyboardType: TextInputType.number,
                         decoration: const InputDecoration(
                           labelText: '최대 인원',
                           hintText: '00 또는 무제한',
                           prefixIcon: Icon(Icons.groups_outlined),
                           border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 16),
+                          contentPadding:
+                          EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                         ),
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return '필수 입력';
-                          }
-                          final cleaned =
-                          v.replaceAll(',', '').trim().toLowerCase();
+                          if (v == null || v.trim().isEmpty) return '필수 입력';
+                          final cleaned = v.replaceAll(',', '').trim().toLowerCase();
                           if (cleaned == '무제한') return null;
                           final n = int.tryParse(cleaned);
-                          if (n == null || n < 2) {
-                            return '2명 이상 또는 "무제한"';
-                          }
+                          if (n == null || n < 2) return '2명 이상 또는 "무제한"';
                           return null;
                         },
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
 
-                // 안내 텍스트 (수정 화면이라 살짝 톤만)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(18),
@@ -468,8 +661,8 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                     ),
                   ),
                   child: Text(
-                    '대회 날짜와 엔트리 시작/마감일은 자유롭게 수정할 수 있습니다.\n'
-                        '참가자에게 이미 공지가 나간 경우, 변경 사항을 다시 공지해 주세요.',
+                    '✅ 대회일은 "날짜"와 "시간"을 따로 선택합니다.\n'
+                        '✅ 엔트리 시작은 선택한 날짜의 00:00, 마감은 23:59로 자동 고정됩니다.',
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.5,
@@ -477,32 +670,54 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
-                // 날짜 선택
-                _buildDateTile(
+                _buildDayTile(
                   label: '대회 날짜',
-                  date: _eventDate,
+                  day: _eventDay,
                   context: context,
-                  onSelect: (d) => setState(() => _eventDate = d),
+                  onSelect: (pickedDay) =>
+                      setState(() => _eventDay = _stripToDay(pickedDay)),
+                  leadingIcon: Icons.calendar_month,
+                  leadingColor: Colors.orange,
                 ),
                 const SizedBox(height: 12),
-                _buildDateTile(
-                  label: '엔트리 시작',
-                  date: _entryStartDate,
+
+                _buildTimeTile(
+                  label: '대회 시간',
+                  time: _eventTime,
                   context: context,
-                  onSelect: (d) => setState(() => _entryStartDate = d),
+                  onSelect: (t) => setState(() => _eventTime = t),
+                  leadingIcon: Icons.access_time,
+                  leadingColor: Colors.orange,
+                  defaultTime: const TimeOfDay(hour: 9, minute: 0),
                 ),
                 const SizedBox(height: 12),
-                _buildDateTile(
-                  label: '엔트리 마감',
-                  date: _entryEndDate,
+
+                _buildDayTile(
+                  label: '엔트리 시작 날짜',
+                  day: _entryStartDay,
                   context: context,
-                  onSelect: (d) => setState(() => _entryEndDate = d),
+                  onSelect: (pickedDay) =>
+                      setState(() => _entryStartDay = _stripToDay(pickedDay)),
+                  leadingIcon: Icons.play_circle_outline,
+                  leadingColor: Colors.green,
+                  subtitleBuilder: (d) => '${_formatDay(d)}  00:00',
+                ),
+                const SizedBox(height: 12),
+
+                _buildDayTile(
+                  label: '엔트리 마감 날짜',
+                  day: _entryEndDay,
+                  context: context,
+                  onSelect: (pickedDay) =>
+                      setState(() => _entryEndDay = _stripToDay(pickedDay)),
+                  leadingIcon: Icons.stop_circle_outlined,
+                  leadingColor: Colors.green,
+                  subtitleBuilder: (d) => '${_formatDay(d)}  23:59',
                 ),
                 const SizedBox(height: 16),
 
-                // 상세 내용
                 TextField(
                   controller: _descCtrl,
                   maxLines: 8,
@@ -521,7 +736,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 ),
                 const SizedBox(height: 28),
 
-                // 공동주최자
                 _CoOrganizerInput(
                   initialEmails: _coOrganizers,
                   onChanged: (list) => _coOrganizers = list,
@@ -536,9 +750,129 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     );
   }
 
-  // 포스터 영역 (기존 + 새 선택 반영)
+  // =========================
+  // ✅ 날짜 타일(날짜만)
+  // =========================
+  Widget _buildDayTile({
+    required String label,
+    required DateTime? day,
+    required BuildContext context,
+    required Function(DateTime pickedDay) onSelect,
+    required IconData leadingIcon,
+    required Color leadingColor,
+    String Function(DateTime d)? subtitleBuilder,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: leadingColor.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(leadingIcon, color: leadingColor, size: 26),
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            day != null
+                ? (subtitleBuilder?.call(day) ?? _formatDay(day))
+                : '탭하여 날짜 선택',
+            style: TextStyle(
+              fontSize: 15,
+              color: day != null ? Colors.black87 : Colors.grey[500],
+            ),
+          ),
+        ),
+        trailing: Icon(
+          Icons.calendar_today,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        onTap: () async {
+          final now = DateTime.now();
+          final initial = day ?? now;
+
+          final picked = await showDatePicker(
+            context: context,
+            initialDate: DateTime(initial.year, initial.month, initial.day),
+            firstDate: DateTime(now.year - 1),
+            lastDate: DateTime(now.year + 3),
+          );
+
+          if (picked != null) onSelect(picked);
+        },
+      ),
+    );
+  }
+
+  // =========================
+  // ✅ 시간 타일(시간만) - 알람휠 바텀시트
+  // =========================
+  Widget _buildTimeTile({
+    required String label,
+    required TimeOfDay? time,
+    required BuildContext context,
+    required Function(TimeOfDay pickedTime) onSelect,
+    required IconData leadingIcon,
+    required Color leadingColor,
+    required TimeOfDay defaultTime,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: leadingColor.withOpacity(0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(leadingIcon, color: leadingColor, size: 26),
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            time != null ? _formatTimeOfDay(time) : '탭하여 시간 선택',
+            style: TextStyle(
+              fontSize: 15,
+              color: time != null ? Colors.black87 : Colors.grey[500],
+            ),
+          ),
+        ),
+        trailing:
+        Icon(Icons.schedule, color: Theme.of(context).colorScheme.primary),
+        onTap: () async {
+          final initial = time ?? defaultTime;
+
+          final picked = await _showAlarmStyleTimePicker(
+            context,
+            initial: initial,
+            minuteInterval: 5,
+            title: label,
+          );
+
+          if (picked != null) onSelect(picked);
+        },
+      ),
+    );
+  }
+
+  // =========================
+  // ✅ 포스터 영역 (네 코드 유지)
+  // =========================
   Widget _buildPosterArea(ThemeData theme) {
-    // 새 파일이 있으면 그게 우선
     if (_posterFile != null) {
       return Stack(
         children: [
@@ -562,8 +896,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                   color: Colors.black54,
                   shape: BoxShape.circle,
                 ),
-                child:
-                const Icon(Icons.close, color: Colors.white, size: 22),
+                child: const Icon(Icons.close, color: Colors.white, size: 22),
               ),
             ),
           ),
@@ -573,8 +906,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
             child: GestureDetector(
               onTap: _pickPoster,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(30),
@@ -602,7 +934,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       );
     }
 
-    // 기존 포스터가 있는 경우
     if (_posterUrl != null && _posterUrl!.isNotEmpty) {
       return Stack(
         children: [
@@ -622,8 +953,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
             child: GestureDetector(
               onTap: _pickPoster,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(30),
@@ -651,7 +981,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       );
     }
 
-    // 아무 것도 없을 때 플레이스홀더
     return _buildPosterPlaceholder(theme);
   }
 
@@ -697,92 +1026,18 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       ),
     );
   }
-
-  Widget _buildDateTile({
-    required String label,
-    required DateTime? date,
-    required BuildContext context,
-    required Function(DateTime) onSelect,
-  }) {
-    final isEvent = label.contains('대회');
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ListTile(
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: (isEvent ? Colors.orange : Colors.green)
-                .withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            isEvent ? Icons.emoji_events : Icons.access_time,
-            color: isEvent ? Colors.orange[700] : Colors.green[700],
-            size: 26,
-          ),
-        ),
-        title: Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            date != null
-                ? DateFormat('yyyy년 M월 d일 (EEE)  HH:mm').format(date)
-                : '탭하여 날짜 선택',
-            style: TextStyle(
-              fontSize: 15,
-              color: date != null ? Colors.black87 : Colors.grey[500],
-            ),
-          ),
-        ),
-        trailing: Icon(Icons.calendar_today,
-            color: Theme.of(context).colorScheme.primary),
-        onTap: () async {
-          final now = DateTime.now();
-          final initial = date ?? now;
-          final picked = await showDatePicker(
-            context: context,
-            initialDate: initial.isBefore(now) ? now : initial,
-            firstDate: DateTime(now.year - 1),
-            lastDate: DateTime(now.year + 2),
-          );
-          if (picked != null) {
-            final time = await showTimePicker(
-              context: context,
-              initialTime: TimeOfDay.fromDateTime(initial),
-            );
-            if (time != null) {
-              onSelect(picked.copyWith(
-                hour: time.hour,
-                minute: time.minute,
-              ));
-            }
-          }
-        },
-      ),
-    );
-  }
 }
 
-/// 콤마 포매터 (create 화면과 동일 기능)
+/// 콤마 포매터
 class ThousandsFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+      TextEditingValue oldValue,
+      TextEditingValue newValue,
+      ) {
     if (newValue.text.isEmpty) return newValue;
     final text = newValue.text.replaceAll(',', '');
-    if (text.isEmpty) {
-      return newValue.copyWith(text: '');
-    }
+    if (text.isEmpty) return newValue.copyWith(text: '');
     final number = int.tryParse(text) ?? 0;
     final formatted = NumberFormat('#,###').format(number);
     return newValue.copyWith(
@@ -792,7 +1047,7 @@ class ThousandsFormatter extends TextInputFormatter {
   }
 }
 
-/// 공동주최자 이메일 입력 위젯 (create 화면과 거의 동일)
+/// 공동주최자 이메일 입력 위젯
 class _CoOrganizerInput extends StatefulWidget {
   final List<String> initialEmails;
   final Function(List<String>) onChanged;
@@ -853,15 +1108,10 @@ class _CoOrganizerInputState extends State<_CoOrganizerInput> {
               decoration: InputDecoration(
                 hintText: 'example@gmail.com',
                 border: const OutlineInputBorder(),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 suffixIcon: IconButton(
-                  icon: Icon(
-                    Icons.add_circle,
-                    color: theme.colorScheme.primary,
-                  ),
+                  icon: Icon(Icons.add_circle, color: theme.colorScheme.primary),
                   onPressed: _addEmail,
                 ),
               ),
@@ -874,12 +1124,8 @@ class _CoOrganizerInputState extends State<_CoOrganizerInput> {
               children: _emails
                   .map(
                     (email) => Chip(
-                  label: Text(
-                    email,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  backgroundColor:
-                  theme.colorScheme.primary.withOpacity(0.1),
+                  label: Text(email, style: const TextStyle(fontSize: 14)),
+                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
                   deleteIconColor: theme.colorScheme.primary,
                   onDeleted: () {
                     setState(() {
@@ -899,9 +1145,13 @@ class _CoOrganizerInputState extends State<_CoOrganizerInput> {
 
   void _addEmail() {
     final email = _ctrl.text.trim();
-    if (email.isNotEmpty &&
-        RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email) &&
-        !_emails.contains(email)) {
+    final isValid =
+    RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(email);
+
+    final exists =
+    _emails.any((e) => e.trim().toLowerCase() == email.toLowerCase());
+
+    if (email.isNotEmpty && isValid && !exists) {
       setState(() {
         _emails.add(email);
         widget.onChanged(_emails);
