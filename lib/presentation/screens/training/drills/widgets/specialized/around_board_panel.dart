@@ -13,6 +13,10 @@ class AroundBoardPanel extends StatefulWidget {
   final VoidCallback? onCompleted;
   final bool isBusy;
 
+  // ✅ 외부(DrillRunScreen) Undo 연결용
+  final bool canUndo;
+  final VoidCallback? onUndo;
+
   const AroundBoardPanel({
     super.key,
     required this.sequence,
@@ -22,6 +26,10 @@ class AroundBoardPanel extends StatefulWidget {
     this.onFinishPressed,
     this.onCompleted,
     this.isBusy = false,
+
+    // ✅ 추가
+    this.canUndo = false,
+    this.onUndo,
   });
 
   @override
@@ -31,13 +39,14 @@ class AroundBoardPanel extends StatefulWidget {
 class _AroundBoardPanelState extends State<AroundBoardPanel> {
   int currentIndex = 0;
 
-  /// ✅ Undo용 히스토리
+  /// ✅ 패널 내부 진행도 Undo용 히스토리
   final List<_AroundThrowResult> _history = [];
 
   String get currentTarget => widget.sequence[currentIndex];
   int get totalTargets => widget.sequence.length;
 
-  bool get _canUndo => !widget.isBusy && _history.isNotEmpty;
+  bool get _canUndo =>
+      !widget.isBusy && widget.canUndo && _history.isNotEmpty;
 
   /// 🔹 진행률 보정
   double get progress {
@@ -48,6 +57,8 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
   void _record(bool success) {
     if (widget.isBusy) return;
 
+    // ✅ "다트를 던졌다"는 카운트는 DrillRunScreen에서 처리(_recordHit)
+    // 여기서는 패널 내부 진행도 + 완료 트리거를 관리
     setState(() {
       _history.add(success ? _AroundThrowResult.success : _AroundThrowResult.fail);
 
@@ -82,18 +93,15 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
     setState(() {
       final last = _history.removeLast();
 
-      if (last == _AroundThrowResult.success) {
-        // 성공 → 인덱스 되돌리기
-        if (currentIndex > 0) {
-          currentIndex--;
-        }
-        // 런 스크린에도 성공 취소 반영
-        widget.onHitFail?.call();
-      } else {
-        // 실패 → 그냥 시도 수만 되돌림
-        widget.onHitSuccess?.call();
+      // ✅ (중요) 패널 내부 진행도만 되돌림
+      // 성공을 되돌릴 때만 인덱스 -1
+      if (last == _AroundThrowResult.success && currentIndex > 0) {
+        currentIndex--;
       }
     });
+
+    // ✅ (중요) 카운트/성공률은 DrillRunScreen의 Undo로 정확히 -1 처리
+    widget.onUndo?.call();
   }
 
   @override

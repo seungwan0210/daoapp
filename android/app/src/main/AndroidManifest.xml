@@ -6,7 +6,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="daoapp"
+        android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher">
 
         <!-- 여기로 이동! -->

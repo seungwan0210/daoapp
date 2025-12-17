@@ -407,8 +407,14 @@ class _DrillRunScreenState extends ConsumerState<DrillRunScreen> {
       return AroundBoardPanel(
         sequence: seq,
         thrownDartsNotifier: _thrownDartsNotifier,
+
         onHitSuccess: () => _recordHit(true),
         onHitFail: () => _recordHit(false),
+
+        // ✅ 추가: 되돌아가기(Undo) 연결
+        canUndo: _canUndoLastHit,
+        onUndo: _undoLastHit,
+
         onFinishPressed: _onManualFinish,
         onCompleted: () => _finishDrill(earlyFinish: false),
         isBusy: isBusy,
