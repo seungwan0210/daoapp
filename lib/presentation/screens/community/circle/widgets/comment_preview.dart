@@ -35,7 +35,11 @@ class CommentPreview extends StatelessWidget {
           children: [
             ...docs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-              final writerId = data['userId'] as String?;
+
+              // ✅ writerId 우선, 없으면 userId fallback (기존 댓글 호환)
+              final String? writerId =
+                  (data['writerId'] as String?) ?? (data['userId'] as String?);
+
               final content = data['content'] as String? ?? '';
 
               return Padding(
@@ -44,7 +48,9 @@ class CommentPreview extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: writerId != null ? () => _showProfile(context, writerId!) : null,
+                      onTap: writerId != null
+                          ? () => _showProfile(context, writerId)
+                          : null,
                       child: _buildAvatar(writerId),
                     ),
                     const SizedBox(width: 8),
@@ -53,7 +59,10 @@ class CommentPreview extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         text: TextSpan(
-                          style: const TextStyle(fontSize: 12, color: Colors.black87),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black87,
+                          ),
                           children: [
                             WidgetSpan(
                               child: writerId != null
@@ -64,17 +73,25 @@ class CommentPreview extends StatelessWidget {
                                     .get(),
                                 builder: (context, userSnapshot) {
                                   String name = '익명';
-                                  if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                                    final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
-                                    name = userData?['koreanName']?.toString().trim() ?? '익명';
+                                  if (userSnapshot.hasData &&
+                                      userSnapshot.data!.exists) {
+                                    final userData = userSnapshot.data!
+                                        .data() as Map<String, dynamic>?;
+                                    name = userData?['koreanName']
+                                        ?.toString()
+                                        .trim() ??
+                                        '익명';
                                   }
                                   return GestureDetector(
-                                    onTap: () => _showProfile(context, writerId),
+                                    onTap: () =>
+                                        _showProfile(context, writerId),
                                     child: Text(
                                       name,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.primary,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -82,7 +99,13 @@ class CommentPreview extends StatelessWidget {
                                   );
                                 },
                               )
-                                  : const Text('익명', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                                  : const Text(
+                                '익명',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ),
                             const WidgetSpan(child: SizedBox(width: 4)),
                             TextSpan(text: content),
@@ -104,7 +127,10 @@ class CommentPreview extends StatelessWidget {
                 ),
                 child: Text(
                   '댓글 모두 보기',
-                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
               ),
           ],
@@ -113,7 +139,7 @@ class CommentPreview extends StatelessWidget {
     );
   }
 
-  // 완전 안전한 아바타 — get() 절대 금지!
+  // 완전 안전한 아바타
   Widget _buildAvatar(String? userId) {
     if (userId == null) {
       return CircleAvatar(
@@ -129,12 +155,13 @@ class CommentPreview extends StatelessWidget {
         String? photoUrl;
         if (snapshot.hasData && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>?;
-          photoUrl = data?['profileImageUrl'] as String?; // ← 이걸로 강제 변경!
+          photoUrl = data?['profileImageUrl'] as String?;
         }
 
         return CircleAvatar(
           radius: 12,
-          backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+          backgroundImage:
+          photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
           backgroundColor: photoUrl?.isNotEmpty != true ? Colors.grey[300] : null,
           child: photoUrl?.isNotEmpty != true
               ? const Icon(Icons.person, size: 16, color: Colors.white)
@@ -144,7 +171,7 @@ class CommentPreview extends StatelessWidget {
     );
   }
 
-  // 프로필 다이얼로그 — get() 제거 완료
+  // 프로필 다이얼로그
   void _showProfile(BuildContext context, String userId) {
     final isMe = currentUserId == userId;
 
@@ -153,24 +180,31 @@ class CommentPreview extends StatelessWidget {
       builder: (_) => FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           if (!snapshot.data!.exists || snapshot.data!.data() == null) {
-            return UserProfileDialog(koreanName: '프로필 없음', isMe: isMe, userId: userId);
+            return UserProfileDialog(
+              koreanName: '프로필 없음',
+              isMe: isMe,
+              userId: userId,
+            );
           }
 
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           final hasProfile = data['hasProfile'] == true;
           if (!hasProfile) {
-            return UserProfileDialog(koreanName: '프로필 미완료', isMe: isMe, userId: userId);
+            return UserProfileDialog(
+              koreanName: '프로필 미완료',
+              isMe: isMe,
+              userId: userId,
+            );
           }
 
           final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
           final englishName = data['englishName']?.toString().trim();
-
-          // 진짜 마지막 지뢰 제거 완료
           final String? photoUrl = data['profileImageUrl'] as String?;
-
           final shopName = data['shopName']?.toString().trim();
 
           final barrelName = data['barrelName']?.toString().trim() ?? '';

@@ -34,6 +34,7 @@ dependencies:
   firebase_app_check: ^0.3.0+2
   path: ^1.8.3
   fl_chart: ^0.69.0
+  scrollable_positioned_list: ^0.3.8
 
   # 아레나 토너먼트 기능 완벽 지원
   freezed_annotation: ^2.4.1
@@ -76,6 +77,9 @@ flutter:
     - assets/images/login_background.png
     - assets/images/google_logo.png
     - assets/images/dartboard.png
+
+    # ✅ 커뮤니티 기본 이미지(글-only 게시물, 프리뷰 배경 등)
+    - assets/images/circle_main.png
 
     # ✅ 새 아이콘 리소스(배경/로고 분리)
     - assets/images/ic_launcher_background.png

@@ -20,10 +20,74 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   late final ProfileService service;
 
+  bool _isSaving = false;
+
   @override
   void initState() {
     super.initState();
     service = ProfileService(context, ref);
+  }
+
+  Future<void> _onSave() async {
+    // 1) 폼 검증
+    final form = _formKey.currentState;
+    if (form == null) return;
+
+    final isValid = form.validate();
+    if (!isValid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('입력값을 확인해주세요.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // 2) 중복 클릭 방지
+    if (_isSaving) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      // ✅ service.save()가 이제 결과를 리턴한다고 가정 (아래 2번 참고)
+      final result = await service.saveAndReturnResult(_formKey);
+
+      if (!mounted) return;
+
+      if (result.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('저장 완료!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        final msg = (result.message?.trim().isNotEmpty == true)
+            ? result.message!.trim()
+            : '저장에 실패했어요. 다시 시도해주세요.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('저장 실패: $msg'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('저장 중 오류: $e'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -49,8 +113,14 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => service.save(_formKey),
-                        child: const Text('완료'),
+                        onPressed: _isSaving ? null : _onSave,
+                        child: _isSaving
+                            ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                            : const Text('완료'),
                       ),
                     ),
                   ],
@@ -62,6 +132,8 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
       ),
     );
   }
+
+  @override
   void dispose() {
     // service.dispose();  // 삭제!
     super.dispose();

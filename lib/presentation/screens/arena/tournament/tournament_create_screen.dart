@@ -578,7 +578,8 @@ class _TournamentCreateScreenState extends ConsumerState<TournamentCreateScreen>
                       const SizedBox(height: 8),
                       Text(
                         '✅ 대회는 날짜/시간을 따로 선택합니다.\n'
-                            '✅ 엔트리 시작은 00:00, 마감은 23:59로 자동 처리됩니다.',
+                            '✅ 엔트리 시작은 00:00, 마감은 23:59로 자동 처리됩니다.\n'
+                            '📩 엔트리 마감 시, 참가자 정보 요약이 주최자(공동주최자 포함) 이메일로 자동 전송됩니다.',
                         style: TextStyle(
                           fontSize: 12.5,
                           color: Colors.grey[600],

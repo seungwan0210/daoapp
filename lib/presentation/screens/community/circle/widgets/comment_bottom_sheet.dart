@@ -48,8 +48,10 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         .collection('comments')
         .doc();
 
+    // ✅ writerId 추가 (룰에서 writerId 기반으로 권한 체크)
     await commentRef.set({
-      'userId': user.uid,
+      'userId': user.uid, // 표시/호환용으로 유지
+      'writerId': user.uid, // ✅ 권한 체크 핵심
       'content': text,
       'timestamp': FieldValue.serverTimestamp(),
     });
@@ -63,7 +65,11 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     FocusScope.of(context).unfocus();
 
     if (mounted && _scrollController.hasClients) {
-      _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -75,7 +81,10 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         title: const Text('삭제 확인'),
         content: const Text('이 댓글을 삭제하시겠습니까?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
@@ -101,12 +110,17 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('댓글이 삭제되었습니다'), duration: Duration(seconds: 1)),
+          const SnackBar(
+            content: Text('댓글이 삭제되었습니다'),
+            duration: Duration(seconds: 1),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('삭제 실패: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('삭제 실패: $e')),
+        );
       }
     }
   }
@@ -115,6 +129,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+
     final isAdmin = ref.watch(isAdminProvider).when(
       data: (v) => v,
       loading: () => false,
@@ -132,11 +147,17 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
           margin: const EdgeInsets.only(top: 8),
           width: 40,
           height: 4,
-          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(2),
+          ),
         ),
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text('댓글', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          child: Text(
+            '댓글',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
         ),
         const Divider(height: 1),
 
@@ -150,7 +171,10 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                 .orderBy('timestamp', descending: true)
                 .snapshots(),
             builder: (context, snapshot) {
-              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
               final docs = snapshot.data!.docs;
               if (docs.isEmpty) return const Center(child: Text('아직 댓글이 없습니다'));
 
@@ -161,14 +185,26 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                 itemBuilder: (context, i) {
                   final doc = docs[i];
                   final data = doc.data() as Map<String, dynamic>;
+
                   final commentId = doc.id;
-                  final userId = data['userId'] as String?;
+
+                  // ✅ writerId 우선, 없으면 userId fallback (기존 댓글 호환)
+                  final String? writerId =
+                      (data['writerId'] as String?) ?? (data['userId'] as String?);
+
+                  // 표시/프로필 조회용은 userId를 쓰되, 없으면 writerId fallback
+                  final String? userId =
+                      (data['userId'] as String?) ?? writerId;
+
                   final content = data['content'] as String? ?? '';
                   final timestamp = data['timestamp'] as Timestamp?;
-                  final timeStr = timestamp != null ? AppDateUtils.formatRelativeTime(timestamp.toDate()) : '방금 전';
+                  final timeStr = timestamp != null
+                      ? AppDateUtils.formatRelativeTime(timestamp.toDate())
+                      : '방금 전';
 
-                  final isMyComment = userId == currentUserId;
+                  final isMyComment = writerId != null && writerId == currentUserId;
                   final canDelete = isMyComment || isAdmin;
+
                   final isLong = content.length > 80 || content.contains('\n');
 
                   return Padding(
@@ -176,7 +212,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 아바타 — 완전 안전
+                        // 아바타
                         GestureDetector(
                           onTap: userId != null ? () => _showProfile(userId) : null,
                           child: _buildAvatar(userId),
@@ -186,18 +222,25 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // 실시간 이름 — 안전하게
+                              // 이름
                               userId != null
                                   ? FutureBuilder<DocumentSnapshot>(
-                                future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+                                future: FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(userId)
+                                    .get(),
                                 builder: (context, snapshot) {
                                   String name = '익명';
                                   if (snapshot.hasData && snapshot.data!.exists) {
-                                    final userData = snapshot.data!.data() as Map<String, dynamic>?;
-                                    name = userData?['koreanName']?.toString().trim() ?? '익명';
+                                    final userData =
+                                    snapshot.data!.data() as Map<String, dynamic>?;
+                                    name = userData?['koreanName']
+                                        ?.toString()
+                                        .trim() ??
+                                        '익명';
                                   }
                                   return GestureDetector(
-                                    onTap: () => _showProfile(userId!),
+                                    onTap: () => _showProfile(userId),
                                     child: Text(
                                       name,
                                       style: TextStyle(
@@ -209,8 +252,16 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                                   );
                                 },
                               )
-                                  : const Text('익명', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                                  : const Text(
+                                '익명',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Colors.grey,
+                                ),
+                              ),
                               const SizedBox(height: 2),
+
                               GestureDetector(
                                 onTap: isLong ? () => _showFullComment('댓글', content) : null,
                                 child: Text(
@@ -223,10 +274,23 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                               if (isLong)
                                 TextButton(
                                   onPressed: () => _showFullComment('댓글', content),
-                                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                                  child: Text('더보기', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    '더보기',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                  ),
                                 ),
-                              Text(timeStr, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                              Text(
+                                timeStr,
+                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                              ),
                             ],
                           ),
                         ),
@@ -234,8 +298,11 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                           PopupMenuButton<String>(
                             icon: const Icon(Icons.more_horiz, size: 16),
                             onSelected: (_) => _deleteComment(commentId),
-                            itemBuilder: (_) => [
-                              const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
+                            itemBuilder: (_) => const [
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Text('삭제', style: TextStyle(color: Colors.red)),
+                              ),
                             ],
                           ),
                       ],
@@ -250,12 +317,17 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         // === 입력창 ===
         Container(
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.grey[300]!))),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Colors.grey[300]!)),
+          ),
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
             top: 8,
-            bottom: MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom + 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.of(context).padding.bottom +
+                20,
           ),
           child: Row(
             children: [
@@ -290,7 +362,11 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
   // 아바타 — 완전 안전 (get() 금지!)
   Widget _buildAvatar(String? userId) {
     if (userId == null) {
-      return CircleAvatar(radius: 16, backgroundColor: Colors.grey[300], child: const Icon(Icons.person, size: 20, color: Colors.grey));
+      return CircleAvatar(
+        radius: 16,
+        backgroundColor: Colors.grey[300],
+        child: const Icon(Icons.person, size: 20, color: Colors.grey),
+      );
     }
 
     return StreamBuilder<DocumentSnapshot>(
@@ -306,7 +382,9 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
           radius: 16,
           backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
           backgroundColor: photoUrl?.isNotEmpty != true ? Colors.grey[300] : null,
-          child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 20, color: Colors.white) : null,
+          child: photoUrl?.isNotEmpty != true
+              ? const Icon(Icons.person, size: 20, color: Colors.white)
+              : null,
         );
       },
     );
@@ -345,7 +423,11 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
           final tip = data['tip']?.toString().trim() ?? '';
           final barrelImageUrl = data['barrelImageUrl'] as String?;
 
-          final hasBarrelInfo = barrelName.isNotEmpty || shaft.isNotEmpty || flight.isNotEmpty || tip.isNotEmpty || (barrelImageUrl?.isNotEmpty == true);
+          final hasBarrelInfo = barrelName.isNotEmpty ||
+              shaft.isNotEmpty ||
+              flight.isNotEmpty ||
+              tip.isNotEmpty ||
+              (barrelImageUrl?.isNotEmpty == true);
 
           return UserProfileDialog(
             koreanName: koreanName,
@@ -376,7 +458,9 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(child: Text(content)),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('닫기'))],
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('닫기')),
+        ],
       ),
     );
   }
