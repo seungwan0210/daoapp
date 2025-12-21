@@ -22,6 +22,9 @@ import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 
+// ✅ 광고 배너 위젯
+import 'package:daoapp/presentation/widgets/ad_banner.dart';
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -80,6 +83,21 @@ class HomeScreenBody extends ConsumerWidget {
 
           // === 스폰서 ===
           AppCard(child: _buildSponsorSection(context, ref)),
+          const SizedBox(height: 4),
+
+          // ✅ 배너 광고 (홈 하단)
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  AdBanner(),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(height: 24),
         ],
       ),
@@ -195,7 +213,6 @@ class HomeScreenBody extends ConsumerWidget {
             );
           },
         );
-
 
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
@@ -350,25 +367,18 @@ class HomeScreenBody extends ConsumerWidget {
   static Color _tierColor(DaoTrainingTier tier) {
     switch (tier) {
       case DaoTrainingTier.beginner:
-      // 핑크
         return const Color(0xFFFF8EC7);
       case DaoTrainingTier.learner:
-      // 파란색
         return Colors.blue;
       case DaoTrainingTier.competitor:
-      // 청록
         return Colors.teal;
       case DaoTrainingTier.challenger:
-      // 초록
         return Colors.green;
       case DaoTrainingTier.elite:
-      // 주황
         return Colors.orange;
       case DaoTrainingTier.pro:
-      // 레드 액센트
         return Colors.redAccent;
       case DaoTrainingTier.master:
-      // 딥 퍼플
         return Colors.deepPurpleAccent;
     }
   }

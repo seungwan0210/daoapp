@@ -35,6 +35,7 @@ dependencies:
   path: ^1.8.3
   fl_chart: ^0.69.0
   scrollable_positioned_list: ^0.3.8
+  google_mobile_ads: ^5.1.0
 
   # 아레나 토너먼트 기능 완벽 지원
   freezed_annotation: ^2.4.1

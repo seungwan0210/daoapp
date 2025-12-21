@@ -1,5 +1,3 @@
-// lib/presentation/screens/arena/arena_home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,14 +16,17 @@ import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_s
 import 'package:daoapp/presentation/screens/arena/tournament/my_tournaments_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournaments_home_screen.dart';
 
-// ✅ 관리자 테스트 툴 스크린
+// 관리자 테스트 툴
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_debug_tools_screen.dart';
 
-// 아레나 프리뷰
+// 토너먼트 프리뷰
 import 'package:daoapp/presentation/screens/arena/widgets/arena_preview.dart';
 
-// 🔹 아레나 상태
+// 아레나 상태
 import 'package:daoapp/presentation/providers/arena_provider.dart';
+
+// 🔥 배너 광고
+import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
 const String kAdminUid = 'NanHPgCdsbMCFkHEs7MtxS51OSX2';
 
@@ -57,9 +58,15 @@ class ArenaHomeBody extends ConsumerWidget {
         children: [
           const SizedBox(height: 8),
 
-          // ==========================
-          // 스틸리그 카드
-          // ==========================
+          /// ==============================
+          /// 🔥 상단 배너 광고
+          /// ==============================
+          const AdBanner(),
+          const SizedBox(height: 16),
+
+          /// ==============================
+          /// 스틸리그
+          /// ==============================
           Text(
             '스틸리그',
             style: theme.textTheme.titleMedium?.copyWith(
@@ -67,6 +74,7 @@ class ArenaHomeBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+
           AppCard(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -112,7 +120,8 @@ class ArenaHomeBody extends ConsumerWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const SteelLeaguePointCalendarScreen(),
+                          builder: (_) =>
+                          const SteelLeaguePointCalendarScreen(),
                         ),
                       );
                     },
@@ -150,9 +159,9 @@ class ArenaHomeBody extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // ==========================
-          // 토너먼트 카드 섹션
-          // ==========================
+          /// ==============================
+          /// 토너먼트
+          /// ==============================
           Text(
             '토너먼트',
             style: theme.textTheme.titleMedium?.copyWith(
@@ -160,6 +169,7 @@ class ArenaHomeBody extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 8),
+
           AppCard(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -189,7 +199,6 @@ class ArenaHomeBody extends ConsumerWidget {
                     label: '참가 가능',
                     color: Colors.green,
                     onTap: () {
-                      // 👉 참가 가능 필터로 진입
                       ref.read(arenaProvider.notifier).changeFilter('open');
                       Navigator.push(
                         context,
@@ -204,8 +213,9 @@ class ArenaHomeBody extends ConsumerWidget {
                     label: '예정 경기',
                     color: Colors.blueGrey,
                     onTap: () {
-                      // 👉 예정 필터로 진입
-                      ref.read(arenaProvider.notifier).changeFilter('upcoming');
+                      ref
+                          .read(arenaProvider.notifier)
+                          .changeFilter('upcoming');
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -228,7 +238,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     },
                   ),
 
-                  // ✅ 관리자 전용: 메일 테스트 버튼
+                  // 관리자만
                   if (isAdmin)
                     _ArenaGridItem(
                       icon: Icons.bug_report_outlined,
@@ -238,7 +248,8 @@ class ArenaHomeBody extends ConsumerWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const TournamentDebugToolsScreen(),
+                            builder: (_) =>
+                            const TournamentDebugToolsScreen(),
                           ),
                         );
                       },
@@ -250,12 +261,11 @@ class ArenaHomeBody extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // ==========================
-          // 토너먼트 프리뷰
-          // ==========================
+          /// ==============================
+          /// 토너먼트 프리뷰
+          /// ==============================
           ArenaPreview(
             onSeeAllPressed: () {
-              // "지금 참가 가능한 대회" 전체 보기 → open 필터로 진입
               ref.read(arenaProvider.notifier).changeFilter('open');
               Navigator.push(
                 context,

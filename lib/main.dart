@@ -13,6 +13,9 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 
+// ✅ AdMob(광고) SDK
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 // === Screens Import (새 구조 완벽 반영) ===
 import 'package:daoapp/presentation/screens/splash_screen.dart';
 import 'package:daoapp/presentation/screens/login/login_screen.dart';
@@ -92,6 +95,9 @@ void main() async {
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
+  // ✅ AdMob / Google Mobile Ads 초기화
+  await MobileAds.instance.initialize();
+
   FirebaseAuth.instance.authStateChanges().listen((user) {
     user != null ? OnlineStatusManager.start(user) : OnlineStatusManager.stop();
   });
@@ -164,7 +170,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.finishRouteMyHistory: (_) =>
         const FinishRouteMyHistoryScreen(),
 
-        // 체크아웃 계산기 (이름은 그대로, 위치는 training/calculator)
+        // 체크아웃 계산기
         RouteConstants.checkoutCalculator: (_) =>
         const CheckoutCalculatorScreen(),
 
@@ -210,8 +216,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) =>
         const PointAwardListScreen(),
-        RouteConstants.eventCreate: (_) =>
-        const EventCreateScreen(),
+        RouteConstants.eventCreate: (_) => const EventCreateScreen(),
         RouteConstants.eventList: (_) => const EventListScreen(),
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
@@ -247,8 +252,7 @@ class DaoApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) => EventEditScreen(
               docId: args['docId'] as String,
-              initialData:
-              args['initialData'] as Map<String, dynamic>,
+              initialData: args['initialData'] as Map<String, dynamic>,
             ),
           );
         }
@@ -278,9 +282,8 @@ class DaoApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) => TournamentParticipantListScreen(
               tournamentId: args['tournamentId'] as String,
-              tournamentTitle: args['tournamentTitle']
-              as String? ??
-                  '참가자 명단',
+              tournamentTitle:
+              args['tournamentTitle'] as String? ?? '참가자 명단',
             ),
           );
         }

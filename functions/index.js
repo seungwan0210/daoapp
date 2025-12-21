@@ -397,7 +397,7 @@ exports.sendTournamentEntrySummary = functions.pubsub
   .timeZone('Asia/Seoul')
   .onRun(async () => {
     const db = admin.firestore();
-    const now = getKoreaNowTimestamp();
+    const now = admin.firestore.Timestamp.now();
 
     const snap = await db
       .collection('tournaments')

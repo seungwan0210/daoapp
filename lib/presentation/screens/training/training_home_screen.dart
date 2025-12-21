@@ -10,6 +10,7 @@ import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
 import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/presentation/widgets/ad_banner.dart'; // ✅ 배너 광고 위젯 추가
 
 import 'widgets/dual_neon_gauge_row.dart';
 import 'widgets/dao_tier_badge_large.dart';
@@ -415,8 +416,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                                 foregroundColor: Colors.cyan,
                                 side: const BorderSide(
                                     color: Colors.cyan),
-                                padding:
-                                const EdgeInsets.symmetric(
+                                padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
                               ),
@@ -471,8 +471,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             const SizedBox(height: 8),
             Text(
               "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
@@ -488,8 +487,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             const SizedBox(height: 8),
             Text(
               "기록을 확인하고, 체크아웃 연습과 계산을 도와주는 도구들입니다.",
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             ..._buildPracticeItems(),
@@ -805,6 +803,10 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
           ),
         ),
       ),
+
+      // ✅ 여기 바로 아래에 배너 광고 한 줄 추가
+      const SizedBox(height: 4),
+      const AdBanner(),
     ];
   }
 
