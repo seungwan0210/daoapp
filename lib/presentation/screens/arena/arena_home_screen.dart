@@ -25,7 +25,7 @@ import 'package:daoapp/presentation/screens/arena/widgets/arena_preview.dart';
 // 아레나 상태
 import 'package:daoapp/presentation/providers/arena_provider.dart';
 
-// 🔥 배너 광고
+// ✅ AdMob 배너 광고 위젯 (실제 광고 단위 ID는 AdBanner 쪽에서 관리)
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
 const String kAdminUid = 'NanHPgCdsbMCFkHEs7MtxS51OSX2';
@@ -37,7 +37,7 @@ class ArenaHomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ArenaHomeScreen.body();
+    return const ArenaHomeBody();
   }
 }
 
@@ -61,7 +61,17 @@ class ArenaHomeBody extends ConsumerWidget {
           /// ==============================
           /// 🔥 상단 배너 광고
           /// ==============================
-          const AdBanner(),
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  AdBanner(),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
 
           /// ==============================

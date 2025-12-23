@@ -47,6 +47,7 @@ import 'package:daoapp/presentation/screens/arena/arena_home_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
+import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
@@ -95,7 +96,7 @@ void main() async {
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
-  // ✅ AdMob / Google Mobile Ads 초기화
+  // ✅ AdMob / Google Mobile Ads 초기화 (실제 App ID는 AndroidManifest에 설정되어 있음)
   await MobileAds.instance.initialize();
 
   FirebaseAuth.instance.authStateChanges().listen((user) {
@@ -220,8 +221,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.eventList: (_) => const EventListScreen(),
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
-        RouteConstants.sponsorForm: (_) =>
-        const SponsorFormScreen(),
+        RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) =>
         const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) =>

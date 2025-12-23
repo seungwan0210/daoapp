@@ -14,14 +14,14 @@ class _AdBannerState extends State<AdBanner> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
-  /// ✅ 테스트 배너 광고 단위 ID (플랫폼별)
-  /// - Android: ca-app-pub-3940256099942544/6300978111
-  /// - iOS   : ca-app-pub-3940256099942544/2934735716
-  String get _testBannerUnitId {
+  /// ✅ 실제 배너 광고 단위 ID (플랫폼별)
+  /// - Android: ca-app-pub-5180429166023258/2238891690
+  /// - iOS   : ca-app-pub-5180429166023258/8644517940
+  String get _bannerUnitId {
     if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111';
+      return 'ca-app-pub-5180429166023258/2238891690';
     } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716';
+      return 'ca-app-pub-5180429166023258/8644517940';
     }
     // 그 외 플랫폼은 일단 빈 값 → 광고 안 띄움
     return '';
@@ -31,7 +31,7 @@ class _AdBannerState extends State<AdBanner> {
   void initState() {
     super.initState();
 
-    final adUnitId = _testBannerUnitId;
+    final adUnitId = _bannerUnitId;
     if (adUnitId.isEmpty) {
       debugPrint('Unsupported platform for banner ads');
       return;

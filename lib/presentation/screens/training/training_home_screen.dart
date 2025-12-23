@@ -10,7 +10,7 @@ import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
 import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/ad_banner.dart'; // ✅ 배너 광고 위젯 추가
+import 'package:daoapp/presentation/widgets/ad_banner.dart'; // ✅ 배너 광고 위젯
 
 import 'widgets/dual_neon_gauge_row.dart';
 import 'widgets/dao_tier_badge_large.dart';
@@ -366,8 +366,8 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                         children: [
                           const Text(
                             "PHOENIX CLASS",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold),
+                            style:
+                            TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.phoenixClass),
@@ -385,8 +385,8 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                         children: [
                           const Text(
                             "DARTSLIVE RATING",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold),
+                            style:
+                            TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.liveRating),
@@ -464,14 +464,16 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             // === 오늘의 추천 연습 ===
             Text(
               "오늘의 추천 연습",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style:
+              Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style:
+              TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
@@ -480,14 +482,16 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             // === 훈련 도구 ===
             Text(
               "훈련 도구",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              style:
+              Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "기록을 확인하고, 체크아웃 연습과 계산을 도와주는 도구들입니다.",
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style:
+              TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             ..._buildPracticeItems(),
@@ -643,8 +647,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         tier ?? DaoTrainingTier.beginner;
 
     final List<TrainingDrillDefinition> drills =
-    program_constants.getRecommendedDrillsForToday(
-        effectiveTier);
+    program_constants.getRecommendedDrillsForToday(effectiveTier);
 
     if (drills.isEmpty) {
       return const Text(
@@ -804,9 +807,19 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         ),
       ),
 
-      // ✅ 여기 바로 아래에 배너 광고 한 줄 추가
+      // ✅ 트레이닝 홈 하단 배너 광고 (AppCard로 감싸서 디자인 통일)
       const SizedBox(height: 4),
-      const AdBanner(),
+      AppCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              AdBanner(),
+            ],
+          ),
+        ),
+      ),
     ];
   }
 

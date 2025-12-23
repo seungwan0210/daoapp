@@ -22,7 +22,7 @@ import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 
-// ✅ 광고 배너 위젯
+// ✅ 배너 광고 위젯 (실제 AdMob 배너는 이 위젯에서 처리)
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -85,14 +85,14 @@ class HomeScreenBody extends ConsumerWidget {
           AppCard(child: _buildSponsorSection(context, ref)),
           const SizedBox(height: 4),
 
-          // ✅ 배너 광고 (홈 하단)
+          // ✅ 배너 광고 (홈 하단 영역에 배치)
           AppCard(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  AdBanner(),
+                  AdBanner(), // ← 실제 AdMob 배너는 이 위젯이 담당
                 ],
               ),
             ),
@@ -156,7 +156,7 @@ class HomeScreenBody extends ConsumerWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: ratio, // 🔹 이제 에러 안 남
+                    value: ratio,
                     minHeight: 6,
                     backgroundColor: Colors.grey.shade200,
                     valueColor: AlwaysStoppedAnimation<Color>(tierColor),
@@ -198,7 +198,7 @@ class HomeScreenBody extends ConsumerWidget {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
-                    value: 0.0, // 🔹 여기도 double로
+                    value: 0.0,
                     minHeight: 6,
                     backgroundColor: Colors.grey.shade200,
                     valueColor: AlwaysStoppedAnimation<Color>(tierColor),
@@ -363,7 +363,7 @@ class HomeScreenBody extends ConsumerWidget {
     );
   }
 
-  // 티어별 대표 색상 – (네가 지정한 팔레트)
+  // 티어별 대표 색상
   static Color _tierColor(DaoTrainingTier tier) {
     switch (tier) {
       case DaoTrainingTier.beginner:
@@ -527,7 +527,6 @@ class HomeScreenBody extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
                 TextButton(
-                  // 🔹 전체 보기 → 아레나 탭 + 스틸리그 리그 일정 화면
                   onPressed: () => _navigateToTab(
                     context,
                     RouteConstants.steelLeagueSchedule,
@@ -593,12 +592,10 @@ class HomeScreenBody extends ConsumerWidget {
       children: [
         Row(
           children: [
-            // 🔹 제목
             Text('스틸리그 포인트',
                 style: Theme.of(context).textTheme.titleLarge),
             const Spacer(),
             TextButton(
-              // 🔹 전체 보기 → 아레나 탭 + 스틸리그 랭킹 화면
               onPressed: () => _navigateToTab(
                 context,
                 RouteConstants.steelLeagueRanking,
@@ -875,7 +872,6 @@ class HomeScreenBody extends ConsumerWidget {
   // 탭 전환 + 아레나 상세 화면 진입
   // =========================
   static void _navigateToTab(BuildContext context, String route) {
-    // 1) 문자열이 RouteConstants 값인 경우도 지원
     switch (route) {
     // 홈
       case RouteConstants.home:
@@ -937,7 +933,6 @@ class HomeScreenBody extends ConsumerWidget {
         break;
 
       default:
-      // 알 수 없는 route는 일단 무시
         break;
     }
   }

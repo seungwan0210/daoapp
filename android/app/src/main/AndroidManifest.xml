@@ -1,19 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="kr.comong.daoapp">
 
+    <!-- 인터넷 & 네트워크 상태 권한 (AdMob 포함해서 필수) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 🔥 Google 광고 ID 권한 (Android 13 이상 필수) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
 
     <application
         android:name="${applicationName}"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- 🔥 AdMob App ID (테스트용) -->
-        <!-- 실서비스 시 AdMob 콘솔에서 받은 실제 App ID 로 교체하면 됨 -->
+        <!-- ✅ AdMob 실제 App ID -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-5180429166023258~2044446429" />
 
         <meta-data
             android:name="flutterEmbedding"
