@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+// ✅ kReleaseMode 사용
+import 'package:flutter/foundation.dart';
+
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
@@ -47,7 +50,6 @@ import 'package:daoapp/presentation/screens/arena/arena_home_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
-import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
@@ -84,23 +86,34 @@ import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart'
 import 'package:daoapp/presentation/screens/admin/selection_players_admin_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
 
+// 🔧 디버그에서 광고 켜고 싶으면 이 값을 true로 바꾸면 됨
+const bool kEnableAdsInDebug = false;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp();
+
   await FirebaseAppCheck.instance.activate(
     androidProvider: AndroidProvider.playIntegrity,
-    // androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.deviceCheck, // 🔥 iOS용 추가
   );
 
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
-  // ✅ AdMob / Google Mobile Ads 초기화 (실제 App ID는 AndroidManifest에 설정되어 있음)
-  await MobileAds.instance.initialize();
+  // ✅ AdMob / Google Mobile Ads 초기화
+  if (kReleaseMode || kEnableAdsInDebug) {
+    await MobileAds.instance.initialize();
+  }
 
+  // ✅ 온라인 상태 관리
   FirebaseAuth.instance.authStateChanges().listen((user) {
-    user != null ? OnlineStatusManager.start(user) : OnlineStatusManager.stop();
+    if (user != null) {
+      OnlineStatusManager.start(user);
+    } else {
+      OnlineStatusManager.stop();
+    }
   });
 
   runApp(const ProviderScope(child: DaoApp()));
@@ -112,22 +125,29 @@ class OnlineStatusManager {
 
   static void _update() {
     if (_currentUser == null) return;
+
     FirebaseFirestore.instance
         .collection('online_users')
         .doc(_currentUser!.uid)
-        .set({
-      'uid': _currentUser!.uid,
-      'name': _currentUser!.displayName ?? '이름 없음',
-      'lastSeen': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true))
-        .catchError((e) => debugPrint('Online status error: $e'));
+        .set(
+      {
+        'uid': _currentUser!.uid,
+        'name': _currentUser!.displayName ?? '이름 없음',
+        'lastSeen': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    ).catchError(
+      (e) => debugPrint('Online status error: $e'),
+    );
   }
 
   static void start(User user) {
     if (_currentUser?.uid == user.uid) return;
+
     _currentUser = user;
     _timer?.cancel();
-    _update();
+
+    _update(); // 즉시 한 번 저장
     _timer = Timer.periodic(const Duration(seconds: 25), (_) => _update());
   }
 
@@ -149,6 +169,7 @@ class DaoApp extends StatelessWidget {
       theme: AppTheme.light,
       initialRoute: RouteConstants.splash,
       routes: {
+        // 공통
         RouteConstants.splash: (_) => const SplashScreen(),
         RouteConstants.login: (_) => const LoginScreen(),
         RouteConstants.main: (_) => const MainScreen(),
@@ -161,42 +182,42 @@ class DaoApp extends StatelessWidget {
 
         // 🔥 피니쉬 루트 연습 (Finish Route)
         RouteConstants.finishRouteHome: (_) =>
-        const FinishRouteHomeScreen(),
+            const FinishRouteHomeScreen(),
         RouteConstants.finishRoutePractice: (_) =>
-        const FinishRoutePracticeScreen(),
+            const FinishRoutePracticeScreen(),
         RouteConstants.finishRouteResult: (_) =>
-        const FinishRouteResultScreen(),
+            const FinishRouteResultScreen(),
         RouteConstants.finishRouteRanking: (_) =>
-        const FinishRouteRankingScreen(),
+            const FinishRouteRankingScreen(),
         RouteConstants.finishRouteMyHistory: (_) =>
-        const FinishRouteMyHistoryScreen(),
+            const FinishRouteMyHistoryScreen(),
 
         // 체크아웃 계산기
         RouteConstants.checkoutCalculator: (_) =>
-        const CheckoutCalculatorScreen(),
+            const CheckoutCalculatorScreen(),
 
-        // 🔹 트레이닝 프로필 관련 라우트
+        // 🔹 트레이닝 프로필 관련
         RouteConstants.trainingRatingInput: (_) =>
-        const TrainingRatingInputScreen(),
+            const TrainingRatingInputScreen(),
         RouteConstants.boardLevelTest: (_) =>
-        const BoardLevelTestScreen(),
+            const BoardLevelTestScreen(),
 
         // 🔹 트레이닝 히스토리
         RouteConstants.trainingHistory: (_) =>
-        const TrainingHistoryScreen(),
+            const TrainingHistoryScreen(),
 
         // 아레나
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
         RouteConstants.steelLeagueRanking: (_) =>
-        const SteelLeagueRankingScreen(),
+            const SteelLeagueRankingScreen(),
         RouteConstants.steelLeagueSchedule: (_) =>
-        const SteelLeagueScheduleScreen(),
+            const SteelLeagueScheduleScreen(),
         RouteConstants.steelLeaguePointCalendar: (_) =>
-        const SteelLeaguePointCalendarScreen(),
+            const SteelLeaguePointCalendarScreen(),
         RouteConstants.steelLeagueMembers: (_) =>
-        const MemberListScreen(),
+            const MemberListScreen(),
         RouteConstants.tournamentCreate: (_) =>
-        const TournamentCreateScreen(),
+            const TournamentCreateScreen(),
 
         // 커뮤니티
         RouteConstants.community: (_) => const CommunityHomeScreen(),
@@ -206,36 +227,36 @@ class DaoApp extends StatelessWidget {
         // 마이페이지
         RouteConstants.myPage: (_) => const MyPageScreen(),
         RouteConstants.profileRegister: (_) =>
-        const ProfileRegisterScreen(),
+            const ProfileRegisterScreen(),
         RouteConstants.noticeList: (_) => const NoticeListScreen(),
         RouteConstants.report: (_) => const ReportFormScreen(),
         RouteConstants.myLogHome: (_) => const MyLogHomeScreen(),
 
         // 관리자
         RouteConstants.adminDashboard: (_) =>
-        const AdminDashboardScreen(),
+            const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) =>
-        const PointAwardListScreen(),
+            const PointAwardListScreen(),
         RouteConstants.eventCreate: (_) => const EventCreateScreen(),
         RouteConstants.eventList: (_) => const EventListScreen(),
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) =>
-        const MemberRegisterScreen(),
+            const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) =>
-        const CompetitionPhotosFormScreen(),
+            const CompetitionPhotosFormScreen(),
         RouteConstants.adminReportList: (_) =>
-        const AdminReportListScreen(),
+            const AdminReportListScreen(),
         RouteConstants.adminMemberList: (_) =>
-        const AdminMemberListScreen(),
+            const AdminMemberListScreen(),
         RouteConstants.selectionPlayersAdmin: (_) =>
-        const SelectionPlayersAdminScreen(),
+            const SelectionPlayersAdminScreen(),
 
         // 스틸리그 선발 공개 화면
         RouteConstants.steelLeagueSelection: (_) =>
-        const SelectionPlayersScreen(),
+            const SelectionPlayersScreen(),
       },
       onGenerateRoute: (settings) {
         // 방명록
@@ -252,7 +273,8 @@ class DaoApp extends StatelessWidget {
           return MaterialPageRoute(
             builder: (_) => EventEditScreen(
               docId: args['docId'] as String,
-              initialData: args['initialData'] as Map<String, dynamic>,
+              initialData:
+                  args['initialData'] as Map<String, dynamic>,
             ),
           );
         }
@@ -283,7 +305,7 @@ class DaoApp extends StatelessWidget {
             builder: (_) => TournamentParticipantListScreen(
               tournamentId: args['tournamentId'] as String,
               tournamentTitle:
-              args['tournamentTitle'] as String? ?? '참가자 명단',
+                  args['tournamentTitle'] as String? ?? '참가자 명단',
             ),
           );
         }

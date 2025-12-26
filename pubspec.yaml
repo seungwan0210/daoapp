@@ -10,43 +10,53 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
   cupertino_icons: ^1.0.8
   flutter_app_badger: ^1.5.0
+
+  # ==== Firebase Core & 관련 패키지 ====
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
   cloud_firestore: ^5.4.4
-  rxdart: ^0.27.7
   firebase_storage: ^12.3.4
   cloud_functions: ^5.6.2
-  cached_network_image: ^3.3.1
+  firebase_database: ^11.3.10
+  firebase_app_check: ^0.3.0+2
+
+  # ==== 상태관리 / 유틸 ====
   flutter_riverpod: ^2.4.0
   provider: ^6.1.1
   get_it: ^8.0.1
+  rxdart: ^0.27.7
+  collection: ^1.17.0
+  path: ^1.8.3
+  intl: ^0.19.0
+
+  # ==== UI / 위젯 ====
   table_calendar: ^3.1.2
   carousel_slider: ^5.0.0
+  cached_network_image: ^3.3.1
   image_picker: ^1.1.2
-  intl: ^0.19.0
   url_launcher: ^6.2.6
-  google_sign_in: ^6.2.1
-  collection: ^1.17.0
-  firebase_database: ^11.3.10
-  share_plus: ^7.2.2
-  firebase_app_check: ^0.3.0+2
-  path: ^1.8.3
   fl_chart: ^0.69.0
   scrollable_positioned_list: ^0.3.8
-  google_mobile_ads: ^5.1.0
+  share_plus: ^7.2.2
 
-  # 아레나 토너먼트 기능 완벽 지원
+  # ==== 광고 / 로그인 ====
+  google_mobile_ads: ^5.1.0
+  google_sign_in: ^6.2.1
+
+  # ==== 아레나 토너먼트 & 모델 ====
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
 
-  # 반드시 추가! (우리가 만든 모든 화려한 효과들)
+  # ==== 이펙트 ====
   confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
   flutter_lints: ^5.0.0
   build_runner: ^2.4.7
   freezed: ^2.4.1
@@ -72,20 +82,21 @@ flutter:
 
   assets:
     - assets/fonts/
+
+    # ==== 공통 이미지 ====
     - assets/images/app_icon.png
     - assets/images/logo_dao.png
     - assets/images/splash_portrait.png
     - assets/images/login_background.png
     - assets/images/google_logo.png
     - assets/images/dartboard.png
-
-    # ✅ 커뮤니티 기본 이미지(글-only 게시물, 프리뷰 배경 등)
     - assets/images/circle_main.png
 
-    # ✅ 새 아이콘 리소스(배경/로고 분리)
+    # ==== Android Adaptive Icon 리소스 ====
     - assets/images/ic_launcher_background.png
     - assets/images/ic_launcher_foreground.png
 
+    # ==== 뱃지 이미지 ====
     - assets/badges/pro.png
     - assets/badges/emerald.png
     - assets/badges/diamond.png
@@ -104,17 +115,17 @@ flutter:
     - assets/badges/season2.png
     - assets/badges/season3.png
 
-# ✅ Adaptive Icon 설정 (이게 핵심)
+# ✅ 앱 아이콘 설정
 flutter_launcher_icons:
   android: true
   ios: true
 
-  # iOS는 단일 이미지 기반이라 app_icon.png를 계속 써도 되고,
-  # 필요하면 나중에 iOS용도 따로 만들어도 됨.
+  # iOS & 기본 아이콘에 사용할 원본 이미지 (1024x1024 권장)
   image_path: "assets/images/app_icon.png"
 
+  # Android min SDK (Adaptive Icon 지원)
   min_sdk_android: 21
 
-  # ✅ Android Adaptive Icon: 배경/로고 분리 파일 사용
+  # Android Adaptive Icon: 배경 / 전면 분리
   adaptive_icon_background: "assets/images/ic_launcher_background.png"
   adaptive_icon_foreground: "assets/images/ic_launcher_foreground.png"
