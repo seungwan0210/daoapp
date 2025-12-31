@@ -1,7 +1,13 @@
 // lib/presentation/screens/login/login_screen.dart
+import 'dart:io' show Platform;
+import 'dart:math';
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
@@ -41,6 +47,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void dispose() {
     _starController.dispose();
     super.dispose();
+  }
+
+  // =========================
+  // 🔐 Apple 로그인용 nonce 유틸
+  // =========================
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  Future<void> _signInWithApple() async {
+    try {
+      // 0) Firebase용 nonce 생성
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      // 1) 애플 계정 선택 / Face ID 인증 (nonce 포함)
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      // 2) Firebase Auth용 credential 생성 (rawNonce 넣기 중요!)
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+        rawNonce: rawNonce,
+      );
+
+      // 3) Firebase 로그인
+      final userCredential =
+          await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+      final user = userCredential.user;
+
+      if (user != null && mounted) {
+        Navigator.pushReplacementNamed(context, RouteConstants.splash);
+      }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // 유저가 취소했으면 조용히 무시
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return;
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Apple 로그인 실패: ${e.message ?? e.code.toString()}',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Apple 로그인 중 오류가 발생했습니다. (${e.toString()})'),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -84,7 +164,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             );
           }),
 
-          // 중앙: 로고 + 슬로건 + Google 로그인
+          // 중앙: 로고 + 슬로건 + 로그인 버튼들
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -103,6 +183,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
+
+                // 🔹 Google 로그인
                 SizedBox(
                   width: 280,
                   child: ElevatedButton(
@@ -154,6 +236,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
                 ),
+
+                // 🔹 iOS일 때만 Apple 로그인 표시
+                if (Platform.isIOS) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: 280,
+                    child: SignInWithAppleButton(
+                      onPressed: _signInWithApple,
+                      style: SignInWithAppleButtonStyle.white, // 흰색 버튼
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -181,10 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
   }
 
-  /// ✅ 흰 원판/흰 배경 느낌 제거
-  /// ✅ 만든 배경 톤(민트→블루)과 맞춘 네온 글로우
-  /// ✅ 숨쉬듯 살짝 펄스
-  /// ✅ 로고는 투명 PNG(Adaptive Foreground) 사용
+  /// ✅ 네온 글로우 로고
   Widget _buildGlowingLogo() {
     return AnimatedBuilder(
       animation: _starController,
@@ -243,7 +334,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
               ),
 
-              // 흰 원판 대신: 유리 느낌의 얇은 카드(최소한)
+              // 유리 느낌 카드
               Container(
                 width: 140,
                 height: 140,
@@ -257,7 +348,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 ),
               ),
 
-              // ✅ 투명 로고 (Adaptive Foreground 그대로)
+              // 투명 로고
               Image.asset(
                 'assets/images/ic_launcher_foreground.png',
                 width: 132,
