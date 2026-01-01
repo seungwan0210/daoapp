@@ -30,9 +30,14 @@ class MyPageScreenBody extends ConsumerWidget {
     return hasProfile && isPhoneVerified && koreanName != null && koreanName.isNotEmpty;
   }
 
-  // 핵심 기능: 마이로그만 (로그아웃은 아래에서 같이 붙임)
+  // 핵심 기능: 현재는 마이로그만 별도로 상수로 관리
   static const List<_GridItem> _mainFunctions = [
-    _GridItem(Icons.edit_note, '마이로그', RouteConstants.myLogHome),
+    _GridItem(
+      Icons.edit_note,
+      '마이로그',
+      RouteConstants.myLogHome,
+      Colors.blueAccent, // 🔵 마이로그 색상
+    ),
   ];
 
   @override
@@ -97,7 +102,8 @@ class MyPageScreenBody extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pushReplacementNamed(context, RouteConstants.login),
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, RouteConstants.login),
                     style: theme.elevatedButtonTheme.style,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -159,7 +165,8 @@ class MyPageScreenBody extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
+                      onPressed: () =>
+                          Navigator.pushNamed(context, RouteConstants.profileRegister),
                       child: const Text('프로필 등록하기'),
                     ),
                   ),
@@ -227,7 +234,8 @@ class MyPageScreenBody extends ConsumerWidget {
                                 ? NetworkImage(profileImageUrl!)
                                 : null,
                             child: profileImageUrl?.isNotEmpty != true
-                                ? const Icon(Icons.account_circle, size: 44, color: Colors.grey)
+                                ? const Icon(Icons.account_circle,
+                                size: 44, color: Colors.grey)
                                 : null,
                           ),
                           ...badgesToShow.asMap().entries.map((entry) {
@@ -293,7 +301,8 @@ class MyPageScreenBody extends ConsumerWidget {
                           const SizedBox(height: 4),
                           Text(
                             email,
-                            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                            style: theme.textTheme.bodyMedium
+                                ?.copyWith(color: Colors.grey[600]),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
@@ -305,8 +314,8 @@ class MyPageScreenBody extends ConsumerWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   phoneNumber,
-                                  style:
-                                  theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
+                                  style: theme.textTheme.bodyMedium
+                                      ?.copyWith(color: Colors.grey[700]),
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                 ),
@@ -407,7 +416,7 @@ class MyPageScreenBody extends ConsumerWidget {
         ),
         const SizedBox(height: 20),
 
-        // 🔥 하나의 카드 섹션: 마이로그 + 로그아웃
+        // 🔥 하나의 카드 섹션: 마이로그 + 계정 삭제 + 로그아웃
         AppCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -419,21 +428,32 @@ class MyPageScreenBody extends ConsumerWidget {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               children: [
-                // 마이로그
+                // 마이로그 (색상 포함)
                 ..._mainFunctions.map(
                       (item) => _buildIconButton(
                     context,
-                    item.icon,
-                    item.label,
-                    item.route,
+                    icon: item.icon,
+                    label: item.label,
+                    route: item.route,
+                    color: item.color,
                   ),
                 ),
-                // 로그아웃
+                // ✅ 계정 삭제 (빨간 느낌)
                 _buildIconButton(
                   context,
-                  Icons.logout,
-                  '로그아웃',
-                  null,
+                  icon: Icons.delete_forever,
+                  label: '계정 삭제',
+                  route: null,
+                  color: Colors.redAccent,
+                  onTap: () => _showAccountDeleteDialog(context, ref),
+                ),
+                // 로그아웃 (그레이 느낌)
+                _buildIconButton(
+                  context,
+                  icon: Icons.logout,
+                  label: '로그아웃',
+                  route: null,
+                  color: Colors.grey,
                   onTap: () => _showLogoutDialog(context, ref),
                 ),
               ],
@@ -446,7 +466,7 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
-  // 프로필 미등록 시에도 사용하는 그리드 (마이로그 + 로그아웃 한 카드)
+  // 프로필 미등록 시에도 사용하는 그리드 (마이로그 + 계정 삭제 + 로그아웃 한 카드)
   Widget _buildFunctionGrid(BuildContext context, WidgetRef ref) {
     return AppCard(
       child: Padding(
@@ -459,19 +479,32 @@ class MyPageScreenBody extends ConsumerWidget {
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           children: [
+            // 마이로그
             ..._mainFunctions.map(
                   (item) => _buildIconButton(
                 context,
-                item.icon,
-                item.label,
-                item.route,
+                icon: item.icon,
+                label: item.label,
+                route: item.route,
+                color: item.color,
               ),
             ),
+            // 계정 삭제
             _buildIconButton(
               context,
-              Icons.logout,
-              '로그아웃',
-              null,
+              icon: Icons.delete_forever,
+              label: '계정 삭제',
+              route: null,
+              color: Colors.redAccent,
+              onTap: () => _showAccountDeleteDialog(context, ref),
+            ),
+            // 로그아웃
+            _buildIconButton(
+              context,
+              icon: Icons.logout,
+              label: '로그아웃',
+              route: null,
+              color: Colors.grey,
               onTap: () => _showLogoutDialog(context, ref),
             ),
           ],
@@ -481,38 +514,48 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildIconButton(
-      BuildContext context,
-      IconData icon,
-      String label,
-      String? route, {
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        String? route,
+        required Color color,
         VoidCallback? onTap,
       }) {
-    return GestureDetector(
+    final theme = Theme.of(context);
+
+    return InkWell(
       onTap: onTap ??
               () {
             if (route != null) {
               Navigator.pushNamed(context, route);
             }
           },
+      borderRadius: BorderRadius.circular(16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            size: 26,
-            color: Theme.of(context).colorScheme.primary,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              size: 26,
+              color: color,
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
+            textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
-            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
+            ),
           ),
         ],
       ),
@@ -549,6 +592,126 @@ class MyPageScreenBody extends ConsumerWidget {
         RouteConstants.login,
             (route) => false,
       );
+    }
+  }
+
+  // ✅ 계정 삭제 다이얼로그
+  Future<void> _showAccountDeleteDialog(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('계정 삭제'),
+        content: const Text(
+          'DAO 계정을 삭제하면 프로필 정보와 앱 내 데이터가 삭제되며,\n'
+              '이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              '계정 삭제',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteAccount(context, ref);
+    }
+  }
+
+  // ✅ 실제 계정 삭제 로직 (수정 버전)
+  Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    // ✅ context가 나중에 dispose돼도 쓸 수 있게 rootNavigator를 먼저 잡아둠
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
+
+    // 로딩 다이얼로그
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final uid = user.uid;
+
+      // 1) Firestore 유저 문서 삭제
+      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+
+      // 2) Firebase Auth 계정 삭제
+      await user.delete();
+
+      // 3) 로컬 캐시 정리 + signOut
+      await FirebaseFirestore.instance.clearPersistence();
+      await ref.read(authRepositoryProvider).signOut();
+
+      // ✅ 로딩 다이얼로그 닫기 (context 아니라 rootNavigator 사용)
+      try {
+        if (rootNavigator.canPop()) {
+          rootNavigator.pop();
+        }
+      } catch (_) {}
+
+      // ✅ 로그인 화면으로 이동
+      if (context.mounted) {
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          RouteConstants.login,
+              (route) => false,
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      // 에러 시에도 다이얼로그 먼저 닫기 시도
+      try {
+        if (rootNavigator.canPop()) {
+          rootNavigator.pop();
+        }
+      } catch (_) {}
+
+      String message;
+      if (e.code == 'requires-recent-login') {
+        message = '보안을 위해 최근 로그인한 사용자만 계정을 삭제할 수 있어요.\n'
+            '다시 로그인한 후 계정 삭제를 다시 시도해주세요.';
+      } else {
+        message = '계정 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+
+      await ref.read(authRepositoryProvider).signOut();
+    } catch (_) {
+      // 기타 예외도 동일하게 처리
+      try {
+        if (rootNavigator.canPop()) {
+          rootNavigator.pop();
+        }
+      } catch (_) {}
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
+          ),
+        );
+      }
+
+      await ref.read(authRepositoryProvider).signOut();
     }
   }
 
@@ -642,5 +805,7 @@ class _GridItem {
   final IconData icon;
   final String label;
   final String route;
-  const _GridItem(this.icon, this.label, this.route);
+  final Color color;
+
+  const _GridItem(this.icon, this.label, this.route, this.color);
 }

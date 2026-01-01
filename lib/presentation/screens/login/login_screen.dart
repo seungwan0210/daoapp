@@ -25,6 +25,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final List<Offset> _starPositions = [];
   final List<double> _starSizes = [];
 
+  // ✅ 이메일 로그인용 컨트롤러 & 상태
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isPasswordVisible = false;
+  bool _isEmailLoading = false;
+
+  // ✅ 운영자 전용 로그인 섹션 토글
+  bool _showAdminLogin = false;
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +56,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   @override
   void dispose() {
     _starController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -58,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final random = Random.secure();
     return List.generate(
       length,
-      (_) => charset[random.nextInt(charset.length)],
+          (_) => charset[random.nextInt(charset.length)],
     ).join();
   }
 
@@ -92,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
       // 3) Firebase 로그인
       final userCredential =
-          await FirebaseAuth.instance.signInWithCredential(oauthCredential);
+      await FirebaseAuth.instance.signInWithCredential(oauthCredential);
       final user = userCredential.user;
 
       if (user != null && mounted) {
@@ -119,6 +131,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             content: Text('Apple 로그인 중 오류가 발생했습니다. (${e.toString()})'),
           ),
         );
+      }
+    }
+  }
+
+  // =========================
+  // 🔐 이메일 로그인 (운영자/테스트용)
+  // =========================
+  Future<void> _signInWithEmail() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isEmailLoading = true);
+
+    try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, RouteConstants.splash);
+    } on FirebaseAuthException catch (e) {
+      String message = '이메일 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.';
+
+      if (e.code == 'user-not-found') {
+        message = '해당 이메일의 계정을 찾을 수 없습니다.';
+      } else if (e.code == 'wrong-password') {
+        message = '비밀번호가 올바르지 않습니다.';
+      } else if (e.code == 'invalid-email') {
+        message = '이메일 형식이 올바르지 않습니다.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isEmailLoading = false);
       }
     }
   }
@@ -150,8 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               builder: (_, __) {
                 final opacity = 0.3 +
                     0.7 *
-                        (sin(_starController.value * 2 * pi + index) + 1) /
-                        2;
+                        (sin(_starController.value * 2 * pi + index) + 1) / 2;
                 return Positioned(
                   left: pos.dx,
                   top: pos.dy,
@@ -166,89 +227,320 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
           // 중앙: 로고 + 슬로건 + 로그인 버튼들
           Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildGlowingLogo(),
-                const SizedBox(height: 24),
-                const Text(
-                  'Every Point Is Your Story',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 1.2,
-                    fontStyle: FontStyle.italic,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
-
-                // 🔹 Google 로그인
-                SizedBox(
-                  width: 280,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final user = await ref
-                          .read(authRepositoryProvider)
-                          .signInWithGoogle();
-                      if (user != null && context.mounted) {
-                        Navigator.pushReplacementNamed(
-                            context, RouteConstants.splash);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black87,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 14, horizontal: 20),
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildGlowingLogo(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Every Point Is Your Story',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1.2,
+                      fontStyle: FontStyle.italic,
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ClipOval(
-                          child: Image.asset(
-                            'assets/images/google_logo.png',
-                            width: 20,
-                            height: 20,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.g_mobiledata,
-                                  size: 20, color: Colors.red);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Google로 로그인',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
+                  const SizedBox(height: 48),
 
-                // 🔹 iOS일 때만 Apple 로그인 표시
-                if (Platform.isIOS) ...[
-                  const SizedBox(height: 16),
+                  // ========================
+                  // 🔹 Google 로그인
+                  // ========================
                   SizedBox(
                     width: 280,
-                    child: SignInWithAppleButton(
-                      onPressed: _signInWithApple,
-                      style: SignInWithAppleButtonStyle.white, // 흰색 버튼
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final user = await ref
+                            .read(authRepositoryProvider)
+                            .signInWithGoogle();
+                        if (user != null && context.mounted) {
+                          Navigator.pushReplacementNamed(
+                              context, RouteConstants.splash);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 14, horizontal: 20),
+                        elevation: 3,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/images/google_logo.png',
+                              width: 20,
+                              height: 20,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.g_mobiledata,
+                                    size: 20, color: Colors.red);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Google로 로그인',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ========================
+                  // 🍎 iOS일 때만 Apple 로그인
+                  // ========================
+                  if (Platform.isIOS) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: 280,
+                      child: SignInWithAppleButton(
+                        onPressed: _signInWithApple,
+                        style: SignInWithAppleButtonStyle.white,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 24),
+
+                  // ========================
+                  // ⚙️ 운영자 전용 로그인 토글
+                  // ========================
+                  TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showAdminLogin = !_showAdminLogin;
+                      });
+                    },
+                    icon: Icon(
+                      Icons.admin_panel_settings,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
+                    label: Text(
+                      '운영자 전용 로그인',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+
+                  // ========================
+                  // ✉️ 운영자 전용 이메일 로그인 카드
+                  // ========================
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    child: !_showAdminLogin
+                        ? const SizedBox.shrink()
+                        : Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Container(
+                          width: 320,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.18),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: Colors.white70,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      '운영자 · 심사용 계정에만 사용하는 로그인 방식입니다.',
+                                      style: TextStyle(
+                                        color: Colors.white
+                                            .withOpacity(0.75),
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                style:
+                                const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: '이메일',
+                                  labelStyle: TextStyle(
+                                    color:
+                                    Colors.white.withOpacity(0.8),
+                                  ),
+                                  hintText: 'test@daoapp.com',
+                                  hintStyle: TextStyle(
+                                    color:
+                                    Colors.white.withOpacity(0.4),
+                                  ),
+                                  filled: true,
+                                  fillColor:
+                                  Colors.white.withOpacity(0.06),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.white
+                                          .withOpacity(0.2),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF2FE6FF),
+                                      width: 1.4,
+                                    ),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null ||
+                                      value.trim().isEmpty) {
+                                    return '이메일을 입력해주세요.';
+                                  }
+                                  if (!value.contains('@')) {
+                                    return '이메일 형식이 올바르지 않습니다.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              TextFormField(
+                                controller: _passwordController,
+                                obscureText: !_isPasswordVisible,
+                                style:
+                                const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: '비밀번호',
+                                  labelStyle: TextStyle(
+                                    color:
+                                    Colors.white.withOpacity(0.8),
+                                  ),
+                                  filled: true,
+                                  fillColor:
+                                  Colors.white.withOpacity(0.06),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.white
+                                          .withOpacity(0.2),
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius:
+                                    BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFF2FE6FF),
+                                      width: 1.4,
+                                    ),
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _isPasswordVisible
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: Colors.white70,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _isPasswordVisible =
+                                        !_isPasswordVisible;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return '비밀번호를 입력해주세요.';
+                                  }
+                                  if (value.length < 6) {
+                                    return '비밀번호는 6자 이상이어야 합니다.';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: _isEmailLoading
+                                      ? null
+                                      : () => _signInWithEmail(),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                    const Color(0xFF2FE6FF),
+                                    foregroundColor: Colors.black87,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12, horizontal: 20),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                      BorderRadius.circular(30),
+                                    ),
+                                  ),
+                                  child: _isEmailLoading
+                                      ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child:
+                                    CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor:
+                                      AlwaysStoppedAnimation<
+                                          Color>(
+                                        Colors.black87,
+                                      ),
+                                    ),
+                                  )
+                                      : const Text(
+                                    '이메일로 로그인',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
           ),
 
