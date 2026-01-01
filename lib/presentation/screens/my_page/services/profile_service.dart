@@ -64,37 +64,83 @@ class ProfileService extends ChangeNotifier {
     return '+82${digits.substring(1)}';
   }
 
+  /// ✅ 앱이 튕기더라도 다시 돌아왔을 때 폼이 유지되도록,
+  ///    인증 요청 전에 현재 입력값을 Firestore에 초안으로 저장
+  Future<void> _saveDraftBeforePhoneAuth() async {
+    final u = user;
+    if (u == null) return;
+
+    final raw = phoneCtrl.text.trim();
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    String? intl;
+    if (digits.length == 11 && digits.startsWith('0')) {
+      intl = '+82${digits.substring(1)}';
+    }
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(u.uid).set(
+        {
+          'koreanName': koreanNameCtrl.text.trim(),
+          'englishName': englishNameCtrl.text.trim(),
+          'shopName': shopNameCtrl.text.trim(),
+          if (intl != null) 'phoneNumber': intl,
+          // isPhoneVerified는 지금 값 유지
+          'isPhoneVerified': isPhoneVerified,
+          'updatedAt': FieldValue.serverTimestamp(),
+          // ✅ 진행 중인 전화 인증 초안 정보 (verificationId는 나중에 onCodeSent에서 채움)
+          if (intl != null)
+            'phoneAuthDraft': {
+              'phoneNumber': intl,
+              'requestedAt': FieldValue.serverTimestamp(),
+            },
+          // ❗ hasProfile 은 여기서 건들지 않는다 (최종 저장에서만 true)
+        },
+        SetOptions(merge: true),
+      );
+    } catch (_) {
+      // 초안 저장 실패는 크게 떠들 필요 없이 무시 (로그만 남기고 싶으면 print 가능)
+    }
+  }
+
   Future<void> _loadExistingProfile() async {
     final u = user;
     if (u == null) return;
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(u.uid).get();
-      final exists = doc.exists && (doc.data()?['hasProfile'] == true);
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(u.uid).get();
 
-      if (!exists) {
+      if (!doc.exists) {
+        // 🔹 아직 아무 문서도 없는 완전 신규 유저
         isFirstRegistration = true;
         _safeNotify();
         return;
       }
 
       final data = doc.data() ?? {};
+      final hasProfileFlag = data['hasProfile'] == true;
+
+      // 🔹 프로필 전체는 아직 없어도(hasProfile=false),
+      //    휴대폰 인증 정보는 미리 저장될 수 있으므로 무조건 다 읽어옴
+      isFirstRegistration = !hasProfileFlag;
+
       final phoneRaw = data['phoneNumber']?.toString();
 
       String displayPhone = '';
       if (phoneRaw != null && phoneRaw.startsWith('+82')) {
         final digits = phoneRaw.substring(3);
-        // 보통 +82 10xxxxxxxx 또는 10xxxxxxxxx 형태가 들어오므로 아래처럼 표시
         if (digits.length >= 9) {
           final d = digits;
-          // 10 + 8~9 자리 → 010-xxxx-xxxx 형태로 맞추기
-          // digits가 10자리면 3-4-3이 아니라 3-4-4가 더 자연스러워서 아래 처리
           if (d.length == 10) {
-            displayPhone = '0${d.substring(0, 2)}-${d.substring(2, 6)}-${d.substring(6)}'; // 010-1234-5678
+            // 010-1234-5678
+            displayPhone =
+                '0${d.substring(0, 2)}-${d.substring(2, 6)}-${d.substring(6)}';
           } else if (d.length == 9) {
-            displayPhone = '0${d.substring(0, 2)}-${d.substring(2, 5)}-${d.substring(5)}';
+            displayPhone =
+                '0${d.substring(0, 2)}-${d.substring(2, 5)}-${d.substring(5)}';
           } else if (d.length == 11) {
-            displayPhone = '0${d.substring(0, 3)}-${d.substring(3, 7)}-${d.substring(7)}';
+            displayPhone =
+                '0${d.substring(0, 3)}-${d.substring(3, 7)}-${d.substring(7)}';
           } else {
             displayPhone = phoneRaw; // fallback
           }
@@ -117,13 +163,61 @@ class ProfileService extends ChangeNotifier {
       firestoreProfileUrl = data['profileImageUrl']?.toString();
       firestoreBarrelUrl = data['barrelImageUrl']?.toString();
 
+      // ✅ 진행 중인 전화 인증(phoneAuthDraft) 복원
+      final draft = data['phoneAuthDraft'];
+      if (draft is Map<String, dynamic>) {
+        final draftPhone = draft['phoneNumber']?.toString();
+        final draftVerificationId = draft['verificationId']?.toString();
+        final requestedAt = draft['requestedAt'];
+
+        bool isFresh = true;
+        if (requestedAt is Timestamp) {
+          final now = DateTime.now();
+          isFresh = now.difference(requestedAt.toDate()).inMinutes < 10;
+        }
+
+        final alreadyVerified = isPhoneVerified == true;
+
+        if (!alreadyVerified &&
+            draftPhone != null &&
+            draftVerificationId != null &&
+            isFresh) {
+          // 화면용 번호 010-xxxx-xxxx로 포맷
+          String restoreDisplay = phoneCtrl.text;
+          if (draftPhone.startsWith('+82')) {
+            final digits = draftPhone.substring(3);
+            if (digits.length >= 9) {
+              if (digits.length == 10) {
+                restoreDisplay =
+                    '0${digits.substring(0, 2)}-${digits.substring(2, 6)}-${digits.substring(6)}';
+              } else if (digits.length == 9) {
+                restoreDisplay =
+                    '0${digits.substring(0, 2)}-${digits.substring(2, 5)}-${digits.substring(5)}';
+              } else if (digits.length == 11) {
+                restoreDisplay =
+                    '0${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}';
+              }
+            }
+          }
+
+          phoneCtrl.text = restoreDisplay;
+          // 기존 유저라면 "수정 중" 상태로 인식해서 입력칸이 보이도록
+          if (!isFirstRegistration) {
+            isEditingPhone = true;
+          }
+
+          verificationId = draftVerificationId;
+          codeSent = true; // → 인증번호 입력 칸 다시 보이게
+        }
+      }
+
       _safeNotify();
     } catch (e) {
-      // 로드 실패는 조용히(필요하면 로그/스낵바 가능)
       _safeNotify();
     }
   }
 
+  /// ✅ "인증번호 보내기" 버튼 눌렀을 때
   Future<void> sendVerificationCode() async {
     final input = phoneCtrl.text.trim();
     final digits = input.replaceAll(RegExp(r'\D'), '');
@@ -132,6 +226,9 @@ class ProfileService extends ChangeNotifier {
       _showSnackBar('010으로 시작하는 11자리 번호를 입력하세요');
       return;
     }
+
+    // 🔹 여기서 먼저 현재 입력값을 Firestore에 초안으로 저장
+    await _saveDraftBeforePhoneAuth();
 
     final phone = '+82${digits.substring(1)}';
 
@@ -142,13 +239,36 @@ class ProfileService extends ChangeNotifier {
 
     await PhoneAuthService.verifyPhone(
       phone: phone,
-      onCodeSent: (verificationId) {
+      onCodeSent: (verificationId) async {
         if (!context.mounted) return;
+
         this.verificationId = verificationId;
         codeSent = true;
         isVerifying = false;
         _safeNotify();
         _showSnackBar('인증번호가 전송되었습니다');
+
+        // ✅ Firestore의 phoneAuthDraft에 verificationId까지 저장
+        final u = user;
+        if (u != null) {
+          try {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(u.uid)
+                .set(
+              {
+                'phoneAuthDraft': {
+                  'phoneNumber': phone,
+                  'verificationId': verificationId,
+                  'requestedAt': FieldValue.serverTimestamp(),
+                },
+              },
+              SetOptions(merge: true),
+            );
+          } catch (_) {
+            // 저장 실패해도 인증 자체는 진행 가능하니 조용히 무시
+          }
+        }
       },
       onError: (msg) {
         if (!context.mounted) return;
@@ -167,8 +287,11 @@ class ProfileService extends ChangeNotifier {
     );
   }
 
+  /// ✅ 문자로 받은 인증번호 확인 + 서버에 인증 상태 저장
   Future<void> verifyCode() async {
-    if (codeCtrl.text.length != 6 || !RegExp(r'^\d{6}$').hasMatch(codeCtrl.text.trim())) {
+    // 1) 입력값 검증
+    if (codeCtrl.text.length != 6 ||
+        !RegExp(r'^\d{6}$').hasMatch(codeCtrl.text.trim())) {
       _showSnackBar('6자리 숫자 인증번호를 입력하세요');
       return;
     }
@@ -181,8 +304,6 @@ class ProfileService extends ChangeNotifier {
     isVerifying = true;
     _safeNotify();
 
-    final newPhone = _formatToInternational(phoneCtrl.text.trim());
-
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) {
       isVerifying = false;
@@ -191,20 +312,57 @@ class ProfileService extends ChangeNotifier {
       return;
     }
 
+    final newPhoneIntl = _formatToInternational(phoneCtrl.text.trim());
+    if (newPhoneIntl.isEmpty) {
+      isVerifying = false;
+      _safeNotify();
+      _showSnackBar('010으로 시작하는 올바른 번호를 입력해주세요');
+      return;
+    }
+
+    // 2) Firebase Auth 계정에 전화번호 연결(실제 인증 시도)
     final success = await PhoneAuthService.linkPhone(
       verificationId: verificationId!,
       smsCode: codeCtrl.text.trim(),
       currentUser: current,
-      newPhone: newPhone,
+      newPhone: newPhoneIntl,
     );
 
     if (success) {
+      // 3) Firestore(users/{uid})에도 인증 결과 저장
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(current.uid)
+            .set(
+          {
+            'phoneNumber': newPhoneIntl,
+            'isPhoneVerified': true,
+            'updatedAt': FieldValue.serverTimestamp(),
+            // ✅ 진행 중이던 인증 초안 제거
+            'phoneAuthDraft': FieldValue.delete(),
+          },
+          SetOptions(merge: true),
+        );
+      } catch (e) {
+        _showSnackBar(
+          '인증은 완료되었지만 서버 저장 중 문제가 발생했습니다.\n프로필 저장을 한 번 더 시도해주세요.',
+          color: Colors.orange,
+        );
+      }
+
+      // 4) 로컬 상태 정리
       isPhoneVerified = true;
       isEditingPhone = false;
       codeSent = false;
       originalPhone = phoneCtrl.text.trim();
+      verificationId = null;
       codeCtrl.clear();
-      _showSnackBar('휴대폰 번호가 성공적으로 인증되었습니다!', color: Colors.green);
+
+      _showSnackBar(
+        '휴대폰 번호가 성공적으로 인증되었습니다!',
+        color: Colors.green,
+      );
     } else {
       _showSnackBar('인증 실패');
     }
@@ -233,9 +391,12 @@ class ProfileService extends ChangeNotifier {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('사진 삭제'),
-        content: const Text('정말로 이 사진을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.'),
+        content:
+            const Text('정말로 이 사진을 삭제하시겠습니까?\n삭제 후 복구할 수 없습니다.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('취소')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('삭제', style: TextStyle(color: Colors.red)),
@@ -258,7 +419,8 @@ class ProfileService extends ChangeNotifier {
     await ImageUploadService.delete(path);
 
     if (isProfile) {
-      final onlineRef = FirebaseDatabase.instance.ref('online_users/${u.uid}');
+      final onlineRef =
+          FirebaseDatabase.instance.ref('online_users/${u.uid}');
       await onlineRef.update({'photoUrl': ''});
     }
 
@@ -266,10 +428,9 @@ class ProfileService extends ChangeNotifier {
     _safeNotify();
   }
 
-  /// ✅ 기존 호환용: 내부적으로 결과를 만들고, 필요하면 여기서 스낵바만 띄우는 용도로 사용 가능
+  /// ✅ 기존 호환용
   Future<void> save(GlobalKey<FormState> formKey) async {
     final result = await saveAndReturnResult(formKey);
-    // 기존 코드 흐름을 유지하고 싶으면 여기서만 스낵바 처리:
     if (!context.mounted) return;
     _showSnackBar(
       result.message,
@@ -278,23 +439,28 @@ class ProfileService extends ChangeNotifier {
   }
 
   /// ✅ UI(화면)에서 "됐는지/안됐는지" 확실히 알 수 있게 결과를 리턴
-  Future<SaveResult> saveAndReturnResult(GlobalKey<FormState> formKey) async {
+  Future<SaveResult> saveAndReturnResult(
+      GlobalKey<FormState> formKey) async {
     if (_isSaving) {
-      return const SaveResult(success: false, message: '저장 중입니다. 잠시만 기다려주세요.');
+      return const SaveResult(
+          success: false, message: '저장 중입니다. 잠시만 기다려주세요.');
     }
 
     final u = user;
     if (u == null) {
-      return const SaveResult(success: false, message: '로그인 후 이용해주세요.');
+      return const SaveResult(
+          success: false, message: '로그인 후 이용해주세요.');
     }
 
     final formState = formKey.currentState;
     if (formState == null) {
-      return const SaveResult(success: false, message: '폼 상태를 찾을 수 없습니다.');
+      return const SaveResult(
+          success: false, message: '폼 상태를 찾을 수 없습니다.');
     }
 
     if (!formState.validate()) {
-      return const SaveResult(success: false, message: '입력값을 확인해주세요.');
+      return const SaveResult(
+          success: false, message: '입력값을 확인해주세요.');
     }
 
     final phoneInput = phoneCtrl.text.trim();
@@ -302,19 +468,24 @@ class ProfileService extends ChangeNotifier {
 
     String normalize(String s) => s.replaceAll(RegExp(r'\D'), '');
     final normalizedInput = normalize(phoneInput);
-    final normalizedOriginal = originalPhone != null ? normalize(originalPhone!) : '';
-    final isPhoneChanged = !isFirstReg && (normalizedInput != normalizedOriginal);
+    final normalizedOriginal =
+        originalPhone != null ? normalize(originalPhone!) : '';
+    final isPhoneChanged =
+        !isFirstReg && (normalizedInput != normalizedOriginal);
 
     if ((isFirstReg || isPhoneChanged) && !isPhoneVerified) {
-      return const SaveResult(success: false, message: '전화번호 인증을 완료해주세요!');
+      return const SaveResult(
+          success: false, message: '전화번호 인증을 완료해주세요!');
     }
 
     if (codeSent) {
-      return const SaveResult(success: false, message: '인증번호 확인 후 저장해주세요.');
+      return const SaveResult(
+          success: false, message: '인증번호 확인 후 저장해주세요.');
     }
 
     if (isEditingPhone && !isPhoneVerified) {
-      return const SaveResult(success: false, message: '인증을 완료한 후 저장해주세요.');
+      return const SaveResult(
+          success: false, message: '인증을 완료한 후 저장해주세요.');
     }
 
     _isSaving = true;
@@ -325,19 +496,25 @@ class ProfileService extends ChangeNotifier {
       String? barrelUrl;
 
       if (profileImage != null) {
-        profileUrl = await ImageUploadService.upload(profileImage!, 'profiles/${u.uid}');
+        profileUrl =
+            await ImageUploadService.upload(profileImage!, 'profiles/${u.uid}');
       }
       if (barrelImage != null) {
-        barrelUrl = await ImageUploadService.upload(barrelImage!, 'barrels/${u.uid}');
+        barrelUrl =
+            await ImageUploadService.upload(barrelImage!, 'barrels/${u.uid}');
       }
 
       // 국제번호 저장 (+82)
-      final internationalPhone = normalizedInput.isNotEmpty
-          ? '+82${normalizedInput.substring(1)}'
+      final normalizedInput2 = normalizedInput;
+      final internationalPhone = normalizedInput2.isNotEmpty
+          ? '+82${normalizedInput2.substring(1)}'
           : '';
 
       // admin 플래그 보존
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(u.uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(u.uid)
+          .get();
       final isCurrentlyAdmin = (userDoc.data() ?? {})['admin'] == true;
 
       // Firestore set(merge)
@@ -346,7 +523,9 @@ class ProfileService extends ChangeNotifier {
         'englishName': englishNameCtrl.text.trim(),
         'shopName': shopNameCtrl.text.trim(),
 
-        'phoneNumber': internationalPhone.isNotEmpty ? internationalPhone : FieldValue.delete(),
+        'phoneNumber': internationalPhone.isNotEmpty
+            ? internationalPhone
+            : FieldValue.delete(),
         'isPhoneVerified': isPhoneVerified,
 
         'barrelName': barrelNameCtrl.text.trim(),
@@ -357,14 +536,16 @@ class ProfileService extends ChangeNotifier {
         // ✅ 이미지: 새로 업로드된 게 있으면 그걸, 아니면 기존 url 유지(없으면 delete)
         'profileImageUrl': profileImage != null
             ? profileUrl
-            : (firestoreProfileUrl != null && firestoreProfileUrl!.isNotEmpty
-            ? firestoreProfileUrl
-            : FieldValue.delete()),
+            : (firestoreProfileUrl != null &&
+                    firestoreProfileUrl!.isNotEmpty
+                ? firestoreProfileUrl
+                : FieldValue.delete()),
         'barrelImageUrl': barrelImage != null
             ? barrelUrl
-            : (firestoreBarrelUrl != null && firestoreBarrelUrl!.isNotEmpty
-            ? firestoreBarrelUrl
-            : FieldValue.delete()),
+            : (firestoreBarrelUrl != null &&
+                    firestoreBarrelUrl!.isNotEmpty
+                ? firestoreBarrelUrl
+                : FieldValue.delete()),
 
         'hasProfile': true,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -372,21 +553,22 @@ class ProfileService extends ChangeNotifier {
         if (isCurrentlyAdmin) 'admin': true,
       }, SetOptions(merge: true));
 
-      // ✅ RTDB 온라인 사용자에도 반영 (photoUrl은 "최종 프로필 url"로)
-      final finalPhotoUrl = (profileImage != null)
-          ? (profileUrl ?? '')
-          : (firestoreProfileUrl ?? '');
+      // ✅ RTDB 온라인 사용자에도 반영
+      final finalPhotoUrl =
+          (profileImage != null) ? (profileUrl ?? '') : (firestoreProfileUrl ?? '');
 
-      final onlineRef = FirebaseDatabase.instance.ref('online_users/${u.uid}');
+      final onlineRef =
+          FirebaseDatabase.instance.ref('online_users/${u.uid}');
       await onlineRef.update({
         'name': koreanNameCtrl.text.trim(),
         'photoUrl': finalPhotoUrl,
       });
 
-      // ✅ 권한/프로필 플래그 업데이트 함수 (실패해도 저장 자체는 성공으로 처리 가능)
+      // ✅ 권한/프로필 플래그 업데이트 함수
       String? warning;
       try {
-        final callable = FirebaseFunctions.instance.httpsCallable('setHasProfile');
+        final callable =
+            FirebaseFunctions.instance.httpsCallable('setHasProfile');
         await callable.call();
         await FirebaseAuth.instance.currentUser?.reload();
         ref.invalidate(isAdminProvider);
@@ -399,20 +581,20 @@ class ProfileService extends ChangeNotifier {
       isEditingPhone = false;
       codeSent = false;
 
-      // provider invalidate (UI에서 pop은 여기서 하지 말고 화면에서 처리!)
       ref.invalidate(userHasProfileProvider);
 
-      // 저장 성공 메시지(경고 포함)
       if (warning != null) {
-        return SaveResult(success: true, message: '프로필 저장 완료! (참고: $warning)');
+        return SaveResult(
+            success: true,
+            message: '프로필 저장 완료! (참고: $warning)');
       }
       return SaveResult.ok;
     } on FirebaseException catch (e) {
-      // FirebaseException은 메시지를 조금 더 사람이 이해하기 좋게
       final msg = (e.message ?? e.code).toString();
       return SaveResult(success: false, message: '저장 실패: $msg');
     } catch (e) {
-      return SaveResult(success: false, message: '저장 중 오류: $e');
+      return SaveResult(
+          success: false, message: '저장 중 오류: $e');
     } finally {
       _isSaving = false;
       _safeNotify();
@@ -439,16 +621,20 @@ class ProfileService extends ChangeNotifier {
     if (firestoreProfileUrl != null && firestoreProfileUrl!.isNotEmpty) {
       return NetworkImage(firestoreProfileUrl!);
     }
-    if (isFirstRegistration && user?.photoURL != null) return NetworkImage(user!.photoURL!);
+    if (isFirstRegistration && user?.photoURL != null) {
+      return NetworkImage(user!.photoURL!);
+    }
     return null;
   }
 
   DecorationImage? getBarrelDecorationImage() {
     if (barrelImage != null) {
-      return DecorationImage(image: FileImage(barrelImage!), fit: BoxFit.cover);
+      return DecorationImage(
+          image: FileImage(barrelImage!), fit: BoxFit.cover);
     }
     if (firestoreBarrelUrl != null && firestoreBarrelUrl!.isNotEmpty) {
-      return DecorationImage(image: NetworkImage(firestoreBarrelUrl!), fit: BoxFit.cover);
+      return DecorationImage(
+          image: NetworkImage(firestoreBarrelUrl!), fit: BoxFit.cover);
     }
     return null;
   }

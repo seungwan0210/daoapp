@@ -116,7 +116,7 @@ class MyPageScreenBody extends ConsumerWidget {
                             height: 20,
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                            const Icon(Icons.g_mobiledata, size: 20, color: Colors.red),
+                                const Icon(Icons.g_mobiledata, size: 20, color: Colors.red),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -182,12 +182,12 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildFullProfile(
-      BuildContext context,
-      User user,
-      Map<String, dynamic> data,
-      ThemeData theme,
-      WidgetRef ref,
-      ) {
+    BuildContext context,
+    User user,
+    Map<String, dynamic> data,
+    ThemeData theme,
+    WidgetRef ref,
+  ) {
     final profileImageUrl = data['profileImageUrl'] as String?;
     final barrelImageUrl = data['barrelImageUrl'] as String?;
     final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
@@ -235,7 +235,7 @@ class MyPageScreenBody extends ConsumerWidget {
                                 : null,
                             child: profileImageUrl?.isNotEmpty != true
                                 ? const Icon(Icons.account_circle,
-                                size: 44, color: Colors.grey)
+                                    size: 44, color: Colors.grey)
                                 : null,
                           ),
                           ...badgesToShow.asMap().entries.map((entry) {
@@ -383,13 +383,13 @@ class MyPageScreenBody extends ConsumerWidget {
                                 ),
                                 child: barrelImageUrl?.isNotEmpty == true
                                     ? Image.network(
-                                  barrelImageUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                  const Icon(Icons.error),
-                                )
+                                        barrelImageUrl!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.error),
+                                      )
                                     : const Icon(Icons.sports_esports,
-                                    size: 30, color: Colors.grey),
+                                        size: 30, color: Colors.grey),
                               ),
                             ),
                           ),
@@ -430,7 +430,7 @@ class MyPageScreenBody extends ConsumerWidget {
               children: [
                 // 마이로그 (색상 포함)
                 ..._mainFunctions.map(
-                      (item) => _buildIconButton(
+                  (item) => _buildIconButton(
                     context,
                     icon: item.icon,
                     label: item.label,
@@ -481,7 +481,7 @@ class MyPageScreenBody extends ConsumerWidget {
           children: [
             // 마이로그
             ..._mainFunctions.map(
-                  (item) => _buildIconButton(
+              (item) => _buildIconButton(
                 context,
                 icon: item.icon,
                 label: item.label,
@@ -514,18 +514,18 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildIconButton(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        String? route,
-        required Color color,
-        VoidCallback? onTap,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    String? route,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
     final theme = Theme.of(context);
 
     return InkWell(
       onTap: onTap ??
-              () {
+          () {
             if (route != null) {
               Navigator.pushNamed(context, route);
             }
@@ -585,12 +585,12 @@ class MyPageScreenBody extends ConsumerWidget {
     if (confirmed != true) return;
 
     await ref.read(authRepositoryProvider).signOut();
-    await FirebaseFirestore.instance.clearPersistence();
+
     if (context.mounted) {
       Navigator.pushNamedAndRemoveUntil(
         context,
         RouteConstants.login,
-            (route) => false,
+        (route) => false,
       );
     }
   }
@@ -604,7 +604,7 @@ class MyPageScreenBody extends ConsumerWidget {
         title: const Text('계정 삭제'),
         content: const Text(
           'DAO 계정을 삭제하면 프로필 정보와 앱 내 데이터가 삭제되며,\n'
-              '이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?',
+          '이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?',
         ),
         actions: [
           TextButton(
@@ -627,12 +627,11 @@ class MyPageScreenBody extends ConsumerWidget {
     }
   }
 
-  // ✅ 실제 계정 삭제 로직 (수정 버전)
+  // ✅ 실제 계정 삭제 로직 (Auth 먼저 → 데이터 삭제)
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // ✅ context가 나중에 dispose돼도 쓸 수 있게 rootNavigator를 먼저 잡아둠
     final rootNavigator = Navigator.of(context, rootNavigator: true);
 
     // 로딩 다이얼로그
@@ -647,33 +646,36 @@ class MyPageScreenBody extends ConsumerWidget {
     try {
       final uid = user.uid;
 
-      // 1) Firestore 유저 문서 삭제
-      await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-
-      // 2) Firebase Auth 계정 삭제
+      // 1) Firebase Auth 계정 삭제 (가장 민감한 작업 먼저)
       await user.delete();
 
-      // 3) 로컬 캐시 정리 + signOut
-      await FirebaseFirestore.instance.clearPersistence();
+      // 2) Firestore 유저 문서 삭제 (최선의 노력, 실패해도 계정은 이미 삭제됨)
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      } catch (_) {
+        // 필요하면 여기서 로그만 남기고 그냥 진행
+      }
+
+      // 3) signOut (로컬 세션 정리)
       await ref.read(authRepositoryProvider).signOut();
 
-      // ✅ 로딩 다이얼로그 닫기 (context 아니라 rootNavigator 사용)
+      // 로딩 다이얼로그 닫기
       try {
         if (rootNavigator.canPop()) {
           rootNavigator.pop();
         }
       } catch (_) {}
 
-      // ✅ 로그인 화면으로 이동
+      // 로그인 화면으로 이동
       if (context.mounted) {
         Navigator.pushNamedAndRemoveUntil(
           context,
           RouteConstants.login,
-              (route) => false,
+          (route) => false,
         );
       }
     } on FirebaseAuthException catch (e) {
-      // 에러 시에도 다이얼로그 먼저 닫기 시도
+      // 에러 시 로딩 다이얼로그 닫기
       try {
         if (rootNavigator.canPop()) {
           rootNavigator.pop();
@@ -694,9 +696,10 @@ class MyPageScreenBody extends ConsumerWidget {
         );
       }
 
+      // 실패해도 세션은 정리
       await ref.read(authRepositoryProvider).signOut();
     } catch (_) {
-      // 기타 예외도 동일하게 처리
+      // 기타 예외
       try {
         if (rootNavigator.canPop()) {
           rootNavigator.pop();
@@ -744,11 +747,11 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildActionButton(
-      BuildContext context, {
-        required IconData icon,
-        required String label,
-        required VoidCallback onTap,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -783,7 +786,7 @@ class MyPageScreenBody extends ConsumerWidget {
                 imageUrl,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) =>
-                const Icon(Icons.error, color: Colors.white),
+                    const Icon(Icons.error, color: Colors.white),
               ),
             ),
             Positioned(
