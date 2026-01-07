@@ -15,8 +15,7 @@ class CommunityHomeScreen extends ConsumerStatefulWidget {
   const CommunityHomeScreen({super.key});
 
   @override
-  ConsumerState<CommunityHomeScreen> createState() =>
-      _CommunityHomeScreenState();
+  ConsumerState<CommunityHomeScreen> createState() => _CommunityHomeScreenState();
 }
 
 class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
@@ -30,6 +29,35 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
 
   void _goToMyLog() {
     Navigator.pushNamed(context, RouteConstants.myLogHome);
+  }
+
+  /// ✅ UGC(커뮤니티) 동의 저장
+  Future<void> _acceptUgcTerms(String uid) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).set(
+        {
+          'ugcTermsAccepted': true,
+          'ugcTermsAcceptedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('동의 처리 실패: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  /// ✅ (선택) 동의서/가이드 자세히 보기: 프라이버시 페이지로 보내고 싶으면 사용
+  /// - 지금은 라우트가 없을 수 있어서, 버튼은 주석으로 두었어.
+  /// - 프라이버시/약관 라우트가 있으면 여기에 연결하면 돼.
+  void _openTermsDetail() {
+    // 예시:
+    // Navigator.pushNamed(context, RouteConstants.privacy);
   }
 
   @override
@@ -53,17 +81,27 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final data =
-                    snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final hasProfile = data['hasProfile'] == true;
                 final isPhoneVerified = data['isPhoneVerified'] == true;
 
+                // ✅ 1) 프로필/폰 인증 먼저
                 if (!hasProfile || !isPhoneVerified) {
                   return _buildVerificationPrompt(
                     context: context,
                     theme: theme,
                     hasProfile: hasProfile,
                     isPhoneVerified: isPhoneVerified,
+                  );
+                }
+
+                // ✅ 2) UGC 동의 게이트 (커뮤니티 프리뷰가 UGC를 보여주므로 여기서 막는게 정답)
+                final ugcAccepted = data['ugcTermsAccepted'] == true;
+                if (!ugcAccepted) {
+                  return _buildUgcTermsGate(
+                    context: context,
+                    theme: theme,
+                    uid: user.uid,
                   );
                 }
 
@@ -97,8 +135,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                             child: GridView.count(
                               crossAxisCount: 3,
                               shrinkWrap: true,
-                              physics:
-                              const NeverScrollableScrollPhysics(),
+                              physics: const NeverScrollableScrollPhysics(),
                               mainAxisSpacing: 8,
                               crossAxisSpacing: 8,
                               childAspectRatio: 1.2,
@@ -130,12 +167,11 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                       const SizedBox(height: 16),
 
                       // ==========================
-                      // 커뮤니티 프리뷰
+                      // 커뮤니티 프리뷰 (동의 완료 후에만 노출됨)
                       // ==========================
                       CommunityPreview(
                         onSeeAllPressed: () {
-                          Navigator.pushNamed(
-                              context, RouteConstants.circle);
+                          Navigator.pushNamed(context, RouteConstants.circle);
                         },
                       ),
                     ],
@@ -144,9 +180,92 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
               },
             );
           },
-          loading: () =>
-          const Center(child: CircularProgressIndicator()),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => _buildLoginPrompt(context, theme),
+        ),
+      ),
+    );
+  }
+
+  // ==========================
+  // UGC 동의 게이트 UI
+  // ==========================
+  Widget _buildUgcTermsGate({
+    required BuildContext context,
+    required ThemeData theme,
+    required String uid,
+  }) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: AppCard(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.policy_outlined, size: 64, color: Colors.grey[500]),
+                const SizedBox(height: 18),
+                Text(
+                  '커뮤니티 이용 동의가 필요해요',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '커뮤니티에는 사용자가 작성한 글/사진(UGC)이 노출됩니다.\n'
+                      '안전한 이용을 위해 아래 내용에 동의해 주세요.\n\n'
+                      '• 타인을 비방/혐오/차별/괴롭힘하는 콘텐츠 금지\n'
+                      '• 불법/음란/폭력/사기 등 유해 콘텐츠 금지\n'
+                      '• 신고/차단 기능 및 운영 정책에 따라 제재될 수 있음\n'
+                      '• 신고된 콘텐츠는 운영자가 검토할 수 있음',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[800],
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // (선택) 자세히 보기 버튼 — 라우트 준비되면 연결
+                // Align(
+                //   alignment: Alignment.centerRight,
+                //   child: TextButton(
+                //     onPressed: _openTermsDetail,
+                //     child: const Text('자세히 보기'),
+                //   ),
+                // ),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          // ✅ 동의 안 하면 커뮤니티 이용을 막는게 애플 심사상 안전함
+                          // 홈 탭에서는 "아무것도 안 보여주기" 상태로 유지.
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('동의 후 커뮤니티 이용이 가능합니다.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: const Text('동의 안함'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => _acceptUgcTerms(uid),
+                        child: const Text('동의하고 시작'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -161,8 +280,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
         padding: const EdgeInsets.all(24),
         child: AppCard(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: 32, horizontal: 24),
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -197,8 +315,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
         padding: const EdgeInsets.all(24),
         child: AppCard(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-                vertical: 32, horizontal: 24),
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -210,6 +327,15 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge
                       ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  !hasProfile
+                      ? '프로필 등록을 완료해 주세요.'
+                      : '휴대폰 인증을 완료해 주세요.',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[700],
+                  ),
                 ),
               ],
             ),

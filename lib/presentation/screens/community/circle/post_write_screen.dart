@@ -9,7 +9,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:daoapp/data/models/user_model.dart';
 
 class PostWriteScreen extends ConsumerStatefulWidget {
-  // 추가: 마이로그에서 넘어올 때 사용할 초기값
+  // 마이로그에서 넘어올 때 사용할 초기값
   final String? initialContent;
   final File? initialImageFile;
 
@@ -32,14 +32,12 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   String? _postId;
   String? _existingPhotoUrl;
 
-  // 🚩 ModalRoute.of(context)에서 args를 한 번만 읽기 위한 플래그
   bool _initializedFromRoute = false;
 
   @override
   void initState() {
     super.initState();
 
-    // 마이로그에서 넘어온 경우 → 자동으로 내용 + 사진 채우기 (이건 initState에서 해도 됨)
     if (widget.initialContent != null) {
       _contentController.text = widget.initialContent!;
     }
@@ -47,7 +45,6 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
       _image = widget.initialImageFile;
     }
 
-    // 글 내용 바뀔 때마다 상단 "게시" 버튼 활성/비활성 갱신을 위해 리스너 추가
     _contentController.addListener(() {
       if (mounted) setState(() {});
     });
@@ -57,7 +54,6 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // ❗ 여기서부터는 context 기반 의존(ModalRoute)을 안전하게 사용 가능
     if (!_initializedFromRoute) {
       final args =
       ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -72,15 +68,26 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
   }
 
   Future<void> _loadExistingPost(String postId) async {
-    final doc = await FirebaseFirestore.instance
-        .collection('community')
-        .doc(postId)
-        .get();
+    final doc =
+    await FirebaseFirestore.instance.collection('community').doc(postId).get();
     if (!doc.exists) return;
 
     final data = doc.data()!;
-    _contentController.text = data['content'] ?? '';
-    _existingPhotoUrl = data['photoUrl'] as String?;
+    _contentController.text = (data['content'] ?? '').toString();
+
+    // ✅ photoUrl / imageUrls 둘 다 호환
+    final direct = (data['photoUrl'] as String?)?.trim();
+    if (direct != null && direct.isNotEmpty) {
+      _existingPhotoUrl = direct;
+    } else {
+      final dynamic images = data['imageUrls'];
+      if (images is List && images.isNotEmpty) {
+        final first = images.first;
+        if (first is String && first.trim().isNotEmpty) {
+          _existingPhotoUrl = first.trim();
+        }
+      }
+    }
 
     if (mounted) setState(() {});
   }
@@ -93,10 +100,13 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
     }
   }
 
+  bool get _canPost =>
+      _contentController.text.trim().isNotEmpty ||
+          _image != null ||
+          _existingPhotoUrl != null;
+
   Future<void> _upload() async {
-    if (_contentController.text.trim().isEmpty &&
-        _image == null &&
-        _existingPhotoUrl == null) {
+    if (!_canPost) {
       _showSnackBar('내용 또는 사진을 추가해주세요');
       return;
     }
@@ -108,17 +118,24 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
           .collection('users')
           .doc(user.uid)
           .get();
+
+      if (!userDoc.exists || userDoc.data() == null) {
+        throw Exception('유저 정보를 불러올 수 없습니다.');
+      }
+
       final appUser = AppUser.fromMap(user.uid, userDoc.data()!);
 
+      // ✅ 업로드 후 최종 photoUrl
       String? photoUrl = _existingPhotoUrl;
+
+      // 새 이미지 선택되어 있으면 업로드
       if (_image != null) {
+        // 기존 이미지 삭제(선택)
         if (_existingPhotoUrl != null) {
           try {
-            await FirebaseStorage.instance
-                .refFromURL(_existingPhotoUrl!)
-                .delete();
+            await FirebaseStorage.instance.refFromURL(_existingPhotoUrl!).delete();
           } catch (e) {
-            debugPrint('기존 이미지 삭제 실패: $e');
+            debugPrint('기존 이미지 삭제 실패(무시 가능): $e');
           }
         }
 
@@ -126,29 +143,46 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
             .ref()
             .child('community_posts')
             .child('${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
         final uploadTask = await ref.putFile(_image!);
         photoUrl = await uploadTask.ref.getDownloadURL();
       }
 
-      final data = {
-        'userId': user.uid,
-        'userPhotoUrl': appUser.profileImageUrl,
-        'photoUrl': photoUrl,
-        'content': _contentController.text.trim(),
-        'timestamp': FieldValue.serverTimestamp(),
-      };
+      final postRef = FirebaseFirestore.instance.collection('community');
 
       if (_postId == null) {
-        await FirebaseFirestore.instance.collection('community').add({
-          ...data,
+        // ✅ 새 글
+        await postRef.add({
+          'userId': user.uid,
+          'userName': (appUser.koreanName?.trim().isNotEmpty == true)
+              ? appUser.koreanName!.trim()
+              : 'Unknown',
+          'userPhotoUrl': appUser.profileImageUrl,
+          'photoUrl': photoUrl,
+          // ✅ PostCard/Preview 호환용 (있으면 imageUrls 우선)
+          'imageUrls': photoUrl != null ? [photoUrl] : [],
+          'content': _contentController.text.trim(),
           'likes': 0,
           'comments': 0,
+
+          // ✅ 생성/수정 분리
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+
+          // ✅ 기존 코드 호환 위해 timestamp 유지(정렬용)
+          'timestamp': FieldValue.serverTimestamp(),
         });
       } else {
-        await FirebaseFirestore.instance
-            .collection('community')
-            .doc(_postId)
-            .update(data);
+        // ✅ 수정 (createdAt/timestamp는 건드리지 않음)
+        final updateData = <String, dynamic>{
+          'userPhotoUrl': appUser.profileImageUrl,
+          'photoUrl': photoUrl,
+          'imageUrls': photoUrl != null ? [photoUrl] : [],
+          'content': _contentController.text.trim(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+
+        await postRef.doc(_postId).update(updateData);
       }
 
       if (mounted) Navigator.pop(context);
@@ -173,11 +207,6 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
     _contentController.dispose();
     super.dispose();
   }
-
-  bool get _canPost =>
-      _contentController.text.trim().isNotEmpty ||
-          _image != null ||
-          _existingPhotoUrl != null;
 
   @override
   Widget build(BuildContext context) {
@@ -337,14 +366,10 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
             errorBuilder: (_, __, ___) => Container(
               height: 340,
               color: Colors.grey[200],
-              child: const Icon(
-                Icons.error,
-                color: Colors.red,
-              ),
+              child: const Icon(Icons.error, color: Colors.red),
             ),
           ),
         ),
-        // 삭제 버튼
         Positioned(
           top: 12,
           right: 12,
@@ -366,23 +391,17 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.close,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.close, color: Colors.white, size: 20),
             ),
           ),
         ),
-        // 변경 버튼
         Positioned(
           bottom: 12,
           right: 12,
           child: GestureDetector(
             onTap: _pickImage,
             child: Container(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -397,11 +416,8 @@ class _PostWriteScreenState extends ConsumerState<PostWriteScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.photo_library,
-                    size: 16,
-                    color: theme.colorScheme.primary,
-                  ),
+                  Icon(Icons.photo_library,
+                      size: 16, color: theme.colorScheme.primary),
                   const SizedBox(width: 4),
                   Text(
                     "변경",

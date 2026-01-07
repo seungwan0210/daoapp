@@ -88,8 +88,7 @@ class _FadeIn extends StatefulWidget {
   State<_FadeIn> createState() => _FadeInState();
 }
 
-class _FadeInState extends State<_FadeIn>
-    with SingleTickerProviderStateMixin {
+class _FadeInState extends State<_FadeIn> with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 220),
@@ -147,7 +146,8 @@ class _GridSkeletonState extends State<_GridSkeleton>
             base + (amp * (0.5 + 0.5 * (1 - (2 * (t - 0.5)).abs())));
 
         return Container(
-          color: Colors.black12.withValues(alpha: alpha),
+          // ✅ withValues(alpha: )는 버전 이슈 가능 → withOpacity로 안전 처리
+          color: Colors.black12.withOpacity(alpha),
         );
       },
     );

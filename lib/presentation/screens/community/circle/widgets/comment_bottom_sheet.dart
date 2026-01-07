@@ -29,6 +29,8 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
 
+  String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -36,19 +38,184 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     super.dispose();
   }
 
-  // === 댓글 작성 ===
+  // =========================
+  // 차단 목록 Stream (Set)
+  // users/{me}/blockedUsers/{blockedUid}
+  // =========================
+  Stream<Set<String>> _blockedIdsStream(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('blockedUsers')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.id).toSet());
+  }
+
+  // =========================
+  // writerId 추출 (호환)
+  // =========================
+  String? _writerIdFrom(Map<String, dynamic> data) {
+    return (data['writerId'] as String?) ?? (data['userId'] as String?);
+  }
+
+  bool _isBlockedWriter(Map<String, dynamic> data, Set<String> blockedIds) {
+    final w = _writerIdFrom(data);
+    if (w == null || w.trim().isEmpty) return false;
+    return blockedIds.contains(w.trim());
+  }
+
+  // =========================
+  // 신고: 댓글
+  // reports/{reportId}
+  // =========================
+  Future<void> _reportComment({
+    required String postId,
+    required String commentId,
+    required String reportedUserId,
+    required String reason,
+    String? contentPreview,
+  }) async {
+    final reporterUid = _currentUid;
+    if (reporterUid == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('reports').add({
+        'type': 'comment',
+        'postId': postId,
+        'commentId': commentId,
+        'reportedUserId': reportedUserId,
+        'reporterUserId': reporterUid,
+        'reason': reason,
+        'contentPreview': (contentPreview ?? '').toString().trim().isEmpty
+            ? null
+            : contentPreview!.toString().trim().substring(
+          0,
+          (contentPreview.length > 200) ? 200 : contentPreview.length,
+        ),
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('신고가 접수되었습니다')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('신고 실패: $e')),
+        );
+      }
+    }
+  }
+
+  // =========================
+  // 신고 다이얼로그
+  // =========================
+  Future<void> _openReportDialog({
+    required String postId,
+    required String commentId,
+    required String reportedUserId,
+    required String contentPreview,
+  }) async {
+    final reasons = <String>[
+      '스팸/도배',
+      '욕설/비하',
+      '혐오/차별',
+      '성적/선정성',
+      '개인정보 노출',
+      '기타',
+    ];
+
+    String selected = reasons.first;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => AlertDialog(
+          title: const Text('댓글 신고'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text('사유를 선택해 주세요'),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    isExpanded: true,
+                    value: selected,
+                    items: reasons
+                        .map(
+                          (r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(r),
+                      ),
+                    )
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => selected = v);
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '미리보기: ${contentPreview.length > 80 ? contentPreview.substring(0, 80) + '…' : contentPreview}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('신고', style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result == true) {
+      await _reportComment(
+        postId: postId,
+        commentId: commentId,
+        reportedUserId: reportedUserId,
+        reason: selected,
+        contentPreview: contentPreview,
+      );
+    }
+  }
+
+  // =========================
+  // 댓글 작성
+  // =========================
   Future<void> _sendComment() async {
     final text = _controller.text.trim();
     if (text.isEmpty || text.length > 300) return;
 
-    final user = FirebaseAuth.instance.currentUser!;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
     final commentRef = FirebaseFirestore.instance
         .collection('community')
         .doc(widget.postId)
         .collection('comments')
         .doc();
 
-    // ✅ writerId 추가 (룰에서 writerId 기반으로 권한 체크)
     await commentRef.set({
       'userId': user.uid, // 표시/호환용으로 유지
       'writerId': user.uid, // ✅ 권한 체크 핵심
@@ -73,7 +240,9 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     }
   }
 
-  // === 댓글 삭제 ===
+  // =========================
+  // 댓글 삭제
+  // =========================
   Future<void> _deleteComment(String commentId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -128,7 +297,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final currentUserId = _currentUid;
 
     final isAdmin = ref.watch(isAdminProvider).when(
       data: (v) => v,
@@ -163,152 +332,22 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
 
         // === 댓글 리스트 ===
         Expanded(
-          child: StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('community')
-                .doc(widget.postId)
-                .collection('comments')
-                .orderBy('timestamp', descending: true)
-                .snapshots(),
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final docs = snapshot.data!.docs;
-              if (docs.isEmpty) return const Center(child: Text('아직 댓글이 없습니다'));
-
-              return ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: docs.length,
-                itemBuilder: (context, i) {
-                  final doc = docs[i];
-                  final data = doc.data() as Map<String, dynamic>;
-
-                  final commentId = doc.id;
-
-                  // ✅ writerId 우선, 없으면 userId fallback (기존 댓글 호환)
-                  final String? writerId =
-                      (data['writerId'] as String?) ?? (data['userId'] as String?);
-
-                  // 표시/프로필 조회용은 userId를 쓰되, 없으면 writerId fallback
-                  final String? userId =
-                      (data['userId'] as String?) ?? writerId;
-
-                  final content = data['content'] as String? ?? '';
-                  final timestamp = data['timestamp'] as Timestamp?;
-                  final timeStr = timestamp != null
-                      ? AppDateUtils.formatRelativeTime(timestamp.toDate())
-                      : '방금 전';
-
-                  final isMyComment = writerId != null && writerId == currentUserId;
-                  final canDelete = isMyComment || isAdmin;
-
-                  final isLong = content.length > 80 || content.contains('\n');
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 아바타
-                        GestureDetector(
-                          onTap: userId != null ? () => _showProfile(userId) : null,
-                          child: _buildAvatar(userId),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // 이름
-                              userId != null
-                                  ? FutureBuilder<DocumentSnapshot>(
-                                future: FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(userId)
-                                    .get(),
-                                builder: (context, snapshot) {
-                                  String name = '익명';
-                                  if (snapshot.hasData && snapshot.data!.exists) {
-                                    final userData =
-                                    snapshot.data!.data() as Map<String, dynamic>?;
-                                    name = userData?['koreanName']
-                                        ?.toString()
-                                        .trim() ??
-                                        '익명';
-                                  }
-                                  return GestureDetector(
-                                    onTap: () => _showProfile(userId),
-                                    child: Text(
-                                      name,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: theme.colorScheme.primary,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                                  : const Text(
-                                '익명',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-
-                              GestureDetector(
-                                onTap: isLong ? () => _showFullComment('댓글', content) : null,
-                                child: Text(
-                                  content,
-                                  style: const TextStyle(fontSize: 13, color: Colors.black87),
-                                  maxLines: isLong ? 2 : null,
-                                  overflow: isLong ? TextOverflow.ellipsis : null,
-                                ),
-                              ),
-                              if (isLong)
-                                TextButton(
-                                  onPressed: () => _showFullComment('댓글', content),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.zero,
-                                    minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  child: Text(
-                                    '더보기',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: theme.colorScheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              Text(
-                                timeStr,
-                                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (canDelete)
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_horiz, size: 16),
-                            onSelected: (_) => _deleteComment(commentId),
-                            itemBuilder: (_) => const [
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Text('삭제', style: TextStyle(color: Colors.red)),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  );
-                },
+          child: (currentUserId == null)
+              ? _buildCommentsList(
+            theme: theme,
+            isAdmin: isAdmin,
+            currentUserId: currentUserId,
+            blockedIds: const <String>{},
+          )
+              : StreamBuilder<Set<String>>(
+            stream: _blockedIdsStream(currentUserId),
+            builder: (context, blockedSnap) {
+              final blockedIds = blockedSnap.data ?? <String>{};
+              return _buildCommentsList(
+                theme: theme,
+                isAdmin: isAdmin,
+                currentUserId: currentUserId,
+                blockedIds: blockedIds,
               );
             },
           ),
@@ -359,7 +398,193 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     );
   }
 
-  // 아바타 — 완전 안전 (get() 금지!)
+  Widget _buildCommentsList({
+    required ThemeData theme,
+    required bool isAdmin,
+    required String? currentUserId,
+    required Set<String> blockedIds,
+  }) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('community')
+          .doc(widget.postId)
+          .collection('comments')
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final docs = snapshot.data!.docs;
+        if (docs.isEmpty) return const Center(child: Text('아직 댓글이 없습니다'));
+
+        // ✅ 차단 유저 댓글 필터
+        final filteredDocs = docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          return !_isBlockedWriter(data, blockedIds);
+        }).toList();
+
+        if (filteredDocs.isEmpty) {
+          return const Center(child: Text('표시할 댓글이 없습니다'));
+        }
+
+        return ListView.builder(
+          controller: _scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: filteredDocs.length,
+          itemBuilder: (context, i) {
+            final doc = filteredDocs[i];
+            final data = doc.data() as Map<String, dynamic>;
+
+            final commentId = doc.id;
+
+            // ✅ writerId 우선, 없으면 userId fallback (기존 댓글 호환)
+            final String? writerId = _writerIdFrom(data);
+
+            // 표시/프로필 조회용은 userId를 쓰되, 없으면 writerId fallback
+            final String? userId = (data['userId'] as String?) ?? writerId;
+
+            final content = data['content'] as String? ?? '';
+            final timestamp = data['timestamp'] as Timestamp?;
+            final timeStr = timestamp != null
+                ? AppDateUtils.formatRelativeTime(timestamp.toDate())
+                : '방금 전';
+
+            final isMyComment = writerId != null && writerId == currentUserId;
+            final canDelete = isMyComment || isAdmin;
+
+            final isLong = content.length > 80 || content.contains('\n');
+
+            // ✅ 신고 가능: 본인 댓글 제외 + (작성자 id 있어야)
+            final canReport = !isMyComment && (writerId != null && writerId.isNotEmpty);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 아바타
+                  GestureDetector(
+                    onTap: userId != null ? () => _showProfile(userId) : null,
+                    child: _buildAvatar(userId),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 이름
+                        userId != null
+                            ? FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userId)
+                              .get(),
+                          builder: (context, snapshot) {
+                            String name = '익명';
+                            if (snapshot.hasData && snapshot.data!.exists) {
+                              final userData =
+                              snapshot.data!.data() as Map<String, dynamic>?;
+                              name = userData?['koreanName']?.toString().trim() ?? '익명';
+                            }
+                            return GestureDetector(
+                              onTap: () => _showProfile(userId),
+                              child: Text(
+                                name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                            : const Text(
+                          '익명',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+
+                        GestureDetector(
+                          onTap: isLong ? () => _showFullComment('댓글', content) : null,
+                          child: Text(
+                            content,
+                            style: const TextStyle(fontSize: 13, color: Colors.black87),
+                            maxLines: isLong ? 2 : null,
+                            overflow: isLong ? TextOverflow.ellipsis : null,
+                          ),
+                        ),
+                        if (isLong)
+                          TextButton(
+                            onPressed: () => _showFullComment('댓글', content),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              '더보기',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          timeStr,
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ✅ 메뉴: 삭제(내 댓글/관리자), 신고(타인 댓글)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_horiz, size: 16),
+                    onSelected: (value) async {
+                      if (value == 'delete') {
+                        await _deleteComment(commentId);
+                        return;
+                      }
+                      if (value == 'report' && writerId != null) {
+                        await _openReportDialog(
+                          postId: widget.postId,
+                          commentId: commentId,
+                          reportedUserId: writerId,
+                          contentPreview: content,
+                        );
+                        return;
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      if (canReport)
+                        const PopupMenuItem(
+                          value: 'report',
+                          child: Text('신고', style: TextStyle(color: Colors.red)),
+                        ),
+                      if (canDelete)
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('삭제', style: TextStyle(color: Colors.red)),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 아바타 — 안전
   Widget _buildAvatar(String? userId) {
     if (userId == null) {
       return CircleAvatar(
@@ -390,7 +615,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     );
   }
 
-  // 프로필 다이얼로그 — 완전 안전
+  // 프로필 다이얼로그 — 안전
   void _showProfile(String userId) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isMe = currentUid == userId;

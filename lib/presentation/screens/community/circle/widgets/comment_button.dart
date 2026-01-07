@@ -14,23 +14,31 @@ class CommentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => CommentBottomSheet.show(context, postId),
-      child: Row(
-        children: [
-          const Icon(Icons.chat_bubble_outline, size: 24, color: Colors.black87),
-          if (commentsCount > 0) ...[
-            const SizedBox(width: 4),
-            Text(
-              '$commentsCount',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
-            ),
-          ],
-        ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => CommentBottomSheet.show(context, postId),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.chat_bubble_outline, size: 24, color: Colors.black87),
+              if (commentsCount > 0) ...[
+                const SizedBox(width: 4),
+                Text(
+                  '$commentsCount',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }

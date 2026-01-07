@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LikeButton extends ConsumerWidget {
+class LikeButton extends ConsumerStatefulWidget {
   final String postId;
   final String? currentUserId;
   final int likesCount;
@@ -16,35 +16,56 @@ class LikeButton extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (currentUserId == null) {
-      return _buildLikeRow(context, false, likesCount);
+  ConsumerState<LikeButton> createState() => _LikeButtonState();
+}
+
+class _LikeButtonState extends ConsumerState<LikeButton> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = widget.currentUserId;
+
+    if (uid == null) {
+      return _buildLikeRow(context, false, widget.likesCount);
     }
 
+    final likeDocStream = FirebaseFirestore.instance
+        .collection('community')
+        .doc(widget.postId)
+        .collection('likes')
+        .doc(uid)
+        .snapshots();
+
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('community')
-          .doc(postId)
-          .collection('likes')
-          .doc(currentUserId)
-          .snapshots(),
+      stream: likeDocStream,
       builder: (context, snapshot) {
         final isLiked = snapshot.data?.exists ?? false;
-        return GestureDetector(
-          onTap: () => _toggleLike(ref, isLiked),
-          child: _buildLikeRow(context, isLiked, likesCount), // context 전달!
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: _busy ? null : () => _toggleLike(uid: uid, isLiked: isLiked),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: _buildLikeRow(context, isLiked, widget.likesCount),
+            ),
+          ),
         );
       },
     );
   }
 
-  // context 파라미터 추가!
   Widget _buildLikeRow(BuildContext context, bool isLiked, int count) {
+    final iconColor = isLiked ? Colors.red : Colors.grey[600];
+
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
           isLiked ? Icons.favorite : Icons.favorite_border,
-          color: isLiked ? Colors.red : Colors.grey[600], // 빨강 고정
+          color: iconColor,
           size: 24,
         ),
         if (count > 0) ...[
@@ -54,7 +75,7 @@ class LikeButton extends ConsumerWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: isLiked ? Colors.red : Colors.grey[600],
+              color: iconColor,
             ),
           ),
         ],
@@ -62,24 +83,31 @@ class LikeButton extends ConsumerWidget {
     );
   }
 
-  Future<void> _toggleLike(WidgetRef ref, bool isLiked) async {
-    final likeRef = FirebaseFirestore.instance
-        .collection('community')
-        .doc(postId)
-        .collection('likes')
-        .doc(currentUserId);
+  Future<void> _toggleLike({
+    required String uid,
+    required bool isLiked,
+  }) async {
+    setState(() => _busy = true);
 
-    await FirebaseFirestore.instance.runTransaction((transaction) async {
-      final postDoc = await transaction.get(FirebaseFirestore.instance.collection('community').doc(postId));
-      final currentLikes = postDoc.data()?['likes'] ?? 0;
+    try {
+      final postRef =
+      FirebaseFirestore.instance.collection('community').doc(widget.postId);
+      final likeRef = postRef.collection('likes').doc(uid);
 
-      if (isLiked) {
-        transaction.delete(likeRef);
-        transaction.update(FirebaseFirestore.instance.collection('community').doc(postId), {'likes': currentLikes - 1});
-      } else {
-        transaction.set(likeRef, {'timestamp': FieldValue.serverTimestamp()});
-        transaction.update(FirebaseFirestore.instance.collection('community').doc(postId), {'likes': currentLikes + 1});
-      }
-    });
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        if (isLiked) {
+          tx.delete(likeRef);
+          tx.update(postRef, {'likes': FieldValue.increment(-1)});
+        } else {
+          tx.set(likeRef, {'timestamp': FieldValue.serverTimestamp()});
+          tx.update(postRef, {'likes': FieldValue.increment(1)});
+        }
+      });
+    } catch (e) {
+      // 필요하면 스낵바 추가 가능
+      debugPrint('toggleLike error: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 }

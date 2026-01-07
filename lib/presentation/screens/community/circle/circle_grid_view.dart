@@ -20,11 +20,33 @@ class CircleGridView extends StatelessWidget {
 
   static const String _defaultThumbAsset = 'assets/images/circle_main.png';
 
+  String? _extractThumbnailUrl(Map<String, dynamic> data) {
+    // 1) 새 방식: imageUrls 배열
+    final dynamic images = data['imageUrls'];
+    if (images is List && images.isNotEmpty) {
+      final first = images.first;
+      if (first is String && first.trim().isNotEmpty) {
+        return first.trim();
+      }
+    }
+    // 2) 예전 방식: photoUrl 단일 필드
+    final p = (data['photoUrl'] as String?)?.trim();
+    if (p != null && p.isNotEmpty) return p;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (docs.isEmpty) {
+      return const Center(child: Text('표시할 게시물이 없습니다'));
+    }
+    return _buildGrid(context, docs);
+  }
+
+  Widget _buildGrid(BuildContext context, List<QueryDocumentSnapshot> gridDocs) {
     return GridView.builder(
       key: const ValueKey('grid'),
-      controller: scrollController, // ✅ attach 가능하게
+      controller: scrollController,
       padding: const EdgeInsets.all(4),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
@@ -32,27 +54,15 @@ class CircleGridView extends StatelessWidget {
         mainAxisSpacing: 1,
         childAspectRatio: 1,
       ),
-      itemCount: docs.length,
+      itemCount: gridDocs.length,
       itemBuilder: (_, i) {
-        final data = docs[i].data() as Map<String, dynamic>;
-        final postId = docs[i].id;
+        final data = gridDocs[i].data() as Map<String, dynamic>;
+        final postId = gridDocs[i].id;
 
-        // 1) 새 방식: imageUrls 배열
-        final List<dynamic>? images = data['imageUrls'] as List<dynamic>?;
-        String? photoUrl;
-        if (images != null && images.isNotEmpty) {
-          final first = images.first;
-          if (first is String && first.trim().isNotEmpty) {
-            photoUrl = first.trim();
-          }
-        }
+        final photoUrl = _extractThumbnailUrl(data);
+        final hasNetworkPhoto = photoUrl != null && photoUrl.isNotEmpty;
 
-        // 2) 예전 방식: photoUrl 단일 필드
-        photoUrl ??= (data['photoUrl'] as String?)?.trim();
-
-        final hasNetworkPhoto = photoUrl != null && photoUrl!.isNotEmpty;
-
-        // ✅ 사진이 없으면 shrink로 구멍 만들지 말고 "기본 이미지"로 채움
+        // ✅ 사진이 없으면 기본 이미지로 채움
         if (!hasNetworkPhoto) {
           return _DefaultGridTile(
             assetPath: _defaultThumbAsset,
@@ -60,10 +70,9 @@ class CircleGridView extends StatelessWidget {
           );
         }
 
-        // ✅ 사진이 있으면 네트워크 썸네일 (PostGridItem의 로딩/에러 UX 활용)
         return PostGridItem(
           photoUrl: photoUrl!,
-          // heroTag: 'post_$postId', // 필요하면 여기서 켜면 됨
+          // heroTag: 'post_$postId', // 필요하면 켜기
           onTap: () => onItemTap(postId),
         );
       },
@@ -94,7 +103,6 @@ class _DefaultGridTile extends StatelessWidget {
               assetPath,
               fit: BoxFit.cover,
             ),
-            // ✅ "글" 느낌을 아주 약하게 표시(원하면 삭제 가능)
             Positioned(
               top: 6,
               left: 6,

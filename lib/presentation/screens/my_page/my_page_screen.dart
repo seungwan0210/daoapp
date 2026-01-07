@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
@@ -27,7 +29,10 @@ class MyPageScreenBody extends ConsumerWidget {
     final hasProfile = data['hasProfile'] as bool? ?? false;
     final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
     final koreanName = data['koreanName']?.toString().trim();
-    return hasProfile && isPhoneVerified && koreanName != null && koreanName.isNotEmpty;
+    return hasProfile &&
+        isPhoneVerified &&
+        koreanName != null &&
+        koreanName.isNotEmpty;
   }
 
   // 핵심 기능: 현재는 마이로그만 별도로 상수로 관리
@@ -53,7 +58,10 @@ class MyPageScreenBody extends ConsumerWidget {
           data: (user) {
             if (user == null) return _buildLoginPrompt(context);
             return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
@@ -89,21 +97,25 @@ class MyPageScreenBody extends ConsumerWidget {
                 const SizedBox(height: 24),
                 Text(
                   '로그인하면 내 정보를 확인할 수 있어요!',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Google 계정으로 간편하게 시작하세요',
-                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: Colors.grey[600]),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () =>
-                        Navigator.pushReplacementNamed(context, RouteConstants.login),
+                    onPressed: () => Navigator.pushReplacementNamed(
+                      context,
+                      RouteConstants.login,
+                    ),
                     style: theme.elevatedButtonTheme.style,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -115,14 +127,18 @@ class MyPageScreenBody extends ConsumerWidget {
                             width: 20,
                             height: 20,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.g_mobiledata, size: 20, color: Colors.red),
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.g_mobiledata,
+                              size: 20,
+                              color: Colors.red,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         const Text(
                           'Google로 로그인',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -152,13 +168,15 @@ class MyPageScreenBody extends ConsumerWidget {
                   const SizedBox(height: 24),
                   Text(
                     '프로필 등록이 필요해요!',
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w600),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
                   Text(
                     '이름 입력 + 휴대폰 인증을 완료해야\n다른 유저와 소통할 수 있어요',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: Colors.grey[600]),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
@@ -182,12 +200,12 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildFullProfile(
-    BuildContext context,
-    User user,
-    Map<String, dynamic> data,
-    ThemeData theme,
-    WidgetRef ref,
-  ) {
+      BuildContext context,
+      User user,
+      Map<String, dynamic> data,
+      ThemeData theme,
+      WidgetRef ref,
+      ) {
     final profileImageUrl = data['profileImageUrl'] as String?;
     final barrelImageUrl = data['barrelImageUrl'] as String?;
     final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
@@ -215,7 +233,6 @@ class MyPageScreenBody extends ConsumerWidget {
 
     return ListView(
       children: [
-        // 프로필 카드
         AppCard(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -235,7 +252,7 @@ class MyPageScreenBody extends ConsumerWidget {
                                 : null,
                             child: profileImageUrl?.isNotEmpty != true
                                 ? const Icon(Icons.account_circle,
-                                    size: 44, color: Colors.grey)
+                                size: 44, color: Colors.grey)
                                 : null,
                           ),
                           ...badgesToShow.asMap().entries.map((entry) {
@@ -310,7 +327,8 @@ class MyPageScreenBody extends ConsumerWidget {
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                                Icon(Icons.phone,
+                                    size: 14, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
                                 Text(
                                   phoneNumber,
@@ -379,17 +397,18 @@ class MyPageScreenBody extends ConsumerWidget {
                                 height: 60,
                                 decoration: BoxDecoration(
                                   color: Colors.grey[200],
-                                  border: Border.all(color: Colors.grey.shade400),
+                                  border:
+                                  Border.all(color: Colors.grey.shade400),
                                 ),
                                 child: barrelImageUrl?.isNotEmpty == true
                                     ? Image.network(
-                                        barrelImageUrl!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(Icons.error),
-                                      )
+                                  barrelImageUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                  const Icon(Icons.error),
+                                )
                                     : const Icon(Icons.sports_esports,
-                                        size: 30, color: Colors.grey),
+                                    size: 30, color: Colors.grey),
                               ),
                             ),
                           ),
@@ -428,9 +447,8 @@ class MyPageScreenBody extends ConsumerWidget {
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
               children: [
-                // 마이로그 (색상 포함)
                 ..._mainFunctions.map(
-                  (item) => _buildIconButton(
+                      (item) => _buildIconButton(
                     context,
                     icon: item.icon,
                     label: item.label,
@@ -438,7 +456,6 @@ class MyPageScreenBody extends ConsumerWidget {
                     color: item.color,
                   ),
                 ),
-                // ✅ 계정 삭제 (빨간 느낌)
                 _buildIconButton(
                   context,
                   icon: Icons.delete_forever,
@@ -447,7 +464,6 @@ class MyPageScreenBody extends ConsumerWidget {
                   color: Colors.redAccent,
                   onTap: () => _showAccountDeleteDialog(context, ref),
                 ),
-                // 로그아웃 (그레이 느낌)
                 _buildIconButton(
                   context,
                   icon: Icons.logout,
@@ -466,7 +482,6 @@ class MyPageScreenBody extends ConsumerWidget {
     );
   }
 
-  // 프로필 미등록 시에도 사용하는 그리드 (마이로그 + 계정 삭제 + 로그아웃 한 카드)
   Widget _buildFunctionGrid(BuildContext context, WidgetRef ref) {
     return AppCard(
       child: Padding(
@@ -479,9 +494,8 @@ class MyPageScreenBody extends ConsumerWidget {
           mainAxisSpacing: 12,
           crossAxisSpacing: 12,
           children: [
-            // 마이로그
             ..._mainFunctions.map(
-              (item) => _buildIconButton(
+                  (item) => _buildIconButton(
                 context,
                 icon: item.icon,
                 label: item.label,
@@ -489,7 +503,6 @@ class MyPageScreenBody extends ConsumerWidget {
                 color: item.color,
               ),
             ),
-            // 계정 삭제
             _buildIconButton(
               context,
               icon: Icons.delete_forever,
@@ -498,7 +511,6 @@ class MyPageScreenBody extends ConsumerWidget {
               color: Colors.redAccent,
               onTap: () => _showAccountDeleteDialog(context, ref),
             ),
-            // 로그아웃
             _buildIconButton(
               context,
               icon: Icons.logout,
@@ -514,18 +526,18 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildIconButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    String? route,
-    required Color color,
-    VoidCallback? onTap,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        String? route,
+        required Color color,
+        VoidCallback? onTap,
+      }) {
     final theme = Theme.of(context);
 
     return InkWell(
       onTap: onTap ??
-          () {
+              () {
             if (route != null) {
               Navigator.pushNamed(context, route);
             }
@@ -570,13 +582,13 @@ class MyPageScreenBody extends ConsumerWidget {
         title: const Text('로그아웃'),
         content: const Text('정말 로그아웃하시겠습니까?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('취소'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              '로그아웃',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('로그아웃', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -590,12 +602,11 @@ class MyPageScreenBody extends ConsumerWidget {
       Navigator.pushNamedAndRemoveUntil(
         context,
         RouteConstants.login,
-        (route) => false,
+            (route) => false,
       );
     }
   }
 
-  // ✅ 계정 삭제 다이얼로그
   Future<void> _showAccountDeleteDialog(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -604,7 +615,7 @@ class MyPageScreenBody extends ConsumerWidget {
         title: const Text('계정 삭제'),
         content: const Text(
           'DAO 계정을 삭제하면 프로필 정보와 앱 내 데이터가 삭제되며,\n'
-          '이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?',
+              '이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?',
         ),
         actions: [
           TextButton(
@@ -613,10 +624,7 @@ class MyPageScreenBody extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              '계정 삭제',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('계정 삭제', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -627,7 +635,7 @@ class MyPageScreenBody extends ConsumerWidget {
     }
   }
 
-  // ✅ 실제 계정 삭제 로직 (Auth 먼저 → 데이터 삭제)
+  // ✅ 실제 계정 삭제 로직 (서버(Cloud Function)에서 Firestore+Storage+Auth까지 처리)
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -638,32 +646,25 @@ class MyPageScreenBody extends ConsumerWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      final uid = user.uid;
+      // ✅ (중요) region 맞춰서 호출
+      final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
 
-      // 1) Firebase Auth 계정 삭제 (가장 민감한 작업 먼저)
-      await user.delete();
+      // ✅ 서버에서:
+      // - users/{uid} + 관련 컬렉션 문서들 삭제
+      // - 스토리지 이미지 삭제
+      // - 마지막에 Auth 계정 삭제
+      await functions.httpsCallable('requestAccountDeletion').call();
 
-      // 2) Firestore 유저 문서 삭제 (최선의 노력, 실패해도 계정은 이미 삭제됨)
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      } catch (_) {
-        // 필요하면 여기서 로그만 남기고 그냥 진행
-      }
-
-      // 3) signOut (로컬 세션 정리)
+      // ✅ 클라 로컬 세션 정리
       await ref.read(authRepositoryProvider).signOut();
 
       // 로딩 다이얼로그 닫기
       try {
-        if (rootNavigator.canPop()) {
-          rootNavigator.pop();
-        }
+        if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
 
       // 로그인 화면으로 이동
@@ -671,15 +672,29 @@ class MyPageScreenBody extends ConsumerWidget {
         Navigator.pushNamedAndRemoveUntil(
           context,
           RouteConstants.login,
-          (route) => false,
+              (route) => false,
         );
       }
-    } on FirebaseAuthException catch (e) {
-      // 에러 시 로딩 다이얼로그 닫기
+    } on FirebaseFunctionsException catch (e) {
+      // 로딩 다이얼로그 닫기
       try {
-        if (rootNavigator.canPop()) {
-          rootNavigator.pop();
-        }
+        if (rootNavigator.canPop()) rootNavigator.pop();
+      } catch (_) {}
+
+      final msg = _mapAccountDeleteFunctionError(e);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(msg)),
+        );
+      }
+
+      // 상황에 따라 세션 정리(권장: 그대로 유지)
+      // await ref.read(authRepositoryProvider).signOut();
+    } on FirebaseAuthException catch (e) {
+      // 로딩 다이얼로그 닫기
+      try {
+        if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
 
       String message;
@@ -695,15 +710,10 @@ class MyPageScreenBody extends ConsumerWidget {
           SnackBar(content: Text(message)),
         );
       }
-
-      // 실패해도 세션은 정리
-      await ref.read(authRepositoryProvider).signOut();
     } catch (_) {
-      // 기타 예외
+      // 로딩 다이얼로그 닫기
       try {
-        if (rootNavigator.canPop()) {
-          rootNavigator.pop();
-        }
+        if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
 
       if (context.mounted) {
@@ -713,8 +723,26 @@ class MyPageScreenBody extends ConsumerWidget {
           ),
         );
       }
+    }
+  }
 
-      await ref.read(authRepositoryProvider).signOut();
+  String _mapAccountDeleteFunctionError(FirebaseFunctionsException e) {
+    // e.code: unauthenticated / permission-denied / invalid-argument / internal ...
+    switch (e.code) {
+      case 'unauthenticated':
+        return '로그인이 필요합니다. 다시 로그인한 뒤 시도해주세요.';
+      case 'permission-denied':
+        return '권한이 없습니다. 관리자에게 문의해주세요.';
+      case 'deadline-exceeded':
+        return '삭제 작업이 지연되고 있어요. 네트워크 확인 후 다시 시도해주세요.';
+      case 'unavailable':
+        return '서버 연결이 불안정합니다. 잠시 후 다시 시도해주세요.';
+      case 'internal':
+      default:
+      // 서버에서 throw한 기본 메시지가 있으면 그걸 우선
+        final details = (e.message ?? '').trim();
+        if (details.isNotEmpty) return details;
+        return '계정 삭제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
     }
   }
 
@@ -747,11 +775,11 @@ class MyPageScreenBody extends ConsumerWidget {
   }
 
   Widget _buildActionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
+      BuildContext context, {
+        required IconData icon,
+        required String label,
+        required VoidCallback onTap,
+      }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -786,7 +814,7 @@ class MyPageScreenBody extends ConsumerWidget {
                 imageUrl,
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.error, color: Colors.white),
+                const Icon(Icons.error, color: Colors.white),
               ),
             ),
             Positioned(

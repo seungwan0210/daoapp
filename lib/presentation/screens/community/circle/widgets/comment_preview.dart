@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'comment_bottom_sheet.dart';
 
 class CommentPreview extends StatelessWidget {
@@ -13,34 +15,82 @@ class CommentPreview extends StatelessWidget {
     this.currentUserId,
   });
 
+  String? get _uid => FirebaseAuth.instance.currentUser?.uid;
+
+  Stream<Set<String>> _blockedIdsStream(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('blockedUsers')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.id).toSet());
+  }
+
+  String? _writerIdFrom(Map<String, dynamic> data) {
+    // ✅ writerId 우선, 없으면 userId fallback
+    return (data['writerId'] as String?) ?? (data['userId'] as String?);
+  }
+
+  bool _isBlockedWriter(Map<String, dynamic> data, Set<String> blockedIds) {
+    final writerId = _writerIdFrom(data);
+    if (writerId == null || writerId.trim().isEmpty) return false;
+    return blockedIds.contains(writerId.trim());
+  }
+
   @override
   Widget build(BuildContext context) {
+    final uid = _uid;
+
+    // ✅ 로그인/uid 없으면(원칙상 커뮤니티는 로그인 후 이용이지만)
+    // 안전하게 차단 필터 없이 기존 방식으로 렌더
+    if (uid == null) {
+      return _buildCommentPreviewBody(context, const <String>{});
+    }
+
+    return StreamBuilder<Set<String>>(
+      stream: _blockedIdsStream(uid),
+      builder: (context, snap) {
+        final blockedIds = snap.data ?? <String>{};
+        return _buildCommentPreviewBody(context, blockedIds);
+      },
+    );
+  }
+
+  Widget _buildCommentPreviewBody(BuildContext context, Set<String> blockedIds) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
           .doc(postId)
           .collection('comments')
           .orderBy('timestamp', descending: true)
-          .limit(3)
+          .limit(8) // ✅ 차단 필터로 빠질 수 있으니 조금 넉넉히
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return const SizedBox.shrink();
         }
 
-        final docs = snapshot.data!.docs;
+        final allDocs = snapshot.data!.docs;
+
+        // ✅ 차단 유저 댓글 제거
+        final filteredDocs = allDocs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return !_isBlockedWriter(data, blockedIds);
+        }).toList();
+
+        if (filteredDocs.isEmpty) return const SizedBox.shrink();
+
+        // ✅ 프리뷰는 최대 3개만
+        final previewDocs = filteredDocs.take(3).toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ...docs.map((doc) {
+            ...previewDocs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
 
-              // ✅ writerId 우선, 없으면 userId fallback (기존 댓글 호환)
-              final String? writerId =
-                  (data['writerId'] as String?) ?? (data['userId'] as String?);
-
-              final content = data['content'] as String? ?? '';
+              final String? writerId = _writerIdFrom(data);
+              final content = (data['content'] as String?) ?? '';
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
@@ -48,9 +98,7 @@ class CommentPreview extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: writerId != null
-                          ? () => _showProfile(context, writerId)
-                          : null,
+                      onTap: writerId != null ? () => _showProfile(context, writerId) : null,
                       child: _buildAvatar(writerId),
                     ),
                     const SizedBox(width: 8),
@@ -75,23 +123,20 @@ class CommentPreview extends StatelessWidget {
                                   String name = '익명';
                                   if (userSnapshot.hasData &&
                                       userSnapshot.data!.exists) {
-                                    final userData = userSnapshot.data!
-                                        .data() as Map<String, dynamic>?;
+                                    final userData = userSnapshot.data!.data()
+                                    as Map<String, dynamic>?;
                                     name = userData?['koreanName']
                                         ?.toString()
                                         .trim() ??
                                         '익명';
                                   }
                                   return GestureDetector(
-                                    onTap: () =>
-                                        _showProfile(context, writerId),
+                                    onTap: () => _showProfile(context, writerId),
                                     child: Text(
                                       name,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary,
+                                        color: Theme.of(context).colorScheme.primary,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -117,7 +162,9 @@ class CommentPreview extends StatelessWidget {
                 ),
               );
             }).toList(),
-            if (docs.length >= 3)
+
+            // ✅ "댓글 모두 보기"는 차단 제외 후에도 3개 이상일 때만
+            if (filteredDocs.length >= 3)
               TextButton(
                 onPressed: () => CommentBottomSheet.show(context, postId),
                 style: TextButton.styleFrom(
@@ -160,8 +207,7 @@ class CommentPreview extends StatelessWidget {
 
         return CircleAvatar(
           radius: 12,
-          backgroundImage:
-          photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+          backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
           backgroundColor: photoUrl?.isNotEmpty != true ? Colors.grey[300] : null,
           child: photoUrl?.isNotEmpty != true
               ? const Icon(Icons.person, size: 16, color: Colors.white)

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class CommunityPreview extends StatefulWidget {
   final VoidCallback onSeeAllPressed;
@@ -13,13 +14,61 @@ class CommunityPreview extends StatefulWidget {
 
 class _CommunityPreviewState extends State<CommunityPreview> {
   int _tab = 0; // 0: 최근, 1: 인기
-
   static const String _defaultThumbAsset = 'assets/images/circle_main.png';
+
+  String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
+
+  Stream<Set<String>> _blockedIdsStream(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('blockedUsers')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.id).toSet());
+  }
+
+  bool _isBlockedPost(Map<String, dynamic> data, Set<String> blockedIds) {
+    final postUserId = (data['userId'] as String?)?.trim();
+    if (postUserId == null || postUserId.isEmpty) return false;
+    return blockedIds.contains(postUserId);
+  }
+
+  List<QueryDocumentSnapshot> _filterDocs(
+      List<QueryDocumentSnapshot> docs,
+      Set<String> blockedIds,
+      ) {
+    // ✅ 차단 유저 글 제거
+    final filtered = docs.where((d) {
+      final data = d.data() as Map<String, dynamic>;
+      return !_isBlockedPost(data, blockedIds);
+    }).toList();
+
+    return filtered;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final uid = _currentUid;
 
+    // ✅ 로그인 안 했으면 기존처럼 그냥 보여줘도 되지만,
+    // 애플 기준상 "커뮤니티 접근은 로그인 후"로 이미 막아둔 상태라면
+    // 여기서도 uid==null일 때는 빈 UI로 처리해도 됨.
+    // (지금은 최대한 안전하게: uid 없으면 차단 필터 없이 그대로 렌더)
+    if (uid == null) {
+      return _buildBody(context, theme, const <String>{});
+    }
+
+    return StreamBuilder<Set<String>>(
+      stream: _blockedIdsStream(uid),
+      builder: (context, snap) {
+        final blockedIds = snap.data ?? <String>{};
+        return _buildBody(context, theme, blockedIds);
+      },
+    );
+  }
+
+  Widget _buildBody(BuildContext context, ThemeData theme, Set<String> blockedIds) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -48,7 +97,7 @@ class _CommunityPreviewState extends State<CommunityPreview> {
           ),
         ),
 
-        // ✅ 썸네일 영역 (배경/테두리 추가 + 글만 있어도 기본 이미지 표시)
+        // ✅ 썸네일 영역
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
@@ -58,29 +107,32 @@ class _CommunityPreviewState extends State<CommunityPreview> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.grey[200]!),
             ),
-            child: _tab == 0 ? _buildRecentList(context) : _buildPopularList(context),
+            child: _tab == 0
+                ? _buildRecentList(context, blockedIds)
+                : _buildPopularList(context, blockedIds),
           ),
         ),
 
         const SizedBox(height: 10),
 
-        // ✅ (3) 오늘 커뮤니티 요약
+        // ✅ (3) 오늘 커뮤니티 요약 (차단 유저 글 제외)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: _TodayCommunitySummaryCard(),
+          child: _TodayCommunitySummaryCard(blockedIds: blockedIds),
         ),
 
         const SizedBox(height: 10),
 
-        // ✅ (2) 지금 올라온 글 (텍스트 리스트) - 최대 5개 + 최신순
+        // ✅ (2) 지금 올라온 글 (텍스트 리스트) - 차단 유저 글 제외
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _LiveTextPreviewList(
+            blockedIds: blockedIds,
             onTapPost: (postId) {
               if (!context.mounted) return;
               Navigator.pushNamed(context, RouteConstants.circle, arguments: postId);
             },
-            limit: 5, // ✅ 최대 5개
+            limit: 5,
           ),
         ),
 
@@ -89,25 +141,31 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     );
   }
 
-  Widget _buildRecentList(BuildContext context) {
+  Widget _buildRecentList(BuildContext context, Set<String> blockedIds) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
           .orderBy('timestamp', descending: true)
-          .limit(10)
+          .limit(20) // ✅ 필터링으로 줄어들 수 있어서 약간 넉넉히
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const SizedBox();
 
+        final filtered = _filterDocs(docs.cast<QueryDocumentSnapshot>(), blockedIds);
+        if (filtered.isEmpty) return const SizedBox();
+
+        // ✅ 프리뷰는 최대 10개만
+        final shown = filtered.take(10).toList();
+
         return ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          itemCount: docs.length,
+          itemCount: shown.length,
           itemBuilder: (context, i) {
-            final data = docs[i].data() as Map<String, dynamic>;
-            final postId = docs[i].id;
+            final data = shown[i].data() as Map<String, dynamic>;
+            final postId = shown[i].id;
             return _buildPreviewItem(context, data, postId, showComments: true);
           },
         );
@@ -115,25 +173,30 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     );
   }
 
-  Widget _buildPopularList(BuildContext context) {
+  Widget _buildPopularList(BuildContext context, Set<String> blockedIds) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
           .orderBy('likes', descending: true)
-          .limit(10)
+          .limit(30) // ✅ 필터링 대비
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const SizedBox();
 
+        final filtered = _filterDocs(docs.cast<QueryDocumentSnapshot>(), blockedIds);
+        if (filtered.isEmpty) return const SizedBox();
+
+        final shown = filtered.take(10).toList();
+
         return ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          itemCount: docs.length,
+          itemCount: shown.length,
           itemBuilder: (context, i) {
-            final data = docs[i].data() as Map<String, dynamic>;
-            final postId = docs[i].id;
+            final data = shown[i].data() as Map<String, dynamic>;
+            final postId = shown[i].id;
             return _buildPreviewItem(context, data, postId, showComments: false);
           },
         );
@@ -165,7 +228,6 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     final likes = data['likes'] as int? ?? 0;
     final comments = data['comments'] as int? ?? 0;
 
-    // ✅ 글만 있는 게시물도 기본 이미지로 표시
     final bool hasNetworkThumb = photoUrl != null;
 
     return GestureDetector(
@@ -182,14 +244,13 @@ class _CommunityPreviewState extends State<CommunityPreview> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  color: Colors.grey[100], // ✅ 네트워크 로딩 전 배경
+                  color: Colors.grey[100],
                   child: hasNetworkThumb
                       ? Image.network(
                     photoUrl!,
                     fit: BoxFit.cover,
                     width: 92,
                     height: 92,
-                    // ✅ 로딩 중엔 기본 이미지
                     loadingBuilder: (context, child, progress) {
                       if (progress == null) return child;
                       return Image.asset(
@@ -199,7 +260,6 @@ class _CommunityPreviewState extends State<CommunityPreview> {
                         height: 92,
                       );
                     },
-                    // ✅ 에러도 기본 이미지
                     errorBuilder: (context, error, stackTrace) {
                       return Image.asset(
                         _defaultThumbAsset,
@@ -218,7 +278,6 @@ class _CommunityPreviewState extends State<CommunityPreview> {
                 ),
               ),
 
-              // ✅ 글-only 표시(작게)
               if (!hasNetworkThumb)
                 Positioned(
                   top: 6,
@@ -234,7 +293,14 @@ class _CommunityPreviewState extends State<CommunityPreview> {
                       children: [
                         Icon(Icons.notes_rounded, color: Colors.white, size: 12),
                         SizedBox(width: 4),
-                        Text('글', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                        Text(
+                          '글',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -273,7 +339,6 @@ class _CommunityPreviewState extends State<CommunityPreview> {
                 ),
               ),
 
-              // ✅ 살짝 테두리 느낌(흰 배경에서 더 살아남)
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -330,13 +395,20 @@ class _TabChip extends StatelessWidget {
   }
 }
 
-/// ✅ (3) 오늘 커뮤니티 요약 카드
+/// ✅ (3) 오늘 커뮤니티 요약 카드 (차단 유저 글 제외)
 class _TodayCommunitySummaryCard extends StatelessWidget {
-  const _TodayCommunitySummaryCard();
+  final Set<String> blockedIds;
+  const _TodayCommunitySummaryCard({required this.blockedIds});
 
   DateTime _todayStartLocal() {
     final now = DateTime.now();
     return DateTime(now.year, now.month, now.day);
+  }
+
+  bool _isBlockedPost(Map<String, dynamic> data) {
+    final uid = (data['userId'] as String?)?.trim();
+    if (uid == null || uid.isEmpty) return false;
+    return blockedIds.contains(uid);
   }
 
   @override
@@ -356,8 +428,15 @@ class _TodayCommunitySummaryCard extends StatelessWidget {
 
         if (snapshot.hasData) {
           final docs = snapshot.data!.docs;
-          posts = docs.length;
-          for (final d in docs) {
+
+          final filtered = docs.where((d) {
+            final data = d.data() as Map<String, dynamic>;
+            return !_isBlockedPost(data);
+          }).toList();
+
+          posts = filtered.length;
+
+          for (final d in filtered) {
             final data = d.data() as Map<String, dynamic>;
             likes += (data['likes'] as int?) ?? 0;
             comments += (data['comments'] as int?) ?? 0;
@@ -408,14 +487,16 @@ class _MiniStat extends StatelessWidget {
   }
 }
 
-/// ✅ (2) 지금 올라온 글 - 텍스트 미리보기 (사진 없어도 OK)
+/// ✅ (2) 지금 올라온 글 - 텍스트 미리보기 (차단 유저 글 제외)
 class _LiveTextPreviewList extends StatelessWidget {
   final void Function(String postId) onTapPost;
   final int limit;
+  final Set<String> blockedIds;
 
   const _LiveTextPreviewList({
     required this.onTapPost,
     this.limit = 5,
+    required this.blockedIds,
   });
 
   String _safeTitle(Map<String, dynamic> data) {
@@ -430,6 +511,12 @@ class _LiveTextPreviewList extends StatelessWidget {
     return '새 게시글';
   }
 
+  bool _isBlockedPost(Map<String, dynamic> data) {
+    final uid = (data['userId'] as String?)?.trim();
+    if (uid == null || uid.isEmpty) return false;
+    return blockedIds.contains(uid);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -437,13 +524,20 @@ class _LiveTextPreviewList extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
-          .orderBy('timestamp', descending: true) // ✅ 최신순
-          .limit(limit) // ✅ 최대 5개
+          .orderBy('timestamp', descending: true)
+          .limit(30) // ✅ 필터링 대비
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const SizedBox.shrink();
+
+        final filtered = docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          return !_isBlockedPost(data);
+        }).take(limit).toList();
+
+        if (filtered.isEmpty) return const SizedBox.shrink();
 
         return Container(
           padding: const EdgeInsets.all(12),
@@ -463,7 +557,7 @@ class _LiveTextPreviewList extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              ...docs.map((d) {
+              ...filtered.map((d) {
                 final data = d.data() as Map<String, dynamic>;
                 final postId = d.id;
                 final title = _safeTitle(data);

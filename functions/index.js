@@ -1,5 +1,4 @@
 // functions/index.js
-
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
@@ -27,7 +26,7 @@ function getKstDate(date = new Date()) {
 function getYearMonthKey(date = new Date()) {
   const kst = getKstDate(date);
   const year = kst.getUTCFullYear();
-  const month = String(kst.getUTCMonth() + 1).padStart(2, '0'); // ✅ 0~11
+  const month = String(kst.getUTCMonth() + 1).padStart(2, '0');
   return `${year}_${month}`;
 }
 
@@ -56,7 +55,6 @@ async function logFunctionError({
   }
 }
 
-
 // ====================== Finish Route 랭킹: 컬렉션 규칙 ======================
 function getFinishRouteCurrentRankingCollection() {
   return 'finish_route_rankings_current';
@@ -70,14 +68,12 @@ function getFinishRouteMonthlyArchiveDocRef(db, yyyyMm, uid) {
     .doc(uid);
 }
 
-// ✅ (호환용) 예전 방식: finish_route_rankings_2025_12 같은 top-level 컬렉션도 같이 갱신
 function getFinishRouteLegacyMonthlyCollection(yyyyMm) {
   return `finish_route_rankings_${yyyyMm}`;
 }
 
 /**
  * ✅ 점수 계산(클라와 동일 로직)
- * time 40% + optimization 30% + routeMatch 30%
  */
 function calculateFinishRouteScore(data) {
   const elapsedSeconds =
@@ -91,8 +87,6 @@ function calculateFinishRouteScore(data) {
       ? data.routeMatchRate
       : typeof data.routeAccuracy === 'number'
       ? data.routeAccuracy
-      : typeof data.routeMatchRate === 'number'
-      ? data.routeMatchRate
       : 0;
 
   const routeMatchRate = routeMatchRateRaw;
@@ -108,12 +102,10 @@ function calculateFinishRouteScore(data) {
   return { score, timeScore, optimizationRate, routeMatchRate };
 }
 
-// ====================== 기존 함수들 ======================
+// ====================== 기존 함수들 (그대로 유지) ======================
 
-// (Functions 목록에 있던 setCustomClaims 유지)
 exports.setCustomClaims = functions.https.onRequest(async (req, res) => {
   try {
-    // 간단 보호(원하면 더 빡세게 바꿔도 됨)
     const { uid, claims } = req.body || {};
     if (!uid || typeof uid !== 'string') {
       return res.status(400).json({ ok: false, error: 'uid required' });
@@ -159,15 +151,6 @@ exports.cleanupOnlineUsers = functions.pubsub
     return null;
   });
 
-// ====================== ✅ 피니쉬 루트 랭킹 업데이트 (서버 집계) ======================
-/**
- * 트리거: users/{uid}/finish_route_practice/{recordId} 생성 시
- *
- * 갱신 대상(3곳):
- * 1) finish_route_rankings_current/{uid}
- * 2) finish_route_rankings_by_month/{YYYY_MM}/users/{uid}
- * 3) (호환용) finish_route_rankings_{YYYY_MM}/{uid}
- */
 exports.updateMonthlyFinishRouteRanking = functions.firestore
   .document('users/{userId}/finish_route_practice/{recordId}')
   .onCreate(async (snap, context) => {
@@ -185,7 +168,6 @@ exports.updateMonthlyFinishRouteRanking = functions.firestore
 
       const yyyyMm = getYearMonthKey(recordDate);
 
-      // 유저 이름
       const userDoc = await db.collection('users').doc(uid).get();
       const koreanName = userDoc.exists
         ? (userDoc.data()?.koreanName || '이름 없음')
@@ -196,24 +178,22 @@ exports.updateMonthlyFinishRouteRanking = functions.firestore
       const elapsedSeconds =
         typeof data.elapsedSeconds === 'number' ? data.elapsedSeconds : 999999;
 
-      // NaN 방지
       const safeScore = Number.isFinite(Number(score)) ? Number(score) : 0;
-      const safeElapsed = Number.isFinite(Number(elapsedSeconds)) ? Number(elapsedSeconds) : 999999;
+      const safeElapsed = Number.isFinite(Number(elapsedSeconds))
+        ? Number(elapsedSeconds)
+        : 999999;
 
       const newRecord = {
         uid,
         koreanName,
         score: safeScore,
         elapsedSeconds: safeElapsed,
-
         successRate: typeof data.successRate === 'number' ? data.successRate : 0,
         avgDarts: typeof data.avgDarts === 'number' ? data.avgDarts : 99.9,
         optimizationRate:
           typeof data.optimizationRate === 'number' ? data.optimizationRate : 0,
-
         routeMatchRate,
         routeAccuracy: routeMatchRate,
-
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         sessionId: snap.id,
         monthKey: yyyyMm,
@@ -230,14 +210,12 @@ exports.updateMonthlyFinishRouteRanking = functions.firestore
         .doc(uid);
 
       await db.runTransaction(async (tx) => {
-        // ✅ 1) READ 3개 먼저
         const [currentSnap, archiveSnap, legacySnap] = await Promise.all([
           tx.get(currentRef),
           tx.get(archiveRef),
           tx.get(legacyRef),
         ]);
 
-        // ✅ 2) 업데이트 여부 계산
         const decideUpdate = (prevSnap, { isCurrent }) => {
           if (!prevSnap.exists) return true;
 
@@ -247,10 +225,7 @@ exports.updateMonthlyFinishRouteRanking = functions.firestore
 
           if (isCurrent) {
             const prevMonthKey = (prev.monthKey || '').toString();
-            if (prevMonthKey && prevMonthKey !== yyyyMm) {
-              // 달 바뀌면 current는 리셋
-              return true;
-            }
+            if (prevMonthKey && prevMonthKey !== yyyyMm) return true;
           }
 
           if (safeScore < prevScore) return false;
@@ -262,17 +237,16 @@ exports.updateMonthlyFinishRouteRanking = functions.firestore
         const shouldUpdateArchive = decideUpdate(archiveSnap, { isCurrent: false });
         const shouldUpdateLegacy = decideUpdate(legacySnap, { isCurrent: false });
 
-        // ✅ 3) SET 3개를 마지막에 몰아서
         if (shouldUpdateCurrent) tx.set(currentRef, newRecord, { merge: true });
         if (shouldUpdateArchive) tx.set(archiveRef, newRecord, { merge: true });
         if (shouldUpdateLegacy) tx.set(legacyRef, newRecord, { merge: true });
       });
 
       console.log(
-        `[FinishRoute 랭킹 처리 OK] uid=${uid} name=${koreanName} score=${safeScore} time=${safeElapsed}s month=${yyyyMm}`,
+        `[FinishRoute OK] uid=${uid} name=${koreanName} score=${safeScore} time=${safeElapsed}s month=${yyyyMm}`,
       );
     } catch (e) {
-      console.error('[FinishRoute] 랭킹 업데이트 실패:', e, e?.stack);
+      console.error('[FinishRoute] 실패:', e, e?.stack);
 
       await logFunctionError({
         functionName: 'updateMonthlyFinishRouteRanking',
@@ -294,8 +268,6 @@ exports.updateMonthlyFinishRouteRanking = functions.firestore
     return null;
   });
 
-
-// ====================== (Functions 목록에 있던) Checkout 랭킹: 안전하게 유지 ======================
 exports.updateMonthlyCheckoutRanking = functions.firestore
   .document('users/{userId}/checkout_practice/{recordId}')
   .onCreate(async (snap, context) => {
@@ -309,7 +281,6 @@ exports.updateMonthlyCheckoutRanking = functions.firestore
     return null;
   });
 
-// ====================== (Functions 목록에 있던) 월간 배지 지급: 삭제 방지용 ======================
 exports.grantMonthlyBadges = functions.pubsub
   .schedule('every 24 hours')
   .timeZone('Asia/Seoul')
@@ -318,7 +289,7 @@ exports.grantMonthlyBadges = functions.pubsub
     return null;
   });
 
-// ====================== 참가자 명단 CSV 생성 ======================
+// ====================== 참가자 명단 CSV 생성 (기존 유지) ======================
 function buildEntriesCsv(entriesDocs) {
   let csv = '\uFEFFnameKo,nameEn,phone,email,rating,homeShop,createdAt\n';
 
@@ -391,7 +362,6 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
   }
 }
 
-// 자동 발송 - 한국시간 기준 매시간 실행
 exports.sendTournamentEntrySummary = functions.pubsub
   .schedule('every 60 minutes')
   .timeZone('Asia/Seoul')
@@ -453,7 +423,6 @@ exports.sendTournamentEntrySummary = functions.pubsub
     return null;
   });
 
-// 관리자 전용 테스트 함수
 exports.testSendEntrySummary = functions.https.onCall(async (data, context) => {
   if (!context.auth || context.auth.uid !== 'NanHPgCdsbMCFkHEs7MtxS51OSX2') {
     throw new functions.https.HttpsError(
@@ -489,3 +458,354 @@ exports.testSendEntrySummary = functions.https.onCall(async (data, context) => {
 
   return { success: true, message: '테스트 메일이 발송되었습니다!' };
 });
+
+// ======================================================================
+// ✅✅✅ 여기부터 “삭제 시스템” 추가 (계정삭제 + 문서삭제시 스토리지 자동정리)
+// ======================================================================
+
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
+
+// URL → storage path 추출
+function extractStoragePathFromUrl(url) {
+  try {
+    if (!url || typeof url !== 'string') return null;
+
+    // 1) gs://bucket/path
+    if (url.startsWith('gs://')) {
+      // gs://<bucket>/<path>
+      const without = url.replace('gs://', '');
+      const firstSlash = without.indexOf('/');
+      if (firstSlash < 0) return null;
+      return without.substring(firstSlash + 1);
+    }
+
+    // 2) https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>?...
+    const marker = '/o/';
+    const i = url.indexOf(marker);
+    if (i < 0) return null;
+
+    const after = url.substring(i + marker.length);
+    const q = after.indexOf('?');
+    const encodedPath = q >= 0 ? after.substring(0, q) : after;
+    const path = decodeURIComponent(encodedPath); // %2F → /
+    return path || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function deleteStorageByUrl(url) {
+  const path = extractStoragePathFromUrl(url);
+  if (!path) return;
+
+  try {
+    await bucket.file(path).delete({ ignoreNotFound: true });
+  } catch (e) {
+    // 파일이 이미 없거나 권한 문제일 수 있음 → 에러로 중단시키지 않음
+    console.warn('[deleteStorageByUrl] failed:', path, e?.message || e);
+  }
+}
+
+async function deleteManyStorageUrls(urls) {
+  const uniq = new Set();
+  for (const u of urls) {
+    if (typeof u === 'string' && u.trim()) uniq.add(u.trim());
+  }
+  const tasks = [...uniq].map((u) => deleteStorageByUrl(u));
+  await Promise.all(tasks);
+}
+
+// Firestore 문서(서브컬렉션 포함) 삭제
+async function safeRecursiveDelete(docRef) {
+  try {
+    await db.recursiveDelete(docRef);
+  } catch (e) {
+    // recursiveDelete가 환경에서 막히면 fallback: 그냥 doc만 삭제
+    console.warn('[safeRecursiveDelete] fallback doc.delete()', e?.message || e);
+    await docRef.delete().catch(() => {});
+  }
+}
+
+// Query 결과 여러 문서 삭제(서브컬렉션 포함)
+async function deleteDocsByQuery(query, options = {}) {
+  const { beforeDeleteEach } = options;
+  const snap = await query.get();
+  if (snap.empty) return 0;
+
+  for (const d of snap.docs) {
+    try {
+      if (beforeDeleteEach) {
+        await beforeDeleteEach(d);
+      }
+      await safeRecursiveDelete(d.ref);
+    } catch (e) {
+      console.warn('[deleteDocsByQuery] failed:', d.ref.path, e?.message || e);
+    }
+  }
+  return snap.size;
+}
+
+// --------------------------------------------------------------
+// ✅ 1) 계정삭제: 로그인된 유저가 버튼 누르면 “전체 삭제”
+// --------------------------------------------------------------
+exports.requestAccountDeletion = functions
+  .region('asia-northeast3')
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', '로그인 필요');
+    }
+
+    const uid = context.auth.uid;
+
+    // (중요) 마지막에 auth 삭제할 거라서, 여기서 오래 걸려도 됨
+    // 다만 너무 큰 데이터면 1~2분 걸릴 수 있어.
+    const deletionReport = {
+      uid,
+      deleted: {
+        usersDoc: false,
+        communityPosts: 0,
+        myLogs: 0,
+        tournaments: 0,
+        finishRouteRankingDocs: 0,
+      },
+      storageFilesAttempted: 0,
+      startedAt: Date.now(),
+    };
+
+    // 혹시 대비용: 삭제 작업 로그 남기고 싶으면
+    const jobRef = db.collection('account_deletion_jobs').doc(uid);
+    await jobRef.set(
+      { uid, status: 'running', startedAt: admin.firestore.FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+
+    try {
+      // --------------------------
+      // A) users/{uid} 문서 + 유저 이미지 삭제
+      // --------------------------
+      const userDocRef = db.collection('users').doc(uid);
+      const userSnap = await userDocRef.get();
+      if (userSnap.exists) {
+        const u = userSnap.data() || {};
+        const urls = [
+          u.profileImageUrl,
+          u.barrelImageUrl,
+          u.photoURL,
+          u.photoUrl,
+        ].filter(Boolean);
+
+        deletionReport.storageFilesAttempted += urls.length;
+        await deleteManyStorageUrls(urls);
+
+        // users 문서 자체(서브컬렉션 포함) 삭제
+        await safeRecursiveDelete(userDocRef);
+        deletionReport.deleted.usersDoc = true;
+      }
+
+      // --------------------------
+      // B) community: userId == uid 인 글 삭제 (+ 사진 삭제)
+      //  - comments/likes 서브컬렉션까지 같이 삭제됨
+      // --------------------------
+      const communityQuery = db.collection('community').where('userId', '==', uid);
+      const deletedCommunityCount = await deleteDocsByQuery(communityQuery, {
+        beforeDeleteEach: async (docSnap) => {
+          const p = docSnap.data() || {};
+          const urls = [p.photoUrl, p.userPhotoUrl].filter(Boolean);
+          deletionReport.storageFilesAttempted += urls.length;
+          await deleteManyStorageUrls(urls);
+        },
+      });
+      deletionReport.deleted.communityPosts = deletedCommunityCount;
+
+      // --------------------------
+      // C) my_logs: userId == uid 인 로그 삭제 (+ photoUrls 삭제)
+      // --------------------------
+      const myLogsQuery = db.collection('my_logs').where('userId', '==', uid);
+      const deletedMyLogsCount = await deleteDocsByQuery(myLogsQuery, {
+        beforeDeleteEach: async (docSnap) => {
+          const m = docSnap.data() || {};
+          const photoUrls = m.photoUrls;
+
+          let urls = [];
+          // photoUrls가 배열/맵/단일문자열 어떤 형태든 최대한 커버
+          if (Array.isArray(photoUrls)) {
+            urls = photoUrls;
+          } else if (photoUrls && typeof photoUrls === 'object') {
+            urls = Object.values(photoUrls);
+          } else if (typeof photoUrls === 'string') {
+            urls = [photoUrls];
+          }
+
+          urls = urls.filter((x) => typeof x === 'string' && x.trim());
+          deletionReport.storageFilesAttempted += urls.length;
+          await deleteManyStorageUrls(urls);
+        },
+      });
+      deletionReport.deleted.myLogs = deletedMyLogsCount;
+
+      // --------------------------
+      // D) tournaments: "운영 대회도 삭제"라고 했으니
+      //    createdByUid == uid 인 것만이 아니라,
+      //    유저가 만든 대회/운영 대회 구분 없이 "그 유저가 만든 것만" 삭제는 의미가 없어짐.
+      //
+      //    여기서 네 요구는 "계정삭제한 유저가 만든 모든 대회 삭제"가 가장 합리적임.
+      //    (운영대회도 삭제 = 운영자 계정으로 만든 대회도, 그 운영자 계정 삭제 시 같이 삭제)
+      // --------------------------
+      const tournamentsQuery = db.collection('tournaments').where('createdByUid', '==', uid);
+      const deletedTournamentsCount = await deleteDocsByQuery(tournamentsQuery, {
+        beforeDeleteEach: async (docSnap) => {
+          const t = docSnap.data() || {};
+          const urls = [t.posterUrl].filter(Boolean);
+          deletionReport.storageFilesAttempted += urls.length;
+          await deleteManyStorageUrls(urls);
+        },
+      });
+      deletionReport.deleted.tournaments = deletedTournamentsCount;
+
+      // --------------------------
+      // E) finish_route rankings: uid 문서 삭제
+      // 1) finish_route_rankings_current/{uid}
+      // 2) finish_route_rankings_by_month/{YYYY_MM}/users/{uid}
+      // 3) legacy finish_route_rankings_{YYYY_MM}/{uid} (월키 기반)
+      // --------------------------
+      let finishRouteDeleted = 0;
+
+      // current
+      await db.collection('finish_route_rankings_current').doc(uid).delete().catch(() => {});
+      finishRouteDeleted += 1;
+
+      // by_month: 모든 월 문서 읽어서 users/{uid} 삭제 + legacy도 같이 정리
+      const monthSnap = await db.collection('finish_route_rankings_by_month').get();
+      for (const monthDoc of monthSnap.docs) {
+        const monthKey = monthDoc.id;
+
+        await monthDoc.ref.collection('users').doc(uid).delete().catch(() => {});
+        finishRouteDeleted += 1;
+
+        // legacy
+        await db.collection(`finish_route_rankings_${monthKey}`).doc(uid).delete().catch(() => {});
+        finishRouteDeleted += 1;
+      }
+
+      // 혹시 월 문서가 하나도 없을 때 대비: 이번달 legacy도 한번 더 시도
+      const nowMonthKey = getYearMonthKey(new Date());
+      await db.collection(`finish_route_rankings_${nowMonthKey}`).doc(uid).delete().catch(() => {});
+      finishRouteDeleted += 1;
+
+      deletionReport.deleted.finishRouteRankingDocs = finishRouteDeleted;
+
+      // --------------------------
+      // F) 마지막: Auth 계정 삭제 (진짜 마지막에!)
+      // --------------------------
+      await admin.auth().deleteUser(uid);
+
+      deletionReport.finishedAt = Date.now();
+      deletionReport.ms = deletionReport.finishedAt - deletionReport.startedAt;
+
+      await jobRef.set(
+        {
+          status: 'done',
+          finishedAt: admin.firestore.FieldValue.serverTimestamp(),
+          report: deletionReport,
+        },
+        { merge: true },
+      );
+
+      return { ok: true, report: deletionReport };
+    } catch (e) {
+      console.error('[requestAccountDeletion] failed:', e);
+
+      await jobRef.set(
+        {
+          status: 'failed',
+          error: String(e?.message || e),
+          failedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      throw new functions.https.HttpsError(
+        'internal',
+        '계정 삭제 처리 중 오류가 발생했습니다.',
+      );
+    }
+  });
+
+// --------------------------------------------------------------
+// ✅ 2) 문서가 삭제되면 Storage도 자동 삭제 (어드민 운영데이터 포함)
+// --------------------------------------------------------------
+async function cleanupImageFieldOnDelete(snap, fieldNames = []) {
+  const data = snap.data() || {};
+  const urls = [];
+  for (const f of fieldNames) {
+    const v = data[f];
+    if (Array.isArray(v)) urls.push(...v);
+    else if (v && typeof v === 'object') urls.push(...Object.values(v));
+    else if (typeof v === 'string') urls.push(v);
+  }
+  await deleteManyStorageUrls(urls);
+}
+
+// sponsors: imageUrl
+exports.onSponsorDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('sponsors/{docId}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['imageUrl']);
+    return null;
+  });
+
+// competition_photos: imageUrl
+exports.onCompetitionPhotoDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('competition_photos/{docId}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['imageUrl']);
+    return null;
+  });
+
+// news: imageUrl
+exports.onNewsDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('news/{docId}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['imageUrl']);
+    return null;
+  });
+
+// tournaments: posterUrl (어드민이 대회 삭제해도 스토리지 정리)
+exports.onTournamentDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('tournaments/{tournamentId}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['posterUrl']);
+    return null;
+  });
+
+// community: photoUrl, userPhotoUrl (글 삭제시 스토리지 정리)
+exports.onCommunityPostDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('community/{postId}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['photoUrl', 'userPhotoUrl']);
+    return null;
+  });
+
+// my_logs: photoUrls (로그 삭제시 스토리지 정리)
+exports.onMyLogDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('my_logs/{logId}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['photoUrls']);
+    return null;
+  });
+
+// users: profileImageUrl, barrelImageUrl, photoURL (유저 문서 삭제시 스토리지 정리)
+exports.onUserDeleted = functions
+  .region('asia-northeast3')
+  .firestore.document('users/{uid}')
+  .onDelete(async (snap) => {
+    await cleanupImageFieldOnDelete(snap, ['profileImageUrl', 'barrelImageUrl', 'photoURL', 'photoUrl']);
+    return null;
+  });

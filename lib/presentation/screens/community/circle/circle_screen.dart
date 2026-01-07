@@ -12,6 +12,7 @@ import 'package:daoapp/presentation/providers/circle_feed_provider.dart';
 import 'package:daoapp/presentation/screens/community/circle/circle_grid_view.dart';
 import 'package:daoapp/presentation/screens/community/circle/circle_list_view.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_avatar_slider.dart';
+import 'package:daoapp/presentation/widgets/app_card.dart';
 
 enum FeedMode { grid, list }
 
@@ -72,6 +73,111 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
     });
   }
 
+  /// ✅ UGC(커뮤니티) 동의 저장
+  Future<void> _acceptUgcTerms(String uid) async {
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).set(
+        {
+          'ugcTermsAccepted': true,
+          'ugcTermsAcceptedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('동의 처리 실패: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ==========================
+  // ✅ 차단 유저 목록(IDs) 스트림
+  // ==========================
+  Stream<Set<String>> _blockedIdsStream(String uid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('blockedUsers')
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => d.id).toSet());
+  }
+
+  // ==========================
+  // ✅ 차단 필터 적용된 docs 만들기
+  // ==========================
+  List<QueryDocumentSnapshot> _filterBlockedDocs(
+      List<QueryDocumentSnapshot> docs,
+      Set<String> blockedIds,
+      ) {
+    return docs.where((d) {
+      final data = d.data() as Map<String, dynamic>;
+      final postUserId = (data['userId'] as String?)?.trim();
+      if (postUserId == null || postUserId.isEmpty) return true;
+      return !blockedIds.contains(postUserId);
+    }).toList();
+  }
+
+  // ==========================
+  // ✅ Grid/List 공통 렌더
+  // ==========================
+  Widget _buildFeed({
+    required List<QueryDocumentSnapshot> docs,
+    required String? currentUserId,
+  }) {
+    // ✅ List는 postId별로 key를 달리해서 전환 시 “상태 꼬임/튕김” 방지
+    final listKey = ValueKey('list_${_initialPostId ?? 'top'}');
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      reverseDuration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+
+      // ✅ Fade + 살짝 Slide 업
+      transitionBuilder: (child, animation) {
+        final fade = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+
+        final slideTween = Tween<Offset>(
+          begin: const Offset(0, 0.03),
+          end: Offset.zero,
+        ).chain(
+          CurveTween(curve: Curves.easeOutCubic),
+        );
+
+        return FadeTransition(
+          opacity: fade,
+          child: SlideTransition(
+            position: animation.drive(slideTween),
+            child: child,
+          ),
+        );
+      },
+
+      child: _mode == FeedMode.grid
+          ? CircleGridView(
+        key: const ValueKey('grid'),
+        docs: docs,
+        onItemTap: _switchToListMode,
+        // ✅ 이제 GridView 내부에서 차단 필터를 또 하지 않아도 됨
+        // currentUserId: currentUserId, // (원하면 CircleGridView에서 제거 가능)
+        scrollController: _gridScrollController,
+      )
+          : CircleListView(
+        key: listKey,
+        docs: docs,
+        currentUserId: currentUserId,
+        initialPostId: _initialPostId,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -108,9 +214,21 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final hasProfile = snapshot.data?.get('hasProfile') ?? false;
+                final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+
+                final hasProfile = data['hasProfile'] == true;
                 if (!hasProfile) {
                   return const Center(child: Text('프로필 등록 후 이용 가능합니다'));
+                }
+
+                // ✅ CommunityHomeScreen에서 막았어도, CircleScreen에서 한번 더 막기(보험)
+                final ugcAccepted = data['ugcTermsAccepted'] == true;
+                if (!ugcAccepted) {
+                  return _buildUgcTermsGate(
+                    context: context,
+                    theme: Theme.of(context),
+                    uid: user.uid,
+                  );
                 }
 
                 return Column(
@@ -131,53 +249,36 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
                             return const Center(child: Text('아직 게시물이 없습니다'));
                           }
 
-                          // ✅ List는 postId별로 key를 달리해서 전환 시 “상태 꼬임/튕김” 방지
-                          final listKey =
-                          ValueKey('list_${_initialPostId ?? 'top'}');
-
-                          return AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 260),
-                            reverseDuration: const Duration(milliseconds: 220),
-                            switchInCurve: Curves.easeOutCubic,
-                            switchOutCurve: Curves.easeInCubic,
-
-                            // ✅ Fade + 살짝 Slide 업
-                            transitionBuilder: (child, animation) {
-                              final fade = CurvedAnimation(
-                                parent: animation,
-                                curve: Curves.easeOut,
-                              );
-
-                              final slideTween = Tween<Offset>(
-                                begin: const Offset(0, 0.03),
-                                end: Offset.zero,
-                              ).chain(
-                                CurveTween(curve: Curves.easeOutCubic),
-                              );
-
-                              return FadeTransition(
-                                opacity: fade,
-                                child: SlideTransition(
-                                  position: animation.drive(slideTween),
-                                  child: child,
-                                ),
-                              );
-                            },
-
-                            child: _mode == FeedMode.grid
-                                ? CircleGridView(
-                              key: const ValueKey('grid'),
-                              docs: docs,
-                              onItemTap: _switchToListMode,
-                              // ✅ Grid 스크롤 컨트롤러 연결(선택)
-                              scrollController: _gridScrollController,
-                            )
-                                : CircleListView(
-                              key: listKey,
+                          // ✅ 여기서 “한 번만” 차단 필터를 걸어서
+                          // Grid/List 둘 다 같은 docs를 쓰게 만들면
+                          // 스크롤 index가 밀리는 문제가 사라짐.
+                          if (currentUserId == null) {
+                            return _buildFeed(
                               docs: docs,
                               currentUserId: currentUserId,
-                              initialPostId: _initialPostId,
-                            ),
+                            );
+                          }
+
+                          return StreamBuilder<Set<String>>(
+                            stream: _blockedIdsStream(currentUserId),
+                            builder: (context, blockedSnap) {
+                              final blockedIds =
+                                  blockedSnap.data ?? <String>{};
+
+                              final visibleDocs =
+                              _filterBlockedDocs(docs, blockedIds);
+
+                              if (visibleDocs.isEmpty) {
+                                return const Center(
+                                  child: Text('표시할 게시물이 없습니다'),
+                                );
+                              }
+
+                              return _buildFeed(
+                                docs: visibleDocs,
+                                currentUserId: currentUserId,
+                              );
+                            },
                           );
                         },
                         loading: () =>
@@ -193,6 +294,78 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (_, __) => const Center(child: Text('로그인 상태 오류')),
+        ),
+      ),
+    );
+  }
+
+  // ==========================
+  // UGC 동의 게이트 UI
+  // ==========================
+  Widget _buildUgcTermsGate({
+    required BuildContext context,
+    required ThemeData theme,
+    required String uid,
+  }) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: AppCard(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.policy_outlined, size: 64, color: Colors.grey[500]),
+                const SizedBox(height: 18),
+                Text(
+                  '커뮤니티 이용 동의가 필요해요',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '커뮤니티에는 사용자가 작성한 글/사진(UGC)이 노출됩니다.\n'
+                      '안전한 이용을 위해 아래 내용에 동의해 주세요.\n\n'
+                      '• 타인을 비방/혐오/차별/괴롭힘하는 콘텐츠 금지\n'
+                      '• 불법/음란/폭력/사기 등 유해 콘텐츠 금지\n'
+                      '• 신고/차단 기능 및 운영 정책에 따라 제재될 수 있음\n'
+                      '• 신고된 콘텐츠는 운영자가 검토할 수 있음',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey[800],
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('동의 후 커뮤니티 이용이 가능합니다.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: const Text('동의 안함'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () => _acceptUgcTerms(uid),
+                        child: const Text('동의하고 시작'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -9,8 +9,13 @@ import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
 
 class CircleListView extends StatefulWidget {
+  /// ✅ 여기로 들어오는 docs는 "이미 CircleScreen에서 차단/필터 적용된 리스트"라고 가정
   final List<QueryDocumentSnapshot> docs;
+
+  /// ✅ PostCard 내부 기능(신고/차단/수정/삭제 등) 때문에 유지
   final String? currentUserId;
+
+  /// ✅ Grid에서 탭한 postId로 스크롤
   final String? initialPostId;
 
   const CircleListView({
@@ -46,22 +51,17 @@ class _CircleListViewState extends State<CircleListView> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _tryScrollToInitial();
-  }
-
-  @override
   void didUpdateWidget(covariant CircleListView oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    // ✅ 초기 진입 postId가 바뀌었거나, docs가 바뀌면(필터/새글/삭제 등) 스크롤 재시도
     if (oldWidget.initialPostId != widget.initialPostId ||
         oldWidget.docs.length != widget.docs.length) {
-      _tryScrollToInitial();
+      _tryScrollToInitial(widget.docs);
     }
   }
 
-  void _tryScrollToInitial() {
+  void _tryScrollToInitial(List<QueryDocumentSnapshot> visibleDocs) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
@@ -69,15 +69,18 @@ class _CircleListViewState extends State<CircleListView> {
       if (postId == null) return;
       if (_lastScrolledPostId == postId) return;
 
-      final index = widget.docs.indexWhere((doc) => doc.id == postId);
+      final index = visibleDocs.indexWhere((doc) => doc.id == postId);
       if (index == -1) return;
 
       if (_itemScrollController.isAttached) {
         _lastScrolledPostId = postId;
+
+        // ✅ 살짝 위에 여백 두고 맞추면 "한 장 밀린 느낌"이 확 줄어듦(체감)
         _itemScrollController.scrollTo(
           index: index,
           duration: const Duration(milliseconds: 420),
           curve: Curves.easeOutCubic,
+          alignment: 0.08,
         );
       }
     });
@@ -111,19 +114,35 @@ class _CircleListViewState extends State<CircleListView> {
     );
 
     if (confirmed == true) {
-      await FirebaseFirestore.instance.collection('community').doc(postId).delete();
+      await FirebaseFirestore.instance
+          .collection('community')
+          .doc(postId)
+          .delete();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final visibleDocs = widget.docs;
+
+    if (visibleDocs.isEmpty) {
+      return const Center(child: Text('표시할 게시물이 없습니다'));
+    }
+
+    // ✅ 빌드마다 한번씩 “현재 initialPostId 기준” 스크롤 시도
+    _tryScrollToInitial(visibleDocs);
+
+    return _buildList(context, visibleDocs);
+  }
+
+  Widget _buildList(BuildContext context, List<QueryDocumentSnapshot> visibleDocs) {
     return ScrollablePositionedList.builder(
       itemScrollController: _itemScrollController,
       itemPositionsListener: _itemPositionsListener,
       padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: widget.docs.length,
+      itemCount: visibleDocs.length,
       itemBuilder: (context, index) {
-        final doc = widget.docs[index];
+        final doc = visibleDocs[index];
         final data = doc.data() as Map<String, dynamic>;
         final postId = doc.id;
         final userId = (data['userId'] as String?)?.trim();
@@ -132,7 +151,8 @@ class _CircleListViewState extends State<CircleListView> {
           tween: Tween(begin: 0.0, end: 1.0),
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
-          builder: (context, value, child) => Opacity(opacity: value, child: child),
+          builder: (context, value, child) =>
+              Opacity(opacity: value, child: child),
           child: _PostCardWrapper(
             postId: postId,
             doc: doc,
@@ -189,18 +209,7 @@ class _PostCardWrapper extends StatelessWidget {
       stream: userDocStreamOf(userId!),
       builder: (context, snapshot) {
         // ✅ 핵심: 에러나도 로딩 무한X → PostCard를 보여준다
-        if (snapshot.hasError) {
-          return PostCard(
-            key: ValueKey(postId),
-            doc: doc,
-            currentUserId: currentUserId,
-            onEdit: onEdit,
-            onDelete: onDelete,
-          );
-        }
-
-        // 로딩 중이어도 포스트 먼저 보여주고(스크롤 UX 좋음)
-        if (!snapshot.hasData) {
+        if (snapshot.hasError || !snapshot.hasData) {
           return PostCard(
             key: ValueKey(postId),
             doc: doc,
