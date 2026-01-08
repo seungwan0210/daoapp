@@ -69,6 +69,7 @@
 │   │   │   └── training_history_provider.dart
 │   │   │   └── training_home_provider.dart
 │   │   │   └── training_progress_provider.dart
+│   │   │   └── pose_analysis_provider.dart
 │   │   └── finish_route/
 │   │   │   └── finish_route_practice_provider.dart
 │   │   └── calculator/
@@ -155,7 +156,12 @@
 │   │   │       │     └── report_neon_separator.dart
 │   │   │       │     └── report_stat_item.dart
 │   │   │       │     └── training_report_viewmodel.dart
-│   │   │       │     └── training_report_animator..dart
+│   │   │       │     └── training_report_animator.dart
+│   │   │       │
+│   │   │       └── pose_analysis/
+│   │   │       │     └── pose_analysis_screen.dart
+│   │   │       │     └──widgets/
+│   │   │       │            ├──pose_painter.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       
