@@ -1,19 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="kr.comong.daoapp">
 
-    <!-- 인터넷 & 네트워크 상태 권한 (AdMob 포함해서 필수) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- 🔥 Google 광고 ID 권한 (Android 13 이상 필수) -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
 
     <application
         android:name="${applicationName}"
         android:label="@string/app_name"
-        android:icon="@mipmap/ic_launcher">
-
-        <!-- ✅ AdMob 실제 App ID -->
+        android:icon="@mipmap/ic_launcher"
+        android:requestLegacyExternalStorage="true">
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-5180429166023258~2044446429" />

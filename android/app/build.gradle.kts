@@ -5,10 +5,9 @@ import java.io.FileInputStream
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")           // ← Kotlin DSL 올바른 ID
+    id("org.jetbrains.kotlin.android")
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")         // 루트에서 버전 선언, 여기선 버전 없이 적용
-    // ← 플러그인 추가 X! (이게 에러 원인)
+    id("com.google.gms.google-services")
 }
 
 // ── key.properties 로드 (있을 때만)
@@ -30,8 +29,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        // 필요시 멀티덱스:
-        // multiDexEnabled = true
+
+        // 🔥 [수정 1] 멀티덱스 활성화 (주석 해제됨)
+        multiDexEnabled = true
     }
 
     compileOptions {
@@ -68,12 +68,11 @@ flutter {
     source = "../.."
 }
 
-// ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←
-// 이 블록만 새로 추가! (App Check 의존성)
 dependencies {
-    // 디버그 빌드용
+    // 🔥 [수정 2] 멀티덱스 라이브러리 추가
+    implementation("androidx.multidex:multidex:2.0.1")
+
+    // 기존 App Check 의존성 유지
     debugImplementation("com.google.firebase:firebase-appcheck-debug:17.2.0")
-    // 릴리즈 빌드용 Play Integrity
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity:17.2.0")
 }
-// ←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←←

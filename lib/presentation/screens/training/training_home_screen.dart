@@ -1,4 +1,3 @@
-// lib/presentation/screens/training/training_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,13 +9,12 @@ import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
 import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/widgets/ad_banner.dart'; // ✅ 배너 광고 위젯
+import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
 import 'widgets/dual_neon_gauge_row.dart';
 import 'widgets/dao_tier_badge_large.dart';
 import 'drills/drill_run_screen.dart';
-import 'package:daoapp/core/constants/training_program_constants.dart'
-as program_constants;
+import 'package:daoapp/core/constants/training_program_constants.dart' as program_constants;
 
 // 🔹 XP/게이지 Progress Provider
 import 'package:daoapp/presentation/providers/training/training_progress_provider.dart';
@@ -28,12 +26,14 @@ import 'package:daoapp/di/service_locator.dart';
 // 🔹 마이로그 홈 스크린
 import 'package:daoapp/presentation/screens/my_page/my_log/my_log_home_screen.dart';
 
+// ✅ [추가됨] 포즈 분석 화면 import
+import 'package:daoapp/presentation/screens/training/pose_analysis/pose_analysis_screen.dart';
+
 class TrainingHomeScreen extends ConsumerStatefulWidget {
   const TrainingHomeScreen({super.key});
 
   @override
-  ConsumerState<TrainingHomeScreen> createState() =>
-      _TrainingHomeScreenState();
+  ConsumerState<TrainingHomeScreen> createState() => _TrainingHomeScreenState();
 }
 
 class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
@@ -69,8 +69,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
       final data = doc.data()!;
       final tierIndex = (data['tierIndex'] as int?) ?? 0;
-      final tier = DaoTrainingTier
-          .values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
+      final tier = DaoTrainingTier.values[tierIndex.clamp(0, DaoTrainingTier.values.length - 1)];
 
       setState(() {
         _profile = DaoTrainingProfile(
@@ -176,8 +175,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   // ========= 레이팅/레벨 테스트 화면 이동 =========
 
   Future<void> _openRatingInput() async {
-    final result =
-    await Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
+    final result = await Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
 
     if (result is DaoTrainingProfile) {
       setState(() => _profile = result);
@@ -189,8 +187,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   }
 
   Future<void> _openBoardLevelTest() async {
-    final result =
-    await Navigator.pushNamed(context, RouteConstants.boardLevelTest);
+    final result = await Navigator.pushNamed(context, RouteConstants.boardLevelTest);
 
     if (result is DaoTrainingProfile) {
       setState(() => _profile = result);
@@ -271,8 +268,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasRating =
-        _profile?.phoenixClass != null || _profile?.liveRating != null;
+    final hasRating = _profile?.phoenixClass != null || _profile?.liveRating != null;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // 🔹 XP/게이지 Progress 구독
@@ -366,8 +362,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                         children: [
                           const Text(
                             "PHOENIX CLASS",
-                            style:
-                            TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.phoenixClass),
@@ -385,8 +380,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                         children: [
                           const Text(
                             "DARTSLIVE RATING",
-                            style:
-                            TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
                             _formatRating(_profile!.liveRating),
@@ -409,13 +403,11 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                               icon: const Icon(Icons.edit),
                               label: const Text(
                                 "레이팅 수정하기",
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                style: TextStyle(fontWeight: FontWeight.bold),
                               ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.cyan,
-                                side: const BorderSide(
-                                    color: Colors.cyan),
+                                side: const BorderSide(color: Colors.cyan),
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
@@ -464,16 +456,14 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             // === 오늘의 추천 연습 ===
             Text(
               "오늘의 추천 연습",
-              style:
-              Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
             _buildRecommendationCards(_profile?.tier),
@@ -482,19 +472,17 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             // === 훈련 도구 ===
             Text(
               "훈련 도구",
-              style:
-              Theme.of(context).textTheme.titleLarge?.copyWith(
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              "기록을 확인하고, 체크아웃 연습과 계산을 도와주는 도구들입니다.",
-              style:
-              TextStyle(fontSize: 13, color: Colors.grey[600]),
+              "기록을 확인하고, 자세를 분석하고, 계산을 도와주는 도구들입니다.",
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 16),
-            ..._buildPracticeItems(),
+            ..._buildPracticeItems(), // ✅ 수정된 리스트가 여기 들어갑니다
             const SizedBox(height: 40),
           ],
         ),
@@ -505,8 +493,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   /// ✅ XP 성장 게이지 카드
   Widget _buildXpGauge(TrainingProgressModel progress) {
     final ratio = progress.progressRatio; // 0.0 ~ 1.0
-    final percentText =
-    (ratio * 100).clamp(0, 100).toStringAsFixed(0);
+    final percentText = (ratio * 100).clamp(0, 100).toStringAsFixed(0);
     final remain = progress.remainingXp;
 
     String subtitle;
@@ -515,8 +502,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     } else if (ratio >= 0.7) {
       subtitle = "거의 다 왔어요. 집중해서 한두 세션만 더!";
     } else {
-      subtitle =
-      "연습을 할수록 XP가 쌓이고, 가득 차면 레이팅을 다시 체크합니다.";
+      subtitle = "연습을 할수록 XP가 쌓이고, 가득 차면 레이팅을 다시 체크합니다.";
     }
 
     return AppCard(
@@ -584,8 +570,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   Widget _buildEmptyState() {
     return Column(
       children: [
-        Icon(Icons.sports_esports_outlined,
-            size: 100, color: Colors.grey[400]),
+        Icon(Icons.sports_esports_outlined, size: 100, color: Colors.grey[400]),
         const SizedBox(height: 32),
         const Text(
           "당신의 다트 실력을 알려주세요!",
@@ -612,8 +597,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan,
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 18),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
@@ -629,8 +613,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.cyan, width: 2),
                   foregroundColor: Colors.cyan,
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 18),
+                  padding: const EdgeInsets.symmetric(vertical: 18),
                 ),
               ),
             ),
@@ -642,9 +625,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   /// 티어 기반 "오늘의 추천 드릴" 카드
   Widget _buildRecommendationCards(DaoTrainingTier? tier) {
-    // 프로필 없으면 일단 Beginner(비기너) 기준으로 보여주기
-    final DaoTrainingTier effectiveTier =
-        tier ?? DaoTrainingTier.beginner;
+    final DaoTrainingTier effectiveTier = tier ?? DaoTrainingTier.beginner;
 
     final List<TrainingDrillDefinition> drills =
     program_constants.getRecommendedDrillsForToday(effectiveTier);
@@ -664,8 +645,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
           child: AppCard(
             child: InkWell(
               onTap: () {
-                final DaoTrainingTier runTier =
-                    _profile?.tier ?? effectiveTier;
+                final DaoTrainingTier runTier = _profile?.tier ?? effectiveTier;
 
                 Navigator.of(context).push(
                   MaterialPageRoute(
@@ -677,15 +657,12 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                 );
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 24,
-                      backgroundColor:
-                      _categoryColor(drill.category)
-                          .withOpacity(0.12),
+                      backgroundColor: _categoryColor(drill.category).withOpacity(0.12),
                       child: Icon(
                         _categoryIcon(drill.category),
                         color: _categoryColor(drill.category),
@@ -694,8 +671,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             drill.titleKo,
@@ -748,9 +724,10 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     );
   }
 
+  // ✅ [수정됨] 훈련 도구 리스트 (AI 분석 버튼 포함)
   List<Widget> _buildPracticeItems() {
     return [
-      // 🔹 트레이닝 히스토리
+      // 1. 트레이닝 히스토리
       _practiceTile(
         Icons.timeline,
         "트레이닝 히스토리",
@@ -758,7 +735,40 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         Colors.blueGrey,
       ),
 
-      // 🔹 피니시 루트 연습
+      // 2. [NEW] AI 자세 분석 & 트래킹
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: AppCard(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const PoseAnalysisScreen(),
+              ),
+            );
+          },
+          child: const ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Color(0xFFE3F2FD), // 연한 파랑
+              child: Icon(Icons.accessibility_new_rounded, color: Color(0xFF1565C0)), // 진한 파랑
+            ),
+            title: Text(
+              "AI 자세 분석 & 트래킹",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Text(
+              "내 투구 영상을 AI가 분석하여 뼈대를 그려줍니다.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ),
+        ),
+      ),
+
+      // 3. 피니시 루트 연습
       _practiceTile(
         Icons.sports_score,
         "피니시 루트 연습",
@@ -766,7 +776,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         Colors.green,
       ),
 
-      // 🔹 체크아웃 계산기
+      // 4. 체크아웃 계산기
       _practiceTile(
         Icons.calculate,
         "체크아웃 계산기",
@@ -774,7 +784,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         Colors.deepPurple,
       ),
 
-      // 🔹 나만의 다트 이야기 (마이로그)
+      // 5. 나만의 다트 이야기 (마이로그)
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: AppCard(
@@ -807,7 +817,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         ),
       ),
 
-      // ✅ 트레이닝 홈 하단 배너 광고 (AppCard로 감싸서 디자인 통일)
+      // 6. 하단 광고 배너
       const SizedBox(height: 4),
       AppCard(
         child: Padding(
@@ -823,8 +833,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     ];
   }
 
-  Widget _practiceTile(
-      IconData icon, String title, String route, Color color) {
+  Widget _practiceTile(IconData icon, String title, String route, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: AppCard(
@@ -937,12 +946,11 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   }
 }
 
-// 간단한 Color 확장: 살짝 어둡게
+// 간단한 Color 확장
 extension _ColorX on Color {
   Color darken([double amount = .15]) {
     final hsl = HSLColor.fromColor(this);
-    final hslDark =
-    hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
     return hslDark.toColor();
   }
 }
