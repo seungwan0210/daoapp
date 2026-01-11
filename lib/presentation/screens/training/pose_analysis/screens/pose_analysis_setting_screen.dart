@@ -28,11 +28,10 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
     final state = ref.watch(poseAnalysisProvider);
     final notifier = ref.read(poseAnalysisProvider.notifier);
 
-    // 현재 선택된 메인 트래킹 부위 (설정 화면에서는 하나만 선택한다고 가정)
+    // 현재 선택된 부위/색상 (설정 화면용)
     final currentPart = state.activeTracks.isNotEmpty
         ? state.activeTracks.keys.first
         : PoseLandmarkType.rightWrist;
-
     final currentColor = state.activeTracks.isNotEmpty
         ? state.activeTracks.values.first
         : const Color(0xFFFFEB3B);
@@ -77,11 +76,15 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionHeader("추적 부위 (결과 화면에서 추가 가능)", Icons.ads_click),
+                          _buildSectionHeader("추적 부위 선택", Icons.ads_click),
                           const SizedBox(height: 12),
                           Wrap(
                             spacing: 8, runSpacing: 8,
-                            children: trackingPartsMap.entries.map((entry) {
+                            children: trackingPartsMap.entries.where((entry) {
+                              // ✅ [수정] 엄지, 검지는 UI에서 숨김 (결과 화면에서 자동 사용됨)
+                              final name = entry.key;
+                              return !name.contains('엄지') && !name.contains('검지');
+                            }).map((entry) {
                               final isSelected = currentPart == entry.value;
                               return ChoiceChip(
                                 label: Text(entry.key),
@@ -93,7 +96,6 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                                 selected: isSelected,
                                 onSelected: (selected) {
                                   if (selected) {
-                                    // 설정 화면에서는 하나만 선택하게 하여 색상 매칭 단순화
                                     notifier.setSingleTrack(entry.value, currentColor);
                                   }
                                 },
@@ -127,7 +129,7 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                           _buildColorRow(
                               [const Color(0xFFFFEB3B), Colors.blueAccent, Colors.purpleAccent, Colors.orangeAccent],
                               currentColor,
-                                  (c) => notifier.setSingleTrack(currentPart, c) // 현재 선택된 부위의 색상 변경
+                                  (c) => notifier.setSingleTrack(currentPart, c)
                           ),
                         ],
                       ),
@@ -138,7 +140,6 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
             ),
           ),
 
-          // ✅ [수정] SafeArea 추가하여 네비게이션 바에 가리지 않게 함
           SafeArea(
             top: false,
             child: Container(

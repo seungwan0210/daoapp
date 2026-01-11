@@ -18,14 +18,16 @@ class PoseAnalysisResultScreen extends ConsumerStatefulWidget {
 class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScreen> {
   VideoPlayerController? _videoController;
 
-  // 부위별 기본 색상 프리셋
+  // ✅ UI 상태 관리
+  bool _showTrackingLines = true;
+  String _referenceMode = 'NONE'; // NONE, LEFT, RIGHT
+
+  // 부위별 고정 색상 (Painter에게 전달해서 라벨 색상으로 사용)
   final Map<PoseLandmarkType, Color> _partColors = {
     PoseLandmarkType.rightWrist: const Color(0xFFFFEB3B), // 노랑
-    PoseLandmarkType.leftWrist: const Color(0xFF00E676), // 초록
     PoseLandmarkType.rightElbow: const Color(0xFF2979FF), // 파랑
-    PoseLandmarkType.leftElbow: const Color(0xFFFF4081), // 핑크
-    PoseLandmarkType.rightShoulder: const Color(0xFFE040FB), // 보라
-    PoseLandmarkType.leftShoulder: const Color(0xFFFF6D00), // 주황
+    PoseLandmarkType.leftWrist: const Color(0xFF00E676),  // 초록
+    PoseLandmarkType.leftElbow: const Color(0xFFFF4081),  // 핑크
   };
 
   @override
@@ -59,10 +61,10 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     return analysisResults[frameIndex] ?? [];
   }
 
-  // 다중 경로 추출 + 필터링 적용
+  // ✅ [핵심] 트래킹이 꺼져 있어도, 기준선 계산을 위한 데이터는 확보해야 함
   Map<PoseLandmarkType, List<Offset>> _getCurrentMultiPaths(
       Map<int, List<Pose>>? analysisResults,
-      Map<PoseLandmarkType, Color> activeTracks
+      Map<PoseLandmarkType, Color> activeTracks // 사용자가 "보고 싶어서 켠" 트래킹
       ) {
     if (analysisResults == null || _videoController == null) return {};
 
@@ -72,11 +74,26 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     Map<PoseLandmarkType, List<Offset>> multiPaths = {};
     final sortedKeys = analysisResults.keys.toList()..sort();
 
-    for (var part in activeTracks.keys) {
+    // 1. 계산할 부위 목록 만들기 (사용자 선택 + 기준선 모드 필수 부위)
+    Set<PoseLandmarkType> targetsToCalculate = {};
+
+    // (A) 사용자가 칩으로 켠 부위 (화면에 트래킹 선을 그리기 위함)
+    targetsToCalculate.addAll(activeTracks.keys);
+
+    // (B) 기준선 모드에 필요한 부위 (트래킹은 안 보여도 기준선 계산용 데이터는 필요함)
+    if (_referenceMode == 'RIGHT') {
+      targetsToCalculate.add(PoseLandmarkType.rightWrist);
+      targetsToCalculate.add(PoseLandmarkType.rightElbow);
+    } else if (_referenceMode == 'LEFT') {
+      targetsToCalculate.add(PoseLandmarkType.leftWrist);
+      targetsToCalculate.add(PoseLandmarkType.leftElbow);
+    }
+
+    // 2. 데이터 계산
+    for (var part in targetsToCalculate) {
       List<Offset> rawPath = [];
       for (int key in sortedKeys) {
         if (key > currentFrameIndex) break;
-
         final poses = analysisResults[key];
         if (poses != null && poses.isNotEmpty) {
           final landmark = poses.first.landmarks[part];
@@ -85,20 +102,23 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
           }
         }
       }
-      // 지터링 필터 적용 (pose_analysis_provider.dart에 정의됨)
       multiPaths[part] = applySmoothing(rawPath, windowSize: 4);
     }
     return multiPaths;
   }
 
-  // ✅ [NEW] 저장 버튼 클릭 핸들러
+  // ✅ [수정] 트래킹을 강제로 켜지 않고, 모드만 변경
+  void _setReferenceMode(String mode) {
+    setState(() {
+      _referenceMode = mode;
+    });
+  }
+
   void _handleSaveVideo() {
     showDialog(
       context: context,
-      barrierDismissible: false, // 로딩 중 닫기 방지
-      builder: (context) {
-        return _RenderingProgressDialog(); // 아래 정의된 다이얼로그 위젯 호출
-      },
+      barrierDismissible: false,
+      builder: (context) => _RenderingProgressDialog(mode: _referenceMode), // ✅ 모드 전달
     );
   }
 
@@ -128,7 +148,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       ),
       body: Column(
         children: [
-          // 1. 영상 플레이어
           Container(
             height: 280,
             width: double.infinity,
@@ -141,7 +160,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                     aspectRatio: _videoController!.value.aspectRatio,
                     child: VideoPlayer(_videoController!),
                   ),
-                // 오버레이 (다중 트래킹)
                 if (_videoController != null && state.analysisResults != null)
                   AspectRatio(
                     aspectRatio: _videoController!.value.aspectRatio,
@@ -150,12 +168,17 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                         _getCurrentPoses(state.analysisResults),
                         state.videoSize ?? const Size(1080, 1920),
                         poseColor: state.poseColor,
+                        // 모든 필요한 데이터(기준선용 포함) 전달
                         multiPaths: _getCurrentMultiPaths(state.analysisResults, state.activeTracks),
-                        trackColors: state.activeTracks,
+                        // 사용자가 "진짜 켠" 트래킹 색상만 전달 (이것만 트래킹 선으로 그려짐)
+                        activeTrackColors: state.activeTracks,
+                        // 기본 색상표 전달 (기준선 라벨용)
+                        allPartColors: _partColors,
+                        showTrackingLines: _showTrackingLines,
+                        referenceMode: _referenceMode,
                       ),
                     ),
                   ),
-                // 재생 버튼
                 GestureDetector(
                   onTap: () {
                     if (_videoController!.value.isPlaying) {
@@ -178,7 +201,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
             ),
           ),
 
-          // 2. 컨트롤 패널
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -190,54 +212,76 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text("트래킹 부위 선택 (다중 선택 가능)",
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
-                              InkWell(
-                                onTap: () => notifier.setSingleTrack(PoseLandmarkType.rightWrist, _partColors[PoseLandmarkType.rightWrist]!),
-                                child: const Text("초기화", style: TextStyle(fontSize: 12, color: Colors.cyan)),
-                              )
-                            ],
-                          ),
+                          const Text("기준선 가이드 (팔꿈치/손목)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
                           const SizedBox(height: 12),
-
-                          Wrap(
-                            spacing: 8, runSpacing: 8,
-                            children: trackingPartsMap.entries.map((entry) {
-                              final isSelected = state.activeTracks.containsKey(entry.value);
-                              final partColor = _partColors[entry.value] ?? Colors.grey;
-
-                              return ChoiceChip(
-                                label: Text(entry.key),
-                                labelStyle: TextStyle(
-                                    color: isSelected ? Colors.white : Colors.grey[700],
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600
-                                ),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  notifier.toggleTrack(entry.value, partColor);
-                                },
-                                selectedColor: partColor,
-                                backgroundColor: Colors.grey[100],
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey[300]!)
-                                ),
-                                avatar: isSelected ? const Icon(Icons.check, size: 16, color: Colors.white) : null,
-                              );
-                            }).toList(),
+                          Row(
+                            children: [
+                              _buildModeButton("끄기", "NONE", Colors.grey),
+                              const SizedBox(width: 8),
+                              _buildModeButton("왼쪽 켜기", "LEFT", Colors.cyan),
+                              const SizedBox(width: 8),
+                              _buildModeButton("오른쪽 켜기", "RIGHT", Colors.cyan),
+                            ],
                           ),
 
                           const SizedBox(height: 20),
                           const Divider(),
                           const SizedBox(height: 12),
 
-                          const Text("💡 팁: 여러 부위를 선택하여 움직임을 비교해보세요.",
-                              style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text("트래킹 궤적 보기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                  SizedBox(height: 4),
+                                  Text("투구 궤적이 궁금하다면 켜보세요", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                              Switch(
+                                value: _showTrackingLines,
+                                activeColor: Colors.cyan,
+                                onChanged: (val) {
+                                  setState(() => _showTrackingLines = val);
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // 트래킹 상세 선택 (마스터 토글이 켜져야 보임)
+                          if (_showTrackingLines) ...[
+                            const SizedBox(height: 8),
+                            const Text("보고 싶은 부위 선택", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8, runSpacing: 8,
+                              children: trackingPartsMap.entries.map((entry) {
+                                final isSelected = state.activeTracks.containsKey(entry.value);
+                                return ChoiceChip(
+                                  label: Text(entry.key, style: const TextStyle(fontSize: 12)),
+                                  selected: isSelected,
+                                  onSelected: (selected) {
+                                    Color color = _partColors[entry.value] ?? Colors.yellow;
+                                    notifier.toggleTrack(entry.value, color);
+                                  },
+                                  selectedColor: Colors.cyan[100],
+                                  labelStyle: TextStyle(
+                                    color: isSelected ? Colors.cyan[800] : Colors.grey[700],
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  backgroundColor: Colors.grey[100],
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                      side: BorderSide(color: isSelected ? Colors.cyan : Colors.grey[300]!)
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+
                         ],
                       ),
                     ),
@@ -246,8 +290,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
               ),
             ),
           ),
-
-          // 3. 하단 액션 버튼
+          // 하단 버튼
           SafeArea(
             top: false,
             child: Container(
@@ -279,7 +322,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _handleSaveVideo, // ✅ 저장 버튼 연결
+                      onPressed: _handleSaveVideo,
                       icon: const Icon(Icons.download_rounded, size: 18),
                       label: const Text("영상 저장"),
                       style: ElevatedButton.styleFrom(
@@ -299,10 +342,40 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       ),
     );
   }
+
+  Widget _buildModeButton(String label, String mode, Color color) {
+    final isSelected = _referenceMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _setReferenceMode(mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? color : Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[300]!),
+          ),
+          child: Center(
+            child: Text(
+                label,
+                style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13
+                )
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-// ✅ [NEW] 렌더링 진행률 다이얼로그 위젯
+// ✅ 저장 다이얼로그 (모드 전달받음)
 class _RenderingProgressDialog extends ConsumerStatefulWidget {
+  final String mode; // ✅ 추가: 기준선 모드 전달
+  const _RenderingProgressDialog({required this.mode});
+
   @override
   ConsumerState<_RenderingProgressDialog> createState() => _RenderingProgressDialogState();
 }
@@ -318,25 +391,20 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
   }
 
   void _startRendering() {
-    // Provider의 렌더링 함수 호출
-    ref.read(poseAnalysisProvider.notifier).saveRenderedVideo((progress) {
+    // ✅ 전달받은 mode를 Provider 함수에 함께 넘김
+    ref.read(poseAnalysisProvider.notifier).saveRenderedVideo(widget.mode, (progress) {
       if (mounted) {
         setState(() {
           _progress = progress;
-          // 진행률에 따른 상태 메시지 업데이트
           if (progress < 0.2) _status = "프레임 추출 중...";
           else if (progress < 0.8) _status = "AI 뼈대 그리는 중... (오래 걸려요)";
           else if (progress < 1.0) _status = "영상 인코딩 중...";
           else _status = "저장 완료!";
         });
-
-        // 100% 완료 시 1초 뒤 닫기
         if (progress >= 1.0) {
           Future.delayed(const Duration(seconds: 1), () {
-            Navigator.pop(context); // 다이얼로그 닫기
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("갤러리에 저장되었습니다!")),
-            );
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
           });
         }
       }
@@ -345,40 +413,24 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
 
   @override
   Widget build(BuildContext context) {
-    // 0~100 퍼센트 정수 변환
-    final percent = (_progress * 100).toInt();
-
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("영상 만드는 중...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 20),
-
-            // 🔥 광고 배너 넣기 좋은 자리 (현재는 비워둠)
-            // Container(height: 50, width: double.infinity, color: Colors.grey[100], child: const Center(child: Text("광고"))),
-            // const SizedBox(height: 20),
-
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 80, height: 80,
-                  child: CircularProgressIndicator(
-                    value: _progress,
-                    strokeWidth: 6,
-                    color: Colors.cyan,
-                    backgroundColor: Colors.grey[100],
-                  ),
-                ),
-                Text("$percent%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
+            const Text("영상 생성 중...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 16),
-            Text(_status, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+            // 광고 영역 (예시)
+            Container(height: 200, width: double.infinity, color: Colors.grey[100], child: const Center(child: Icon(Icons.ad_units, color: Colors.grey))),
+            const SizedBox(height: 20),
+            Stack(alignment: Alignment.center, children: [
+              SizedBox(width: 60, height: 60, child: CircularProgressIndicator(value: _progress, strokeWidth: 5, color: Colors.cyan)),
+              Text("${(_progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ]),
+            const SizedBox(height: 8),
+            Text(_status, style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
       ),

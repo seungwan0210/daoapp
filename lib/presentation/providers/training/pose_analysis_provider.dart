@@ -9,10 +9,10 @@ import 'package:ffmpeg_kit_flutter_new/ffmpeg_kit.dart';
 import 'package:ffmpeg_kit_flutter_new/return_code.dart';
 import 'package:gal/gal.dart';
 
-// ✅ 영상 렌더링 서비스 import (경로 확인해주세요)
+// ✅ 영상 렌더링 서비스 import
 import 'package:daoapp/services/video_render_service.dart';
 
-// 추적 부위 옵션
+// 추적 부위 옵션 (손가락 제거, 핵심 관절만 유지)
 const Map<String, PoseLandmarkType> trackingPartsMap = {
   '오른손목': PoseLandmarkType.rightWrist,
   '왼손목': PoseLandmarkType.leftWrist,
@@ -31,7 +31,7 @@ class PoseAnalysisState {
 
   final Color poseColor;
 
-  // 다중 트래킹 지원
+  // 다중 트래킹 지원 (화면에 그려질 궤적들)
   final Map<PoseLandmarkType, Color> activeTracks;
 
   PoseAnalysisState({
@@ -174,9 +174,9 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
     );
   }
 
-  // ✅ [NEW] 합성된 영상 저장 (렌더링 실행)
-  // onProgress: UI에 진행률(0.0 ~ 1.0)을 알려주기 위한 콜백 함수
-  Future<void> saveRenderedVideo(Function(double) onProgress) async {
+  // ✅ 합성된 영상 저장 (렌더링 실행)
+  // referenceMode: 현재 선택된 기준선 모드 (NONE, LEFT, RIGHT)
+  Future<void> saveRenderedVideo(String referenceMode, Function(double) onProgress) async {
     if (state.videoPath == null || state.analysisResults == null) return;
 
     try {
@@ -184,7 +184,8 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
       final String? outputPath = await _renderService.renderExportVideo(
         originalVideoPath: state.videoPath!,
         analysisResults: state.analysisResults!,
-        activeTracks: state.activeTracks, // 현재 화면에 보이는 트래킹 설정(다중 선택) 그대로 적용
+        activeTracks: state.activeTracks, // 현재 화면에 보이는 트래킹 설정 그대로 적용
+        referenceMode: referenceMode,     // ✅ 기준선 모드 전달
         onProgress: onProgress,
       );
 
