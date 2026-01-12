@@ -1,12 +1,22 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // ✅ 광고 패키지
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/widgets/pose_painter.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_setting_screen.dart';
+
+// ✅ 시간 순서 표시를 위한 데이터 모델
+class ReleasePoint {
+  final Offset point;   // 위치
+  final int frameIndex; // 시간
+
+  ReleasePoint(this.point, this.frameIndex);
+}
 
 class PoseAnalysisResultScreen extends ConsumerStatefulWidget {
   const PoseAnalysisResultScreen({super.key});
@@ -18,28 +28,60 @@ class PoseAnalysisResultScreen extends ConsumerStatefulWidget {
 class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScreen> {
   VideoPlayerController? _videoController;
 
-  // ✅ UI 상태 관리
   bool _showTrackingLines = true;
-  String _referenceMode = 'NONE'; // NONE, LEFT, RIGHT
+  bool _showReleasePoints = true;
+  String _referenceMode = 'NONE';
 
-  // 부위별 고정 색상 (Painter에게 전달해서 라벨 색상으로 사용)
+  Map<PoseLandmarkType, double> _cachedSetupHeights = {};
+  List<ReleasePoint> _releasePoints = [];
+
+  // 💰 [광고] 결과 화면 하단 배너
+  BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
+
   final Map<PoseLandmarkType, Color> _partColors = {
-    PoseLandmarkType.rightWrist: const Color(0xFFFFEB3B), // 노랑
-    PoseLandmarkType.rightElbow: const Color(0xFF2979FF), // 파랑
-    PoseLandmarkType.leftWrist: const Color(0xFF00E676),  // 초록
-    PoseLandmarkType.leftElbow: const Color(0xFFFF4081),  // 핑크
+    PoseLandmarkType.rightWrist: const Color(0xFFFFEB3B),
+    PoseLandmarkType.rightElbow: const Color(0xFF2979FF),
+    PoseLandmarkType.leftWrist: const Color(0xFF00E676),
+    PoseLandmarkType.leftElbow: const Color(0xFFFF4081),
   };
 
   @override
   void initState() {
     super.initState();
     _initVideo();
+    _loadBannerAd(); // 배너 광고 로드
+
+    // 🔥 [수정] 화면 진입 시 즉시 분석 (기준선 없어도 동작)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final results = ref.read(poseAnalysisProvider).analysisResults;
+      if (results != null) {
+        _analyzeData(results);
+      }
+    });
   }
 
   @override
   void dispose() {
     _videoController?.dispose();
+    _bannerAd?.dispose();
     super.dispose();
+  }
+
+  // 광고 로드 (home_banner)
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-5180429166023258/2238891690', // ✅ 실제 ID 적용됨
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) => setState(() => _isBannerLoaded = true),
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          print('결과 화면 배너 로드 실패: $error');
+        },
+      ),
+    )..load();
   }
 
   void _initVideo() async {
@@ -54,42 +96,159 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     }
   }
 
-  List<Pose> _getCurrentPoses(Map<int, List<Pose>>? analysisResults) {
-    if (analysisResults == null || _videoController == null) return [];
-    double currentSeconds = _videoController!.value.position.inMicroseconds / 1000000.0;
-    int frameIndex = (currentSeconds * 30).round();
-    return analysisResults[frameIndex] ?? [];
+  Pose? _getCurrentPose(Map<int, List<Pose>>? analysisResults, int currentFrame) {
+    if (analysisResults == null || !analysisResults.containsKey(currentFrame)) return null;
+    if (analysisResults[currentFrame]!.isEmpty) return null;
+    return analysisResults[currentFrame]!.first;
   }
 
-  // ✅ [핵심] 트래킹이 꺼져 있어도, 기준선 계산을 위한 데이터는 확보해야 함
+  // ✅ [수정된 분석 로직] NONE이어도 자동 감지하여 분석
+  void _analyzeData(Map<int, List<Pose>>? analysisResults) {
+    if (analysisResults == null) return;
+
+    _cachedSetupHeights.clear();
+    _releasePoints.clear();
+
+    // 🔥 팔 방향 자동 결정 로직
+    bool isRight = true;
+
+    if (_referenceMode == 'LEFT') {
+      isRight = false;
+    } else if (_referenceMode == 'NONE') {
+      final activeTracks = ref.read(poseAnalysisProvider).activeTracks;
+      // 왼손만 선택되어 있고 오른손은 선택 안 된 경우에만 왼쪽으로 간주
+      if (activeTracks.containsKey(PoseLandmarkType.leftWrist) &&
+          !activeTracks.containsKey(PoseLandmarkType.rightWrist)) {
+        isRight = false;
+      }
+    }
+
+    PoseLandmarkType wrist = isRight ? PoseLandmarkType.rightWrist : PoseLandmarkType.leftWrist;
+    PoseLandmarkType elbow = isRight ? PoseLandmarkType.rightElbow : PoseLandmarkType.leftElbow;
+    PoseLandmarkType shoulder = isRight ? PoseLandmarkType.rightShoulder : PoseLandmarkType.leftShoulder;
+    PoseLandmarkType hip = isRight ? PoseLandmarkType.rightHip : PoseLandmarkType.leftHip;
+
+    List<int> sortedFrames = analysisResults.keys.toList()..sort();
+
+    // 1. 스탠스 식별 (엄격 모드 6.0)
+    Set<int> stanceFrames = {};
+    List<double> validElbowYs = [];
+    List<double> validWristYs = [];
+    int window = 5;
+
+    for (int i = window; i < sortedFrames.length - window; i++) {
+      int currFrame = sortedFrames[i];
+      int prevFrame = sortedFrames[i - window];
+
+      final currPose = _getPose(analysisResults, currFrame);
+      final prevPose = _getPose(analysisResults, prevFrame);
+      if (currPose == null || prevPose == null) continue;
+
+      final currHip = currPose.landmarks[hip];
+      final prevHip = prevPose.landmarks[hip];
+      if (currHip == null || prevHip == null) continue;
+
+      double movement = (currHip.x - prevHip.x).abs();
+
+      if (movement < 6.0) {
+        stanceFrames.add(currFrame);
+        final e = currPose.landmarks[elbow];
+        final w = currPose.landmarks[wrist];
+        if (e != null && e.y > 0) validElbowYs.add(e.y);
+        if (w != null && w.y > 0) validWristYs.add(w.y);
+      }
+    }
+
+    if (validElbowYs.isNotEmpty) {
+      validElbowYs.sort();
+      _cachedSetupHeights[elbow] = validElbowYs[(validElbowYs.length * 0.3).toInt()];
+    }
+    if (validWristYs.isNotEmpty) {
+      validWristYs.sort();
+      _cachedSetupHeights[wrist] = validWristYs[(validWristYs.length * 0.3).toInt()];
+    }
+
+    // 2. 릴리즈 포인트
+    bool isThrowing = false;
+    bool releaseDetected = false;
+    int lastReleaseFrame = -999;
+
+    for (int fIdx in sortedFrames) {
+      if (!stanceFrames.contains(fIdx)) {
+        isThrowing = false; releaseDetected = false; continue;
+      }
+
+      final pose = _getPose(analysisResults, fIdx);
+      if (pose == null) continue;
+
+      double angle = _calculateAngle(pose, shoulder, elbow, wrist);
+
+      if (angle < 80 && angle > 20) {
+        isThrowing = true; releaseDetected = false;
+      }
+
+      if (isThrowing && !releaseDetected && angle > 90) {
+        if (fIdx - lastReleaseFrame > 30) {
+          final w = pose.landmarks[wrist];
+          if (w != null) {
+            _releasePoints.add(ReleasePoint(Offset(w.x, w.y), fIdx));
+            releaseDetected = true;
+            lastReleaseFrame = fIdx;
+          }
+        }
+      }
+
+      if (isThrowing && angle < 100 && releaseDetected) {
+        isThrowing = false;
+      }
+    }
+  }
+
+  Pose? _getPose(Map<int, List<Pose>>? results, int index) {
+    if (results != null && results.containsKey(index) && results[index]!.isNotEmpty) {
+      return results[index]!.first;
+    }
+    return null;
+  }
+
+  double _calculateDistance(Offset p1, Offset p2) {
+    return math.sqrt(math.pow(p1.dx - p2.dx, 2) + math.pow(p1.dy - p2.dy, 2));
+  }
+
+  double _calculateAngle(Pose pose, PoseLandmarkType a, PoseLandmarkType b, PoseLandmarkType c) {
+    final la = pose.landmarks[a]; final lb = pose.landmarks[b]; final lc = pose.landmarks[c];
+    if (la == null || lb == null || lc == null) return 180;
+    double radians = math.atan2(lc.y - lb.y, lc.x - lb.x) - math.atan2(la.y - lb.y, la.x - lb.x);
+    double angle = (radians * 180.0 / math.pi).abs();
+    if (angle > 180.0) angle = 360.0 - angle;
+    return angle;
+  }
+
   Map<PoseLandmarkType, List<Offset>> _getCurrentMultiPaths(
       Map<int, List<Pose>>? analysisResults,
-      Map<PoseLandmarkType, Color> activeTracks // 사용자가 "보고 싶어서 켠" 트래킹
+      Map<PoseLandmarkType, Color> activeTracks,
+      int currentFrameIndex,
       ) {
     if (analysisResults == null || _videoController == null) return {};
-
-    double currentSeconds = _videoController!.value.position.inMicroseconds / 1000000.0;
-    int currentFrameIndex = (currentSeconds * 30).round();
 
     Map<PoseLandmarkType, List<Offset>> multiPaths = {};
     final sortedKeys = analysisResults.keys.toList()..sort();
 
-    // 1. 계산할 부위 목록 만들기 (사용자 선택 + 기준선 모드 필수 부위)
     Set<PoseLandmarkType> targetsToCalculate = {};
-
-    // (A) 사용자가 칩으로 켠 부위 (화면에 트래킹 선을 그리기 위함)
     targetsToCalculate.addAll(activeTracks.keys);
 
-    // (B) 기준선 모드에 필요한 부위 (트래킹은 안 보여도 기준선 계산용 데이터는 필요함)
     if (_referenceMode == 'RIGHT') {
       targetsToCalculate.add(PoseLandmarkType.rightWrist);
       targetsToCalculate.add(PoseLandmarkType.rightElbow);
     } else if (_referenceMode == 'LEFT') {
       targetsToCalculate.add(PoseLandmarkType.leftWrist);
       targetsToCalculate.add(PoseLandmarkType.leftElbow);
+    } else {
+      // NONE일 때도 내가 선택한 손목은 그려주기
+      if (activeTracks.containsKey(PoseLandmarkType.rightWrist)) targetsToCalculate.add(PoseLandmarkType.rightWrist);
+      if (activeTracks.containsKey(PoseLandmarkType.leftWrist)) targetsToCalculate.add(PoseLandmarkType.leftWrist);
     }
 
-    // 2. 데이터 계산
     for (var part in targetsToCalculate) {
       List<Offset> rawPath = [];
       for (int key in sortedKeys) {
@@ -107,10 +266,11 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     return multiPaths;
   }
 
-  // ✅ [수정] 트래킹을 강제로 켜지 않고, 모드만 변경
   void _setReferenceMode(String mode) {
     setState(() {
       _referenceMode = mode;
+      final results = ref.read(poseAnalysisProvider).analysisResults;
+      _analyzeData(results);
     });
   }
 
@@ -118,7 +278,11 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => _RenderingProgressDialog(mode: _referenceMode), // ✅ 모드 전달
+      builder: (context) => _RenderingProgressDialog(
+        mode: _referenceMode,
+        showTracking: _showTrackingLines,
+        showRelease: _showReleasePoints,
+      ),
     );
   }
 
@@ -126,6 +290,14 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   Widget build(BuildContext context) {
     final state = ref.watch(poseAnalysisProvider);
     final notifier = ref.read(poseAnalysisProvider.notifier);
+
+    int currentFrameIndex = 0;
+    if (_videoController != null && _videoController!.value.isInitialized) {
+      double currentSeconds = _videoController!.value.position.inMicroseconds / 1000000.0;
+      currentFrameIndex = (currentSeconds * 30).round();
+    }
+
+    Pose? currentPose = _getCurrentPose(state.analysisResults, currentFrameIndex);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -149,56 +321,53 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       body: Column(
         children: [
           Container(
-            height: 280,
-            width: double.infinity,
-            color: Colors.black,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                if (_videoController != null && _videoController!.value.isInitialized)
-                  AspectRatio(
-                    aspectRatio: _videoController!.value.aspectRatio,
-                    child: VideoPlayer(_videoController!),
-                  ),
-                if (_videoController != null && state.analysisResults != null)
-                  AspectRatio(
-                    aspectRatio: _videoController!.value.aspectRatio,
-                    child: CustomPaint(
-                      painter: PosePainter(
-                        _getCurrentPoses(state.analysisResults),
-                        state.videoSize ?? const Size(1080, 1920),
-                        poseColor: state.poseColor,
-                        // 모든 필요한 데이터(기준선용 포함) 전달
-                        multiPaths: _getCurrentMultiPaths(state.analysisResults, state.activeTracks),
-                        // 사용자가 "진짜 켠" 트래킹 색상만 전달 (이것만 트래킹 선으로 그려짐)
-                        activeTrackColors: state.activeTracks,
-                        // 기본 색상표 전달 (기준선 라벨용)
-                        allPartColors: _partColors,
-                        showTrackingLines: _showTrackingLines,
-                        referenceMode: _referenceMode,
+              height: 280, width: double.infinity, color: Colors.black,
+              child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (_videoController != null && _videoController!.value.isInitialized)
+                      AspectRatio(aspectRatio: _videoController!.value.aspectRatio, child: VideoPlayer(_videoController!)),
+
+                    if (_videoController != null && state.analysisResults != null && currentPose != null)
+                      AspectRatio(
+                        aspectRatio: _videoController!.value.aspectRatio,
+                        child: CustomPaint(
+                          painter: PosePainter(
+                            pose: currentPose,
+                            imageSize: state.videoSize ?? const Size(1080, 1920),
+                            poseColor: state.poseColor,
+                            multiPaths: _getCurrentMultiPaths(state.analysisResults, state.activeTracks, currentFrameIndex),
+                            activeTrackColors: state.activeTracks,
+                            allPartColors: _partColors,
+                            showTrackingLines: _showTrackingLines,
+                            showReleasePoints: _showReleasePoints,
+                            referenceMode: _referenceMode,
+                            setupHeights: _cachedSetupHeights,
+                            releasePoints: _releasePoints,
+                            currentFrameIndex: currentFrameIndex,
+                          ),
+                        ),
+                      ),
+                    GestureDetector(
+                      onTap: () {
+                        if (_videoController!.value.isPlaying) {
+                          _videoController!.pause();
+                        } else {
+                          _videoController!.play();
+                        }
+                        setState(() {});
+                      },
+                      child: Container(
+                        color: Colors.transparent,
+                        child: Center(
+                          child: _videoController != null && !_videoController!.value.isPlaying
+                              ? const Icon(Icons.play_circle_fill, size: 64, color: Colors.white70)
+                              : const SizedBox.shrink(),
+                        ),
                       ),
                     ),
-                  ),
-                GestureDetector(
-                  onTap: () {
-                    if (_videoController!.value.isPlaying) {
-                      _videoController!.pause();
-                    } else {
-                      _videoController!.play();
-                    }
-                    setState(() {});
-                  },
-                  child: Container(
-                    color: Colors.transparent,
-                    child: Center(
-                      child: _videoController != null && !_videoController!.value.isPlaying
-                          ? const Icon(Icons.play_circle_fill, size: 64, color: Colors.white70)
-                          : const SizedBox.shrink(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                  ]
+              )
           ),
 
           Expanded(
@@ -223,37 +392,27 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                               _buildModeButton("오른쪽 켜기", "RIGHT", Colors.cyan),
                             ],
                           ),
-
                           const SizedBox(height: 20),
                           const Divider(),
                           const SizedBox(height: 12),
 
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text("트래킹 궤적 보기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                                  SizedBox(height: 4),
-                                  Text("투구 궤적이 궁금하다면 켜보세요", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                ],
-                              ),
-                              Switch(
-                                value: _showTrackingLines,
-                                activeColor: Colors.cyan,
-                                onChanged: (val) {
-                                  setState(() => _showTrackingLines = val);
-                                },
-                              ),
-                            ],
+                          _buildSwitchRow(
+                            title: "트래킹 궤적 보기",
+                            subtitle: "투구 궤적 표시",
+                            value: _showTrackingLines,
+                            onChanged: (val) => setState(() => _showTrackingLines = val),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildSwitchRow(
+                            title: "릴리즈 포인트 보기",
+                            subtitle: "던지는 순간 표시 (점)",
+                            value: _showReleasePoints,
+                            onChanged: (val) => setState(() => _showReleasePoints = val),
                           ),
 
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 20),
 
-                          // 트래킹 상세 선택 (마스터 토글이 켜져야 보임)
                           if (_showTrackingLines) ...[
-                            const SizedBox(height: 8),
                             const Text("보고 싶은 부위 선택", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
                             const SizedBox(height: 8),
                             Wrap(
@@ -281,16 +440,32 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                               }).toList(),
                             ),
                           ],
-
                         ],
                       ),
                     ),
                   ),
+
+                  // 🔥 [광고 배너 영역]
+                  const SizedBox(height: 16),
+                  if (_isBannerLoaded && _bannerAd != null)
+                    Container(
+                      width: _bannerAd!.size.width.toDouble(),
+                      height: _bannerAd!.size.height.toDouble(),
+                      child: AdWidget(ad: _bannerAd!),
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      height: 50,
+                      alignment: Alignment.center,
+                      child: const Text(""), // 로딩 중에는 빈 공간
+                    ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-          // 하단 버튼
+
           SafeArea(
             top: false,
             child: Container(
@@ -343,6 +518,32 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     );
   }
 
+  Widget _buildSwitchRow({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required Function(bool) onChanged,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+        Switch(
+          value: value,
+          activeColor: Colors.cyan,
+          onChanged: onChanged,
+        ),
+      ],
+    );
+  }
+
   Widget _buildModeButton(String label, String mode, Color color) {
     final isSelected = _referenceMode == mode;
     return Expanded(
@@ -356,14 +557,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
             border: Border.all(color: isSelected ? Colors.transparent : Colors.grey[300]!),
           ),
           child: Center(
-            child: Text(
-                label,
-                style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[600],
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13
-                )
-            ),
+            child: Text(label, style: TextStyle(color: isSelected ? Colors.white : Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 13)),
           ),
         ),
       ),
@@ -371,10 +565,17 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   }
 }
 
-// ✅ 저장 다이얼로그 (모드 전달받음)
+// ✅ 렌더링 다이얼로그 (병렬 처리 + 전면 광고 + MREC + 상단 배너)
 class _RenderingProgressDialog extends ConsumerStatefulWidget {
-  final String mode; // ✅ 추가: 기준선 모드 전달
-  const _RenderingProgressDialog({required this.mode});
+  final String mode;
+  final bool showTracking;
+  final bool showRelease;
+
+  const _RenderingProgressDialog({
+    required this.mode,
+    required this.showTracking,
+    required this.showRelease,
+  });
 
   @override
   ConsumerState<_RenderingProgressDialog> createState() => _RenderingProgressDialogState();
@@ -382,56 +583,185 @@ class _RenderingProgressDialog extends ConsumerStatefulWidget {
 
 class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDialog> {
   double _progress = 0.0;
-  String _status = "준비 중...";
+  String _status = "영상 분석 준비 중...";
+  bool _isAnalysisFinished = false; // 분석 완료 여부 체크
+
+  // 💰 광고
+  BannerAd? _topBannerAd;
+  BannerAd? _bottomMrecAd;
+  InterstitialAd? _interstitialAd; // 🔥 전면 광고
+
+  bool _isTopAdLoaded = false;
+  bool _isBottomAdLoaded = false;
+  bool _isInterstitialShowed = false; // 전면광고 보여졌는지 여부
 
   @override
   void initState() {
     super.initState();
-    _startRendering();
+    _loadBannerAds();
+    _loadInterstitialAd(); // 🔥 전면 광고 로드 및 즉시 실행
+    _startRendering();     // 병렬로 렌더링 시작
+  }
+
+  @override
+  void dispose() {
+    _topBannerAd?.dispose();
+    _bottomMrecAd?.dispose();
+    _interstitialAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadBannerAds() {
+    _topBannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-5180429166023258/2238891690', // ✅ home_banner ID
+      size: AdSize.banner,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) => setState(() => _isTopAdLoaded = true),
+        onAdFailedToLoad: (ad, error) => ad.dispose(),
+      ),
+    )..load();
+
+    _bottomMrecAd = BannerAd(
+      adUnitId: 'ca-app-pub-5180429166023258/8399618129', // ✅ loading_mrec ID
+      size: AdSize.mediumRectangle,
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) => setState(() => _isBottomAdLoaded = true),
+        onAdFailedToLoad: (ad, error) => ad.dispose(),
+      ),
+    )..load();
+  }
+
+  // 🔥 전면 광고: 로드되면 바로 보여줌
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: 'ca-app-pub-5180429166023258/2986659287', // ✅ save_interstitial ID (실제 적용됨)
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+          _interstitialAd!.show(); // 로드 즉시 표시!
+          _isInterstitialShowed = true;
+
+          _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+            onAdDismissedFullScreenContent: (ad) {
+              ad.dispose();
+              // 광고 닫았는데 이미 분석이 끝나있다면 -> 바로 닫기(성공 팝업)
+              if (_isAnalysisFinished && mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
+              }
+            },
+            onAdFailedToShowFullScreenContent: (ad, err) => ad.dispose(),
+          );
+        },
+        onAdFailedToLoad: (err) {
+          print('전면 광고 로드 실패: $err');
+        },
+      ),
+    );
   }
 
   void _startRendering() {
-    // ✅ 전달받은 mode를 Provider 함수에 함께 넘김
-    ref.read(poseAnalysisProvider.notifier).saveRenderedVideo(widget.mode, (progress) {
-      if (mounted) {
-        setState(() {
-          _progress = progress;
-          if (progress < 0.2) _status = "프레임 추출 중...";
-          else if (progress < 0.8) _status = "AI 뼈대 그리는 중... (오래 걸려요)";
-          else if (progress < 1.0) _status = "영상 인코딩 중...";
-          else _status = "저장 완료!";
+    ref.read(poseAnalysisProvider.notifier).saveRenderedVideo(
+        widget.mode,
+        widget.showTracking,
+        widget.showRelease,
+            (progress) {
+          if (mounted) {
+            setState(() {
+              _progress = progress;
+              if (progress < 0.2) _status = "프레임 추출 중...";
+              else if (progress < 0.8) _status = "AI 뼈대 그리는 중... (오래 걸려요)";
+              else if (progress < 1.0) _status = "영상 인코딩 중...";
+              else _status = "저장 완료!";
+            });
+            if (progress >= 1.0) {
+              _isAnalysisFinished = true; // 완료 플래그 ON
+
+              // 전면 광고가 안 떴거나(로드 실패 등), 이미 닫힌 상태라면 여기서 닫아줌
+              if (!_isInterstitialShowed || _interstitialAd == null) {
+                Future.delayed(const Duration(seconds: 1), () {
+                  if (mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
+                  }
+                });
+              }
+            }
+          }
         });
-        if (progress >= 1.0) {
-          Future.delayed(const Duration(seconds: 1), () {
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
-          });
-        }
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("영상 생성 중...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 16),
-            // 광고 영역 (예시)
-            Container(height: 200, width: double.infinity, color: Colors.grey[100], child: const Center(child: Icon(Icons.ad_units, color: Colors.grey))),
-            const SizedBox(height: 20),
-            Stack(alignment: Alignment.center, children: [
-              SizedBox(width: 60, height: 60, child: CircularProgressIndicator(value: _progress, strokeWidth: 5, color: Colors.cyan)),
-              Text("${(_progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold)),
-            ]),
-            const SizedBox(height: 8),
-            Text(_status, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-          ],
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. 상단 배너
+              if (_isTopAdLoaded && _topBannerAd != null)
+                Container(
+                  width: _topBannerAd!.size.width.toDouble(),
+                  height: _topBannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _topBannerAd!),
+                )
+              else
+                Container(width: 320, height: 50, color: Colors.grey[50]),
+
+              const SizedBox(height: 24),
+
+              // 2. 로딩
+              const Text("영상 생성 중...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 16),
+              Stack(alignment: Alignment.center, children: [
+                SizedBox(
+                    width: 70, height: 70,
+                    child: CircularProgressIndicator(
+                      value: _progress,
+                      strokeWidth: 6,
+                      color: Colors.cyan,
+                      backgroundColor: Colors.grey[200],
+                    )
+                ),
+                Text(
+                    "${(_progress * 100).toInt()}%",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                ),
+              ]),
+              const SizedBox(height: 12),
+              Text(_status, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+
+              const SizedBox(height: 24),
+
+              // 3. 하단 MREC (전면광고 닫고 나오면 보이는 큰 배너)
+              if (_isBottomAdLoaded && _bottomMrecAd != null)
+                Container(
+                  width: _bottomMrecAd!.size.width.toDouble(),
+                  height: _bottomMrecAd!.size.height.toDouble(),
+                  decoration: BoxDecoration(border: Border.all(color: Colors.grey[200]!)),
+                  child: AdWidget(ad: _bottomMrecAd!),
+                )
+              else
+                Container(
+                  width: 300, height: 250,
+                  decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!)
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text("광고 로딩 중...", style: TextStyle(color: Colors.grey)),
+                ),
+            ],
+          ),
         ),
       ),
     );

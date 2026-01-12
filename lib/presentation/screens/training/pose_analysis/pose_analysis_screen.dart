@@ -26,7 +26,7 @@ class PoseAnalysisScreen extends ConsumerWidget {
             children: [
               // 1. 상단 타이틀 영역
               const Text(
-                "내 투구 폼, AI로 완벽하게.",
+                "내 스로우, 분석하기.",
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.3),
               ),
               const SizedBox(height: 8),

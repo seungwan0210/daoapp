@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:ui' as ui; // Size 사용을 위해 추가
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,7 +13,7 @@ import 'package:gal/gal.dart';
 // ✅ 영상 렌더링 서비스 import
 import 'package:daoapp/services/video_render_service.dart';
 
-// 추적 부위 옵션 (손가락 제거, 핵심 관절만 유지)
+// 추적 부위 옵션
 const Map<String, PoseLandmarkType> trackingPartsMap = {
   '오른손목': PoseLandmarkType.rightWrist,
   '왼손목': PoseLandmarkType.leftWrist,
@@ -31,7 +32,6 @@ class PoseAnalysisState {
 
   final Color poseColor;
 
-  // 다중 트래킹 지원 (화면에 그려질 궤적들)
   final Map<PoseLandmarkType, Color> activeTracks;
 
   PoseAnalysisState({
@@ -76,7 +76,6 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
 
   void setPoseColor(Color color) => state = state.copyWith(poseColor: color);
 
-  // 트래킹 부위 토글
   void toggleTrack(PoseLandmarkType part, Color color) {
     final newTracks = Map<PoseLandmarkType, Color>.from(state.activeTracks);
     if (newTracks.containsKey(part)) {
@@ -87,7 +86,6 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
     state = state.copyWith(activeTracks: newTracks);
   }
 
-  // 단일 선택 모드 (설정 화면용)
   void setSingleTrack(PoseLandmarkType part, Color color) {
     state = state.copyWith(activeTracks: {part: color});
   }
@@ -96,7 +94,6 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
     state = PoseAnalysisState();
   }
 
-  // 영상 선택
   Future<bool> pickVideo() async {
     try {
       final XFile? video = await _picker.pickVideo(source: ImageSource.gallery);
@@ -115,7 +112,6 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
     return false;
   }
 
-  // 분석 시작
   Future<bool> analyzeVideo() async {
     if (state.videoPath == null) return false;
 
@@ -174,18 +170,27 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
     );
   }
 
-  // ✅ 합성된 영상 저장 (렌더링 실행)
-  // referenceMode: 현재 선택된 기준선 모드 (NONE, LEFT, RIGHT)
-  Future<void> saveRenderedVideo(String referenceMode, Function(double) onProgress) async {
+  // ✅ [수정] 합성된 영상 저장 (렌더링 실행)
+  // referenceMode: 기준선 모드
+  // showTrackingLines, showReleasePoints: 토글 상태 추가
+  Future<void> saveRenderedVideo(
+      String referenceMode,
+      bool showTrackingLines, // 추가됨
+      bool showReleasePoints, // 추가됨
+      Function(double) onProgress
+      ) async {
     if (state.videoPath == null || state.analysisResults == null) return;
 
     try {
-      // 1. 렌더링 서비스 호출
+      // 1. 렌더링 서비스 호출 (토글 상태 전달)
       final String? outputPath = await _renderService.renderExportVideo(
         originalVideoPath: state.videoPath!,
         analysisResults: state.analysisResults!,
-        activeTracks: state.activeTracks, // 현재 화면에 보이는 트래킹 설정 그대로 적용
-        referenceMode: referenceMode,     // ✅ 기준선 모드 전달
+        activeTracks: state.activeTracks,
+        referenceMode: referenceMode,
+        // ✅ 토글 전달
+        showTrackingLines: showTrackingLines,
+        showReleasePoints: showReleasePoints,
         onProgress: onProgress,
       );
 
@@ -202,7 +207,7 @@ class PoseAnalysisNotifier extends StateNotifier<PoseAnalysisState> {
   }
 }
 
-// 지터링 방지 필터 (이동 평균)
+// 지터링 방지 필터
 List<Offset> applySmoothing(List<Offset> points, {int windowSize = 4}) {
   if (points.length < windowSize) return points;
 

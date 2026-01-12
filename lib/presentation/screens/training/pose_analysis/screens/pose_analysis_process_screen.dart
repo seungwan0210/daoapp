@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // ✅ 광고 패키지
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_result_screen.dart';
 
@@ -16,16 +17,20 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
   int _elapsedSeconds = 0;
   double _progressValue = 0.0;
 
+  // 💰 광고 관련 변수
+  BannerAd? _mrecAd;
+  bool _isAdLoaded = false;
+
   @override
   void initState() {
     super.initState();
-    // 시각적 재미를 위한 가짜 프로그레스 바 (실제 FFmpeg 퍼센트는 파싱이 어렵습니다)
-    // 1초마다 조금씩 오르다가 분석 완료되면 100%
+    _loadAd(); // 광고 로드 시작
+
+    // 시각적 재미를 위한 가짜 프로그레스 바
     _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       if (mounted) {
         setState(() {
-          _elapsedSeconds = (timer.tick / 2).floor(); // 0.5초 단위라 2로 나눔
-          // 20초 정도 걸린다고 가정하고 천천히 게이지 채움
+          _elapsedSeconds = (timer.tick / 2).floor();
           if (_progressValue < 0.9) {
             _progressValue += 0.02;
           }
@@ -38,17 +43,34 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
     });
   }
 
+  // ✅ 광고 로드 함수 (loading_mrec ID 사용)
+  void _loadAd() {
+    _mrecAd = BannerAd(
+      adUnitId: 'ca-app-pub-5180429166023258/8399618129', // ⚠️ 아까 만든 loading_mrec ID
+      size: AdSize.mediumRectangle, // 300x250 크기
+      request: const AdRequest(),
+      listener: BannerAdListener(
+        onAdLoaded: (_) => setState(() => _isAdLoaded = true),
+        onAdFailedToLoad: (ad, error) {
+          ad.dispose();
+          print('MREC 광고 로드 실패: $error');
+        },
+      ),
+    )..load();
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _mrecAd?.dispose(); // 광고 메모리 해제
     super.dispose();
   }
 
   Future<void> _startAnalysis() async {
     final success = await ref.read(poseAnalysisProvider.notifier).analyzeVideo();
     if (success && mounted) {
-      setState(() => _progressValue = 1.0); // 100% 달성
-      await Future.delayed(const Duration(milliseconds: 500)); // 100% 보여주고 이동
+      setState(() => _progressValue = 1.0);
+      await Future.delayed(const Duration(milliseconds: 500));
 
       Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PoseAnalysisResultScreen()));
     } else {
@@ -61,50 +83,82 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
 
   @override
   Widget build(BuildContext context) {
-    // 퍼센트 텍스트
     final percent = (_progressValue * 100).toInt();
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 로딩 아이콘
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 100, height: 100,
-                  child: CircularProgressIndicator(
-                    value: _progressValue, // 게이지
-                    strokeWidth: 8,
-                    color: Colors.cyan,
-                    backgroundColor: Colors.grey[100],
+        child: SingleChildScrollView( // 화면이 작을 경우를 대비해 스크롤 허용
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+
+              // 1. 로딩 아이콘
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 100, height: 100,
+                    child: CircularProgressIndicator(
+                      value: _progressValue,
+                      strokeWidth: 8,
+                      color: Colors.cyan,
+                      backgroundColor: Colors.grey[100],
+                    ),
                   ),
-                ),
-                Text(
-                  "$percent%",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.cyan),
-                ),
-              ],
-            ),
-            const SizedBox(height: 40),
-
-            const Text("AI가 자세를 분석 중입니다", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text("소요 시간: ${_elapsedSeconds}초", style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-
-            const SizedBox(height: 40),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                "잠시만 기다려주세요.\n영상이 길수록 시간이 조금 더 소요됩니다.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey[500], fontSize: 13, height: 1.5),
+                  Text(
+                    "$percent%",
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.cyan),
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(height: 30),
+
+              const Text("자세를 분석 중입니다", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text("소요 시간: ${_elapsedSeconds}초", style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+
+              const SizedBox(height: 30),
+
+              // 💰 2. 광고 영역 (가장 눈에 잘 띄는 중앙)
+              if (_isAdLoaded && _mrecAd != null)
+                Container(
+                  width: _mrecAd!.size.width.toDouble(),
+                  height: _mrecAd!.size.height.toDouble(),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    border: Border.all(color: Colors.grey[200]!),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: AdWidget(ad: _mrecAd!),
+                )
+              else
+              // 광고 로딩 중일 때 보여줄 빈 박스 (화면 덜컹거림 방지)
+                Container(
+                  width: 300, height: 250,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text("잠시만 기다려주세요...", style: TextStyle(color: Colors.grey)),
+                ),
+
+              const SizedBox(height: 30),
+
+              // 3. 안내 멘트
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  "AI가 영상을 프레임 단위로 분석하고 있습니다.\n영상이 길수록 시간이 조금 더 소요됩니다.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[500], fontSize: 13, height: 1.5),
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

@@ -753,14 +753,14 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
               child: Icon(Icons.accessibility_new_rounded, color: Color(0xFF1565C0)), // 진한 파랑
             ),
             title: Text(
-              "AI 자세 분석 & 트래킹",
+              "자세분석 & 트래킹",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
             subtitle: Text(
-              "내 투구 영상을 AI가 분석하여 뼈대를 그려줍니다.",
+              "내 스로우 영상을 분석하여 뼈대를 그려줍니다.",
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
