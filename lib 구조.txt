@@ -4,6 +4,7 @@
 │
 ├── services/
 │   └── storage_service.dart
+│   └── video_render_service.dart
 │
 ├── di/
 │   └── service_locator.dart
@@ -162,6 +163,10 @@
 │   │   │       │     └── pose_analysis_screen.dart
 │   │   │       │     └──widgets/
 │   │   │       │            ├──pose_painter.dart
+│   │   │       │     └──screens/
+│   │   │       │            ├──pose_analysis_process_screen.dart
+│   │   │       │            ├──pose_analysis_result_screen.dart
+│   │   │       │            ├──pose_analysis_setting_screen.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // ✅ 광고 패키지
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/widgets/pose_painter.dart';
@@ -14,7 +14,6 @@ import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_
 class ReleasePoint {
   final Offset point;   // 위치
   final int frameIndex; // 시간
-
   ReleasePoint(this.point, this.frameIndex);
 }
 
@@ -35,7 +34,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   Map<PoseLandmarkType, double> _cachedSetupHeights = {};
   List<ReleasePoint> _releasePoints = [];
 
-  // 💰 [광고] 결과 화면 하단 배너
   BannerAd? _bannerAd;
   bool _isBannerLoaded = false;
 
@@ -50,9 +48,8 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   void initState() {
     super.initState();
     _initVideo();
-    _loadBannerAd(); // 배너 광고 로드
+    _loadBannerAd();
 
-    // 🔥 [수정] 화면 진입 시 즉시 분석 (기준선 없어도 동작)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final results = ref.read(poseAnalysisProvider).analysisResults;
       if (results != null) {
@@ -68,10 +65,9 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     super.dispose();
   }
 
-  // 광고 로드 (home_banner)
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/2238891690', // ✅ 실제 ID 적용됨
+      adUnitId: 'ca-app-pub-5180429166023258/2238891690',
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -102,21 +98,19 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     return analysisResults[currentFrame]!.first;
   }
 
-  // ✅ [수정된 분석 로직] NONE이어도 자동 감지하여 분석
+  // ✅ [중요 수정] 미리보기 분석 로직을 영상 저장 로직과 100% 동일하게 맞춤 (높이 체크 + 교차 검증)
   void _analyzeData(Map<int, List<Pose>>? analysisResults) {
     if (analysisResults == null) return;
 
     _cachedSetupHeights.clear();
     _releasePoints.clear();
 
-    // 🔥 팔 방향 자동 결정 로직
     bool isRight = true;
 
     if (_referenceMode == 'LEFT') {
       isRight = false;
     } else if (_referenceMode == 'NONE') {
       final activeTracks = ref.read(poseAnalysisProvider).activeTracks;
-      // 왼손만 선택되어 있고 오른손은 선택 안 된 경우에만 왼쪽으로 간주
       if (activeTracks.containsKey(PoseLandmarkType.leftWrist) &&
           !activeTracks.containsKey(PoseLandmarkType.rightWrist)) {
         isRight = false;
@@ -130,7 +124,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
 
     List<int> sortedFrames = analysisResults.keys.toList()..sort();
 
-    // 1. 스탠스 식별 (엄격 모드 6.0)
+    // 1. 스탠스 식별 (8.0 기준)
     Set<int> stanceFrames = {};
     List<double> validElbowYs = [];
     List<double> validWristYs = [];
@@ -150,7 +144,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
 
       double movement = (currHip.x - prevHip.x).abs();
 
-      if (movement < 6.0) {
+      if (movement < 8.0) {
         stanceFrames.add(currFrame);
         final e = currPose.landmarks[elbow];
         final w = currPose.landmarks[wrist];
@@ -168,38 +162,40 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       _cachedSetupHeights[wrist] = validWristYs[(validWristYs.length * 0.3).toInt()];
     }
 
-    // 2. 릴리즈 포인트
-    bool isThrowing = false;
-    bool releaseDetected = false;
+    // 2. 릴리즈 포인트 (영상 저장 로직과 동기화)
     int lastReleaseFrame = -999;
 
-    for (int fIdx in sortedFrames) {
-      if (!stanceFrames.contains(fIdx)) {
-        isThrowing = false; releaseDetected = false; continue;
-      }
+    for (int i = 1; i < sortedFrames.length; i++) {
+      int currF = sortedFrames[i];
+      int prevF = sortedFrames[i - 1];
 
-      final pose = _getPose(analysisResults, fIdx);
-      if (pose == null) continue;
+      if (!stanceFrames.contains(currF)) continue;
 
-      double angle = _calculateAngle(pose, shoulder, elbow, wrist);
+      final currPose = _getPose(analysisResults, currF);
+      final prevPose = _getPose(analysisResults, prevF);
+      if (currPose == null || prevPose == null) continue;
 
-      if (angle < 80 && angle > 20) {
-        isThrowing = true; releaseDetected = false;
-      }
+      final w = currPose.landmarks[wrist];
+      final e = currPose.landmarks[elbow];
 
-      if (isThrowing && !releaseDetected && angle > 90) {
-        if (fIdx - lastReleaseFrame > 30) {
-          final w = pose.landmarks[wrist];
-          if (w != null) {
-            _releasePoints.add(ReleasePoint(Offset(w.x, w.y), fIdx));
-            releaseDetected = true;
-            lastReleaseFrame = fIdx;
-          }
+      if (w == null || e == null) continue;
+
+      // 🔥 [조건 1] 높이 체크: 손목이 팔꿈치보다 높아야 함 (화면상 y좌표가 작아야 함)
+      bool isHigherThanElbow = w.y < e.y;
+      if (!isHigherThanElbow) continue; // 팔꿈치보다 낮으면 무시
+
+      // 각도 계산
+      double currAngle = _calculateAngle(currPose, shoulder, elbow, wrist);
+      double prevAngle = _calculateAngle(prevPose, shoulder, elbow, wrist);
+
+      // 🔥 [조건 2] 교차 검증: 90도 안쪽이었다가 90도를 지나는 순간
+      bool isCrossing = (prevAngle < 90.0) && (currAngle >= 90.0);
+
+      if (isCrossing) {
+        if (currF - lastReleaseFrame > 15) {
+          _releasePoints.add(ReleasePoint(Offset(w.x, w.y), currF));
+          lastReleaseFrame = currF;
         }
-      }
-
-      if (isThrowing && angle < 100 && releaseDetected) {
-        isThrowing = false;
       }
     }
   }
@@ -209,10 +205,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       return results[index]!.first;
     }
     return null;
-  }
-
-  double _calculateDistance(Offset p1, Offset p2) {
-    return math.sqrt(math.pow(p1.dx - p2.dx, 2) + math.pow(p1.dy - p2.dy, 2));
   }
 
   double _calculateAngle(Pose pose, PoseLandmarkType a, PoseLandmarkType b, PoseLandmarkType c) {
@@ -244,7 +236,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       targetsToCalculate.add(PoseLandmarkType.leftWrist);
       targetsToCalculate.add(PoseLandmarkType.leftElbow);
     } else {
-      // NONE일 때도 내가 선택한 손목은 그려주기
       if (activeTracks.containsKey(PoseLandmarkType.rightWrist)) targetsToCalculate.add(PoseLandmarkType.rightWrist);
       if (activeTracks.containsKey(PoseLandmarkType.leftWrist)) targetsToCalculate.add(PoseLandmarkType.leftWrist);
     }
@@ -261,9 +252,22 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
           }
         }
       }
-      multiPaths[part] = applySmoothing(rawPath, windowSize: 4);
+      multiPaths[part] = _applySmoothing(rawPath, windowSize: 4);
     }
     return multiPaths;
+  }
+
+  List<Offset> _applySmoothing(List<Offset> points, {int windowSize = 4}) {
+    if (points.length < windowSize) return points;
+    List<Offset> smoothedPoints = [];
+    for (int i = 0; i < points.length; i++) {
+      double sumX = 0; double sumY = 0; int count = 0;
+      for (int j = 0; j < windowSize; j++) {
+        if (i - j >= 0) { sumX += points[i - j].dx; sumY += points[i - j].dy; count++; }
+      }
+      smoothedPoints.add(Offset(sumX / count, sumY / count));
+    }
+    return smoothedPoints;
   }
 
   void _setReferenceMode(String mode) {
@@ -411,7 +415,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                           ),
 
                           const SizedBox(height: 20),
-
                           if (_showTrackingLines) ...[
                             const Text("보고 싶은 부위 선택", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey)),
                             const SizedBox(height: 8),
@@ -444,8 +447,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                       ),
                     ),
                   ),
-
-                  // 🔥 [광고 배너 영역]
                   const SizedBox(height: 16),
                   if (_isBannerLoaded && _bannerAd != null)
                     Container(
@@ -458,14 +459,13 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                       width: double.infinity,
                       height: 50,
                       alignment: Alignment.center,
-                      child: const Text(""), // 로딩 중에는 빈 공간
+                      child: const Text(""),
                     ),
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
-
           SafeArea(
             top: false,
             child: Container(
@@ -565,7 +565,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   }
 }
 
-// ✅ 렌더링 다이얼로그 (병렬 처리 + 전면 광고 + MREC + 상단 배너)
+// ✅ [병렬 처리 완벽 구현] 렌더링 + 광고 동시 실행 후 둘 다 끝나야 닫힘
 class _RenderingProgressDialog extends ConsumerStatefulWidget {
   final String mode;
   final bool showTracking;
@@ -584,23 +584,26 @@ class _RenderingProgressDialog extends ConsumerStatefulWidget {
 class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDialog> {
   double _progress = 0.0;
   String _status = "영상 분석 준비 중...";
-  bool _isAnalysisFinished = false; // 분석 완료 여부 체크
 
-  // 💰 광고
+  // 🔥 병렬 처리 상태 변수
+  bool _isRenderingFinished = false;
+  bool _isAdFinished = false;
+
   BannerAd? _topBannerAd;
   BannerAd? _bottomMrecAd;
-  InterstitialAd? _interstitialAd; // 🔥 전면 광고
+  InterstitialAd? _interstitialAd;
 
   bool _isTopAdLoaded = false;
   bool _isBottomAdLoaded = false;
-  bool _isInterstitialShowed = false; // 전면광고 보여졌는지 여부
 
   @override
   void initState() {
     super.initState();
     _loadBannerAds();
-    _loadInterstitialAd(); // 🔥 전면 광고 로드 및 즉시 실행
-    _startRendering();     // 병렬로 렌더링 시작
+
+    // ✅ [병렬] 동시에 실행
+    _loadInterstitialAd();
+    _startRendering();
   }
 
   @override
@@ -613,7 +616,7 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
 
   void _loadBannerAds() {
     _topBannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/2238891690', // ✅ home_banner ID
+      adUnitId: 'ca-app-pub-5180429166023258/2238891690',
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -623,7 +626,7 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
     )..load();
 
     _bottomMrecAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/8399618129', // ✅ loading_mrec ID
+      adUnitId: 'ca-app-pub-5180429166023258/8399618129',
       size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -633,31 +636,33 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
     )..load();
   }
 
-  // 🔥 전면 광고: 로드되면 바로 보여줌
   void _loadInterstitialAd() {
     InterstitialAd.load(
-      adUnitId: 'ca-app-pub-5180429166023258/2986659287', // ✅ save_interstitial ID (실제 적용됨)
+      adUnitId: 'ca-app-pub-5180429166023258/2986659287',
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           _interstitialAd = ad;
-          _interstitialAd!.show(); // 로드 즉시 표시!
-          _isInterstitialShowed = true;
+          _interstitialAd!.setImmersiveMode(true);
+          _interstitialAd!.show();
 
           _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
-              // 광고 닫았는데 이미 분석이 끝나있다면 -> 바로 닫기(성공 팝업)
-              if (_isAnalysisFinished && mounted) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
-              }
+              _isAdFinished = true; // 광고 종료 체크
+              _checkAndExit();
             },
-            onAdFailedToShowFullScreenContent: (ad, err) => ad.dispose(),
+            onAdFailedToShowFullScreenContent: (ad, err) {
+              ad.dispose();
+              _isAdFinished = true; // 실패해도 종료로 간주
+              _checkAndExit();
+            },
           );
         },
         onAdFailedToLoad: (err) {
           print('전면 광고 로드 실패: $err');
+          _isAdFinished = true; // 로드 실패시 바로 종료로 간주
+          _checkAndExit();
         },
       ),
     );
@@ -669,29 +674,35 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
         widget.showTracking,
         widget.showRelease,
             (progress) {
-          if (mounted) {
-            setState(() {
-              _progress = progress;
-              if (progress < 0.2) _status = "프레임 추출 중...";
-              else if (progress < 0.8) _status = "AI 뼈대 그리는 중... (오래 걸려요)";
-              else if (progress < 1.0) _status = "영상 인코딩 중...";
-              else _status = "저장 완료!";
-            });
-            if (progress >= 1.0) {
-              _isAnalysisFinished = true; // 완료 플래그 ON
+          if (!mounted) return;
 
-              // 전면 광고가 안 떴거나(로드 실패 등), 이미 닫힌 상태라면 여기서 닫아줌
-              if (!_isInterstitialShowed || _interstitialAd == null) {
-                Future.delayed(const Duration(seconds: 1), () {
-                  if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
-                  }
-                });
-              }
-            }
+          setState(() {
+            _progress = progress;
+            if (progress < 0.2) _status = "프레임 추출 중...";
+            else if (progress < 0.8) _status = "AI 뼈대 그리는 중... (오래 걸려요)";
+            else if (progress < 1.0) _status = "영상 인코딩 중...";
+            else _status = "저장 완료!";
+          });
+
+          if (progress >= 1.0) {
+            _isRenderingFinished = true; // 렌더링 종료 체크
+            _checkAndExit();
           }
         });
+  }
+
+  // ✅ 둘 다 끝났는지 확인하고 종료
+  void _checkAndExit() {
+    if (_isRenderingFinished && _isAdFinished) {
+      if (mounted) {
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("갤러리에 저장되었습니다!")));
+          }
+        });
+      }
+    }
   }
 
   @override
@@ -706,7 +717,6 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 1. 상단 배너
               if (_isTopAdLoaded && _topBannerAd != null)
                 Container(
                   width: _topBannerAd!.size.width.toDouble(),
@@ -718,7 +728,6 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
 
               const SizedBox(height: 24),
 
-              // 2. 로딩
               const Text("영상 생성 중...", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 16),
               Stack(alignment: Alignment.center, children: [
@@ -739,9 +748,16 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
               const SizedBox(height: 12),
               Text(_status, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
 
+              // 렌더링은 끝났는데 광고 보는 중일 때 안내
+              if (_isRenderingFinished && !_isAdFinished)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0),
+                  child: Text("저장은 완료되었습니다. 광고를 닫으면 화면이 종료됩니다.",
+                      style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+
               const SizedBox(height: 24),
 
-              // 3. 하단 MREC (전면광고 닫고 나오면 보이는 큰 배너)
               if (_isBottomAdLoaded && _bottomMrecAd != null)
                 Container(
                   width: _bottomMrecAd!.size.width.toDouble(),

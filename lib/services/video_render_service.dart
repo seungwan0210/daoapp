@@ -22,9 +22,8 @@ class VideoRenderService {
     required Map<int, List<Pose>> analysisResults,
     required Map<PoseLandmarkType, Color> activeTracks,
     required String referenceMode,
-    // ✅ [NEW] 토글 상태 전달받기
-    required bool showTrackingLines,
-    required bool showReleasePoints,
+    required bool showTrackingLines, // ✅ 토글: 궤적 표시 여부
+    required bool showReleasePoints, // ✅ 토글: 릴리즈 포인트 표시 여부
     required Function(double) onProgress,
   }) async {
     final tempDir = await getTemporaryDirectory();
@@ -36,13 +35,14 @@ class VideoRenderService {
     await Directory(processedFramesDir).create();
 
     try {
-      // 1️⃣ 분석
+      // 1️⃣ 분석 (미리보기 화면과 로직 100% 일치)
       final analysisData = _analyzeKeyMoments(analysisResults, referenceMode);
       Map<PoseLandmarkType, double> referenceHeights = analysisData['heights'];
       List<RenderReleasePoint> releasePoints = analysisData['releasePoints'];
 
       // 2️⃣ 프레임 추출
-      String extractCmd = '-i "$originalVideoPath" -vf fps=30 -q:v 5 "$rawFramesDir/frame_%04d.jpg"';
+      // -q:v 2로 설정하여 추출 화질을 높임 (1~31, 낮을수록 고화질)
+      String extractCmd = '-i "$originalVideoPath" -vf fps=30 -q:v 2 "$rawFramesDir/frame_%04d.jpg"';
       await FFmpegKit.execute(extractCmd);
 
       final List<FileSystemEntity> frameFiles = Directory(rawFramesDir).listSync()
@@ -71,19 +71,22 @@ class VideoRenderService {
             referenceHeights: referenceHeights,
             referenceMode: referenceMode,
             releasePoints: releasePoints,
-            // ✅ 토글 상태 전달
-            showTrackingLines: showTrackingLines,
-            showReleasePoints: showReleasePoints,
+            showTrackingLines: showTrackingLines, // 전달
+            showReleasePoints: showReleasePoints, // 전달
           );
 
           String outPath = '$processedFramesDir/frame_${i.toString().padLeft(4, '0')}.jpg';
-          await File(outPath).writeAsBytes(img.encodeJpg(originalImage, quality: 85));
+          await File(outPath).writeAsBytes(img.encodeJpg(originalImage, quality: 90));
         }
+
+        // 🔥 [중요] UI 스레드가 숨을 쉴 수 있게 해주어 병렬 처리(광고 표시 등)가 끊기지 않게 함
+        await Future.delayed(Duration.zero);
 
         onProgress((i / totalFrames) * 0.8);
       }
 
       // 4️⃣ 인코딩
+      // ultrafast: 인코딩 속도 최우선 / crf 23: 화질 적당히 유지
       String encodeCmd = '-framerate 30 -i "$processedFramesDir/frame_%04d.jpg" -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p "$outputVideoPath"';
       await FFmpegKit.execute(encodeCmd).then((session) async {
         final returnCode = await session.getReturnCode();
@@ -99,19 +102,24 @@ class VideoRenderService {
       debugPrint("렌더링 오류: $e");
       return null;
     } finally {
+      // 임시 파일 정리
       if (await Directory(rawFramesDir).exists()) await Directory(rawFramesDir).delete(recursive: true);
       if (await Directory(processedFramesDir).exists()) await Directory(processedFramesDir).delete(recursive: true);
     }
   }
 
-  // 🧠 [분석 로직] (기존과 동일)
+  // 🧠 [분석 로직] 결과 화면과 동일하게 수정됨
   Map<String, dynamic> _analyzeKeyMoments(Map<int, List<Pose>> analysisResults, String mode) {
     Map<PoseLandmarkType, double> heights = {};
     List<RenderReleasePoint> releasePoints = [];
 
+    // 모드가 없으면 분석하지 않고 빈 값 반환
     if (mode == 'NONE') return {'heights': heights, 'releasePoints': releasePoints};
 
     bool isRight = mode == 'RIGHT';
+    // 만약 자동 감지 로직이 필요하다면 여기서 추가 가능하지만,
+    // 보통 렌더링 시점엔 사용자가 선택한 모드('RIGHT' or 'LEFT')가 확실하므로 그대로 진행
+
     PoseLandmarkType wrist = isRight ? PoseLandmarkType.rightWrist : PoseLandmarkType.leftWrist;
     PoseLandmarkType elbow = isRight ? PoseLandmarkType.rightElbow : PoseLandmarkType.leftElbow;
     PoseLandmarkType shoulder = isRight ? PoseLandmarkType.rightShoulder : PoseLandmarkType.leftShoulder;
@@ -119,30 +127,30 @@ class VideoRenderService {
 
     List<int> sortedFrames = analysisResults.keys.toList()..sort();
 
-    // 1. 스탠스 식별 (6.0)
+    // 1. 스탠스 식별 (8.0 기준)
     Set<int> stanceFrames = {};
     List<double> validElbowYs = [];
     List<double> validWristYs = [];
     int window = 5;
 
     for (int i = window; i < sortedFrames.length - window; i++) {
-      int curr = sortedFrames[i];
-      int prev = sortedFrames[i - window];
+      int currFrame = sortedFrames[i];
+      int prevFrame = sortedFrames[i - window];
 
-      final cPose = analysisResults[curr]?.firstOrNull;
-      final pPose = analysisResults[prev]?.firstOrNull;
-      if (cPose == null || pPose == null) continue;
+      final currPose = analysisResults[currFrame]?.firstOrNull;
+      final prevPose = analysisResults[prevFrame]?.firstOrNull;
+      if (currPose == null || prevPose == null) continue;
 
-      final cHip = cPose.landmarks[hip];
-      final pHip = pPose.landmarks[hip];
-      if (cHip == null || pHip == null) continue;
+      final currHip = currPose.landmarks[hip];
+      final prevHip = prevPose.landmarks[hip];
+      if (currHip == null || prevHip == null) continue;
 
-      double movement = (cHip.x - pHip.x).abs();
+      double movement = (currHip.x - prevHip.x).abs();
 
-      if (movement < 6.0) {
-        stanceFrames.add(curr);
-        final e = cPose.landmarks[elbow];
-        final w = cPose.landmarks[wrist];
+      if (movement < 8.0) {
+        stanceFrames.add(currFrame);
+        final e = currPose.landmarks[elbow];
+        final w = currPose.landmarks[wrist];
         if (e != null && e.y > 0) validElbowYs.add(e.y);
         if (w != null && w.y > 0) validWristYs.add(w.y);
       }
@@ -157,38 +165,45 @@ class VideoRenderService {
       heights[wrist] = validWristYs[(validWristYs.length * 0.3).toInt()];
     }
 
-    // 2. 릴리즈 감지
-    bool isThrowing = false;
-    bool releaseDetected = false;
+    // 2. 릴리즈 포인트 (결과 화면과 100% 동일 로직 적용)
     int lastReleaseFrame = -999;
 
-    for (int fIdx in sortedFrames) {
-      if (!stanceFrames.contains(fIdx)) {
-        isThrowing = false; releaseDetected = false; continue;
-      }
+    for (int i = 1; i < sortedFrames.length; i++) {
+      int currF = sortedFrames[i];
+      int prevF = sortedFrames[i - 1];
 
-      final pose = analysisResults[fIdx]!.first;
-      double angle = _calculateAngle(pose, shoulder, elbow, wrist);
+      // 스탠스 상태가 아니면 무시
+      if (!stanceFrames.contains(currF)) continue;
 
-      if (angle < 80 && angle > 20) {
-        isThrowing = true; releaseDetected = false;
-      }
+      final currPose = analysisResults[currF]?.firstOrNull;
+      final prevPose = analysisResults[prevF]?.firstOrNull;
+      if (currPose == null || prevPose == null) continue;
 
-      if (isThrowing && !releaseDetected && angle > 90) {
-        if (fIdx - lastReleaseFrame > 30) {
-          final w = pose.landmarks[wrist];
-          if (w != null) {
-            releasePoints.add(RenderReleasePoint(Offset(w.x, w.y), fIdx));
-            releaseDetected = true;
-            lastReleaseFrame = fIdx;
-          }
+      final w = currPose.landmarks[wrist];
+      final e = currPose.landmarks[elbow];
+
+      if (w == null || e == null) continue;
+
+      // 🔥 [조건 1] 높이 체크: 손목이 팔꿈치보다 높아야 함 (화면 좌표계상 y가 작아야 함)
+      bool isHigherThanElbow = w.y < e.y;
+      if (!isHigherThanElbow) continue;
+
+      // 각도 계산
+      double currAngle = _calculateAngle(currPose, shoulder, elbow, wrist);
+      double prevAngle = _calculateAngle(prevPose, shoulder, elbow, wrist);
+
+      // 🔥 [조건 2] 교차 검증: 90도를 통과하는 순간
+      bool isCrossing = (prevAngle < 90.0) && (currAngle >= 90.0);
+
+      if (isCrossing) {
+        // 중복 방지 (15프레임 내 재감지 금지)
+        if (currF - lastReleaseFrame > 15) {
+          releasePoints.add(RenderReleasePoint(Offset(w.x, w.y), currF));
+          lastReleaseFrame = currF;
         }
       }
-
-      if (isThrowing && angle < 100 && releaseDetected) {
-        isThrowing = false;
-      }
     }
+
     return {'heights': heights, 'releasePoints': releasePoints};
   }
 
@@ -211,8 +226,8 @@ class VideoRenderService {
     required Map<PoseLandmarkType, double> referenceHeights,
     required String referenceMode,
     required List<RenderReleasePoint> releasePoints,
-    required bool showTrackingLines, // ✅
-    required bool showReleasePoints, // ✅
+    required bool showTrackingLines,
+    required bool showReleasePoints,
   }) {
     Pose? smoothedPose = _getSmoothedPose(frameIndex, analysisResults);
     if (smoothedPose == null) return;
@@ -222,7 +237,6 @@ class VideoRenderService {
     if (scale < 1.0) scale = 1.0;
 
     // 1️⃣ 트래킹 라인 (showTrackingLines 체크)
-    // 🔥 켜져 있을 때만 계산하고 그림
     if (showTrackingLines) {
       activeTracks.forEach((partType, color) {
         final landmark = smoothedPose.landmarks[partType];
@@ -234,7 +248,7 @@ class VideoRenderService {
 
         if (path.length > 1) {
           img.Color drawColor = _convertColor(color);
-          int thickness = (3.0 * scale).toInt(); // 3.0 유지
+          int thickness = (3.0 * scale).toInt();
 
           for (int k = 0; k < path.length - 1; k++) {
             img.drawLine(image,
@@ -245,10 +259,8 @@ class VideoRenderService {
           }
         }
       });
-    } else {
-      // 꺼져있어도 데이터 누적은 해야 다음 프레임에 끊김이 없으나,
-      // 여기서는 단순히 안 그리기로 처리. (만약 껐다 켰다 영상을 만들 게 아니라면 상관없음)
     }
+    // 꺼져있을 때는 accumulatedPaths에 추가하지 않음 (또는 추가만 하고 그리지 않게 할 수도 있으나, 여기선 아예 안 그림)
 
     // 2️⃣ 뼈대 그리기 (항상 그림)
     img.Color boneColor = img.ColorRgba8(255, 255, 255, 255);
@@ -269,6 +281,8 @@ class VideoRenderService {
         img.fillCircle(image, x: l.x.toInt(), y: l.y.toInt(), radius: jointRadius, color: jointColor);
       }
     }
+
+    // 상체 위주 그리기
     drawLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder);
     drawLine(PoseLandmarkType.leftShoulder, PoseLandmarkType.leftHip);
     drawLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightHip);
@@ -277,9 +291,15 @@ class VideoRenderService {
     drawLine(PoseLandmarkType.rightShoulder, PoseLandmarkType.rightElbow);
     drawLine(PoseLandmarkType.rightElbow, PoseLandmarkType.rightWrist);
     drawLine(PoseLandmarkType.leftHip, PoseLandmarkType.leftKnee);
-    drawLine(PoseLandmarkType.leftKnee, PoseLandmarkType.leftAnkle);
     drawLine(PoseLandmarkType.rightHip, PoseLandmarkType.rightKnee);
-    drawLine(PoseLandmarkType.rightKnee, PoseLandmarkType.rightAnkle);
+
+    drawPoint(PoseLandmarkType.leftShoulder);
+    drawPoint(PoseLandmarkType.rightShoulder);
+    drawPoint(PoseLandmarkType.leftElbow);
+    drawPoint(PoseLandmarkType.rightElbow);
+    drawPoint(PoseLandmarkType.leftWrist);
+    drawPoint(PoseLandmarkType.rightWrist);
+
 
     // 3️⃣ 기준선 그리기 (항상 그림 - 모드에 따라)
     if (referenceMode != 'NONE') {
@@ -302,11 +322,11 @@ class VideoRenderService {
     }
 
     // 4️⃣ 릴리즈 포인트 (showReleasePoints 체크)
-    // 🔥 켜져 있을 때만 그림
     if (showReleasePoints && releasePoints.isNotEmpty) {
       for (int k = 0; k < releasePoints.length; k++) {
         final pointData = releasePoints[k];
 
+        // 현재 프레임 이전에 발생한 릴리즈 포인트만 그림
         if (pointData.frameIndex <= frameIndex) {
           int cx = pointData.point.dx.toInt();
           int cy = pointData.point.dy.toInt();
@@ -314,6 +334,7 @@ class VideoRenderService {
 
           img.fillCircle(image, x: cx, y: cy, radius: radius + 2, color: img.ColorRgba8(255, 255, 255, 255));
           img.fillCircle(image, x: cx, y: cy, radius: radius, color: img.ColorRgba8(255, 50, 50, 255));
+          // 번호 표시 (1, 2, 3...)
           img.drawString(image, '${k + 1}', font: img.arial24, x: cx - 6, y: cy - 35, color: img.ColorRgba8(255, 255, 255, 255));
         }
       }
