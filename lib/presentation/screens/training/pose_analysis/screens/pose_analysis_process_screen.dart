@@ -1,7 +1,8 @@
 import 'dart:async';
+import 'dart:io'; // 🔥 Platform.isAndroid 사용을 위해 필수!
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // ✅ 광고 패키지
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_result_screen.dart';
 
@@ -43,10 +44,13 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
     });
   }
 
-  // ✅ 광고 로드 함수 (loading_mrec ID 사용)
+  // ✅ 광고 로드 함수
   void _loadAd() {
     _mrecAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/8399618129', // ⚠️ 아까 만든 loading_mrec ID
+      // 🔥 [수정] 기기에 따라 광고 ID 분기 (loading_mrec)
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-5180429166023258/8399618129' // 안드로이드 MREC
+          : 'ca-app-pub-5180429166023258/4871189236', // iOS MREC (loading_mrec)
       size: AdSize.mediumRectangle, // 300x250 크기
       request: const AdRequest(),
       listener: BannerAdListener(

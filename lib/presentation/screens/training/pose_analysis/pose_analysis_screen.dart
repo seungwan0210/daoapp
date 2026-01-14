@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
-import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_setting_screen.dart';
+// ✅ 가이드 화면 import 필수 (경로가 다르면 수정해주세요)
+import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_guide_screen.dart';
 
 class PoseAnalysisScreen extends ConsumerWidget {
   const PoseAnalysisScreen({super.key});
@@ -66,12 +66,12 @@ class PoseAnalysisScreen extends ConsumerWidget {
 
               // 3. 하단 시작 버튼
               ElevatedButton(
-                onPressed: () async {
-                  ref.read(poseAnalysisProvider.notifier).reset();
-                  final success = await ref.read(poseAnalysisProvider.notifier).pickVideo();
-                  if (success && context.mounted) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const PoseAnalysisSettingScreen()));
-                  }
+                onPressed: () {
+                  // 🔥 [수정됨] 갤러리를 바로 열지 않고, 가이드 화면으로 이동합니다.
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PoseAnalysisGuideScreen())
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan[600], // Cyan 테마

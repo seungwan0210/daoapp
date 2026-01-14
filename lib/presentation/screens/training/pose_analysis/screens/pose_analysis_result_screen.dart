@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io'; // 🔥 Platform.isAndroid 사용을 위해 필수!
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -67,7 +67,10 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
 
   void _loadBannerAd() {
     _bannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/2238891690',
+      // 🔥 [수정] 기기에 따라 광고 ID 분기
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-5180429166023258/2238891690' // 안드로이드 배너
+          : 'ca-app-pub-5180429166023258/8644517940', // iOS 배너 (home_banner)
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -616,7 +619,10 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
 
   void _loadBannerAds() {
     _topBannerAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/2238891690',
+      // 🔥 [수정] 상단 배너 ID 분기
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-5180429166023258/2238891690' // 안드로이드 배너
+          : 'ca-app-pub-5180429166023258/8644517940', // iOS 배너 (home_banner)
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -626,7 +632,10 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
     )..load();
 
     _bottomMrecAd = BannerAd(
-      adUnitId: 'ca-app-pub-5180429166023258/8399618129',
+      // 🔥 [수정] 하단 MREC ID 분기
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-5180429166023258/8399618129' // 안드로이드 MREC
+          : 'ca-app-pub-5180429166023258/4871189236', // iOS MREC (loading_mrec)
       size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -638,7 +647,10 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
 
   void _loadInterstitialAd() {
     InterstitialAd.load(
-      adUnitId: 'ca-app-pub-5180429166023258/2986659287',
+      // 🔥 [수정] 전면 광고 ID 분기
+      adUnitId: Platform.isAndroid
+          ? 'ca-app-pub-5180429166023258/2986659287' // 안드로이드 전면
+          : 'ca-app-pub-5180429166023258/1484470385', // iOS 전면 (save_interstitial)
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
