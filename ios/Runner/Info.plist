@@ -63,6 +63,9 @@
        <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
 
+    <key>NSCameraUsageDescription</key>
+    <string>영상 분석을 위한 촬영 및 프로필 사진 등록을 위해 카메라 접근 권한이 필요합니다.</string>
+
     <key>NSPhotoLibraryUsageDescription</key>
     <string>갤러리에 저장된 다트 투구 영상을 불러와 분석하기 위해 앨범 접근 권한이 필요합니다.</string>
 
