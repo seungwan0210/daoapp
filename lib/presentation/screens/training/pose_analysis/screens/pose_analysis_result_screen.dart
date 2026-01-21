@@ -10,6 +10,15 @@ import 'package:daoapp/presentation/providers/training/pose_analysis_provider.da
 import 'package:daoapp/presentation/screens/training/pose_analysis/widgets/pose_painter.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_setting_screen.dart';
 
+// ✅ 안전한 광고 위젯 (main.dart의 설정과 연동되도록 수정)
+import 'package:daoapp/presentation/widgets/ad_banner.dart';
+// (혹은 AdBanner 파일 내에 있는 kAdMobSuspended를 가져오거나, 여기서 다시 정의)
+
+// ⚠️ [긴급] 이 파일 내부에서도 정지 기간 설정을 적용합니다.
+// 나중에 main.dart나 ad_banner.dart의 전역 변수로 관리하는 것이 좋습니다.
+// 일단 안전을 위해 여기서도 true로 막습니다.
+const bool kAdMobSuspended = true;
+
 // ✅ 시간 순서 표시를 위한 데이터 모델
 class ReleasePoint {
   final Offset point;   // 위치
@@ -34,8 +43,9 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   Map<PoseLandmarkType, double> _cachedSetupHeights = {};
   List<ReleasePoint> _releasePoints = [];
 
-  BannerAd? _bannerAd;
-  bool _isBannerLoaded = false;
+  // ❌ [삭제] 기존의 불안정한 수동 배너 로드 로직 제거
+  // BannerAd? _bannerAd;
+  // bool _isBannerLoaded = false;
 
   final Map<PoseLandmarkType, Color> _partColors = {
     PoseLandmarkType.rightWrist: const Color(0xFFFFEB3B),
@@ -48,7 +58,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   void initState() {
     super.initState();
     _initVideo();
-    _loadBannerAd();
+    // _loadBannerAd(); // ❌ 삭제 (AdBanner 위젯이 대신함)
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final results = ref.read(poseAnalysisProvider).analysisResults;
@@ -61,26 +71,8 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   @override
   void dispose() {
     _videoController?.dispose();
-    _bannerAd?.dispose();
+    // _bannerAd?.dispose(); // ❌ 삭제
     super.dispose();
-  }
-
-  void _loadBannerAd() {
-    _bannerAd = BannerAd(
-      // 🔥 [수정] 기기에 따라 광고 ID 분기
-      adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-5180429166023258/2238891690' // 안드로이드 배너
-          : 'ca-app-pub-5180429166023258/8644517940', // iOS 배너 (home_banner)
-      size: AdSize.banner,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() => _isBannerLoaded = true),
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-          print('결과 화면 배너 로드 실패: $error');
-        },
-      ),
-    )..load();
   }
 
   void _initVideo() async {
@@ -101,7 +93,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
     return analysisResults[currentFrame]!.first;
   }
 
-  // ✅ [중요 수정] 미리보기 분석 로직을 영상 저장 로직과 100% 동일하게 맞춤 (높이 체크 + 교차 검증)
   void _analyzeData(Map<int, List<Pose>>? analysisResults) {
     if (analysisResults == null) return;
 
@@ -127,7 +118,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
 
     List<int> sortedFrames = analysisResults.keys.toList()..sort();
 
-    // 1. 스탠스 식별 (8.0 기준)
     Set<int> stanceFrames = {};
     List<double> validElbowYs = [];
     List<double> validWristYs = [];
@@ -165,7 +155,6 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
       _cachedSetupHeights[wrist] = validWristYs[(validWristYs.length * 0.3).toInt()];
     }
 
-    // 2. 릴리즈 포인트 (영상 저장 로직과 동기화)
     int lastReleaseFrame = -999;
 
     for (int i = 1; i < sortedFrames.length; i++) {
@@ -183,15 +172,12 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
 
       if (w == null || e == null) continue;
 
-      // 🔥 [조건 1] 높이 체크: 손목이 팔꿈치보다 높아야 함 (화면상 y좌표가 작아야 함)
       bool isHigherThanElbow = w.y < e.y;
-      if (!isHigherThanElbow) continue; // 팔꿈치보다 낮으면 무시
+      if (!isHigherThanElbow) continue;
 
-      // 각도 계산
       double currAngle = _calculateAngle(currPose, shoulder, elbow, wrist);
       double prevAngle = _calculateAngle(prevPose, shoulder, elbow, wrist);
 
-      // 🔥 [조건 2] 교차 검증: 90도 안쪽이었다가 90도를 지나는 순간
       bool isCrossing = (prevAngle < 90.0) && (currAngle >= 90.0);
 
       if (isCrossing) {
@@ -451,19 +437,10 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (_isBannerLoaded && _bannerAd != null)
-                    Container(
-                      width: _bannerAd!.size.width.toDouble(),
-                      height: _bannerAd!.size.height.toDouble(),
-                      child: AdWidget(ad: _bannerAd!),
-                    )
-                  else
-                    Container(
-                      width: double.infinity,
-                      height: 50,
-                      alignment: Alignment.center,
-                      child: const Text(""),
-                    ),
+
+                  // ✅ [수정] 수동 배너 코드 삭제하고 안전한 AdBanner 위젯 사용
+                  const AdBanner(),
+
                   const SizedBox(height: 20),
                 ],
               ),
@@ -568,7 +545,9 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
   }
 }
 
-// ✅ [병렬 처리 완벽 구현] 렌더링 + 광고 동시 실행 후 둘 다 끝나야 닫힘
+// ==========================================================
+// ✅ [Rendering Dialog] 안전장치 추가 버전
+// ==========================================================
 class _RenderingProgressDialog extends ConsumerStatefulWidget {
   final String mode;
   final bool showTracking;
@@ -588,7 +567,6 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
   double _progress = 0.0;
   String _status = "영상 분석 준비 중...";
 
-  // 🔥 병렬 처리 상태 변수
   bool _isRenderingFinished = false;
   bool _isAdFinished = false;
 
@@ -603,10 +581,8 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
   void initState() {
     super.initState();
     _loadBannerAds();
-
-    // ✅ [병렬] 동시에 실행
-    _loadInterstitialAd();
-    _startRendering();
+    _loadInterstitialAd(); // 전면 광고 시도
+    _startRendering();     // 렌더링 시작
   }
 
   @override
@@ -618,11 +594,13 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
   }
 
   void _loadBannerAds() {
+    // ⛔ [차단] 정지 기간이면 배너 광고 로드 안 함
+    if (kAdMobSuspended) return;
+
     _topBannerAd = BannerAd(
-      // 🔥 [수정] 상단 배너 ID 분기
       adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-5180429166023258/2238891690' // 안드로이드 배너
-          : 'ca-app-pub-5180429166023258/8644517940', // iOS 배너 (home_banner)
+          ? 'ca-app-pub-5180429166023258/2238891690'
+          : 'ca-app-pub-5180429166023258/8644517940',
       size: AdSize.banner,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -632,10 +610,9 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
     )..load();
 
     _bottomMrecAd = BannerAd(
-      // 🔥 [수정] 하단 MREC ID 분기
       adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-5180429166023258/8399618129' // 안드로이드 MREC
-          : 'ca-app-pub-5180429166023258/4871189236', // iOS MREC (loading_mrec)
+          ? 'ca-app-pub-5180429166023258/8399618129'
+          : 'ca-app-pub-5180429166023258/4871189236',
       size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
@@ -646,11 +623,20 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
   }
 
   void _loadInterstitialAd() {
+    // ⛔ [차단] 정지 기간이면 전면 광고 스킵!
+    if (kAdMobSuspended) {
+      debugPrint("🚫 AdMob Suspended: 전면 광고 스킵");
+      setState(() {
+        _isAdFinished = true; // 광고 본 셈 치고 완료 처리
+      });
+      _checkAndExit(); // 혹시 렌더링이 이미 끝났으면 종료
+      return;
+    }
+
     InterstitialAd.load(
-      // 🔥 [수정] 전면 광고 ID 분기
       adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-5180429166023258/2986659287' // 안드로이드 전면
-          : 'ca-app-pub-5180429166023258/1484470385', // iOS 전면 (save_interstitial)
+          ? 'ca-app-pub-5180429166023258/2986659287'
+          : 'ca-app-pub-5180429166023258/1484470385',
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -661,19 +647,19 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
           _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
-              _isAdFinished = true; // 광고 종료 체크
+              _isAdFinished = true; // 광고 보고 닫음
               _checkAndExit();
             },
             onAdFailedToShowFullScreenContent: (ad, err) {
               ad.dispose();
-              _isAdFinished = true; // 실패해도 종료로 간주
+              _isAdFinished = true; // 에러나도 닫은 셈 침
               _checkAndExit();
             },
           );
         },
         onAdFailedToLoad: (err) {
           print('전면 광고 로드 실패: $err');
-          _isAdFinished = true; // 로드 실패시 바로 종료로 간주
+          _isAdFinished = true; // 로드 실패시 바로 넘어감
           _checkAndExit();
         },
       ),
@@ -697,13 +683,12 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
           });
 
           if (progress >= 1.0) {
-            _isRenderingFinished = true; // 렌더링 종료 체크
+            _isRenderingFinished = true;
             _checkAndExit();
           }
         });
   }
 
-  // ✅ 둘 다 끝났는지 확인하고 종료
   void _checkAndExit() {
     if (_isRenderingFinished && _isAdFinished) {
       if (mounted) {
@@ -729,7 +714,15 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (_isTopAdLoaded && _topBannerAd != null)
+              // 1. 상단 배너 (안전 처리)
+              if (kAdMobSuspended)
+                Container(
+                  width: double.infinity, height: 50,
+                  color: Colors.grey[200],
+                  alignment: Alignment.center,
+                  child: const Text("상단 배너 (개발중)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                )
+              else if (_isTopAdLoaded && _topBannerAd != null)
                 Container(
                   width: _topBannerAd!.size.width.toDouble(),
                   height: _topBannerAd!.size.height.toDouble(),
@@ -760,7 +753,6 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
               const SizedBox(height: 12),
               Text(_status, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
 
-              // 렌더링은 끝났는데 광고 보는 중일 때 안내
               if (_isRenderingFinished && !_isAdFinished)
                 const Padding(
                   padding: EdgeInsets.only(top: 8.0),
@@ -770,7 +762,18 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
 
               const SizedBox(height: 24),
 
-              if (_isBottomAdLoaded && _bottomMrecAd != null)
+              // 2. 하단 MREC (안전 처리)
+              if (kAdMobSuspended)
+                Container(
+                  width: 300, height: 250,
+                  decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(12)
+                  ),
+                  alignment: Alignment.center,
+                  child: const Text("MREC 광고 (개발중)", style: TextStyle(color: Colors.grey)),
+                )
+              else if (_isBottomAdLoaded && _bottomMrecAd != null)
                 Container(
                   width: _bottomMrecAd!.size.width.toDouble(),
                   height: _bottomMrecAd!.size.height.toDouble(),

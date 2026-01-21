@@ -6,6 +6,10 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_result_screen.dart';
 
+// ⚠️ [긴급] 안전장치 추가
+// 다른 파일들과 마찬가지로 이 값을 true로 두세요.
+const bool kAdMobSuspended = true;
+
 class PoseAnalysisProcessScreen extends ConsumerStatefulWidget {
   const PoseAnalysisProcessScreen({super.key});
 
@@ -44,10 +48,13 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
     });
   }
 
-  // ✅ 광고 로드 함수
+  // ✅ 광고 로드 함수 (수정됨)
   void _loadAd() {
+    // ⛔ [차단] 정지 기간이면 요청 자체를 안 보냄
+    if (kAdMobSuspended) return;
+
     _mrecAd = BannerAd(
-      // 🔥 [수정] 기기에 따라 광고 ID 분기 (loading_mrec)
+      // 🔥 기기에 따라 광고 ID 분기 (loading_mrec)
       adUnitId: Platform.isAndroid
           ? 'ca-app-pub-5180429166023258/8399618129' // 안드로이드 MREC
           : 'ca-app-pub-5180429166023258/4871189236', // iOS MREC (loading_mrec)
@@ -126,7 +133,28 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
               const SizedBox(height: 30),
 
               // 💰 2. 광고 영역 (가장 눈에 잘 띄는 중앙)
-              if (_isAdLoaded && _mrecAd != null)
+              // [수정] 3단계 분기 처리
+              if (kAdMobSuspended)
+              // A. 개발 중 (회색 박스)
+                Container(
+                  width: 300, height: 250,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.developer_mode, color: Colors.grey),
+                      SizedBox(height: 8),
+                      Text("MREC 광고 영역 (개발중)", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                )
+              else if (_isAdLoaded && _mrecAd != null)
+              // B. 실제 광고 로드 성공
                 Container(
                   width: _mrecAd!.size.width.toDouble(),
                   height: _mrecAd!.size.height.toDouble(),
@@ -138,7 +166,7 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
                   child: AdWidget(ad: _mrecAd!),
                 )
               else
-              // 광고 로딩 중일 때 보여줄 빈 박스 (화면 덜컹거림 방지)
+              // C. 로딩 중 (빈 박스)
                 Container(
                   width: 300, height: 250,
                   alignment: Alignment.center,

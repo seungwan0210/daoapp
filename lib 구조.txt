@@ -5,6 +5,7 @@
 ├── services/
 │   └── storage_service.dart
 │   └── video_render_service.dart
+│   └── grip_snapshot_service.dart
 │
 ├── di/
 │   └── service_locator.dart
@@ -27,6 +28,7 @@
 │       └── dao_training_rating_utils.dart
 │       └── dao_training_xp_utils.dart
 │       └── training_cycle_utils.dart
+│       └── geometry_utils.dart : 거리(Distance), 각도(Angle) 계산 수학 공식 모음
 │
 ├── data/
 │   ├── repositories/
@@ -42,7 +44,8 @@
 │   │   └── training_repository_impl.dart
 │   │   └── training_progress_repository.dart
 │   │   └── training_progress_repository_impl.dart
-
+│   │   └── grip_repository.dart : Firebase Storage(사진) & Store(데이터) 연동
+│   │   └── grip_repository_impl.dart : 레포지토리 구현체
 │   └── models/
 │       ├── point_record_model.dart
 │       ├── ranking_user.dart
@@ -55,6 +58,11 @@
 │       └── training_session_model.dart
 │       └── training_progress_model.dart
 │       └── training_report_model.dart
+│       └── grip_analysis_model.dart : 분석 데이터 모델 (핀치 간격, 각도, 이미지 URL 등)
+│       └── grip_baseline_model.dart
+│       └── grip_native_payload.dart
+│   └── services/
+│       └──native_grip_bridge.dart
 │
 ├── presentation/
 │   ├── providers/
@@ -71,6 +79,8 @@
 │   │   │   └── training_home_provider.dart
 │   │   │   └── training_progress_provider.dart
 │   │   │   └── pose_analysis_provider.dart
+│   │   │   └── grip_lab_provider.dart : 촬영→분석→저장 상태 관리 (StateNotifier)
+│   │   │   └── grip_baseline_provider.dart
 │   │   └── finish_route/
 │   │   │   └── finish_route_practice_provider.dart
 │   │   └── calculator/
@@ -84,8 +94,6 @@
 │   │   │
 │   │   ├── home/                           
 │   │   │   ├── home_screen.dart              
-│   │   │   └── widgets/
-│   │   │       └── (홈 카드/배너/섹션 위젯들 필요 시 분리)
 │   │   │
 │   │   ├── training/                         
 │   │   │   ├── training_home_screen.dart     
@@ -167,6 +175,16 @@
 │   │   │       │            ├──pose_analysis_process_screen.dart
 │   │   │       │            ├──pose_analysis_result_screen.dart
 │   │   │       │            ├──pose_analysis_setting_screen.dart
+│   │   │       └── grip_lab/
+│   │   │       │     └── grip_lab_home_screen.dart : (진입점) 기준 그립 유무 확인 및 모드 분기
+│   │   │       │     └── grip_camera_screen.dart : 카메라 촬영 + MediaPipe 오버레이
+│   │   │       │     └── grip_baseline_analysis_screen.dart 
+│   │   │       │     └── grip_compare_screen.dart 
+│   │   │       │     └──widgets/
+│   │   │       │            ├── ghost_overlay_painter.dart : [핵심] 뼈대 그리기 (회색=기준, 초록=현재)
+│   │   │       │            ├── grip_baseline_preview_card.dart
+│   │   │       │            ├── grip_diff_legend.dart
+│   │   │       │            ├── grip_metric_card.dart
 │   │   │
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart       

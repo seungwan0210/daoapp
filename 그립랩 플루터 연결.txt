@@ -1,0 +1,113 @@
+﻿🏗️ 1. Native 계층 (Data Source)
+핵심 역할: 카메라 하드웨어 제어 및 MediaPipe 1차 분석
+
+GripCameraPlatformView: 카메라 프리뷰 + 랜드마크 추출 엔진 (본체)
+
+GripCameraViewFactory: Flutter용 뷰 생성 공장
+
+GripStreamBus: 분석 데이터를 Flutter로 쏘는 파이프라인
+
+ImageProxyExt: CameraX 이미지를 MediaPipe용으로 변환
+
+🧠 2. Logic & Service 계층 (Brain & Tools)
+핵심 역할: 데이터를 가공하고, 파일 입출력 등 핵심 기능을 수행
+
+1) GripSnapshotService (New ✨)
+역할: 화면을 고해상도 이미지로 구워내는 사진사
+
+상세 로직:
+
+RepaintBoundary를 사용하여 위젯 트리를 비트맵으로 캡처
+
+recommendPixelRatio(): 기기 DPR(Density Pixel Ratio)을 고려해 고해상도 품질 확보
+
+captureToTempFile(): 캡처된 이미지를 바이트로 변환 후, 임시 디렉토리에 PNG 파일로 저장하고 File 객체 반환
+
+한 줄 요약:
+
+“현재 화면(카메라+오버레이)을 찰칵 찍어 실제 파일로 만들어주는 도구”
+
+2) GeometryUtils
+역할: 좌표를 각도/간격으로 변환하는 수학자 (분석 로직의 심장)
+
+3) GripAnalysisModel & GripBaselineModel
+역할: 분석 결과 명세서 및 기준 그립 정의서 (데이터 구조)
+
+4) GripNativePayload
+역할: 네이티브 통신용 데이터 포맷
+
+📱 3. UI Screens 계층 (User Flow)
+핵심 역할: 사용자가 실제로 조작하는 화면 흐름
+
+1) GripLabHomeScreen (New ✨)
+역할: 그립 연구소의 관제탑 (메인 허브)
+
+상세 로직:
+
+gripBaselineProvider를 구독하여 "나만의 기준이 있는가?" 판단
+
+기준 없음: "기준 잡으러 가기" → GripCameraScreen으로 유도
+
+기준 있음: "내 기준 분석" → GripBaselineAnalysisScreen 활성화
+
+화면 복귀 시 fetchBaseline()을 호출하여 데이터 최신화 보장
+
+한 줄 요약:
+
+“기준 데이터 유무에 따라 사용자를 촬영장이나 분석실로 안내하는 입구”
+
+2) GripCameraScreen (New ✨)
+역할: 실시간 분석과 데이터 수집이 일어나는 현장 (촬영장)
+
+상세 로직:
+
+통합: AndroidView(네이티브 카메라) 위에 GhostOverlayPainter(플러터 그림)를 겹침
+
+데이터 흐름: gripLabProvider가 네이티브에서 받은 실시간 좌표/수치를 UI에 뿌림
+
+저장 액션: [저장] 버튼 클릭 → RepaintBoundary 캡처 → SnapshotService 호출 → 파일 생성 → Repository 저장
+
+한 줄 요약:
+
+“카메라를 보며 그립을 맞추고, 그 순간을 캡처해서 저장하는 핵심 작업 공간”
+
+3) GripBaselineAnalysisScreen (New ✨)
+역할: 저장된 기준 그립을 확인하는 성적표 (대시보드)
+
+상세 로직:
+
+저장된 기준 이미지(네트워크 URL) 로드
+
+핵심 수치 표시: pinchGap, indexAngle, landmarks count, 저장 날짜
+
+관리 기능: 기준이 마음에 안 들면 [삭제] 또는 [재촬영/업데이트]
+
+한 줄 요약:
+
+“내가 설정한 기준 자세와 수치를 눈으로 확인하고 관리하는 화면”
+
+🎨 4. UI Components 계층 (Visualization)
+핵심 역할: 화면을 구성하는 부품들
+
+ghost_overlay_painter.dart: 뼈대 그리는 화가 (RepaintBoundary 안에서 같이 캡처됨)
+
+grip_metric_card.dart: 수치 표시 카드
+
+grip_baseline_preview_card.dart: 기준 이미지 프리뷰 카드
+
+grip_diff_legend.dart: 색상 범례
+
+🔄 전체 데이터 흐름 요약
+[Native] 카메라가 손을 찍고 좌표를 보냄.
+
+[Logic] GeometryUtils가 좌표를 각도로 계산.
+
+[Screen] GripCameraScreen에서 [Component] GhostOverlayPainter가 뼈대를 그림.
+
+[User Action] 사용자가 "저장" 버튼 클릭.
+
+[Service] GripSnapshotService가 화면을 파일로 변환.
+
+[Screen] GripLabHomeScreen으로 돌아오면 데이터가 갱신됨.
+
+[Screen] GripBaselineAnalysisScreen에서 저장된 기준을 확인.

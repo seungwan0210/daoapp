@@ -86,7 +86,14 @@ import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart'
 import 'package:daoapp/presentation/screens/admin/selection_players_admin_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
 
-// 🔧 디버그에서 광고 켜고 싶으면 이 값을 true로 바꾸면 됨
+// -----------------------------------------------------------
+// ⚠️ [긴급] 애드몹 정지(29일) 대응을 위한 설정
+// -----------------------------------------------------------
+// 정지가 풀린 후(2월 중순 이후) 이 값을 false로 바꾸고,
+// 아래 MobileAds.instance.initialize() 로직을 복구하세요.
+const bool kAdMobSuspended = true;
+
+// 기존 디버그 설정 (무시됨)
 const bool kEnableAdsInDebug = false;
 
 void main() async {
@@ -102,9 +109,15 @@ void main() async {
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
-  // ✅ AdMob / Google Mobile Ads 초기화
-  if (kReleaseMode || kEnableAdsInDebug) {
-    await MobileAds.instance.initialize();
+  // ✅ AdMob (광고) SDK 초기화 로직 수정
+  // 정지 기간 동안은 초기화를 아예 수행하지 않음 (안전 장치)
+  if (!kAdMobSuspended) {
+    if (kReleaseMode || kEnableAdsInDebug) {
+      await MobileAds.instance.initialize();
+      debugPrint("🚀 AdMob Initialized");
+    }
+  } else {
+    debugPrint("🚫 AdMob Suspended: 광고 기능이 비활성화되었습니다.");
   }
 
   // ✅ 온라인 상태 관리
@@ -137,7 +150,7 @@ class OnlineStatusManager {
       },
       SetOptions(merge: true),
     ).catchError(
-      (e) => debugPrint('Online status error: $e'),
+          (e) => debugPrint('Online status error: $e'),
     );
   }
 
@@ -182,42 +195,42 @@ class DaoApp extends StatelessWidget {
 
         // 🔥 피니쉬 루트 연습 (Finish Route)
         RouteConstants.finishRouteHome: (_) =>
-            const FinishRouteHomeScreen(),
+        const FinishRouteHomeScreen(),
         RouteConstants.finishRoutePractice: (_) =>
-            const FinishRoutePracticeScreen(),
+        const FinishRoutePracticeScreen(),
         RouteConstants.finishRouteResult: (_) =>
-            const FinishRouteResultScreen(),
+        const FinishRouteResultScreen(),
         RouteConstants.finishRouteRanking: (_) =>
-            const FinishRouteRankingScreen(),
+        const FinishRouteRankingScreen(),
         RouteConstants.finishRouteMyHistory: (_) =>
-            const FinishRouteMyHistoryScreen(),
+        const FinishRouteMyHistoryScreen(),
 
         // 체크아웃 계산기
         RouteConstants.checkoutCalculator: (_) =>
-            const CheckoutCalculatorScreen(),
+        const CheckoutCalculatorScreen(),
 
         // 🔹 트레이닝 프로필 관련
         RouteConstants.trainingRatingInput: (_) =>
-            const TrainingRatingInputScreen(),
+        const TrainingRatingInputScreen(),
         RouteConstants.boardLevelTest: (_) =>
-            const BoardLevelTestScreen(),
+        const BoardLevelTestScreen(),
 
         // 🔹 트레이닝 히스토리
         RouteConstants.trainingHistory: (_) =>
-            const TrainingHistoryScreen(),
+        const TrainingHistoryScreen(),
 
         // 아레나
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
         RouteConstants.steelLeagueRanking: (_) =>
-            const SteelLeagueRankingScreen(),
+        const SteelLeagueRankingScreen(),
         RouteConstants.steelLeagueSchedule: (_) =>
-            const SteelLeagueScheduleScreen(),
+        const SteelLeagueScheduleScreen(),
         RouteConstants.steelLeaguePointCalendar: (_) =>
-            const SteelLeaguePointCalendarScreen(),
+        const SteelLeaguePointCalendarScreen(),
         RouteConstants.steelLeagueMembers: (_) =>
-            const MemberListScreen(),
+        const MemberListScreen(),
         RouteConstants.tournamentCreate: (_) =>
-            const TournamentCreateScreen(),
+        const TournamentCreateScreen(),
 
         // 커뮤니티
         RouteConstants.community: (_) => const CommunityHomeScreen(),
@@ -227,36 +240,36 @@ class DaoApp extends StatelessWidget {
         // 마이페이지
         RouteConstants.myPage: (_) => const MyPageScreen(),
         RouteConstants.profileRegister: (_) =>
-            const ProfileRegisterScreen(),
+        const ProfileRegisterScreen(),
         RouteConstants.noticeList: (_) => const NoticeListScreen(),
         RouteConstants.report: (_) => const ReportFormScreen(),
         RouteConstants.myLogHome: (_) => const MyLogHomeScreen(),
 
         // 관리자
         RouteConstants.adminDashboard: (_) =>
-            const AdminDashboardScreen(),
+        const AdminDashboardScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) =>
-            const PointAwardListScreen(),
+        const PointAwardListScreen(),
         RouteConstants.eventCreate: (_) => const EventCreateScreen(),
         RouteConstants.eventList: (_) => const EventListScreen(),
         RouteConstants.noticeForm: (_) => const NoticeFormScreen(),
         RouteConstants.newsForm: (_) => const NewsFormScreen(),
         RouteConstants.sponsorForm: (_) => const SponsorFormScreen(),
         RouteConstants.memberRegister: (_) =>
-            const MemberRegisterScreen(),
+        const MemberRegisterScreen(),
         RouteConstants.competitionPhotosForm: (_) =>
-            const CompetitionPhotosFormScreen(),
+        const CompetitionPhotosFormScreen(),
         RouteConstants.adminReportList: (_) =>
-            const AdminReportListScreen(),
+        const AdminReportListScreen(),
         RouteConstants.adminMemberList: (_) =>
-            const AdminMemberListScreen(),
+        const AdminMemberListScreen(),
         RouteConstants.selectionPlayersAdmin: (_) =>
-            const SelectionPlayersAdminScreen(),
+        const SelectionPlayersAdminScreen(),
 
         // 스틸리그 선발 공개 화면
         RouteConstants.steelLeagueSelection: (_) =>
-            const SelectionPlayersScreen(),
+        const SelectionPlayersScreen(),
       },
       onGenerateRoute: (settings) {
         // 방명록
@@ -274,7 +287,7 @@ class DaoApp extends StatelessWidget {
             builder: (_) => EventEditScreen(
               docId: args['docId'] as String,
               initialData:
-                  args['initialData'] as Map<String, dynamic>,
+              args['initialData'] as Map<String, dynamic>,
             ),
           );
         }
@@ -305,7 +318,7 @@ class DaoApp extends StatelessWidget {
             builder: (_) => TournamentParticipantListScreen(
               tournamentId: args['tournamentId'] as String,
               tournamentTitle:
-                  args['tournamentTitle'] as String? ?? '참가자 명단',
+              args['tournamentTitle'] as String? ?? '참가자 명단',
             ),
           );
         }

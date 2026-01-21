@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 // Auth
 import 'package:daoapp/data/repositories/auth_repository.dart';
@@ -27,6 +28,10 @@ import 'package:daoapp/data/repositories/training_repository_impl.dart';
 import 'package:daoapp/data/repositories/training_progress_repository.dart';
 import 'package:daoapp/data/repositories/training_progress_repository_impl.dart';
 
+// ✅ Grip Baseline (그립 연구소 기준 그립) 저장용
+import 'package:daoapp/data/repositories/grip_baseline_repository.dart';
+import 'package:daoapp/data/repositories/grip_baseline_repository_impl.dart';
+
 final sl = GetIt.instance;
 
 void setupDependencies() {
@@ -34,6 +39,7 @@ void setupDependencies() {
   sl.registerLazySingleton<FirebaseAuth>(() => FirebaseAuth.instance);
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn());
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
+  sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
 
   // === Auth ===
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
@@ -67,6 +73,15 @@ void setupDependencies() {
   sl.registerLazySingleton<TrainingProgressRepository>(
         () => TrainingProgressRepositoryImpl(
       firestore: sl<FirebaseFirestore>(),
+    ),
+  );
+
+  // ✅ Grip Baseline Repository 등록 (그립 연구소 기준 1개 저장)
+  sl.registerLazySingleton<GripBaselineRepository>(
+        () => GripBaselineRepositoryImpl(
+      auth: sl<FirebaseAuth>(),
+      firestore: sl<FirebaseFirestore>(),
+      storage: sl<FirebaseStorage>(),
     ),
   );
 }

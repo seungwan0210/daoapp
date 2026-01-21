@@ -30,7 +30,7 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
 
-        // 🔥 [수정 1] 멀티덱스 활성화 (주석 해제됨)
+        // 🔥 [유지] 멀티덱스 활성화
         multiDexEnabled = true
     }
 
@@ -40,7 +40,7 @@ android {
     }
     kotlinOptions { jvmTarget = "11" }
 
-    // ── 릴리즈 서명 (keystore 있을 때만 구성)
+    // ── 릴리즈 서명
     if (hasKeystore) {
         signingConfigs {
             create("release") {
@@ -60,7 +60,6 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
         }
-        // debug는 기본 디버그 키 사용
     }
 }
 
@@ -69,10 +68,18 @@ flutter {
 }
 
 dependencies {
-    // 🔥 [수정 2] 멀티덱스 라이브러리 추가
+    // [기존] 멀티덱스 및 파이어베이스
     implementation("androidx.multidex:multidex:2.0.1")
-
-    // 기존 App Check 의존성 유지
     debugImplementation("com.google.firebase:firebase-appcheck-debug:17.2.0")
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity:17.2.0")
+
+    // 🔥 [추가됨] MediaPipe & CameraX 필수 라이브러리
+    implementation("com.google.mediapipe:tasks-vision:0.10.14")
+    implementation("androidx.camera:camera-core:1.3.0")
+    implementation("androidx.camera:camera-camera2:1.3.0")
+    implementation("androidx.camera:camera-lifecycle:1.3.0")
+    implementation("androidx.camera:camera-view:1.3.0")
+
+    // 비동기 처리용 코루틴
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
 }

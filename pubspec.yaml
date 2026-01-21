@@ -5,7 +5,7 @@ publish_to: 'none'
 version: 1.2.1+23
 
 environment:
-  sdk: '>=3.7.0 <4.0.0'
+  sdk: '>=3.3.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -51,13 +51,20 @@ dependencies:
   freezed_annotation: ^2.4.1
   json_annotation: ^4.9.0
 
-  # ==== 이펙트 ====
+  # ==== 이펙트 / 미디어 ====
   confetti: ^0.7.0
   video_player: ^2.10.1
   chewie: ^1.13.0
+
+  # ==== ML / Export ====
   google_mlkit_pose_detection: ^0.14.0
   gal: ^2.3.2
   ffmpeg_kit_flutter_new: ^4.1.0
+
+  # ==== 카메라 / 권한 ====
+  camera: ^0.10.5+9
+  permission_handler: ^11.3.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -68,7 +75,7 @@ dev_dependencies:
   freezed: ^2.4.1
   json_serializable: ^6.8.0
 
-  # ✅ 앱 아이콘 생성용 (dev_dependencies에 두는 게 정석)
+  # ✅ 앱 아이콘 생성용
   flutter_launcher_icons: ^0.14.4
 
 flutter:
@@ -98,7 +105,7 @@ flutter:
     - assets/images/dartboard.png
     - assets/images/circle_main.png
 
-    # ✅ [추가됨] 가이드 이미지
+    # ✅ 가이드 이미지
     - assets/images/guide_good.png
     - assets/images/guide_bad.png
 
@@ -130,12 +137,9 @@ flutter_launcher_icons:
   android: true
   ios: true
 
-  # iOS & 기본 아이콘에 사용할 원본 이미지 (1024x1024 권장)
   image_path: "assets/images/app_icon.png"
 
-  # Android min SDK (Adaptive Icon 지원)
   min_sdk_android: 21
 
-  # Android Adaptive Icon: 배경 / 전면 분리
   adaptive_icon_background: "assets/images/ic_launcher_background.png"
   adaptive_icon_foreground: "assets/images/ic_launcher_foreground.png"

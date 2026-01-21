@@ -28,6 +28,7 @@ import 'package:daoapp/presentation/screens/my_page/my_log/my_log_home_screen.da
 
 // ✅ [추가됨] 포즈 분석 화면 import
 import 'package:daoapp/presentation/screens/training/pose_analysis/pose_analysis_screen.dart';
+import 'package:daoapp/presentation/screens/training/grip_lab/grip_lab_home_screen.dart';
 
 class TrainingHomeScreen extends ConsumerStatefulWidget {
   const TrainingHomeScreen({super.key});
@@ -724,7 +725,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     );
   }
 
-  // ✅ [수정됨] 훈련 도구 리스트 (AI 분석 버튼 포함)
+  // ✅ [수정됨] 훈련 도구 리스트
   List<Widget> _buildPracticeItems() {
     return [
       // 1. 트레이닝 히스토리
@@ -735,7 +736,41 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         Colors.blueGrey,
       ),
 
-      // 2. [NEW] AI 자세 분석 & 트래킹
+      // 🔥 [NEW] 그립 연구소 (히스토리 바로 아래 추가)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: AppCard(
+          onTap: () {
+            // 그립 카메라 화면으로 이동
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const GripLabHomeScreen(),
+              ),
+            );
+          },
+          child: const ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Color(0xFFE0F2F1), // 연한 민트색
+              child: Icon(Icons.fingerprint, color: Colors.teal), // 지문/손가락 아이콘
+            ),
+            title: Text(
+              "그립 연구소",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Text(
+              "AI가 핀치 간격과 손가락 각도를 분석합니다.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ),
+        ),
+      ),
+
+      // 2. 자세분석 & 트래킹
       Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: AppCard(
@@ -749,8 +784,8 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
           },
           child: const ListTile(
             leading: CircleAvatar(
-              backgroundColor: Color(0xFFE3F2FD), // 연한 파랑
-              child: Icon(Icons.accessibility_new_rounded, color: Color(0xFF1565C0)), // 진한 파랑
+              backgroundColor: Color(0xFFE3F2FD),
+              child: Icon(Icons.accessibility_new_rounded, color: Color(0xFF1565C0)),
             ),
             title: Text(
               "자세분석 & 트래킹",
