@@ -13,6 +13,9 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import io.flutter.plugin.common.BinaryMessenger
+import io.flutter.plugin.common.MethodCall
+import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.platform.PlatformView
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -25,29 +28,32 @@ import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
 
 class GripCameraPlatformView(
     private val context: Context,
-    private val activity: Activity
-) : PlatformView {
+    private val activity: Activity,
+    messenger: BinaryMessenger,
+    viewId: Int
+) : PlatformView, MethodChannel.MethodCallHandler {
+
+    private val methodChannel = MethodChannel(messenger, "com.dao.darts/grip_control")
+
+    // ✅ [안전장치 1] 종료 플래그 (Volatile로 스레드 간 즉시 동기화)
+    @Volatile
+    private var isShutdown = false
 
     private val previewView: PreviewView = PreviewView(context).apply {
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         )
-
-        // ✅ 카메라 화면은 항상 꽉 채움 (Flutter 오버레이와 동일 조건)
         scaleType = PreviewView.ScaleType.FILL_CENTER
-
-        // ✅ TextureView 기반 (SurfaceView 겹침/검정 방지)
         implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-
         setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
         addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
-                bindCameraSafely()
+                if (!isShutdown) bindCameraSafely()
             }
             override fun onViewDetachedFromWindow(v: View) {
-                unbindCamera()
+                // 여기서 unbind하면 화면 전환 시 깜빡일 수 있으므로 dispose에서 처리
             }
         })
     }
@@ -58,15 +64,34 @@ class GripCameraPlatformView(
     private var imageAnalysis: ImageAnalysis? = null
     private var preview: Preview? = null
 
-    // ✅ 회전 반영 후 실제 분석 프레임 크기
+    private var isFrontCamera = false
     private var lastFrameW: Int = 0
     private var lastFrameH: Int = 0
 
     init {
         setupMediaPipe()
+        methodChannel.setMethodCallHandler(this)
     }
 
     override fun getView(): View = previewView
+
+    override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (isShutdown) return // 종료 중이면 무시
+
+        if (call.method == "switchCamera") {
+            toggleCamera()
+            result.success(null)
+        } else {
+            result.notImplemented()
+        }
+    }
+
+    private fun toggleCamera() {
+        if (isShutdown) return
+        isFrontCamera = !isFrontCamera
+        unbindCamera()
+        bindCameraSafely()
+    }
 
     private fun setupMediaPipe() {
         val baseOptions = BaseOptions.builder()
@@ -81,7 +106,10 @@ class GripCameraPlatformView(
             .setMinHandPresenceConfidence(0.5f)
             .setMinTrackingConfidence(0.5f)
             .setResultListener { result: HandLandmarkerResult, _ ->
-                sendResult(result)
+                // ✅ [안전장치 2] 결과 전송 전 종료 여부 체크
+                if (!isShutdown) {
+                    sendResult(result)
+                }
             }
             .build()
 
@@ -93,8 +121,12 @@ class GripCameraPlatformView(
     }
 
     private fun bindCameraSafely() {
+        if (isShutdown) return
+
         val providerFuture = ProcessCameraProvider.getInstance(context)
         providerFuture.addListener({
+            if (isShutdown) return@addListener // 비동기 실행 시점에도 체크
+
             try {
                 cameraProvider = providerFuture.get()
                 cameraProvider?.unbindAll()
@@ -115,7 +147,12 @@ class GripCameraPlatformView(
                         }
                     }
 
-                val selector = CameraSelector.DEFAULT_BACK_CAMERA
+                val selector = if (isFrontCamera) {
+                    CameraSelector.DEFAULT_FRONT_CAMERA
+                } else {
+                    CameraSelector.DEFAULT_BACK_CAMERA
+                }
+
                 val owner = activity as LifecycleOwner
                 cameraProvider?.bindToLifecycle(owner, selector, preview, imageAnalysis)
 
@@ -130,6 +167,13 @@ class GripCameraPlatformView(
     }
 
     private fun analyzeFrame(imageProxy: ImageProxy) {
+        // ✅ [안전장치 3] 분석 시작 전 종료 여부 체크 (가장 중요!)
+        // 뷰가 사라졌는데(isShutdown=true) 이미지가 들어오면 즉시 닫고 리턴
+        if (isShutdown) {
+            imageProxy.close()
+            return
+        }
+
         val landmarker = handLandmarker ?: run {
             imageProxy.close()
             return
@@ -151,24 +195,32 @@ class GripCameraPlatformView(
                 lastFrameH = rotatedBitmap.height
 
                 val mpImage: MPImage = BitmapImageBuilder(rotatedBitmap).build()
-                landmarker.detectAsync(mpImage, ts)
+
+                // 다시 한번 체크
+                if (!isShutdown) {
+                    landmarker.detectAsync(mpImage, ts)
+                }
 
             } catch (e: Exception) {
                 Log.e("DAO_GRIP", "Analyze error", e)
             }
         }
-
         imageProxy.close()
     }
 
     private fun sendResult(result: HandLandmarkerResult) {
+        if (isShutdown) return // 전송 차단
         if (result.landmarks().isEmpty()) return
 
         val hand = result.landmarks()[0]
         val raw = ArrayList<Double>(63)
 
         for (lm in hand) {
-            raw.add(lm.x().toDouble())
+            var x = lm.x().toDouble()
+            if (isFrontCamera) {
+                x = 1.0 - x
+            }
+            raw.add(x)
             raw.add(lm.y().toDouble())
             raw.add(lm.z().toDouble())
         }
@@ -182,9 +234,18 @@ class GripCameraPlatformView(
         GripStreamBus.send(payload)
     }
 
+    // 🔥 [핵심] 뷰가 파괴될 때 호출됨
     override fun dispose() {
-        unbindCamera()
+        isShutdown = true // 1. 모든 작업 정지 신호
+
+        methodChannel.setMethodCallHandler(null)
+        unbindCamera() // 2. 카메라 연결 해제
+
+        // 3. MediaPipe 종료 (try-catch 필수)
         try { handLandmarker?.close() } catch (_: Exception) {}
-        try { cameraExecutor.shutdown() } catch (_: Exception) {}
+        handLandmarker = null
+
+        // 4. 스레드 종료
+        try { cameraExecutor.shutdownNow() } catch (_: Exception) {}
     }
 }

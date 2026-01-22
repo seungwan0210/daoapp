@@ -1,20 +1,13 @@
-// lib/presentation/screens/training/grip_lab/widgets/grip_metric_card.dart
 import 'package:flutter/material.dart';
 
-/// 그립 연구소 - 수치 카드(2열 그리드에서 쓰는 카드)
-///
-/// 사용 예)
-/// GripMetricCard(
-///   title: "Pinch Gap",
-///   value: "14.2%",
-///   sub: "엄지-검지 간격",
-///   color: Colors.cyan,
-/// )
+/// 그립 연구소 - 수치 카드
+/// (아이콘 지원 추가됨)
 class GripMetricCard extends StatelessWidget {
   final String title;
   final String value;
   final String sub;
   final Color color;
+  final IconData? icon; // ✅ [Fix] 아이콘 파라미터 추가
 
   const GripMetricCard({
     super.key,
@@ -22,6 +15,7 @@ class GripMetricCard extends StatelessWidget {
     required this.value,
     required this.sub,
     required this.color,
+    this.icon, // ✅ [Fix] 생성자 추가
   });
 
   @override
@@ -46,9 +40,18 @@ class GripMetricCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+            // 타이틀 행 (아이콘 + 텍스트)
+            Row(
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             Text(

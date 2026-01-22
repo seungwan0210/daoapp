@@ -14,28 +14,24 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // 1) EventChannel: Flutter가 listen하면 sink를 저장해둠
+        // 1) EventChannel (데이터 송신용)
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NAME)
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
-                    Log.d("DAO_GRIP", "EventChannel onListen")
                     GripStreamBus.eventSink = events
                 }
-
                 override fun onCancel(arguments: Any?) {
-                    Log.d("DAO_GRIP", "EventChannel onCancel")
                     GripStreamBus.eventSink = null
                 }
             })
 
-        // 2) PlatformView 등록
+        // 2) PlatformView 등록 (Factory에 messenger 전달 추가!)
         flutterEngine
             .platformViewsController
             .registry
             .registerViewFactory(
                 "dao_grip_camera_view",
-                // ✅ Factory 생성자 수정에 맞춰서 'this(activity)'만 넘김
-                GripCameraViewFactory(this)
+                GripCameraViewFactory(flutterEngine.dartExecutor.binaryMessenger, this)
             )
     }
 }

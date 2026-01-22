@@ -105,9 +105,13 @@ flutter:
     - assets/images/dartboard.png
     - assets/images/circle_main.png
 
-    # ✅ 가이드 이미지
+    # ✅ 포즈 분석 가이드 이미지 (기존)
     - assets/images/guide_good.png
     - assets/images/guide_bad.png
+
+    # ✅ 그립 분석 가이드 이미지 (새로 추가됨)
+    - assets/images/grip_guide_good.png
+    - assets/images/grip_guide_bad.png
 
     # ==== Android Adaptive Icon 리소스 ====
     - assets/images/ic_launcher_background.png

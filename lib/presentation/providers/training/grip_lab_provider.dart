@@ -1,4 +1,5 @@
 // lib/presentation/providers/training/grip_lab_provider.dart
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,22 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/services/native_grip_bridge.dart';
 import 'package:daoapp/data/models/grip_native_payload.dart';
 import 'package:daoapp/core/utils/geometry_utils.dart';
+import 'package:daoapp/core/utils/landmark_smoother.dart';
 
-/// 상태 관리용 데이터 모델
+// 상태 클래스
 class GripState {
-  /// 0.0~1.0 정규화 좌표(네이티브 기준)
   final List<Offset> landmarks;
-
-  /// 핀치 간격 비율
   final double pinchGap;
-
-  /// 검지 굽힘 각도
   final double indexAngle;
-
-  /// 손 감지 여부
   final bool isHandDetected;
-
-  /// ✅ 네이티브 분석 프레임 실제 크기(회전 반영 후)
   final int imageWidth;
   final int imageHeight;
 
@@ -53,81 +46,93 @@ class GripState {
   }
 }
 
-/// 프로바이더
+// Provider 정의
 final gripLabProvider = StateNotifierProvider<GripLabNotifier, GripState>((ref) {
   return GripLabNotifier();
 });
 
+// Notifier 구현
 class GripLabNotifier extends StateNotifier<GripState> {
   final NativeGripBridge _bridge = NativeGripBridge();
   StreamSubscription<GripNativePayload>? _sub;
+  final LandmarkSmoother _smoother = LandmarkSmoother(alpha: 0.6);
 
-  /// ✅ 너무 자주 state 갱신하면 CustomPaint 리빌드 폭발할 수 있어서 간단 throttle
-  static const int _minUpdateIntervalMs = 33; // ~30fps
+  static const int _minUpdateIntervalMs = 33; // 약 30fps
   int _lastUpdateMs = 0;
 
   GripLabNotifier() : super(const GripState()) {
-    _initStream();
+    startAnalysis(); // 초기화 시 자동 시작
   }
 
-  void _initStream() {
-    debugPrint("✅ GripLabNotifier: stream subscribe start");
+  /// ▶️ 분석 시작 (스트림 구독)
+  void startAnalysis() {
+    if (_sub != null) return; // 이미 실행 중이면 패스
 
+    debugPrint("🚀 GripLab: Analysis Started");
     _sub = _bridge.gripDataStream.listen(
           (payload) {
-        if (!payload.isValid) {
-          if (state.isHandDetected) {
-            state = state.copyWith(isHandDetected: false);
+        if (!mounted) return;
+
+        try {
+          // 데이터 유효성 체크
+          if (!payload.isValid) {
+            if (state.isHandDetected) {
+              _smoother.reset();
+              state = state.copyWith(isHandDetected: false);
+            }
+            return;
           }
-          return;
+
+          // FPS 제한
+          final now = DateTime.now().millisecondsSinceEpoch;
+          if (now - _lastUpdateMs < _minUpdateIntervalMs) return;
+          _lastUpdateMs = now;
+
+          final data = payload.landmarks;
+          if (data.length < 63) {
+            state = state.copyWith(isHandDetected: false);
+            return;
+          }
+
+          // 좌표 변환
+          final List<Offset> rawPoints = <Offset>[];
+          for (int i = 0; i < 63; i += 3) {
+            rawPoints.add(Offset(data[i], data[i + 1]));
+          }
+          final List<Offset> smoothedPoints = _smoother.smooth(rawPoints);
+
+          // 수치 계산
+          final double gap = GeometryUtils.getPinchGapRatio(smoothedPoints);
+          final double angle = GeometryUtils.getIndexFlexionAngle(smoothedPoints);
+
+          state = GripState(
+            landmarks: smoothedPoints,
+            pinchGap: gap,
+            indexAngle: angle,
+            isHandDetected: true,
+            imageWidth: payload.w,
+            imageHeight: payload.h,
+          );
+        } catch (e) {
+          debugPrint("⚠️ Grip Stream Error: $e");
         }
-
-        // ✅ 간단 throttle (성능 안정)
-        final now = DateTime.now().millisecondsSinceEpoch;
-        if (now - _lastUpdateMs < _minUpdateIntervalMs) return;
-        _lastUpdateMs = now;
-
-        final data = payload.landmarks;
-
-        // 방어: 길이가 모자라면 종료
-        if (data.length < 63) {
-          state = state.copyWith(isHandDetected: false);
-          return;
-        }
-
-        // 1) Raw [x,y,z] -> List<Offset>
-        final List<Offset> points = <Offset>[];
-        for (int i = 0; i < 63; i += 3) {
-          points.add(Offset(data[i], data[i + 1])); // z는 무시
-        }
-
-        // 2) 수치 계산
-        final double gap = GeometryUtils.getPinchGapRatio(points);
-        final double angle = GeometryUtils.getIndexFlexionAngle(points);
-
-        // 3) 상태 업데이트 (✅ w/h 포함)
-        state = GripState(
-          landmarks: points,
-          pinchGap: gap,
-          indexAngle: angle,
-          isHandDetected: true,
-          imageWidth: payload.w,
-          imageHeight: payload.h,
-        );
       },
-      onError: (e, st) {
-        debugPrint("❌ grip stream error: $e");
-        if (mounted) {
-          state = state.copyWith(isHandDetected: false);
-        }
+      onError: (e) {
+        debugPrint("❌ Grip Stream Fatal Error: $e");
       },
     );
   }
 
-  @override
-  void dispose() {
+  /// ⏸️ 분석 일시정지 (스트림 해제)
+  void stopAnalysis() {
+    debugPrint("zzz GripLab: Analysis Paused");
     _sub?.cancel();
     _sub = null;
+  }
+
+  @override
+  void dispose() {
+    stopAnalysis();
     super.dispose();
   }
 }

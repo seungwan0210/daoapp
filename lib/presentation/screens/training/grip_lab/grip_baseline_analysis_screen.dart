@@ -1,13 +1,11 @@
-// lib/presentation/screens/training/grip_lab/grip_baseline_analysis_screen.dart
+import 'dart:math' as math; // 각도 계산용
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:daoapp/presentation/providers/training/grip_baseline_provider.dart';
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_camera_screen.dart';
 import 'package:daoapp/data/models/grip_baseline_model.dart';
-
-// ✅ 분리한 위젯 사용
-import 'package:daoapp/presentation/screens/training/grip_lab/widgets/grip_metric_card.dart';
+import 'package:daoapp/presentation/screens/training/grip_lab/widgets/grip_gauge_card.dart';
 
 class GripBaselineAnalysisScreen extends ConsumerWidget {
   const GripBaselineAnalysisScreen({super.key});
@@ -19,421 +17,238 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
     ref.listen<GripBaselineState>(gripBaselineProvider, (prev, next) {
       final msg = next.errorMessage;
       if (msg == null || msg.isEmpty) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
-
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       ref.read(gripBaselineProvider.notifier).clearError();
     });
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        title: const Text(
-          "기준 그립 분석",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("그립 분석 리포트", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        foregroundColor: Colors.black,
         elevation: 0,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
-        ),
         actions: [
           IconButton(
-            tooltip: "새로고침",
             icon: const Icon(Icons.refresh),
-            onPressed: state.isLoading
-                ? null
-                : () => ref.read(gripBaselineProvider.notifier).fetchBaseline(),
+            onPressed: () => ref.read(gripBaselineProvider.notifier).fetchBaseline(),
           ),
         ],
       ),
       body: SafeArea(
-        child: Stack(
-          children: [
-            if (!state.hasBaseline)
-              _EmptyBaselineView(
-                onTake: state.isLoading
-                    ? null
-                    : () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const GripCameraScreen(),
-                    ),
-                  );
-                  // 촬영/저장 후 돌아오면 새로 불러오기
-                  await ref
-                      .read(gripBaselineProvider.notifier)
-                      .fetchBaseline();
-                },
-              )
-            else
-              _BaselineAnalysisBody(
-                baseline: state.baseline!,
-                onUpdate: state.isLoading
-                    ? null
-                    : () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const GripCameraScreen(),
-                    ),
-                  );
-                  await ref
-                      .read(gripBaselineProvider.notifier)
-                      .fetchBaseline();
-                },
-                onDelete: state.isLoading
-                    ? null
-                    : () async {
-                  final ok = await _confirmDelete(context);
-                  if (!ok) return;
+        child: !state.hasBaseline
+            ? _EmptyBaselineView(onTake: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => const GripCameraScreen()));
+          await ref.read(gripBaselineProvider.notifier).fetchBaseline();
+        })
+            : SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. 히어로 이미지 (탭하여 확대 가능)
+              _HeroImageSection(baseline: state.baseline!),
+              const SizedBox(height: 24),
 
-                  final success = await ref
-                      .read(gripBaselineProvider.notifier)
-                      .deleteBaseline();
+              // 2. 메인 분석 (엄지/검지) - 녹색 & 파랑
+              const _SectionHeader(title: "메인 컨트롤 (Main Control)", icon: Icons.precision_manufacturing),
+              const SizedBox(height: 12),
 
-                  if (success && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("기준 그립이 삭제되었습니다.")),
-                    );
-                  }
-                },
+              GripGaugeCard(
+                title: "엄지-검지 간격 (Gap)",
+                valueText: "${(state.baseline!.pinchGap * 100).toStringAsFixed(1)}%",
+                normalizedValue: (state.baseline!.pinchGap / 0.2).clamp(0.0, 1.0),
+                labelLeft: "타이트함",
+                labelRight: "와이드함",
+                color: Colors.green[700]!, // 🟢 녹색
               ),
+              const SizedBox(height: 12),
 
-            if (state.isLoading)
+              GripGaugeCard(
+                title: "검지 굽힘 (Index Angle)",
+                valueText: "${state.baseline!.indexAngle.toStringAsFixed(0)}°",
+                normalizedValue: ((state.baseline!.indexAngle - 90) / 90).clamp(0.0, 1.0),
+                labelLeft: "많이 굽힘",
+                labelRight: "펴짐",
+                color: Colors.blue[700]!, // 🔵 파랑
+              ),
+              const SizedBox(height: 24),
+
+              // 3. 보조 손가락 분석 (중지/약지/소지) - 주황 & 보라 & 빨강
+              const _SectionHeader(title: "보조 지지대 (Support Fingers)", icon: Icons.front_hand),
+              const SizedBox(height: 12),
+
+              _buildSupportFingerCards(state.baseline!.landmarks),
+
+              const SizedBox(height: 24),
+
+              // 4. 광고 배너 영역
               Container(
-                color: Colors.white.withOpacity(0.65),
-                child: const Center(
-                  child: CircularProgressIndicator(color: Colors.cyan),
+                width: double.infinity,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[300]!),
+                  boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 4)],
+                ),
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.ad_units, color: Colors.grey[400]),
+                    const SizedBox(height: 4),
+                    Text("AdMob 배너 광고 영역", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                  ],
                 ),
               ),
-          ],
+
+              const SizedBox(height: 24),
+
+              // 5. 하단 버튼
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final ok = await _confirmDelete(context);
+                        if (ok) {
+                          await ref.read(gripBaselineProvider.notifier).deleteBaseline();
+                          if (context.mounted) Navigator.pop(context);
+                        }
+                      },
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      label: const Text("삭제"),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        side: const BorderSide(color: Colors.redAccent),
+                        foregroundColor: Colors.redAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (_) => const GripCameraScreen()));
+                        ref.read(gripBaselineProvider.notifier).fetchBaseline();
+                      },
+                      icon: const Icon(Icons.camera_alt_outlined, size: 20, color: Colors.white),
+                      label: const Text("다시 촬영"),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        backgroundColor: Colors.black87,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  static Future<bool> _confirmDelete(BuildContext context) async {
-    final result = await showDialog<bool>(
+  // 📐 3개의 보조 손가락 카드 생성 로직
+  Widget _buildSupportFingerCards(List<Offset> landmarks) {
+    if (landmarks.length < 21) return const Text("데이터 부족으로 분석 불가");
+
+    // 각도 계산 (PIP 관절 기준: MCP -> PIP -> DIP)
+    // 중지: 9-10-11, 약지: 13-14-15, 소지: 17-18-19
+    final middleAngle = _calculateJointAngle(landmarks[9], landmarks[10], landmarks[11]);
+    final ringAngle = _calculateJointAngle(landmarks[13], landmarks[14], landmarks[15]);
+    final pinkyAngle = _calculateJointAngle(landmarks[17], landmarks[18], landmarks[19]);
+
+    return Column(
+      children: [
+        GripGaugeCard(
+          title: "중지 받침 각도 (Middle)",
+          valueText: "${middleAngle.toStringAsFixed(0)}°",
+          normalizedValue: ((middleAngle - 70) / 110).clamp(0.0, 1.0),
+          labelLeft: "깊게 잡음",
+          labelRight: "얕게 잡음",
+          color: Colors.orange[800]!, // 🟠 주황 (진하게)
+        ),
+        const SizedBox(height: 12),
+        GripGaugeCard(
+          title: "약지 굽힘 (Ring)",
+          valueText: "${ringAngle.toStringAsFixed(0)}°",
+          normalizedValue: ((ringAngle - 60) / 120).clamp(0.0, 1.0),
+          labelLeft: "말아 쥠",
+          labelRight: "편안함",
+          color: Colors.purple[700]!, // 🟣 보라
+        ),
+        const SizedBox(height: 12),
+        GripGaugeCard(
+          title: "소지 밸런스 (Pinky)",
+          valueText: "${pinkyAngle.toStringAsFixed(0)}°",
+          normalizedValue: ((pinkyAngle - 60) / 120).clamp(0.0, 1.0),
+          labelLeft: "안쪽 지지",
+          labelRight: "바깥 지지",
+          color: Colors.red[700]!, // 🔴 빨강
+        ),
+      ],
+    );
+  }
+
+  // 🧮 3점 사잇각 계산 함수 (로컬 헬퍼)
+  double _calculateJointAngle(Offset a, Offset b, Offset c) {
+    final double angle1 = math.atan2(a.dy - b.dy, a.dx - b.dx);
+    final double angle2 = math.atan2(c.dy - b.dy, c.dx - b.dx);
+    double angle = (angle1 - angle2) * 180 / math.pi;
+    if (angle < 0) angle += 360;
+    if (angle > 180) angle = 360 - angle;
+    return angle;
+  }
+
+  Future<bool> _confirmDelete(BuildContext context) async {
+    return await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("기준 그립 삭제"),
-        content: const Text(
-          "저장된 기준 그립(이미지/데이터)을 삭제할까요?\n\n"
-              "⚠️ 이 작업은 되돌릴 수 없습니다.",
-          style: TextStyle(fontSize: 14),
-        ),
+        title: const Text("기준 삭제"),
+        content: const Text("정말 삭제하시겠습니까?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text("취소"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text("삭제", style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red))),
         ],
       ),
-    );
-
-    return result == true;
+    ) ??
+        false;
   }
 }
 
-class _EmptyBaselineView extends StatelessWidget {
-  final VoidCallback? onTake;
-
-  const _EmptyBaselineView({required this.onTake});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Card(
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 26, horizontal: 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.pan_tool_alt_rounded,
-                    size: 64, color: Colors.grey[500]),
-                const SizedBox(height: 14),
-                const Text(
-                  "저장된 기준 그립이 없어요",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "좋았던 날의 그립을 촬영해서\n‘기준 그립’으로 저장해보세요.",
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: onTake,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyan[600],
-                      minimumSize: const Size.fromHeight(48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      "촬영하러 가기",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _BaselineAnalysisBody extends StatelessWidget {
+// 🖼️ 히어로 이미지 (확대 기능 복구됨)
+class _HeroImageSection extends StatelessWidget {
   final GripBaselineModel baseline;
-  final VoidCallback? onUpdate;
-  final VoidCallback? onDelete;
-
-  const _BaselineAnalysisBody({
-    required this.baseline,
-    required this.onUpdate,
-    required this.onDelete,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final createdLabel = _formatDateTimeSafe(baseline.createdAt);
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ✅ 이미지 "안 잘리게" 전체 보이도록 수정
-          _BaselinePreviewCard(
-            imageUrl: baseline.imageUrl,
-            createdLabel: createdLabel,
-            frameLabel: "${baseline.imageWidth}×${baseline.imageHeight}",
-          ),
-          const SizedBox(height: 14),
-
-          const Text(
-            "기준 데이터",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            "이 화면은 ‘기준 그립’의 분석 수치를 보여줘요.\n"
-                "다음 단계에서 여기에 ‘현재 그립과의 차이(빨강/파랑)’도 추가할 거야.",
-            style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.4),
-          ),
-          const SizedBox(height: 14),
-
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 2.15,
-            children: [
-              GripMetricCard(
-                title: "Pinch Gap",
-                value: "${(baseline.pinchGap * 100).toStringAsFixed(1)}%",
-                sub: "엄지-검지 간격",
-                color: Colors.cyan,
-              ),
-              GripMetricCard(
-                title: "Index Angle",
-                value: "${baseline.indexAngle.toStringAsFixed(1)}°",
-                sub: "검지 굽힘 각도",
-                color: Colors.indigo,
-              ),
-              GripMetricCard(
-                title: "Landmarks",
-                value: "${baseline.landmarks.length}/21",
-                sub: "손 포인트 수",
-                color: Colors.orange,
-              ),
-              GripMetricCard(
-                title: "Updated",
-                value: createdLabel.split(" ").first,
-                sub: "기준 저장일",
-                color: Colors.purple,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 18),
-
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onDelete,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    side: BorderSide(
-                      color: Colors.red.withOpacity(0.55),
-                      width: 1.6,
-                    ),
-                  ),
-                  child: const Text(
-                    "기준 삭제",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: onUpdate,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan[600],
-                    minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    "기준 업데이트",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 10),
-
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.black.withOpacity(0.06)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.lightbulb_outline,
-                    color: Colors.amber[700], size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    "다음 단계: 카메라에서 ‘기준 그립 고스트’를 깔고,\n"
-                        "현재 그립과 차이를 빨강/파랑으로 표시할 거야.",
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      color: Colors.grey[700],
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _formatDateTimeSafe(DateTime dt) {
-    final mm = dt.month.toString().padLeft(2, '0');
-    final dd = dt.day.toString().padLeft(2, '0');
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mi = dt.minute.toString().padLeft(2, '0');
-    return "${dt.year}-$mm-$dd $hh:$mi";
-  }
-}
-
-class _BaselinePreviewCard extends StatelessWidget {
-  final String imageUrl;
-  final String createdLabel;
-  final String frameLabel;
-
-  const _BaselinePreviewCard({
-    required this.imageUrl,
-    required this.createdLabel,
-    required this.frameLabel,
-  });
+  const _HeroImageSection({required this.baseline});
 
   void _openFull(BuildContext context) {
     showDialog<void>(
       context: context,
       builder: (_) => Dialog(
-        insetPadding: const EdgeInsets.all(14),
+        insetPadding: EdgeInsets.zero,
         backgroundColor: Colors.black,
         child: Stack(
+          alignment: Alignment.center,
           children: [
             InteractiveViewer(
               minScale: 1.0,
               maxScale: 5.0,
-              child: Center(
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const SizedBox(
-                    height: 240,
-                    child: Center(
-                      child: Text(
-                        "이미지를 불러올 수 없어요",
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ),
-                  ),
-                  loadingBuilder: (ctx, child, progress) {
-                    if (progress == null) return child;
-                    return const SizedBox(
-                      height: 240,
-                      child: Center(
-                        child: CircularProgressIndicator(color: Colors.cyan),
-                      ),
-                    );
-                  },
-                ),
-              ),
+              child: Image.network(baseline.imageUrl, fit: BoxFit.contain),
             ),
             Positioned(
-              top: 10,
-              right: 10,
+              top: 40, right: 20,
               child: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -447,86 +262,102 @@ class _BaselinePreviewCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.black.withOpacity(0.06)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 8))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: AspectRatio(
+                    aspectRatio: 4 / 3,
+                    child: Image.network(
+                      baseline.imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: Colors.grey[200], child: const Icon(Icons.broken_image, color: Colors.grey)),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 12, right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.zoom_in, color: Colors.white, size: 14),
+                        SizedBox(width: 4),
+                        Text("탭하여 확대", style: TextStyle(color: Colors.white, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                )
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.grey),
+                  const SizedBox(width: 6),
+                  Text(_formatDate(baseline.createdAt), style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600)),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.blueGrey[50], borderRadius: BorderRadius.circular(8)),
+                    child: Text("${baseline.imageWidth} x ${baseline.imageHeight}px", style: TextStyle(color: Colors.blueGrey[600], fontSize: 11, fontWeight: FontWeight.bold)),
+                  )
+                ],
+              ),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ✅ 여기서 BoxFit.cover -> BoxFit.contain 으로 변경 (안 잘리게)
-              AspectRatio(
-                aspectRatio: 16 / 10,
-                child: Container(
-                  color: Colors.black, // contain일 때 남는 여백 배경
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: Colors.grey[200],
-                      child: const Center(
-                        child: Text("이미지를 불러올 수 없어요"),
-                      ),
-                    ),
-                    loadingBuilder: (ctx, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: Colors.grey[100],
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.cyan),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        "저장일: $createdLabel",
-                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                      ),
-                    ),
-                    Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.cyan.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Colors.cyan.withOpacity(0.25)),
-                      ),
-                      child: Text(
-                        "Frame $frameLabel",
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.cyan[800],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 14, right: 14, bottom: 12),
-                child: Text(
-                  "탭하면 전체보기(확대/이동) 할 수 있어요",
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey[600]),
-                ),
-              ),
-            ],
+      ),
+    );
+  }
+  String _formatDate(DateTime dt) => "${dt.year}.${dt.month}.${dt.day}";
+}
+
+// 🏷️ 섹션 헤더 (아이콘 + 텍스트)
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  const _SectionHeader({required this.title, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.black54),
+        const SizedBox(width: 8),
+        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black54)),
+      ],
+    );
+  }
+}
+
+class _EmptyBaselineView extends StatelessWidget {
+  final VoidCallback? onTake;
+  const _EmptyBaselineView({required this.onTake});
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.image_not_supported_outlined, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          const Text("데이터를 불러올 수 없습니다.", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: onTake,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
+            child: const Text("새로 촬영하기", style: TextStyle(color: Colors.white)),
           ),
-        ),
+        ],
       ),
     );
   }

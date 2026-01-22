@@ -1,87 +1,139 @@
-// lib/presentation/screens/training/grip_lab/grip_lab_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/training/grip_baseline_provider.dart';
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_camera_screen.dart';
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_baseline_analysis_screen.dart';
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_compare_screen.dart';
+import 'package:daoapp/presentation/screens/training/grip_lab/grip_guide_screen.dart';
 
-class GripLabHomeScreen extends ConsumerWidget {
+class GripLabHomeScreen extends ConsumerStatefulWidget {
   const GripLabHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final baselineState = ref.watch(gripBaselineProvider);
+  ConsumerState<GripLabHomeScreen> createState() => _GripLabHomeScreenState();
+}
 
-    final hasBaseline = baselineState.hasBaseline;
-    final isLoading = baselineState.isLoading;
+class _GripLabHomeScreenState extends ConsumerState<GripLabHomeScreen> {
+  // 🔒 네비게이션 잠금 장치
+  bool _isNavigating = false;
 
+  @override
+  Widget build(BuildContext context) {
+    // ✅ [수정됨] ref.listen을 build 메서드 최상단으로 이동
+    // 로그인이 안 되어 있어도 리스너를 등록해두는 것은 문제되지 않습니다.
     ref.listen<GripBaselineState>(gripBaselineProvider, (prev, next) {
       final msg = next.errorMessage;
       if (msg == null || msg.isEmpty) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
-
-      // 한번 띄우고 초기화
+      // 화면이 살아있을 때만 스낵바 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
       ref.read(gripBaselineProvider.notifier).clearError();
     });
 
-    Future<void> _pushCamera() async {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const GripCameraScreen()),
-      );
-      await ref.read(gripBaselineProvider.notifier).fetchBaseline();
-    }
+    // 🔥 로그인 상태 실시간 감지
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // 1. 로딩 중
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
-    Future<void> _pushBaselineAnalysis() async {
-      final now = ref.read(gripBaselineProvider);
-      if (!now.hasBaseline) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("기준 그립이 없어요. 먼저 촬영해서 저장해 주세요.")),
-        );
-        return;
-      }
+        final user = snapshot.data;
 
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const GripBaselineAnalysisScreen()),
-      );
+        // 2. 비로그인 상태 -> 로그인 유도 화면
+        if (user == null) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            appBar: _buildAppBar(),
+            body: _buildLoginPrompt(context),
+          );
+        }
 
-      // ✅ 돌아오면 최신 기준 다시 불러오기(삭제/업데이트 반영)
-      await ref.read(gripBaselineProvider.notifier).fetchBaseline();
-    }
+        // 3. 로그인 상태 -> 메인 콘텐츠 표시
+        return _buildMainContent(context);
+      },
+    );
+  }
 
-    Future<void> _pushCompare() async {
-      // CompareScreen은 내부에서 "기준 없으면 안내 + 촬영 연결"을 처리함
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const GripCompareScreen()),
-      );
+  // --- [UI 구성 요소] ---
 
-      // ✅ 비교 화면에서 기준 업데이트/촬영 했을 수 있으니 갱신
-      await ref.read(gripBaselineProvider.notifier).fetchBaseline();
-    }
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: const Text("그립 연구소", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      centerTitle: true,
+      backgroundColor: Colors.white,
+      elevation: 0,
+      foregroundColor: Colors.black,
+      bottom: const PreferredSize(preferredSize: Size.fromHeight(1), child: Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0))),
+    );
+  }
+
+  // 🔒 로그인 유도 화면
+  Widget _buildLoginPrompt(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 24),
+            const Text(
+              "로그인이 필요해요",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "나만의 그립 기준을 저장하고 분석하려면\n로그인이 필요합니다.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // 로그인 화면으로 이동
+                  Navigator.pushNamed(context, RouteConstants.login);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan[600],
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text("로그인 하러 가기", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 📸 메인 기능 화면 (로그인 된 경우)
+  Widget _buildMainContent(BuildContext context) {
+    // ✅ [수정됨] 여기서 ref.listen 제거됨 (위로 이동)
+
+    final baselineState = ref.watch(gripBaselineProvider);
+    final hasBaseline = baselineState.hasBaseline;
+    final isLoading = baselineState.isLoading;
+
+    // 🔒 버튼 활성화 조건: 로딩 중이 아니고, 화면 이동 중도 아닐 때만
+    final bool canClick = !isLoading && !_isNavigating;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          "그립 연구소",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        foregroundColor: Colors.black,
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
-        ),
-      ),
+      appBar: _buildAppBar(),
       body: SafeArea(
         child: Stack(
           children: [
@@ -90,191 +142,98 @@ class GripLabHomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1) 상단 타이틀
-                  const Text(
-                    "내 그립, 기록하고\n기준과 비교하기.",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      height: 1.25,
-                    ),
-                  ),
+                  const Text("내 그립, 기록하고\n비교하기.", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.25)),
                   const SizedBox(height: 8),
-                  Text(
-                    "정답은 없지만, 나에게 잘 맞는 ‘기준 그립’은 만들 수 있어요.\n"
-                        "좋았던 날의 그립을 저장하고, 다음 날 다시 맞춰보세요.",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      height: 1.5,
-                    ),
-                  ),
+                  Text("정답은 없지만, 나에게 잘 맞는 ‘기준’은 있습니다.\n가장 좋았던 그립을 저장하고, 매일 그 감각을 맞춰보세요.", style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5)),
                   const SizedBox(height: 22),
 
-                  // 2) 안내 카드들 + 기준 상태
                   Expanded(
                     child: ListView(
                       children: [
-                        _InfoCard(
-                          icon: Icons.camera_alt_rounded,
-                          title: "촬영 & 저장",
-                          desc:
-                          "손을 카메라에 비추면 랜드마크(손뼈대)를 추적해요.\n"
-                              "기준으로 저장하면 1인당 1개만 유지됩니다.",
-                          tint: Colors.cyan,
-                        ),
+                        _InfoCard(icon: Icons.camera_alt_rounded, title: "촬영 & 저장", desc: "손을 비추면 뼈대를 추적합니다.\n가장 마음에 드는 그립을 '기준'으로 저장하세요.", tint: Colors.cyan),
                         const SizedBox(height: 12),
-                        _InfoCard(
-                          icon: Icons.compare_arrows_rounded,
-                          title: "비교/교정",
-                          desc:
-                          "기준 그립(고스트) 위에 현재 그립을 겹치고,\n"
-                              "달라진 곳을 빨강/파랑으로 확인하며 교정 연습을 해요.",
-                          tint: Colors.indigo,
-                        ),
+                        _InfoCard(icon: Icons.compare_arrows_rounded, title: "비교/교정", desc: "기준과 달라진 손가락을 찾아내어 조언해줍니다.", tint: Colors.indigo),
                         const SizedBox(height: 12),
-                        _InfoCard(
-                          icon: Icons.insights_rounded,
-                          title: "숫자로 확인",
-                          desc:
-                          "엄지-검지 핀치 간격, 검지 굽힘 각도 등\n"
-                              "측정 가능한 항목은 수치로 보여줘요.",
-                          tint: Colors.orange,
-                        ),
+                        _InfoCard(icon: Icons.insights_rounded, title: "수치 분석", desc: "엄지-검지 사이 거리, 손가락 굽힘 각도 등\n미세한 차이를 수치로 확인할 수 있어요.", tint: Colors.orange),
                         const SizedBox(height: 18),
 
-                        // 3) 기준 상태 표시
                         Container(
-                          padding: const EdgeInsets.all(14),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF7F9FC),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: hasBaseline
-                                  ? Colors.cyan.withOpacity(0.35)
-                                  : Colors.grey.withOpacity(0.2),
-                              width: 1.4,
-                            ),
+                            border: Border.all(color: hasBaseline ? Colors.cyan.withOpacity(0.5) : Colors.grey.withOpacity(0.3), width: 1.5),
                           ),
-                          child: Row(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: hasBaseline
-                                    ? Colors.cyan.withOpacity(0.14)
-                                    : Colors.grey.withOpacity(0.12),
-                                child: Icon(
-                                  hasBaseline
-                                      ? Icons.verified_rounded
-                                      : Icons.info_outline_rounded,
-                                  color: hasBaseline ? Colors.cyan : Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      hasBaseline
-                                          ? "기준 그립이 저장되어 있어요 ✅"
-                                          : "아직 기준 그립이 없어요",
-                                      style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w900,
-                                        color: Colors.grey[850],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      hasBaseline
-                                          ? "아래에서 ‘비교/교정’으로 바로 교정 연습을 하거나,\n"
-                                          "‘촬영하기’로 기준을 업데이트할 수 있어요."
-                                          : "먼저 ‘촬영하기’로 기준을 저장해보세요.\n"
-                                          "저장 후 ‘비교/교정’에서 바로 맞춰볼 수 있어요.",
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        height: 1.35,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
+                              Row(children: [
+                                Icon(hasBaseline ? Icons.check_circle_rounded : Icons.info_outline_rounded, color: hasBaseline ? Colors.cyan[700] : Colors.grey, size: 20),
+                                const SizedBox(width: 8),
+                                Text(hasBaseline ? "기준 그립이 저장되어 있습니다." : "아직 기준 그립이 없습니다.", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey[850])),
+                              ]),
+                              const SizedBox(height: 8),
+                              Text(hasBaseline ? "저장된 기준 데이터를 확인하거나, 아래 버튼을 눌러 비교 훈련을 시작하세요." : "먼저 [촬영하기] 버튼을 눌러 기준 그립을 만들어주세요.", style: TextStyle(fontSize: 13, color: Colors.grey[700], height: 1.4)),
 
-                                    // ✅ 기준 분석(수치 보기)은 작은 텍스트 버튼으로 분리
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: TextButton.icon(
-                                        onPressed: isLoading ? null : _pushBaselineAnalysis,
-                                        style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                          foregroundColor: Colors.cyan[800],
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        icon: const Icon(Icons.analytics_rounded, size: 18),
-                                        label: const Text(
-                                          "기준 분석(수치 보기)",
-                                          style: TextStyle(fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
+                              if (hasBaseline) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    // ✅ canClick 적용
+                                    onPressed: canClick ? () => _safeNavigate(const GripBaselineAnalysisScreen()) : null,
+                                    style: OutlinedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: Colors.red[800],
+                                      side: BorderSide(color: Colors.cyan[200]!),
+                                      padding: const EdgeInsets.symmetric(vertical: 10),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                     ),
-                                  ],
+                                    icon: const Icon(Icons.analytics_outlined, size: 18),
+                                    label: const Text("저장된 기준 데이터(수치) 보기", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  ),
                                 ),
-                              ),
+                              ]
                             ],
                           ),
                         ),
+                        const SizedBox(height: 30),
                       ],
                     ),
                   ),
 
-                  // 4) 하단 버튼 2개 (비교/교정 + 촬영하기)
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: isLoading ? null : _pushCompare,
+                          // ✅ canClick 적용
+                          onPressed: canClick ? () => _safeNavigate(const GripCompareScreen()) : null,
                           style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: BorderSide(
-                              color: Colors.indigo.withOpacity(0.55),
-                              width: 1.6,
-                            ),
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            side: BorderSide(color: Colors.indigo.withOpacity(0.6), width: 2),
+                            foregroundColor: Colors.indigo[800],
                           ),
-                          child: Text(
-                            "비교/교정",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.indigo[700],
-                            ),
-                          ),
+                          child: _isNavigating // 이동 중이면 로딩 표시
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.indigo))
+                              : const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.compare_arrows_rounded, size: 22), SizedBox(height: 4), Text("비교/교정 하기", style: TextStyle(fontWeight: FontWeight.bold))]),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: isLoading ? null : _pushCamera,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.cyan[600],
-                            minimumSize: const Size.fromHeight(52),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
+                        child: OutlinedButton(
+                          // ✅ [변경] GripGuideScreen으로 이동 (가이드 먼저)
+                          onPressed: canClick ? () => _safeNavigate(const GripGuideScreen()) : null,
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(56),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            side: BorderSide(color: Colors.cyan.withOpacity(0.6), width: 2),
+                            foregroundColor: Colors.cyan[700],
                           ),
-                          child: const Text(
-                            "촬영하기",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+                          child: _isNavigating // 이동 중이면 로딩 표시
+                              ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyan))
+                              : const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.camera_alt_rounded, size: 22), SizedBox(height: 4), Text("새로 촬영하기", style: TextStyle(fontWeight: FontWeight.bold))]),
                         ),
                       ),
                     ],
@@ -282,87 +241,41 @@ class GripLabHomeScreen extends ConsumerWidget {
                 ],
               ),
             ),
-
-            // 로딩 오버레이
-            if (isLoading)
-              Container(
-                color: Colors.white.withOpacity(0.65),
-                child: const Center(
-                  child: CircularProgressIndicator(color: Colors.cyan),
-                ),
-              ),
+            if (isLoading) Container(color: Colors.white.withOpacity(0.65), child: const Center(child: CircularProgressIndicator(color: Colors.cyan))),
           ],
         ),
       ),
     );
   }
+
+  // --- [안전한 이동 함수] ---
+  Future<void> _safeNavigate(Widget page) async {
+    if (_isNavigating) return;
+
+    setState(() => _isNavigating = true);
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+    );
+
+    if (mounted) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() => _isNavigating = false);
+      ref.read(gripBaselineProvider.notifier).fetchBaseline();
+    }
+  }
 }
 
 class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String desc;
-  final Color tint;
-
-  const _InfoCard({
-    required this.icon,
-    required this.title,
-    required this.desc,
-    required this.tint,
-  });
-
+  final IconData icon; final String title; final String desc; final Color tint;
+  const _InfoCard({required this.icon, required this.title, required this.desc, required this.tint});
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: tint.withOpacity(0.22), width: 1.4),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: tint.withOpacity(0.10),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: tint, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  desc,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: tint.withOpacity(0.22), width: 1.4), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)]),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: tint.withOpacity(0.10), shape: BoxShape.circle), child: Icon(icon, color: tint, size: 24)), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)), const SizedBox(height: 4), Text(desc, style: TextStyle(fontSize: 13, color: Colors.grey[600], height: 1.4))]))]),
     );
   }
 }

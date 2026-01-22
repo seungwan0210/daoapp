@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // ✅ Auth 추가
 
+import 'package:daoapp/core/constants/route_constants.dart'; // ✅ 라우트 상수
 import 'package:daoapp/presentation/screens/my_page/my_log/my_log_write_screen.dart';
 import 'package:daoapp/presentation/providers/my_log_provider.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
@@ -9,8 +11,90 @@ import 'package:daoapp/data/models/my_log_model.dart';
 import 'package:daoapp/presentation/screens/my_page/my_log/my_log_detail_screen.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
-class MyLogHomeScreen extends ConsumerWidget {
+class MyLogHomeScreen extends StatelessWidget {
   const MyLogHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // 🔥 로그인 상태 실시간 감지
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // 1. 로딩 중
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final user = snapshot.data;
+
+        // 2. 비로그인 상태 -> 로그인 유도 화면
+        if (user == null) {
+          return Scaffold(
+            appBar: const CommonAppBar(title: '마이로그'),
+            body: _buildLoginPrompt(context),
+          );
+        }
+
+        // 3. 로그인 상태 -> 메인 콘텐츠 (기존 로직)
+        return const _MyLogAuthedBody();
+      },
+    );
+  }
+
+  // 🔒 로그인 유도 화면 UI
+  Widget _buildLoginPrompt(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.lock_outline_rounded, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 24),
+            const Text(
+              "로그인이 필요해요",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "나만의 다트 일기를 기록하고 관리하려면\n로그인이 필요합니다.",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, RouteConstants.login);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan[600],
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text("로그인 하러 가기",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ✅ 로그인 된 상태에서 보여줄 메인 바디
+class _MyLogAuthedBody extends ConsumerWidget {
+  const _MyLogAuthedBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,8 +128,7 @@ class MyLogHomeScreen extends ConsumerWidget {
           }).toSet();
 
           // 🔹 정렬된 리스트 (최근순)
-          final sortedLogs = [...logs]
-            ..sort((a, b) => b.date.compareTo(a.date));
+          final sortedLogs = [...logs]..sort((a, b) => b.date.compareTo(a.date));
 
           final totalCount = logs.length;
           final firstLog = sortedLogs.isNotEmpty ? sortedLogs.last : null;
@@ -113,7 +196,6 @@ class MyLogHomeScreen extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              // ✅ Row → Wrap 으로 변경 (오버플로우 방지)
                               Wrap(
                                 spacing: 8,
                                 runSpacing: 4,
@@ -283,9 +365,7 @@ class MyLogHomeScreen extends ConsumerWidget {
                         );
 
                         // 해당 날짜에 이미 기록이 있는지 찾기
-                        final log = logs
-                            .cast<MyLogModel?>()
-                            .firstWhere(
+                        final log = logs.cast<MyLogModel?>().firstWhere(
                               (l) =>
                           l != null &&
                               DateTime(
@@ -303,8 +383,7 @@ class MyLogHomeScreen extends ConsumerWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  MyLogDetailScreen(logId: log.id!),
+                              builder: (_) => MyLogDetailScreen(logId: log.id!),
                             ),
                           );
                         } else {
@@ -312,7 +391,7 @@ class MyLogHomeScreen extends ConsumerWidget {
                           if (!context.mounted) return;
                           final confirm = await showModalBottomSheet<bool>(
                             context: context,
-                            isScrollControlled: true, // 🔹 높이 조금 더 여유
+                            isScrollControlled: true,
                             shape: const RoundedRectangleBorder(
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(20),
@@ -320,13 +399,14 @@ class MyLogHomeScreen extends ConsumerWidget {
                             ),
                             builder: (ctx) {
                               return SafeArea(
-                                // 시스템 하단 바에 안 겹치게
                                 top: false,
                                 child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                                  padding:
+                                  const EdgeInsets.fromLTRB(20, 20, 20, 20),
                                   child: Column(
-                                    mainAxisSize: MainAxisSize.min, // 내용만큼만 높이
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         '${selected.year}년 ${selected.month}월 ${selected.day}일',
@@ -352,20 +432,19 @@ class MyLogHomeScreen extends ConsumerWidget {
                                           height: 1.5,
                                         ),
                                       ),
-
-                                      // 👇 여기 간격만 주고 버튼, Spacer는 제거!
                                       const SizedBox(height: 24),
-
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(ctx, false),
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, false),
                                             child: const Text('취소'),
                                           ),
                                           const SizedBox(width: 8),
                                           ElevatedButton(
-                                            onPressed: () => Navigator.pop(ctx, true),
+                                            onPressed: () =>
+                                                Navigator.pop(ctx, true),
                                             child: const Text('작성하기'),
                                           ),
                                         ],
@@ -395,9 +474,7 @@ class MyLogHomeScreen extends ConsumerWidget {
 
                 const SizedBox(height: 16),
 
-                // ==========================
-                // 안내 텍스트 (버튼은 제거)
-                // ==========================
+                // 안내 텍스트
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Text(
@@ -509,12 +586,10 @@ class MyLogHomeScreen extends ConsumerWidget {
   // 헬퍼들
   // ==========================
 
-  /// 현재 연속 기록 일수 계산 (최근 날짜 기준으로 역순 연속 일수)
   int _calculateCurrentStreak(Set<DateTime> loggedDates) {
     if (loggedDates.isEmpty) return 0;
 
-    final uniqueDates = loggedDates.toList()
-      ..sort((a, b) => b.compareTo(a)); // 최신 → 과거
+    final uniqueDates = loggedDates.toList()..sort((a, b) => b.compareTo(a));
 
     int streak = 1;
     for (int i = 0; i < uniqueDates.length - 1; i++) {
@@ -578,12 +653,11 @@ class MyLogHomeScreen extends ConsumerWidget {
   }
 }
 
-// 간단한 Color 확장: 살짝 어둡게
+// 색상 확장 (진하게)
 extension _ColorX on Color {
   Color darken([double amount = .15]) {
     final hsl = HSLColor.fromColor(this);
-    final hslDark =
-    hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
+    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
     return hslDark.toColor();
   }
 }
