@@ -1,14 +1,14 @@
 import 'dart:async';
-import 'dart:io'; // 🔥 Platform.isAndroid 사용을 위해 필수!
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+// ✅ 프로젝트 경로에 맞춰 임포트 확인 필요
+import 'package:daoapp/core/utils/ad_manager.dart';
+import 'package:daoapp/presentation/widgets/ad_banner.dart'; // kAdMobSuspended 전역 변수가 있는 곳
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_result_screen.dart';
-
-// ⚠️ [긴급] 안전장치 추가
-// 다른 파일들과 마찬가지로 이 값을 true로 두세요.
-const bool kAdMobSuspended = true;
 
 class PoseAnalysisProcessScreen extends ConsumerStatefulWidget {
   const PoseAnalysisProcessScreen({super.key});
@@ -48,23 +48,21 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
     });
   }
 
-  // ✅ 광고 로드 함수 (수정됨)
+  // ✅ [수정] AdManager를 사용하도록 개선된 광고 로드 함수
   void _loadAd() {
-    // ⛔ [차단] 정지 기간이면 요청 자체를 안 보냄
+    // ⛔ [차단] AdBanner.dart 등에 정의된 전역 안전장치 확인
     if (kAdMobSuspended) return;
 
     _mrecAd = BannerAd(
-      // 🔥 기기에 따라 광고 ID 분기 (loading_mrec)
-      adUnitId: Platform.isAndroid
-          ? 'ca-app-pub-5180429166023258/8399618129' // 안드로이드 MREC
-          : 'ca-app-pub-5180429166023258/4871189236', // iOS MREC (loading_mrec)
-      size: AdSize.mediumRectangle, // 300x250 크기
+      // 🔥 AdManager에 정의된 MREC 전용 ID 사용
+      adUnitId: AdManager.mrecUnitId,
+      size: AdSize.mediumRectangle,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) => setState(() => _isAdLoaded = true),
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          print('MREC 광고 로드 실패: $error');
+          debugPrint('MREC 광고 로드 실패: $error');
         },
       ),
     )..load();
@@ -83,10 +81,16 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
       setState(() => _progressValue = 1.0);
       await Future.delayed(const Duration(milliseconds: 500));
 
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PoseAnalysisResultScreen()));
+      if (!mounted) return;
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const PoseAnalysisResultScreen())
+      );
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("분석 실패. 다시 시도해주세요.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("분석 실패. 다시 시도해주세요."))
+        );
         Navigator.pop(context);
       }
     }
@@ -99,7 +103,7 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: SingleChildScrollView( // 화면이 작을 경우를 대비해 스크롤 허용
+        child: SingleChildScrollView(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -120,62 +124,28 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
                   ),
                   Text(
                     "$percent%",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.cyan),
+                    style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.cyan
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 30),
 
-              const Text("자세를 분석 중입니다", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text("자세를 분석 중입니다",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+              ),
               const SizedBox(height: 8),
-              Text("소요 시간: ${_elapsedSeconds}초", style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+              Text("소요 시간: ${_elapsedSeconds}초",
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14)
+              ),
 
               const SizedBox(height: 30),
 
               // 💰 2. 광고 영역 (가장 눈에 잘 띄는 중앙)
-              // [수정] 3단계 분기 처리
-              if (kAdMobSuspended)
-              // A. 개발 중 (회색 박스)
-                Container(
-                  width: 300, height: 250,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[300]!),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.developer_mode, color: Colors.grey),
-                      SizedBox(height: 8),
-                      Text("MREC 광고 영역 (개발중)", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                )
-              else if (_isAdLoaded && _mrecAd != null)
-              // B. 실제 광고 로드 성공
-                Container(
-                  width: _mrecAd!.size.width.toDouble(),
-                  height: _mrecAd!.size.height.toDouble(),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    border: Border.all(color: Colors.grey[200]!),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: AdWidget(ad: _mrecAd!),
-                )
-              else
-              // C. 로딩 중 (빈 박스)
-                Container(
-                  width: 300, height: 250,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text("잠시만 기다려주세요...", style: TextStyle(color: Colors.grey)),
-                ),
+              _buildAdContent(),
 
               const SizedBox(height: 30),
 
@@ -192,6 +162,59 @@ class _PoseAnalysisProcessScreenState extends ConsumerState<PoseAnalysisProcessS
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ✅ 광고 상태에 따른 위젯 분리 (가독성 개선)
+  Widget _buildAdContent() {
+    if (kAdMobSuspended) {
+      // A. 개발 중/정책 위반 대응 기간 (회색 박스)
+      return Container(
+        width: 300, height: 250,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[300]!),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.developer_mode, color: Colors.grey),
+            SizedBox(height: 8),
+            Text("MREC 광고 영역 (개발중)",
+                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_isAdLoaded && _mrecAd != null) {
+      // B. 실제 광고 로드 성공
+      return Container(
+        width: _mrecAd!.size.width.toDouble(),
+        height: _mrecAd!.size.height.toDouble(),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          border: Border.all(color: Colors.grey[200]!),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: AdWidget(ad: _mrecAd!),
+      );
+    }
+
+    // C. 로딩 중 (빈 박스)
+    return Container(
+      width: 300, height: 250,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Text("광고를 불러오는 중입니다...",
+          style: TextStyle(color: Colors.grey)
       ),
     );
   }

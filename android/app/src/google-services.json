@@ -1,0 +1,72 @@
+{
+  "project_info": {
+    "project_number": "283714687956",
+    "firebase_url": "https://daoapp-c0527-default-rtdb.firebaseio.com",
+    "project_id": "daoapp-c0527",
+    "storage_bucket": "daoapp-c0527.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:283714687956:android:3985daacafc46a49043c41",
+        "android_client_info": {
+          "package_name": "kr.comong.daoapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "283714687956-ffapcnj69lchfmuoc5pm2ectoi1s8gqk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "kr.comong.daoapp",
+            "certificate_hash": "ed9a3bd48512d3c23abb8d0c8b53cfde4ed5db5a"
+          }
+        },
+        {
+          "client_id": "283714687956-neqad2tmmhj65ielb8lh462l6khr0n29.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "kr.comong.daoapp",
+            "certificate_hash": "424d345559d34e7fd2a390de56bdcb596959acff"
+          }
+        },
+        {
+          "client_id": "283714687956-obopthr9h9tn608keaeifb4jivohsa23.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "kr.comong.daoapp",
+            "certificate_hash": "f6c02532289f228d1253f1a7bf97349a270c6c2b"
+          }
+        },
+        {
+          "client_id": "283714687956-7ikgq104hcc09df7h32adohcec4uq3of.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAH5WrErbEZ70QbjJF--laMp9MLFYWU1b4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "283714687956-7ikgq104hcc09df7h32adohcec4uq3of.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "283714687956-f4dif18ia8e2ul9mpeo0jbdk363qoemb.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "kr.comong.daoapp"
+              }
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-5180429166023258~2044446429"
+    }
+  ],
+  "configuration_version": "1"
+}
