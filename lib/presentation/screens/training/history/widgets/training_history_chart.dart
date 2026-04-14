@@ -118,15 +118,6 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
       dayList.add(day);
     }
 
-    if (hitRateSpots.isEmpty && ppdSpots.isEmpty && mprSpots.isEmpty) {
-      return const Center(
-        child: Text(
-          '표시할 수 있는 데이터가 없어요',
-          style: TextStyle(fontSize: 13, color: Colors.grey),
-        ),
-      );
-    }
-
     // 🔹 4) 현재 뷰에 따라 실제로 그릴 라인 선택
     final List<LineChartBarData> lineBars = [];
 
@@ -208,13 +199,12 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-            Text(
+            const Text(
               "그래프는 최근 7일 동안의 하루 평균값을 보여줘요.",
               style: TextStyle(fontSize: 11, color: Colors.grey),
             ),
             const SizedBox(height: 8),
 
-            // 🔹 범례 (Wrap으로 – 좁은 화면에서도 자동 줄바꿈)
             Wrap(
               spacing: 12,
               runSpacing: 4,
@@ -235,7 +225,7 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
               child: LineChart(
                 LineChartData(
                   minX: 0,
-                  maxX: (days.length - 1).toDouble(),
+                  maxX: (days.isEmpty) ? 0 : (days.length - 1).toDouble(),
                   minY: 0,
                   maxY: 100,
                   lineBarsData: lineBars,
@@ -321,8 +311,6 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
             ),
 
             const SizedBox(height: 12),
-
-            // 🔹 그래프 아래 토글 (예전 “최근 7일 요약” 위치 느낌)
             Center(child: _buildToggle()),
           ],
         ),
@@ -333,7 +321,6 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
   // ───── UI helpers ─────
 
   Widget _buildToggle() {
-    // Wrap 으로 만들어서 절대 오버플로우 안 나게
     return Wrap(
       spacing: 4,
       runSpacing: 4,
@@ -394,10 +381,13 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
     return LineTouchData(
       enabled: true,
       touchTooltipData: LineTouchTooltipData(
+        // 배경색 설정 (버전에 따라 tooltipBgColor 또는 getTooltipColor 사용)
         getTooltipColor: (_) => Colors.black87,
-        tooltipRoundedRadius: 12,
-        tooltipPadding:
-        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+
+        // 🔥 [최종 해결] 에러를 일으키는 Radius 설정을 삭제했습니다.
+        // 삭제하더라도 패키지 기본값으로 깔끔하게 출력됩니다.
+
+        tooltipPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         tooltipMargin: 12,
         maxContentWidth: 160,
         getTooltipItems: (touchedSpots) {
@@ -442,7 +432,6 @@ class _TrainingHistoryChartState extends State<TrainingHistoryChart> {
   }
 }
 
-/// 하루 평균 계산용 내부 클래스
 class _DailyAggregate {
   double hitRateSum = 0;
   int hitRateCount = 0;
