@@ -1,0 +1,271 @@
+lib/
+├── core/
+│   ├── constants/
+│   │   ├── route_constants.dart
+│   │   ├── checkout_table.dart
+│   │   └── badge_constants.dart
+│   │   └── training_drill_constants.dart
+│   │   └── training_program_constants.dart
+│   ├── theme/
+│   │   └── app_theme.dart
+│   └── utils/
+│       ├── grip_coach.dart
+│       ├── landmark_smoother.dart
+│       ├── ad_manager.dart
+│       ├── badge_utils.dart
+│       ├── date_utils.dart
+│       ├── segment_utils.dart
+│       ├── ranking_utils.dart
+│       └── arena_utils.dart
+│       └── dao_training_rating_utils.dart
+│       └── dao_training_xp_utils.dart
+│       └── training_cycle_utils.dart
+│       └── geometry_utils.dart 
+├── data/
+│   └── models/
+│       ├── point_record_model.dart
+│       ├── practice_session_summary.dart
+│       ├── ranking_user.dart
+│       ├── user_model.dart
+│       ├── checkout_route_model.dart
+│       ├── tournament_model.dart
+│       ├── tournament_entry_model.dart
+│       └── my_log_model.dart
+│       └── training_drill_model.dart
+│       └── training_session_model.dart
+│       └── training_progress_model.dart
+│       └── training_report_model.dart
+│       └── grip_analysis_model.dart
+│       └── grip_baseline_model.dart
+│       └── grip_native_payload.dart
+│   ├── repositories/
+│   │   ├── auth_repository.dart
+│   │   ├── auth_repository_impl.dart
+│   │   ├── point_record_repository.dart
+│   │   ├── point_record_repository_impl.dart
+│   │   ├── arena_repository.dart
+│   │   ├── arena_repository_impl.dart
+│   │   ├── my_log_repository.dart
+│   │   └── training_repository.dart
+│   │   └── training_repository_impl.dart
+│   │   └── training_progress_repository.dart
+│   │   └── training_progress_repository_impl.dart
+│   │   └── grip_repository.dart 
+│   │   └── grip_repository_impl.dar
+│   └── services/
+│       └──native_grip_bridge.dart
+├── di/
+│   └── service_locator.dart
+├── l10n/
+├── presentation/
+│   ├── providers/
+│   │   ├── app_providers.dart
+│   │   ├── home_provider.dart               
+│   │   ├── ranking_provider.dart
+│   │   ├── community_provider.dart
+│   │   ├── circle_feed_provider.dart
+│   │   ├── arena_provider.dart
+│   │   └── my_log_provider.dart
+│   │   └── training/ 
+│   │   │   └── training_drill_provider.dart
+│   │   │   └── training_history_provider.dart
+│   │   │   └── training_home_provider.dart
+│   │   │   └── training_progress_provider.dart
+│   │   │   └── pose_analysis_provider.dart
+│   │   │   └── grip_lab_provider.dart
+│   │   │   └── grip_baseline_provider.dart
+│   │   └── finish_route/
+│   │   │   └── finish_route_practice_provider.dart
+│   │   └── calculator/
+│   │   │   └── checkout_calculator_provider.dart
+│   ├── screens/
+│   │   ├── splash_screen.dart
+│   │   ├── main_screen.dart 
+│   │   ├── admin/
+│   │   │   ├── selection_players_admin_screen.dart
+│   │   │   ├── admin_dashboard_screen.dart
+│   │   │   ├── admin_member_list_screen.dart
+│   │   │   ├── admin_report_list_screen.dart
+│   │   │   ├── event_create_screen.dart
+│   │   │   ├── event_list_screen.dart
+│   │   │   ├── point_award_screen.dart
+│   │   │   ├── point_award_list_screen.dart
+│   │   │   ├── member_register_screen.dart
+│   │   │   ├── point_edit_screen.dart
+│   │   │   ├── event_edit_screen.dart
+│   │   │   └── forms/
+│   │   │       ├── notice_form_screen.dart
+│   │   │       ├── news_form_screen.dart
+│   │   │       ├── sponsor_form_screen.dart
+│   │   │       └── competition_photos_form_screen.dart
+│   │   ├── arena/                           
+│   │   │   ├── arena_home_screen.dart  
+│   │   │   ├── steel_league/                 
+│   │   │   │   ├── steel_league_ranking_screen.dart
+│   │   │   │   ├── steel_league_schedule_screen.dart
+│   │   │   │   ├── steel_league_point_calendar_screen.dart
+│   │   │   │   ├── member_list_screen.dart.dart
+│   │   │   │   └── selection_players_screen.dart
+│   │   │   ├── tournament/
+│   │   │   │   ├── tournaments_home_screen.dart        
+│   │   │   │   ├── my_tournaments_screen.dart         
+│   │   │   │   ├── tournament_create_screen.dart
+│   │   │   │   ├── tournament_detail_screen.dart
+│   │   │   │   ├── tournament_entry_form_screen.dart
+│   │   │   │   ├── tournament_debug_tools_screen.dart
+│   │   │   │   ├── tournament_edit_screen.dart
+│   │   │   │   ├── tournament_participant_list_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │       ├── entry_status_badge.dart
+│   │   │   │       ├── tournament_card.dart
+│   │   │   │       └── tournament_filter_chips.dart
+│   │   │   └── widgets/
+│   │   │       └── arena_preview.dart
+│   │   ├── community/  
+│   │   │   ├── community_home_screen.dart
+│   │   │   ├── circle/
+│   │   │   │   ├── circle_screen.dart
+│   │   │   │   ├── circle_grid_view.dart
+│   │   │   │   ├── circle_list_view.dart
+│   │   │   │   ├── post_write_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │       ├── post_card.dart
+│   │   │   │       ├── post_grid_item.dart
+│   │   │   │       ├── like_button.dart
+│   │   │   │       ├── comment_button.dart
+│   │   │   │       ├── comment_preview.dart
+│   │   │   │       └── comment_bottom_sheet.dart
+│   │   ├── home/                           
+│   │   │   ├── home_screen.dart 
+│   │   ├── login/
+│   │   │   └── login_screen.dart
+│   │   ├── my_page/
+│   │   │   ├── my_page_screen.dart          
+│   │   │   ├── profile_register_screen.dart
+│   │   │   ├── notice_list_screen.dart
+│   │   │   ├── report_form_screen.dart
+│   │   │   ├── guestbook_screen.dart
+│   │   │   ├── my_log/
+│   │   │   │   ├── my_log_home_screen.dart
+│   │   │   │   ├── my_log_detail_screen.dart
+│   │   │   │   ├── my_log_write_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │       └── my_log_card.dart
+│   │   │   ├── services/
+│   │   │   │   ├── image_upload_service.dart
+│   │   │   │   ├── phone_auth_service.dart
+│   │   │   │   ├── profile_service.dart
+│   │   │   ├── widgets/
+│   │   │   │   ├── profile_image_widget.dart
+│   │   │   │   ├── profile_form_fields.dart
+│   │   │   │   ├── barrel_image_widget.dart
+│   │   │   │   ├── barrel_setting_section.dart
+│   │   │   │   ├── phone_verification_section.dart
+│   │   │   │   ├── guestbook_header.dart
+│   │   │   │   └── guestbook_comment_item.dart
+│   │   ├── training/                         
+│   │   │   ├── training_home_screen.dart     
+│   │   │   ├── training_rating_input_screen.dart
+│   │   │   ├── board_level_test_screen.dart 
+│   │   │   ├── calculator/
+│   │   │   │   └── training_calculator_screen.dart
+│   │   │   │   └──  widgets/
+│   │   │   │       ├── route_card.dart
+│   │   │   ├── drills/
+│   │   │   │   └──  widgets/
+│   │   │   │       ├──core/
+│   │   │   │   │   ├── drill_header_card.dart
+│   │   │   │   │   ├── drill_progress_card.dart
+│   │   │   │   │   ├── generic_hit_panel.dart
+│   │   │   │   │   ├── round_input_panel.dart
+│   │   │   │       ├──effects/
+│   │   │   │   │   ├── confetti_effect.dart
+│   │   │   │   │   ├── fireworks_effect.dart
+│   │   │   │   │   ├── neon_glow_effect.dart
+│   │   │   │       ├──specialized/
+│   │   │   │   │   ├── around_board_panel.dart
+│   │   │   │   │   ├── bull_split_panel.dart
+│   │   │   │   │   ├── checkout_practice_panel.dart
+│   │   │   │   │   ├── countup_round_score_panel.dart
+│   │   │   │   │   ├── double_clock_panel.dart
+│   │   │   │   │   ├── fixed_route_panel.dart
+│   │   │   │   │   ├── full_cricket_training_panel.dart
+│   │   │   │   │   ├── quadrant_board_panel.dart
+│   │   │   │   │   ├── score_game_multi_set_panel.dart
+│   │   │   │   │   ├── score_game_panel.dart
+│   │   │   │   │   ├── sector_cycle_panel.dart
+│   │   │   │   │   ├── t20_focus_panel.dart
+│   │   │   │   │   ├── top_bottom_board_panel.dart
+│   │   │   │   ├── drill_result_screen.dart
+│   │   │   │   ├── drill_run_screen.dart
+│   │   │   ├── finish_route/
+│   │   │   │   ├── finish_route_detail_screen.dart
+│   │   │   │   ├── finish_route_home_screen.dart
+│   │   │   │   ├── finish_route_my_history_screen.dart
+│   │   │   │   ├── finish_route_practice_screen.dart
+│   │   │   │   ├── finish_route_ranking_screen.dart
+│   │   │   │   └── finish_route_result_screen.dart
+│   │   │   │   └── widgets/
+│   │   │   │      ├── dartboard_widget.dart
+│   │   │   │      ├── dart_input_panel.dart
+│   │   │   │      ├── practice_stats_card.dart
+│   │   │   │      ├── finish_route_ranking_mini.dart
+│   │   │   │      ├── remaining_score_display.dart
+│   │   │   │      ├── my_recent_record_mini.dart
+│   │   │   ├── grip_lab/
+│   │   │       │     └── grip_lab_home_screen.dart
+│   │   │       │     └── grip_camera_screen.dart
+│   │   │       │     └── grip_baseline_analysis_screen.dart 
+│   │   │       │     └── grip_compare_screen.dart 
+│   │   │       │     └── grip_guide_screen.dart
+│   │   │       │     └──widgets/
+│   │   │       │            ├── ghost_overlay_painter.dart
+│   │   │       │            ├── grip_baseline_preview_card.dart
+│   │   │       │            ├── grip_gauge_card.dart
+│   │   │       │            ├── grip_metric_card.dart
+│   │   │   ├── history/    
+│   │   │   │   ├── training_history_screen.dart
+│   │   │   │   ├── training_session_detail_screen.dart 
+│   │   │   │   └── widgets/
+│   │   │   │      ├── training_history_chart.dart
+│   │   │   ├── pose_analysis/
+│   │   │       │     └── pose_analysis_screen.dart
+│   │   │       │     └──widgets/
+│   │   │       │            ├──pose_painter.dart
+│   │   │       │     └──screens/
+│   │   │       │            ├── pose_analysis_process_screen.dart
+│   │   │       │            ├── pose_analysis_result_screen.dart
+│   │   │       │            ├── pose_analysis_setting_screen.dart
+│   │   │       │            ├── pose_analysis_guide_screen.dart
+│   │   │   ├── report/
+│   │   │   │   └── training_report_overlay.dart
+│   │   │   └── widgets/
+│   │   │       └──report/
+│   │   │       │     └── report_action_buttons.dart
+│   │   │       │     └── report_neon_separator.dart
+│   │   │       │     └── report_stat_item.dart
+│   │   │       │     └── training_report_viewmodel.dart
+│   │   │       │     └── training_report_animator.dart
+│   │   │   └── widgets/
+│   │   │       │     └── training_recommendation_card.dart
+│   │   │       │     └── dual_neon_gauge_row.dart
+│   │   │       │     └── dao_tier_badge_large.dart
+│   │   │       │     └── round_input_panel.dart
+│   │   │       │     └── beginner_board_area_widget.dart
+│   │   │       │     └── drill_stat_summary.dart
+│   └── widgets/
+│       ├── ad_banner.dart
+│       ├── app_card.dart
+│       ├── admin_delete_button.dart
+│       ├── post_item_widget.dart
+│       ├── common_appbar.dart
+│       ├── more_menu_button.dart
+│       ├── galaxy_settings_section.dart
+│       ├── user_profile_dialog.dart
+│       └── badge_widget.dart
+├── services/
+│   └── storage_service.dart
+│   └── video_render_service.dart
+│   └── grip_snapshot_service.dart
+├── main.dart
+├── firebase_options.dart

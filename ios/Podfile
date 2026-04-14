@@ -1,4 +1,4 @@
-platform :ios, '15.5'
+platform :ios, '15.5' # MediaPipe는 12.0 이상을 요구하므로 15.5면 충분합니다.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -29,14 +29,29 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  
+  # ✅ MediaPipe 라이브러리 추가
+  pod 'MediaPipeTasksVision', '0.10.7'
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
-      # 강제로 15.5로 설정
+      # 모든 타겟의 배포 버전을 15.5로 통일
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+      # MediaPipe 빌드 최적화
+      config.build_settings['ENABLE_BITCODE'] = 'NO'
+
+      # ✅ [핵심 추가] permission_handler를 위한 권한 매크로 설정
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        ## 카메라 권한 활성화
+        'PERMISSION_CAMERA=1',
+        ## 갤러리/사진첩 권한 활성화 (GripSnapshotService에서 필요)
+        'PERMISSION_PHOTOS=1',
+        ## (필요하다면 추가) 'PERMISSION_MICROPHONE=0',
+      ]
     end
   end
 end

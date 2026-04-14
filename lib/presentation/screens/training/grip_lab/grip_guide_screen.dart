@@ -1,11 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart'; // ✅ 권한 처리를 위해 추가
+
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_camera_screen.dart';
-// 필요하다면 provider 초기화를 위해 import
 import 'package:daoapp/presentation/providers/training/grip_lab_provider.dart';
 
 class GripGuideScreen extends ConsumerWidget {
   const GripGuideScreen({super.key});
+
+  // ✅ 권한 체크 및 화면 이동 로직 분리
+  Future<void> _handleStart(BuildContext context, WidgetRef ref) async {
+    // 1. 카메라 권한 요청 (가장 중요한 단계)
+    final status = await Permission.camera.request();
+
+    if (status.isGranted) {
+      // 2. 권한 허용 시, 기존 분석기 중지 후 카메라 화면으로 이동
+      ref.read(gripLabProvider.notifier).stopAnalysis();
+      
+      if (context.mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const GripCameraScreen()),
+        );
+      }
+    } else if (status.isPermanentlyDenied) {
+      // 3. 사용자가 설정을 완전히 막아둔 경우 (설정 앱으로 유도)
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text("카메라 권한 필요"),
+            content: const Text("설정에서 카메라 권한을 허용해야 그립 분석 기능을 사용할 수 있습니다."),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+              TextButton(
+                onPressed: () {
+                  openAppSettings();
+                  Navigator.pop(ctx);
+                },
+                child: const Text("설정으로 이동"),
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      // 거부했을 때 단순 안내
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("촬영을 위해 카메라 권한 허용이 필요합니다.")),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,7 +87,6 @@ class GripGuideScreen extends ConsumerWidget {
                   // ✅ 좋은 예시 섹션
                   _buildGuideSection(
                     title: "Good: 권장하는 촬영 방법",
-                    // assets/images/grip_guide_good.png 파일이 있어야 보입니다.
                     imagePath: "assets/images/grip_guide_good.png",
                     isGood: true,
                     points: [
@@ -82,18 +128,10 @@ class GripGuideScreen extends ConsumerWidget {
                 border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
               ),
               child: ElevatedButton(
-                onPressed: () {
-                  // 1. (선택사항) 그립 분석 데이터 초기화
-                  // ref.read(gripLabProvider.notifier).reset();
-
-                  // 2. 카메라 화면으로 이동 (Replacement로 이동하여 뒤로가기 시 가이드 스킵)
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const GripCameraScreen()),
-                  );
-                },
+                // ✅ 수정된 핸들러 연결
+                onPressed: () => _handleStart(context, ref),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan[700], // 그립랩 테마 컬러
+                  backgroundColor: Colors.cyan[700],
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
@@ -120,7 +158,6 @@ class GripGuideScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. 타이틀
         Row(
           children: [
             Icon(
@@ -134,8 +171,6 @@ class GripGuideScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
 
-        // 2. 이미지 영역 (AspectRatio 적용됨)
-        // 화면 너비에 맞춰 4:3 비율로 높이가 자동 설정됩니다.
         AspectRatio(
           aspectRatio: 3 / 2,
           child: Container(
@@ -146,11 +181,10 @@ class GripGuideScreen extends ConsumerWidget {
               border: Border.all(color: borderColor, width: 1.5),
               image: DecorationImage(
                 image: AssetImage(imagePath),
-                fit: BoxFit.cover, // 비율에 맞춰 꽉 채움 (잘리는 부분 최소화)
+                fit: BoxFit.cover,
                 onError: (exception, stackTrace) {},
               ),
             ),
-            // 이미지가 없을 때만 아이콘 표시
             child: const Center(
               child: Icon(Icons.camera_alt_outlined, size: 40, color: Colors.black12),
             ),
@@ -158,7 +192,6 @@ class GripGuideScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
 
-        // 3. 설명 텍스트
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),

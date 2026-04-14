@@ -13,6 +13,9 @@
 		4A15823B2F18891800ED41AB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4A15823A2F18891800ED41AB /* PrivacyInfo.xcprivacy */; };
 		4A3842902EFB6AA400CED85C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A38428F2EFB6AA400CED85C /* GoogleService-Info.plist */; };
 		4A3842912EFB6AA400CED85C /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 4A38428F2EFB6AA400CED85C /* GoogleService-Info.plist */; };
+		4ABEAD5B2F8CE3E70035FE67 /* GripCameraPlatformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABEAD5A2F8CE3E60035FE67 /* GripCameraPlatformView.swift */; };
+		4ABEAD5D2F8CE43F0035FE67 /* hand_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = 4ABEAD5C2F8CE43F0035FE67 /* hand_landmarker.task */; };
+		4ADA54E52F8CF1FC006B94C4 /* GripStreamBus.swift.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ADA54E42F8CF1FC006B94C4 /* GripStreamBus.swift.swift */; };
 		7038875213BC843C5CBE8BDF /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42C71CEECCB9D2F8D52DA7A1 /* Pods_Runner.framework */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
@@ -54,6 +57,9 @@
 		4A15823A2F18891800ED41AB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4A38428F2EFB6AA400CED85C /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		4A5971FF2F04C276000480F7 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
+		4ABEAD5A2F8CE3E60035FE67 /* GripCameraPlatformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripCameraPlatformView.swift; sourceTree = "<group>"; };
+		4ABEAD5C2F8CE43F0035FE67 /* hand_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = hand_landmarker.task; sourceTree = "<group>"; };
+		4ADA54E42F8CF1FC006B94C4 /* GripStreamBus.swift.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GripStreamBus.swift.swift; sourceTree = "<group>"; };
 		63D707041868C3D49242A03E /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -141,6 +147,9 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				4ADA54E42F8CF1FC006B94C4 /* GripStreamBus.swift.swift */,
+				4ABEAD5C2F8CE43F0035FE67 /* hand_landmarker.task */,
+				4ABEAD5A2F8CE3E60035FE67 /* GripCameraPlatformView.swift */,
 				4A5971FF2F04C276000480F7 /* Runner.entitlements */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
@@ -263,6 +272,7 @@
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				4A3842912EFB6AA400CED85C /* GoogleService-Info.plist in Resources */,
+				4ABEAD5D2F8CE43F0035FE67 /* hand_landmarker.task in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
 			);
@@ -375,6 +385,8 @@
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
+				4ABEAD5B2F8CE3E70035FE67 /* GripCameraPlatformView.swift in Sources */,
+				4ADA54E52F8CF1FC006B94C4 /* GripStreamBus.swift.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
