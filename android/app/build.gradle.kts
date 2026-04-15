@@ -29,9 +29,16 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-
-        // 🔥 [유지] 멀티덱스 활성화
         multiDexEnabled = true
+    }
+
+    // 🔥 [이 부분을 추가하세요] 네이티브 라이브러리 정렬 설정
+    packaging {
+        jniLibs {
+            // 네이티브 라이브러리를 압축하지 않고 페이지 경계에 맞게 정렬합니다.
+            // 16KB 페이지 크기 지원 오류를 해결하는 핵심 설정입니다.
+            useLegacyPackaging = true
+        }
     }
 
     compileOptions {

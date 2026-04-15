@@ -91,7 +91,7 @@ import 'package:daoapp/presentation/screens/arena/steel_league/selection_players
 // -----------------------------------------------------------
 // 정지가 풀린 후(2월 중순 이후) 이 값을 false로 바꾸고,
 // 아래 MobileAds.instance.initialize() 로직을 복구하세요.
-const bool kAdMobSuspended = true;
+const bool kAdMobSuspended = false;
 
 // 기존 디버그 설정 (무시됨)
 const bool kEnableAdsInDebug = false;
