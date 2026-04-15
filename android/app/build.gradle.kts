@@ -23,6 +23,9 @@ android {
     namespace = "kr.comong.daoapp"
     compileSdk = flutter.compileSdkVersion
 
+    // 🔥 여기에 이 줄을 추가하세요! (오류 메시지에 떴던 버전과 일치해야 함)
+    ndkVersion = "28.2.13676358"
+
     defaultConfig {
         applicationId = "kr.comong.daoapp"
         minSdk = 24
