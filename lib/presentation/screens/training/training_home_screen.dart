@@ -853,18 +853,25 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       ),
 
       // 6. 하단 광고 배너
-      const SizedBox(height: 4),
-      AppCard(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              AdBanner(),
-            ],
+      // ⚠️ [정책 준수 수정] AppCard를 제거하여 프레임 잘림 이슈를 방지합니다.
+      const SizedBox(height: 12),
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'ADVERTISEMENT',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[400],
+              letterSpacing: 1.2,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
+          const SizedBox(height: 6),
+          const AdBanner(), // AdBanner.dart에서 수정한 로직이 적용됨
+        ],
       ),
+      const SizedBox(height: 20), // 하단 여백
     ];
   }
 

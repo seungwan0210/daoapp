@@ -83,22 +83,31 @@ class HomeScreenBody extends ConsumerWidget {
 
           // === 스폰서 ===
           AppCard(child: _buildSponsorSection(context, ref)),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12), // 간격 살짝 추가
 
-          // ✅ 배너 광고 (홈 하단 영역에 배치)
-          AppCard(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  AdBanner(), // ← 실제 AdMob 배너는 이 위젯이 담당
-                ],
+          /// ==========================================
+          /// 🔥 [정책 준수 수정] 하단 배너 광고 영역
+          /// AppCard를 제거하여 프레임 잘림 이슈를 방지하고,
+          /// 명확한 광고 라벨을 추가하여 오클릭 정책을 준수합니다.
+          /// ==========================================
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'ADVERTISEMENT',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[400],
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              const SizedBox(height: 6),
+              const AdBanner(), // 수정한 AdBanner 위젯 호출
+            ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32), // 하단 여백 확보
         ],
       ),
     );

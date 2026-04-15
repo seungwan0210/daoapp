@@ -1,5 +1,3 @@
-// lib/presentation/screens/community/community_home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,6 +8,9 @@ import 'package:daoapp/presentation/screens/community/widgets/community_avatar_s
 import 'package:daoapp/presentation/screens/community/widgets/community_preview.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
+
+// ✅ AdMob 배너 광고 위젯 임포트
+import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
 class CommunityHomeScreen extends ConsumerStatefulWidget {
   const CommunityHomeScreen({super.key});
@@ -52,14 +53,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
     }
   }
 
-  /// ✅ (선택) 동의서/가이드 자세히 보기: 프라이버시 페이지로 보내고 싶으면 사용
-  /// - 지금은 라우트가 없을 수 있어서, 버튼은 주석으로 두었어.
-  /// - 프라이버시/약관 라우트가 있으면 여기에 연결하면 돼.
-  void _openTermsDetail() {
-    // 예시:
-    // Navigator.pushNamed(context, RouteConstants.privacy);
-  }
-
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
@@ -85,7 +78,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                 final hasProfile = data['hasProfile'] == true;
                 final isPhoneVerified = data['isPhoneVerified'] == true;
 
-                // ✅ 1) 프로필/폰 인증 먼저
                 if (!hasProfile || !isPhoneVerified) {
                   return _buildVerificationPrompt(
                     context: context,
@@ -95,7 +87,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                   );
                 }
 
-                // ✅ 2) UGC 동의 게이트 (커뮤니티 프리뷰가 UGC를 보여주므로 여기서 막는게 정답)
                 final ugcAccepted = data['ugcTermsAccepted'] == true;
                 if (!ugcAccepted) {
                   return _buildUgcTermsGate(
@@ -105,7 +96,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                   );
                 }
 
-                // ✅ 여기부터: 홈 전체 스크롤 구조
                 return SingleChildScrollView(
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Column(
@@ -115,9 +105,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                       const CommunityAvatarSlider(),
                       const SizedBox(height: 16),
 
-                      // ==========================
-                      // 메인 이동 그리드
-                      // ==========================
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
@@ -166,14 +153,35 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
 
                       const SizedBox(height: 16),
 
-                      // ==========================
-                      // 커뮤니티 프리뷰 (동의 완료 후에만 노출됨)
-                      // ==========================
+                      // 커뮤니티 프리뷰
                       CommunityPreview(
                         onSeeAllPressed: () {
                           Navigator.pushNamed(context, RouteConstants.circle);
                         },
                       ),
+
+                      /// ==========================================
+                      /// 🔥 [정책 준수 수정] 커뮤니티 하단 배너 광고
+                      /// AppCard 없이 독립적인 공간에 배치하여 프레임 이슈를 방지합니다.
+                      /// ==========================================
+                      const SizedBox(height: 24),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'ADVERTISEMENT',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[400],
+                              letterSpacing: 1.2,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          const AdBanner(), // ✅ 이미 수정된 공통 AdBanner 사용
+                        ],
+                      ),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 );
@@ -226,24 +234,12 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                     height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 16),
-
-                // (선택) 자세히 보기 버튼 — 라우트 준비되면 연결
-                // Align(
-                //   alignment: Alignment.centerRight,
-                //   child: TextButton(
-                //     onPressed: _openTermsDetail,
-                //     child: const Text('자세히 보기'),
-                //   ),
-                // ),
-
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // ✅ 동의 안 하면 커뮤니티 이용을 막는게 애플 심사상 안전함
-                          // 홈 탭에서는 "아무것도 안 보여주기" 상태로 유지.
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text('동의 후 커뮤니티 이용이 가능합니다.'),
@@ -346,9 +342,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
   }
 }
 
-// ===============================
-// 메인 기능 그리드 타일
-// ===============================
 class _MainGridItem extends StatelessWidget {
   final IconData icon;
   final String label;
