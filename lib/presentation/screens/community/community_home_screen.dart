@@ -165,21 +165,23 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                       /// AppCard 없이 독립적인 공간에 배치하여 프레임 이슈를 방지합니다.
                       /// ==========================================
                       const SizedBox(height: 24),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'ADVERTISEMENT',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: Colors.grey[400],
-                              letterSpacing: 1.2,
-                              fontWeight: FontWeight.bold,
+                      Center( // 👈 여기에 Center를 추가해서 Column 전체를 중앙으로 보냅니다.
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'ADVERTISEMENT',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey[400],
+                                letterSpacing: 1.2,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          const AdBanner(), // ✅ 이미 수정된 공통 AdBanner 사용
-                        ],
+                            const SizedBox(height: 6),
+                            const AdBanner(), // 이제 이 안의 광고가 화면 정중앙에 옵니다.
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
                     ],

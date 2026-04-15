@@ -219,7 +219,6 @@ lib/
 │   │   │       │     └── grip_compare_screen.dart 
 │   │   │       │     └── grip_guide_screen.dart
 │   │   │       │     └──widgets/
-│   │   │       │            ├── dao_grip_camera_view.dart
 │   │   │       │            ├── ghost_overlay_painter.dart
 │   │   │       │            ├── grip_baseline_preview_card.dart
 │   │   │       │            ├── grip_gauge_card.dart
