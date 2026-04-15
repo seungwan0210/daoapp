@@ -4,28 +4,24 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
-// 스틸리그
+// 스틸리그 관련 화면
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_point_calendar_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/member_list_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
 
-// 토너먼트
+// 토너먼트 관련 화면
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/my_tournaments_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournaments_home_screen.dart';
 
-// 관리자 테스트 툴
+// 관리자 도구 및 기타
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_debug_tools_screen.dart';
-
-// 토너먼트 프리뷰
 import 'package:daoapp/presentation/screens/arena/widgets/arena_preview.dart';
-
-// 아레나 상태
 import 'package:daoapp/presentation/providers/arena_provider.dart';
 
-// ✅ AdMob 배너 광고 위젯 (실제 광고 단위 ID는 AdBanner 쪽에서 관리)
+// ✅ AdMob 배너 광고 위젯
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
 const String kAdminUid = 'NanHPgCdsbMCFkHEs7MtxS51OSX2';
@@ -47,7 +43,6 @@ class ArenaHomeBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-
     final user = FirebaseAuth.instance.currentUser;
     final isAdmin = user?.uid == kAdminUid;
 
@@ -58,21 +53,27 @@ class ArenaHomeBody extends ConsumerWidget {
         children: [
           const SizedBox(height: 8),
 
-          /// ==============================
-          /// 🔥 상단 배너 광고
-          /// ==============================
-          AppCard(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  AdBanner(),
-                ],
+          /// ==========================================
+          /// 🔥 [정책 준수 수정] 상단 배너 광고 영역
+          /// 카드 디자인을 제거하고 여백을 충분히 주어 오클릭을 방지합니다.
+          /// ==========================================
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'ADVERTISEMENT',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.grey[400],
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
+              const SizedBox(height: 6),
+              const AdBanner(), // 실제 광고 노출
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 28), // 메뉴 버튼과의 간격 확보 (기존 16에서 28로 확장)
 
           /// ==============================
           /// 스틸리그
@@ -83,7 +84,7 @@ class ArenaHomeBody extends ConsumerWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           AppCard(
             child: Padding(
@@ -92,9 +93,9 @@ class ArenaHomeBody extends ConsumerWidget {
                 crossAxisCount: 3,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
+                mainAxisSpacing: 16, // 간격 살짝 넓힘
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.9,
+                childAspectRatio: 0.85, // 아이템 비율 조정
                 children: [
                   _ArenaGridItem(
                     icon: Icons.leaderboard_outlined,
@@ -103,9 +104,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const SteelLeagueRankingScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SteelLeagueRankingScreen()),
                       );
                     },
                   ),
@@ -116,9 +115,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const SteelLeagueScheduleScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SteelLeagueScheduleScreen()),
                       );
                     },
                   ),
@@ -129,10 +126,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                          const SteelLeaguePointCalendarScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SteelLeaguePointCalendarScreen()),
                       );
                     },
                   ),
@@ -143,9 +137,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const MemberListScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const MemberListScreen()),
                       );
                     },
                   ),
@@ -156,9 +148,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const SelectionPlayersScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const SelectionPlayersScreen()),
                       );
                     },
                   ),
@@ -167,7 +157,7 @@ class ArenaHomeBody extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           /// ==============================
           /// 토너먼트
@@ -178,7 +168,7 @@ class ArenaHomeBody extends ConsumerWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           AppCard(
             child: Padding(
@@ -187,9 +177,9 @@ class ArenaHomeBody extends ConsumerWidget {
                 crossAxisCount: 3,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12,
+                mainAxisSpacing: 16,
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.9,
+                childAspectRatio: 0.85,
                 children: [
                   _ArenaGridItem(
                     icon: Icons.add_circle_outline,
@@ -198,9 +188,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const TournamentCreateScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const TournamentCreateScreen()),
                       );
                     },
                   ),
@@ -212,9 +200,7 @@ class ArenaHomeBody extends ConsumerWidget {
                       ref.read(arenaProvider.notifier).changeFilter('open');
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const TournamentsHomeScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()),
                       );
                     },
                   ),
@@ -223,14 +209,10 @@ class ArenaHomeBody extends ConsumerWidget {
                     label: '예정 경기',
                     color: Colors.blueGrey,
                     onTap: () {
-                      ref
-                          .read(arenaProvider.notifier)
-                          .changeFilter('upcoming');
+                      ref.read(arenaProvider.notifier).changeFilter('upcoming');
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const TournamentsHomeScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()),
                       );
                     },
                   ),
@@ -241,14 +223,10 @@ class ArenaHomeBody extends ConsumerWidget {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => const MyTournamentsScreen(),
-                        ),
+                        MaterialPageRoute(builder: (_) => const MyTournamentsScreen()),
                       );
                     },
                   ),
-
-                  // 관리자만
                   if (isAdmin)
                     _ArenaGridItem(
                       icon: Icons.bug_report_outlined,
@@ -257,10 +235,7 @@ class ArenaHomeBody extends ConsumerWidget {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                            const TournamentDebugToolsScreen(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const TournamentDebugToolsScreen()),
                         );
                       },
                     ),
@@ -269,7 +244,7 @@ class ArenaHomeBody extends ConsumerWidget {
             ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           /// ==============================
           /// 토너먼트 프리뷰
@@ -279,14 +254,12 @@ class ArenaHomeBody extends ConsumerWidget {
               ref.read(arenaProvider.notifier).changeFilter('open');
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (_) => const TournamentsHomeScreen(),
-                ),
+                MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()),
               );
             },
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -300,7 +273,6 @@ class _ArenaGridItem extends StatelessWidget {
   final Color color;
 
   const _ArenaGridItem({
-    super.key,
     required this.icon,
     required this.label,
     required this.onTap,
@@ -328,7 +300,7 @@ class _ArenaGridItem extends StatelessWidget {
               color: color,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
             label,
             textAlign: TextAlign.center,
