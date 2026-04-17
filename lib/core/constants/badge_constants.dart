@@ -1,36 +1,29 @@
 // lib/core/constants/badge_constants.dart
 class BadgeConstants {
   static const Map<String, String> _badgeMap = {
-    'pro': 'assets/badges/pro.png',
-    'emerald': 'assets/badges/emerald.png',
-    'diamond': 'assets/badges/diamond.png',
-    'platinum1': 'assets/badges/platinum1.png',
-    'platinum2': 'assets/badges/platinum2.png',
-    'gold1': 'assets/badges/gold1.png',
-    'gold2': 'assets/badges/gold2.png',
-    'silver1': 'assets/badges/silver1.png',
-    'silver2': 'assets/badges/silver2.png',
-    'bronze1': 'assets/badges/bronze1.png',
+    'pro': 'assets/badges/pro.png',          // 1위
+    'diamond': 'assets/badges/diamond.png',  // 2위
+    'emerald': 'assets/badges/emerald.png',  // 3위
+    'platinum1': 'assets/badges/platinum1.png', // 4위
+    'platinum2': 'assets/badges/platinum2.png', // 5위
+    'gold1': 'assets/badges/gold1.png',      // 6위
+    'gold2': 'assets/badges/gold2.png',      // 7위
+    'silver1': 'assets/badges/silver1.png',  // 8위
+    'silver2': 'assets/badges/silver2.png',  // 9위
+    'bronze1': 'assets/badges/bronze1.png',  // 10위
     'bronze2': 'assets/badges/bronze2.png',
     'bronze3': 'assets/badges/bronze3.png',
     'tro': 'assets/badges/tro.png',
 
-    // 🔥 시즌 배지 (시즌 우승/1위/2위/3위 등)
-    'season':  'assets/badges/season.png',   // 시즌 챔피언 / 시즌 우승자
-    'season1': 'assets/badges/season1.png',  // 시즌 1위
-    'season2': 'assets/badges/season2.png',  // 시즌 2위
-    'season3': 'assets/badges/season3.png',  // 시즌 3위
+    'season':  'assets/badges/season.png',
+    'season1': 'assets/badges/season1.png',
+    'season2': 'assets/badges/season2.png',
+    'season3': 'assets/badges/season3.png',
   };
 
-  /// 모든 배지 키 리스트 제공 (관리자 수동 지정 등에 사용)
   static List<String> get allBadges => _badgeMap.keys.toList();
 
-  /// Firestore에 저장된 badges 맵의 key → 실제 이미지 경로
-  /// - monthly_YYYY_MM_badgeKey
-  /// - admin_badgeKey
-  /// - 그 외: badgeKey 자체
   static String? getImagePath(String key) {
-    // 월간 배지: monthly_2025_11_pro
     if (key.startsWith('monthly_')) {
       final parts = key.split('_');
       if (parts.length >= 4) {
@@ -40,64 +33,31 @@ class BadgeConstants {
       return null;
     }
 
-    // 관리자 배지: admin_pro
     if (key.startsWith('admin_')) {
       final badgeKey = key.substring('admin_'.length);
       return _badgeMap[badgeKey];
     }
 
-    // 그 외: 순수 키 사용 (pro, emerald, season 등)
     return _badgeMap[key];
   }
 
   static String? fromKey(String key) => getImagePath(key);
 
-  /// ✅ 랭킹 순위(1~12) → 배지 키 매핑
-  /// Cloud Functions BADGE_MAP 과 동일하게 맞춤
-  ///
-  ///  1위 → pro
-  ///  2위 → emerald
-  ///  3위 → diamond
-  ///  4위 → platinum1
-  ///  5위 → platinum2
-  ///  6위 → gold1
-  ///  7위 → gold2
-  ///  8위 → silver1
-  ///  9위 → silver2
-  /// 10위 → bronze1
-  /// 11위 → bronze2
-  /// 12위 → bronze3
-  ///
-  /// ※ tro/season 계열은 일반 월간 랭킹이 아니라
-  ///   시즌 우승/특별 배지용이라 여기 매핑에는 포함하지 않음.
+  /// ✅ [수정완료] RankingListItem의 badgeImages 순서와 100% 일치시킴
+  /// 1: pro, 2: diamond, 3: emerald, 4: platinum1, 5: platinum2...
   static String? badgeKeyForRank(int rank) {
     switch (rank) {
-      case 1:
-        return 'pro';
-      case 2:
-        return 'emerald';
-      case 3:
-        return 'diamond';
-      case 4:
-        return 'platinum1';
-      case 5:
-        return 'platinum2';
-      case 6:
-        return 'gold1';
-      case 7:
-        return 'gold2';
-      case 8:
-        return 'silver1';
-      case 9:
-        return 'silver2';
-      case 10:
-        return 'bronze1';
-      case 11:
-        return 'bronze2';
-      case 12:
-        return 'bronze3';
-      default:
-        return null; // 13위 이후는 아이콘 매핑 없음
+      case 1: return 'pro';
+      case 2: return 'diamond';
+      case 3: return 'emerald';
+      case 4: return 'platinum1';
+      case 5: return 'platinum2';
+      case 6: return 'gold1';
+      case 7: return 'gold2';
+      case 8: return 'silver1';
+      case 9: return 'silver2';
+      case 10: return 'bronze1';
+      default: return null;
     }
   }
 }

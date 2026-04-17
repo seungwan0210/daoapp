@@ -24,11 +24,6 @@ import 'package:daoapp/presentation/screens/main_screen.dart';
 import 'package:daoapp/presentation/screens/home/home_screen.dart';
 import 'package:daoapp/presentation/screens/training/training_home_screen.dart';
 import 'package:daoapp/presentation/screens/training/calculator/training_calculator_screen.dart';
-import 'package:daoapp/presentation/screens/training/finish_route/finish_route_home_screen.dart';
-import 'package:daoapp/presentation/screens/training/finish_route/finish_route_practice_screen.dart';
-import 'package:daoapp/presentation/screens/training/finish_route/finish_route_result_screen.dart';
-import 'package:daoapp/presentation/screens/training/finish_route/finish_route_ranking_screen.dart';
-import 'package:daoapp/presentation/screens/training/finish_route/finish_route_my_history_screen.dart';
 import 'package:daoapp/presentation/screens/training/training_rating_input_screen.dart';
 import 'package:daoapp/presentation/screens/training/board_level_test_screen.dart';
 import 'package:daoapp/presentation/screens/training/history/training_history_screen.dart';
@@ -164,11 +159,6 @@ class DaoApp extends StatelessWidget {
         RouteConstants.main: (_) => const MainScreen(),
         RouteConstants.home: (_) => const HomeScreen(),
         RouteConstants.trainingHome: (_) => const TrainingHomeScreen(),
-        RouteConstants.finishRouteHome: (_) => const FinishRouteHomeScreen(),
-        RouteConstants.finishRoutePractice: (_) => const FinishRoutePracticeScreen(),
-        RouteConstants.finishRouteResult: (_) => const FinishRouteResultScreen(),
-        RouteConstants.finishRouteRanking: (_) => const FinishRouteRankingScreen(),
-        RouteConstants.finishRouteMyHistory: (_) => const FinishRouteMyHistoryScreen(),
         RouteConstants.checkoutCalculator: (_) => const CheckoutCalculatorScreen(),
         RouteConstants.trainingRatingInput: (_) => const TrainingRatingInputScreen(),
         RouteConstants.boardLevelTest: (_) => const BoardLevelTestScreen(),

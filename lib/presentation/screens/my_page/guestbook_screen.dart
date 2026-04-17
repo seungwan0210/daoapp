@@ -8,6 +8,8 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'widgets/guestbook_header.dart';
 import 'widgets/guestbook_comment_item.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
+// 🆕 실시간 랭킹 구독을 위해 추가
+import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
 
 class GuestbookScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -32,12 +34,9 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
   Future<void> _sendComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty || _isLoading) return;
-
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
-
     setState(() => _isLoading = true);
-
     try {
       await FirebaseFirestore.instance
           .collection('users')
@@ -50,17 +49,10 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
         'likes': 0,
         'likedBy': <String>[],
       });
-
       _commentController.clear();
-
       if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          0,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+        _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
-
       _showSnackBar('방명록이 작성되었습니다', Colors.green);
     } catch (e) {
       _showSnackBar('전송 실패: $e', Colors.red);
@@ -72,12 +64,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
   void _showSnackBar(String message, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+      SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -96,10 +83,6 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
               decoration: InputDecoration(
                 hintText: '응원 메시지 남기기...',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide(color: theme.colorScheme.primary),
-                ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 isDense: true,
               ),
@@ -127,6 +110,9 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     final currentUser = FirebaseAuth.instance.currentUser;
     final isMe = currentUser?.uid == widget.userId;
 
+    // 🆕 실시간 통합 랭킹 데이터 구독
+    final totalRanking = ref.watch(totalRankingProvider);
+
     final stream = FirebaseFirestore.instance
         .collection('users')
         .doc(widget.userId)
@@ -135,30 +121,21 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
         .snapshots();
 
     return Scaffold(
-      // ✅ 우리가 직접 키보드 처리하니까 자동 리사이즈 끄는게 안정적
       resizeToAvoidBottomInset: false,
-
       appBar: CommonAppBar(
         title: isMe ? '내 방명록' : '방명록 쓰기',
         showBackButton: true,
       ),
-
-      // ✅ 입력창은 bottom에 고정 + 키보드 올라오면 자연스럽게 위로
       bottomNavigationBar: AnimatedPadding(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
         child: SafeArea(top: false, child: _buildInputBar(theme)),
       ),
-
-      // ✅ Column 제거: Sliver로 헤더+리스트를 한 스크롤로 구성
       body: StreamBuilder<QuerySnapshot>(
         stream: stream,
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final comments = snapshot.data!.docs;
 
           return CustomScrollView(
@@ -173,43 +150,30 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                   ],
                 ),
               ),
-
               if (comments.isEmpty)
-                const SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: Center(child: Text('아직 방명록이 없습니다')),
-                )
+                const SliverFillRemaining(hasScrollBody: false, child: Center(child: Text('아직 방명록이 없습니다')))
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
                         (context, i) {
                       final doc = comments[i];
                       final data = doc.data() as Map<String, dynamic>;
-                      final docId = doc.id;
                       final writerId = data['writerId'] as String?;
-                      final message = data['message'] ?? '';
-                      final timestamp =
-                          (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+                      if (writerId == null) return const SizedBox.shrink();
 
-                      if (writerId == null) {
-                        return GuestbookCommentItem(
-                          writerId: '',
-                          message: message,
-                          timestamp: timestamp,
-                          docId: docId,
-                          guestbookOwnerId: widget.userId,
-                        );
-                      }
+                      // 🔥 [핵심] 작성자의 실시간 순위 확인
+                      final rankIndex = totalRanking.indexWhere((item) => item['userId'] == writerId);
+                      final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
-                      return FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection('users').doc(writerId).get(),
+                      // 작성자 상세 정보를 위한 StreamBuilder (또는 FutureBuilder 유지 가능)
+                      return StreamBuilder<DocumentSnapshot>(
+                        stream: FirebaseFirestore.instance.collection('users').doc(writerId).snapshots(),
                         builder: (context, userSnapshot) {
                           String? monthlyBadge;
                           String? adminBadge;
 
                           if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                            final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>;
+                            final userData = userSnapshot.data!.data() as Map<String, dynamic>;
                             final badgesMap = BadgeUtils.extractBadges(userData);
                             monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
                             adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
@@ -219,12 +183,13 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                             children: [
                               GuestbookCommentItem(
                                 writerId: writerId,
-                                message: message,
-                                timestamp: timestamp,
-                                docId: docId,
+                                message: data['message'] ?? '',
+                                timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+                                docId: doc.id,
                                 guestbookOwnerId: widget.userId,
                                 monthlyBadge: monthlyBadge,
                                 adminBadge: adminBadge,
+                                currentRank: currentRank, // 🆕 실시간 순위 전달
                               ),
                               const Divider(height: 1, indent: 56),
                             ],
@@ -235,8 +200,6 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                     childCount: comments.length,
                   ),
                 ),
-
-              // 아래 공간 조금 확보 (입력창과 겹치는 느낌 방지)
               const SliverToBoxAdapter(child: SizedBox(height: 12)),
             ],
           );

@@ -1,4 +1,4 @@
-lib/
+﻿lib/
 ├── core/
 │   ├── constants/
 │   │   ├── route_constants.dart
@@ -25,12 +25,16 @@ lib/
 │   └── models/
 │       ├── point_record_model.dart
 │       ├── practice_session_summary.dart
+│       ├── ranking_game_model.dart
 │       ├── ranking_user.dart
 │       ├── user_model.dart
 │       ├── checkout_route_model.dart
 │       ├── tournament_model.dart
+│       ├── tournament_model.freezed.dart
 │       ├── tournament_entry_model.dart
+│       ├── tournament_entry_model.freezed.dart
 │       └── my_log_model.dart
+│       └── my_log_model.freezed.dart
 │       └── training_drill_model.dart
 │       └── training_session_model.dart
 │       └── training_progress_model.dart
@@ -52,6 +56,7 @@ lib/
 │   │   └── training_progress_repository_impl.dart
 │   │   └── grip_repository.dart 
 │   │   └── grip_repository_impl.dar
+│   │   └── ranking_repository.dart
 │   └── services/
 │       └──native_grip_bridge.dart
 ├── di/
@@ -74,8 +79,9 @@ lib/
 │   │   │   └── pose_analysis_provider.dart
 │   │   │   └── grip_lab_provider.dart
 │   │   │   └── grip_baseline_provider.dart
-│   │   └── finish_route/
-│   │   │   └── finish_route_practice_provider.dart
+│   │   └── ranking/
+│   │   │   └── ranking_provider.dart
+│   │   │   └── total_ranking_provider.dart
 │   │   └── calculator/
 │   │   │   └── checkout_calculator_provider.dart
 │   ├── screens/
@@ -135,6 +141,9 @@ lib/
 │   │   │   │       ├── comment_button.dart
 │   │   │   │       ├── comment_preview.dart
 │   │   │   │       └── comment_bottom_sheet.dart
+│   │   │   ├── widgets/
+│   │   │   │   ├── community_avatar_slider.dart
+│   │   │   │   ├── community_preview.dart
 │   │   ├── home/                           
 │   │   │   ├── home_screen.dart 
 │   │   ├── login/
@@ -198,20 +207,6 @@ lib/
 │   │   │   │   │   ├── top_bottom_board_panel.dart
 │   │   │   │   ├── drill_result_screen.dart
 │   │   │   │   ├── drill_run_screen.dart
-│   │   │   ├── finish_route/
-│   │   │   │   ├── finish_route_detail_screen.dart
-│   │   │   │   ├── finish_route_home_screen.dart
-│   │   │   │   ├── finish_route_my_history_screen.dart
-│   │   │   │   ├── finish_route_practice_screen.dart
-│   │   │   │   ├── finish_route_ranking_screen.dart
-│   │   │   │   └── finish_route_result_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │      ├── dartboard_widget.dart
-│   │   │   │      ├── dart_input_panel.dart
-│   │   │   │      ├── practice_stats_card.dart
-│   │   │   │      ├── finish_route_ranking_mini.dart
-│   │   │   │      ├── remaining_score_display.dart
-│   │   │   │      ├── my_recent_record_mini.dart
 │   │   │   ├── grip_lab/
 │   │   │       │     └── grip_lab_home_screen.dart
 │   │   │       │     └── grip_camera_screen.dart
@@ -237,6 +232,11 @@ lib/
 │   │   │       │            ├── pose_analysis_result_screen.dart
 │   │   │       │            ├── pose_analysis_setting_screen.dart
 │   │   │       │            ├── pose_analysis_guide_screen.dart
+│   │   │   ├── ranking/
+│   │   │   │   └── game_selection_sheet.dart
+│   │   │   │   └── ranking_game_run_screen.dart
+│   │   │   │   └── ranking_list_item.dart
+│   │   │   │   └── ranking_tab_view.dart
 │   │   │   ├── report/
 │   │   │   │   └── training_report_overlay.dart
 │   │   │   └── widgets/
@@ -247,6 +247,12 @@ lib/
 │   │   │       │     └── training_report_viewmodel.dart
 │   │   │       │     └── training_report_animator.dart
 │   │   │   └── widgets/
+│   │   │       │     └──report/
+│   │   │       │            ├── report_action_buttons.dart
+│   │   │       │            ├── report_neon_separator.dart
+│   │   │       │            ├── report_stat_item.dart
+│   │   │       │            ├── training_report_animator.dart
+│   │   │       │            ├── training_report_viewmodel.dart
 │   │   │       │     └── training_recommendation_card.dart
 │   │   │       │     └── dual_neon_gauge_row.dart
 │   │   │       │     └── dao_tier_badge_large.dart

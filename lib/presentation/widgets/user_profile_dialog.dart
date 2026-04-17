@@ -1,11 +1,13 @@
-// lib/presentation/widgets/user_profile_dialog.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
+import 'package:daoapp/core/utils/badge_utils.dart';
+import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
 
-class UserProfileDialog extends StatelessWidget {
+class UserProfileDialog extends ConsumerWidget {
   final String koreanName;
   final String? englishName;
   final String? photoUrl;
@@ -26,8 +28,13 @@ class UserProfileDialog extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+
+    // 1. 실시간 통합 랭킹 데이터 구독
+    final totalRanking = ref.watch(totalRankingProvider);
+    final rankIndex = totalRanking.indexWhere((item) => item['userId'] == userId);
+    final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -36,126 +43,115 @@ class UserProfileDialog extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           child: StreamBuilder<DocumentSnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('users')
-                .doc(userId)
-                .snapshots(),
+            stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
             builder: (context, snapshot) {
-              Map<String, dynamic> userData = {};
-              Map<String, dynamic> badges = {};
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-              if (snapshot.hasData && snapshot.data!.data() != null) {
-                userData = snapshot.data!.data() as Map<String, dynamic>;
-                badges = BadgeUtils.extractBadges(userData); // 통일된 추출
+              final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+
+              // 🔥 배럴 데이터 복구: 인자로 들어온게 없으면 DB에서 직접 파싱
+              final bName = (barrelData?['barrelName'] ?? data['barrelName'])?.toString().trim() ?? '';
+              final bImage = (barrelData?['barrelImageUrl'] ?? data['barrelImageUrl'])?.toString().trim() ?? '';
+              final bShaft = (barrelData?['shaft'] ?? data['shaft'])?.toString().trim() ?? '';
+              final bFlight = (barrelData?['flight'] ?? data['flight'])?.toString().trim() ?? '';
+              final bTip = (barrelData?['tip'] ?? data['tip'])?.toString().trim() ?? '';
+
+              final hasBarrelInfo = bName.isNotEmpty || bShaft.isNotEmpty || bFlight.isNotEmpty || bTip.isNotEmpty || bImage.isNotEmpty;
+
+              // 배지 추출
+              final badgesMap = BadgeUtils.extractBadges(data);
+              final badgeKeys = BadgeUtils.extractActiveBadges(badgesMap);
+
+              // 보여줄 배지 위젯 리스트 생성 (실시간 우선)
+              final List<Widget> badgeWidgets = [];
+              if (currentRank != null) {
+                badgeWidgets.add(BadgeWidget(rank: currentRank, size: 24));
               }
-
-              final badgeKeys = BadgeUtils.extractActiveBadges(badges); // 최신순 정렬
+              for (var key in badgeKeys) {
+                if (badgeWidgets.length >= 2) break;
+                badgeWidgets.add(BadgeWidget(badgeKey: key, size: 24));
+              }
 
               return SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 프로필 사진 (클릭 → 확대)
-                    GestureDetector(
-                      onTap: photoUrl?.isNotEmpty == true
-                          ? () => _showFullImage(context, photoUrl!)
-                          : null,
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundImage: photoUrl?.isNotEmpty == true
-                            ? NetworkImage(photoUrl!)
-                            : null,
-                        child: photoUrl?.isNotEmpty != true
-                            ? const Icon(Icons.person, size: 60)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 이름 + 영어 이름 + 샵
-                    Text(
-                      koreanName,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                    if (englishName?.isNotEmpty == true)
-                      Text(
-                        englishName!,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-                    if (shopName?.isNotEmpty == true)
-                      Text(
-                        '· $shopName',
-                        style: TextStyle(fontSize: 14, color: theme.colorScheme.primary),
-                        textAlign: TextAlign.center,
-                      ),
-
-                    // 배지 (최대 4개, 툴팁 포함)
-                    if (badgeKeys.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: badgeKeys.take(4).map((key) {
-                          return Tooltip(
-                            message: BadgeUtils.getBadgeTooltip(key),
-                            child: BadgeWidget(badgeKey: key, size: 24),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-
-                    const SizedBox(height: 16),
-
-                    // 배럴 정보
-                    if (barrelData != null) ...[
-                      const Divider(height: 24),
-                      const Text(
-                        'PLAYERS_DART',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      const SizedBox(height: 8),
-                      if (barrelData!['barrelImageUrl']?.isNotEmpty == true)
-                        Center(
-                          child: GestureDetector(
-                            onTap: () => _showFullImage(context, barrelData!['barrelImageUrl']),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                barrelData!['barrelImageUrl'],
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                                  );
-                                },
-                              ),
-                            ),
+                    // 1. 상단: 아바타 + 배지 (옆으로 붙임)
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        GestureDetector(
+                          onTap: photoUrl?.isNotEmpty == true ? () => _showFullImage(context, photoUrl!) : null,
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
+                            child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 60) : null,
                           ),
                         ),
-                      const SizedBox(height: 8),
-                      if (barrelData!['barrelName']?.isNotEmpty == true)
-                        _infoRow('BARREL', barrelData!['barrelName']),
-                      if (barrelData!['shaft']?.isNotEmpty == true)
-                        _infoRow('SHAFT', barrelData!['shaft']),
-                      if (barrelData!['flight']?.isNotEmpty == true)
-                        _infoRow('FLIGHT', barrelData!['flight']),
-                      if (barrelData!['tip']?.isNotEmpty == true)
-                        _infoRow('TIP', barrelData!['tip']),
-                    ],
-                    const SizedBox(height: 20),
+                        // 배지 아이콘들을 사진 좌측 상단에 겹쳐서 표시
+                        ...badgeWidgets.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          return Positioned(
+                            left: -10 - (idx * 20),
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)]),
+                              child: entry.value,
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                    // 방명록 버튼
+                    // 2. 이름 및 소속
+                    Text(koreanName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    if (englishName?.isNotEmpty == true)
+                      Text(englishName!, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                    if (shopName?.isNotEmpty == true)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('· $shopName', style: TextStyle(fontSize: 14, color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                      ),
+
+                    // 3. 배럴 정보 섹션 (데이터가 있을 때만 노출)
+                    if (hasBarrelInfo) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text('PLAYERS_DART', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary)),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (bImage.isNotEmpty)
+                            GestureDetector(
+                              onTap: () => _showFullImage(context, bImage),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(bImage, width: 60, height: 60, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                              ),
+                            ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (bName.isNotEmpty) _infoRow('BARREL', bName),
+                                if (bShaft.isNotEmpty) _infoRow('SHAFT', bShaft),
+                                if (bFlight.isNotEmpty) _infoRow('FLIGHT', bFlight),
+                                if (bTip.isNotEmpty) _infoRow('TIP', bTip),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    // 4. 하단 버튼
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
@@ -171,7 +167,7 @@ class UserProfileDialog extends StatelessWidget {
                         },
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기")),
                   ],
                 ),
@@ -183,93 +179,30 @@ class UserProfileDialog extends StatelessWidget {
     );
   }
 
-  void _showFullImage(BuildContext context, String url) {
-    final screenSize = MediaQuery.of(context).size;
-    final maxWidth = screenSize.width * 0.9;
-    final maxHeight = screenSize.height * 0.7;
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis)),
+        ],
+      ),
+    );
+  }
 
+  void _showFullImage(BuildContext context, String url) {
     showDialog(
       context: context,
       barrierColor: Colors.black87,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
         child: Stack(
           children: [
-            Center(
-              child: InteractiveViewer(
-                panEnabled: true,
-                minScale: 0.8,
-                maxScale: 2.5,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      url,
-                      fit: BoxFit.contain,
-                      loadingBuilder: (context, child, loadingProgress) =>
-                      loadingProgress == null
-                          ? child
-                          : Container(
-                        width: maxWidth,
-                        height: maxHeight * 0.6,
-                        decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(16)),
-                        child: const Center(child: CircularProgressIndicator(color: Colors.white)),
-                      ),
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: maxWidth,
-                        height: maxHeight * 0.6,
-                        decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(16)),
-                        child: const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.error, color: Colors.white70, size: 48),
-                            SizedBox(height: 12),
-                            Text('이미지를 불러올 수 없어요', style: TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: GestureDetector(
-                onTap: () => Navigator.pop(ctx),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                  child: const Icon(Icons.close, color: Colors.white, size: 24),
-                ),
-              ),
-            ),
+            Center(child: InteractiveViewer(child: Image.network(url, fit: BoxFit.contain))),
+            Positioned(top: 40, right: 20, child: IconButton(icon: const Icon(Icons.close, color: Colors.white, size: 30), onPressed: () => Navigator.pop(ctx))),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _infoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 1),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-              softWrap: false,
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -6,6 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart';
+import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
 
 class CommentBottomSheet extends ConsumerStatefulWidget {
   final String postId;
@@ -404,6 +406,9 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
     required String? currentUserId,
     required Set<String> blockedIds,
   }) {
+    // 🆕 실시간 통합 랭킹 데이터 구독 (ConsumerState 내부라면 ref 사용 가능)
+    final totalRanking = ref.watch(totalRankingProvider);
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
@@ -419,7 +424,6 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) return const Center(child: Text('아직 댓글이 없습니다'));
 
-        // ✅ 차단 유저 댓글 필터
         final filteredDocs = docs.where((d) {
           final data = d.data() as Map<String, dynamic>;
           return !_isBlockedWriter(data, blockedIds);
@@ -436,13 +440,8 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
           itemBuilder: (context, i) {
             final doc = filteredDocs[i];
             final data = doc.data() as Map<String, dynamic>;
-
             final commentId = doc.id;
-
-            // ✅ writerId 우선, 없으면 userId fallback (기존 댓글 호환)
             final String? writerId = _writerIdFrom(data);
-
-            // 표시/프로필 조회용은 userId를 쓰되, 없으면 writerId fallback
             final String? userId = (data['userId'] as String?) ?? writerId;
 
             final content = data['content'] as String? ?? '';
@@ -453,43 +452,62 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
 
             final isMyComment = writerId != null && writerId == currentUserId;
             final canDelete = isMyComment || isAdmin;
-
             final isLong = content.length > 80 || content.contains('\n');
-
-            // ✅ 신고 가능: 본인 댓글 제외 + (작성자 id 있어야)
             final canReport = !isMyComment && (writerId != null && writerId.isNotEmpty);
+
+            // 🔥 작성자 실시간 순위 확인 (배지용)
+            final rankIndex = totalRanking.indexWhere((item) => item['userId'] == userId);
+            final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 아바타
-                  GestureDetector(
-                    onTap: userId != null ? () => _showProfile(userId) : null,
-                    child: _buildAvatar(userId),
+                  // 1. 아바타 + 실시간 배지 (사진 위 훈장 스타일)
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      GestureDetector(
+                        onTap: userId != null ? () => _showProfile(userId) : null,
+                        child: _buildAvatar(userId),
+                      ),
+                      if (currentRank != null)
+                        Positioned(
+                          left: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(1),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(color: Colors.black12, blurRadius: 2),
+                              ],
+                            ),
+                            child: BadgeWidget(rank: currentRank, size: 14), // 아바타 크기에 맞춰 14
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(width: 10),
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 이름
+                        // 2. 이름 영역 (중복 배지 제거 및 텍스트만 유지)
                         userId != null
-                            ? FutureBuilder<DocumentSnapshot>(
-                          future: FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(userId)
-                              .get(),
-                          builder: (context, snapshot) {
+                            ? StreamBuilder<DocumentSnapshot>(
+                          stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+                          builder: (context, userSnap) {
                             String name = '익명';
-                            if (snapshot.hasData && snapshot.data!.exists) {
-                              final userData =
-                              snapshot.data!.data() as Map<String, dynamic>?;
+                            if (userSnap.hasData && userSnap.data!.exists) {
+                              final userData = userSnap.data!.data() as Map<String, dynamic>?;
                               name = userData?['koreanName']?.toString().trim() ?? '익명';
                             }
                             return GestureDetector(
-                              onTap: () => _showProfile(userId),
+                              onTap: () => _showProfile(userId!),
                               child: Text(
                                 name,
                                 style: TextStyle(
@@ -511,6 +529,7 @@ class _CommentBottomSheetState extends ConsumerState<CommentBottomSheet> {
                         ),
                         const SizedBox(height: 2),
 
+                        // 3. 댓글 내용 및 더보기
                         GestureDetector(
                           onTap: isLong ? () => _showFullComment('댓글', content) : null,
                           child: Text(

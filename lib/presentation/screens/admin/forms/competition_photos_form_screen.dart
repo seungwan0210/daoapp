@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class CompetitionPhotosFormScreen extends StatefulWidget {
   const CompetitionPhotosFormScreen({super.key});
@@ -61,7 +61,6 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // 제목
                 TextField(
                   controller: _titleController,
                   decoration: const InputDecoration(
@@ -73,8 +72,6 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
                   maxLines: 2,
                 ),
                 const SizedBox(height: 16),
-
-                // 이미지 선택 (갤러리에서 가져오기)
                 Row(
                   children: [
                     Expanded(
@@ -102,12 +99,8 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
                   ],
                 ),
                 const SizedBox(height: 16),
-
-                // 액션 섹션
                 _buildActionSection(theme),
                 const SizedBox(height: 20),
-
-                // 등록 버튼
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : SizedBox(
@@ -135,7 +128,7 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
-        _imageUrl = null; // 새로 선택하면 URL 초기화
+        _imageUrl = null;
       });
     }
   }
@@ -199,12 +192,10 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
 
     setState(() => _isLoading = true);
     try {
-      // 이미지 업로드
       final ref = _storage.ref().child('competition_photos/${DateTime.now().millisecondsSinceEpoch}');
       final uploadTask = await ref.putFile(_selectedImage!);
       final imageUrl = await uploadTask.ref.getDownloadURL();
 
-      // Firestore 저장
       await _firestore.collection('competition_photos').add({
         'title': title,
         'imageUrl': imageUrl,
@@ -259,6 +250,7 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
               final data = doc.data() as Map<String, dynamic>;
               final docId = doc.id;
               final isActive = data['isActive'] as bool? ?? true;
+              final imageUrl = data['imageUrl'] as String?;
 
               return AppCard(
                 color: isActive ? null : Colors.grey[100],
@@ -267,7 +259,7 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
                   leading: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      data['imageUrl'] ?? '',
+                      imageUrl ?? '',
                       width: 60,
                       height: 60,
                       fit: BoxFit.cover,
@@ -306,7 +298,7 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deletePhoto(docId),
+                        onPressed: () => _deletePhoto(docId, imageUrl), // imageUrl 전달
                       ),
                     ],
                   ),
@@ -330,152 +322,156 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
     );
   }
 
-  /* ────────────────────────── 탭 동기화 ────────────────────────── */
   void _syncTabWithRoute(String route) {
     int? tabIndex;
     switch (route) {
-      case '/ranking':
-        tabIndex = 1;
-        break;
-      case '/calendar':
-        tabIndex = 2;
-        break;
-      case '/community':
-        tabIndex = 3;
-        break;
-      case '/my-page':
-        tabIndex = 4;
-        break;
-      default:
-        return;
+      case '/ranking': tabIndex = 1; break;
+      case '/calendar': tabIndex = 2; break;
+      case '/community': tabIndex = 3; break;
+      case '/my-page': tabIndex = 4; break;
+      default: return;
     }
-
     if (tabIndex != null) {
       MainScreen.changeTab(context, tabIndex);
     }
   }
 
-  /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
+  /* ────────────────────────── 수정 (기존 이미지 삭제 로직 추가) ────────────────────────── */
   void _editPhoto(String docId, Map<String, dynamic> data) {
     _titleController.text = data['title'] ?? '';
-    _imageUrl = data['imageUrl'] ?? '';
+    final String? currentImageUrl = data['imageUrl'];
     _actionType = data['actionType'] ?? 'none';
     _actionUrlController.text = data['actionUrl'] ?? '';
     _actionRouteController.text = data['actionRoute'] ?? '';
 
     setState(() {
-      _selectedImage = null; // 수정 시 기존 이미지는 URL로 표시
+      _selectedImage = null;
+      _imageUrl = currentImageUrl;
     });
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("대회 사진 수정"),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: "사진 제목",
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      builder: (ctx) => StatefulBuilder( // 다이얼로그 내 상태변경을 위해 필요
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text("대회 사진 수정"),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: AppCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _titleController,
+                        decoration: const InputDecoration(labelText: "사진 제목", border: OutlineInputBorder()),
+                        maxLines: 2,
                       ),
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _selectedImage != null
-                              ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(_selectedImage!, height: 100, fit: BoxFit.cover),
-                          )
-                              : _imageUrl != null && _imageUrl!.isNotEmpty
-                              ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(_imageUrl!, height: 100, fit: BoxFit.cover),
-                          )
-                              : Container(
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _selectedImage != null
+                                ? ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade400),
+                              child: Image.file(_selectedImage!, height: 100, fit: BoxFit.cover),
+                            )
+                                : _imageUrl != null && _imageUrl!.isNotEmpty
+                                ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(_imageUrl!, height: 100, fit: BoxFit.cover),
+                            )
+                                : Container(
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.image, size: 40, color: Colors.grey),
                             ),
-                            child: const Icon(Icons.image, size: 40, color: Colors.grey),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: _pickImage,
-                          icon: const Icon(Icons.photo_library),
-                          label: const Text("재선택"),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildActionSection(Theme.of(context)),
-                  ],
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+                              if (pickedFile != null) {
+                                // 다이얼로그와 부모 위젯의 상태를 모두 업데이트
+                                setStateDialog(() => _selectedImage = File(pickedFile.path));
+                                setState(() => _selectedImage = File(pickedFile.path));
+                              }
+                            },
+                            icon: const Icon(Icons.photo_library),
+                            label: const Text("재선택"),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildActionSection(Theme.of(context)),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
-          ElevatedButton(
-            onPressed: () async {
-              final title = _titleController.text.trim();
-              if (title.isEmpty) {
-                _showSnackBar("제목을 입력하세요", Colors.red);
-                return;
-              }
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
+            ElevatedButton(
+              onPressed: () async {
+                final title = _titleController.text.trim();
+                if (title.isEmpty) return;
 
-              try {
-                String? finalImageUrl = _imageUrl;
-                if (_selectedImage != null) {
-                  final ref = _storage.ref().child('competition_photos/${DateTime.now().millisecondsSinceEpoch}');
-                  final uploadTask = await ref.putFile(_selectedImage!);
-                  finalImageUrl = await uploadTask.ref.getDownloadURL();
+                try {
+                  String? finalImageUrl = _imageUrl;
+
+                  // 새 이미지가 선택된 경우
+                  if (_selectedImage != null) {
+                    // 1. 새 이미지 업로드
+                    final ref = _storage.ref().child('competition_photos/${DateTime.now().millisecondsSinceEpoch}');
+                    final uploadTask = await ref.putFile(_selectedImage!);
+                    finalImageUrl = await uploadTask.ref.getDownloadURL();
+
+                    // 2. 기존 이미지가 있었다면 스토리지에서 삭제 (비용 절감)
+                    if (currentImageUrl != null && currentImageUrl.isNotEmpty) {
+                      try {
+                        await _storage.refFromURL(currentImageUrl).delete();
+                      } catch (e) {
+                        debugPrint("기존 파일 삭제 실패(무시가능): $e");
+                      }
+                    }
+                  }
+
+                  await _firestore.collection('competition_photos').doc(docId).update({
+                    'title': title,
+                    'imageUrl': finalImageUrl,
+                    'actionType': _actionType,
+                    'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
+                    'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
+                  });
+
+                  if (mounted) {
+                    Navigator.pop(ctx);
+                    _showSnackBar("수정되었습니다.", Colors.green);
+                  }
+                } catch (e) {
+                  _showSnackBar("수정 실패: $e", Colors.red);
                 }
-
-                await _firestore.collection('competition_photos').doc(docId).update({
-                  'title': title,
-                  'imageUrl': finalImageUrl,
-                  'actionType': _actionType,
-                  'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
-                  'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
-                  'isActive': true,
-                });
-                if (mounted) _showSnackBar("수정되었습니다.", Colors.green);
-                Navigator.pop(ctx);
-              } catch (e) {
-                _showSnackBar("수정 실패: $e", Colors.red);
-              }
-            },
-            child: const Text("저장"),
-          ),
-        ],
+              },
+              child: const Text("저장"),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  /* ────────────────────────── 삭제 ────────────────────────── */
-  Future<void> _deletePhoto(String docId) async {
+  /* ────────────────────────── 삭제 (스토리지 파일 삭제 추가) ────────────────────────── */
+  Future<void> _deletePhoto(String docId, String? imageUrl) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("삭제하시겠습니까?"),
-        content: const Text("이 작업은 되돌릴 수 없습니다."),
+        content: const Text("이미지도 함께 삭제되어 되돌릴 수 없습니다."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
           TextButton(
@@ -488,15 +484,25 @@ class _CompetitionPhotosFormScreenState extends State<CompetitionPhotosFormScree
 
     if (confirm == true) {
       try {
+        // 1. Firestore 문서 삭제
         await _firestore.collection('competition_photos').doc(docId).delete();
-        if (mounted) _showSnackBar("대회 사진이 삭제되었습니다.", Colors.red);
+
+        // 2. Storage 실물 파일 삭제
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          try {
+            await _storage.refFromURL(imageUrl).delete();
+          } catch (e) {
+            debugPrint("스토리지 파일 삭제 실패: $e");
+          }
+        }
+
+        if (mounted) _showSnackBar("대회 사진과 파일이 삭제되었습니다.", Colors.red);
       } catch (e) {
         _showSnackBar("삭제 실패: $e", Colors.red);
       }
     }
   }
 
-  /* ────────────────────────── 유틸 ────────────────────────── */
   void _showSnackBar(String msg, Color color) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

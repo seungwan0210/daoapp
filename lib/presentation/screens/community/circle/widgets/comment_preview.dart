@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 🆕 추가
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 🆕 추가
+import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart'; // 🆕 추가
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'comment_bottom_sheet.dart';
 
-class CommentPreview extends StatelessWidget {
+class CommentPreview extends ConsumerWidget { // 👈 ConsumerWidget으로 변경
   final String postId;
   final String? currentUserId;
 
@@ -26,10 +28,7 @@ class CommentPreview extends StatelessWidget {
         .map((snap) => snap.docs.map((d) => d.id).toSet());
   }
 
-  String? _writerIdFrom(Map<String, dynamic> data) {
-    // ✅ writerId 우선, 없으면 userId fallback
-    return (data['writerId'] as String?) ?? (data['userId'] as String?);
-  }
+  String? _writerIdFrom(Map<String, dynamic> data) => (data['writerId'] as String?) ?? (data['userId'] as String?);
 
   bool _isBlockedWriter(Map<String, dynamic> data, Set<String> blockedIds) {
     final writerId = _writerIdFrom(data);
@@ -38,49 +37,40 @@ class CommentPreview extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) { // 👈 ref 추가
     final uid = _uid;
+    // 🆕 실시간 통합 랭킹 구독
+    final totalRanking = ref.watch(totalRankingProvider);
 
-    // ✅ 로그인/uid 없으면(원칙상 커뮤니티는 로그인 후 이용이지만)
-    // 안전하게 차단 필터 없이 기존 방식으로 렌더
-    if (uid == null) {
-      return _buildCommentPreviewBody(context, const <String>{});
-    }
+    if (uid == null) return _buildCommentPreviewBody(context, const <String>{}, totalRanking);
 
     return StreamBuilder<Set<String>>(
       stream: _blockedIdsStream(uid),
       builder: (context, snap) {
         final blockedIds = snap.data ?? <String>{};
-        return _buildCommentPreviewBody(context, blockedIds);
+        return _buildCommentPreviewBody(context, blockedIds, totalRanking);
       },
     );
   }
 
-  Widget _buildCommentPreviewBody(BuildContext context, Set<String> blockedIds) {
+  Widget _buildCommentPreviewBody(BuildContext context, Set<String> blockedIds, List<Map<String, dynamic>> totalRanking) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
           .doc(postId)
           .collection('comments')
           .orderBy('timestamp', descending: true)
-          .limit(8) // ✅ 차단 필터로 빠질 수 있으니 조금 넉넉히
+          .limit(8)
           .snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const SizedBox.shrink();
-        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
 
-        final allDocs = snapshot.data!.docs;
-
-        // ✅ 차단 유저 댓글 제거
-        final filteredDocs = allDocs.where((doc) {
+        final filteredDocs = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           return !_isBlockedWriter(data, blockedIds);
         }).toList();
 
         if (filteredDocs.isEmpty) return const SizedBox.shrink();
-
-        // ✅ 프리뷰는 최대 3개만
         final previewDocs = filteredDocs.take(3).toList();
 
         return Column(
@@ -88,18 +78,36 @@ class CommentPreview extends StatelessWidget {
           children: [
             ...previewDocs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
-
               final String? writerId = _writerIdFrom(data);
               final content = (data['content'] as String?) ?? '';
+
+              // 🔥 실시간 순위 확인
+              final rankIndex = totalRanking.indexWhere((item) => item['userId'] == writerId);
+              final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: writerId != null ? () => _showProfile(context, writerId) : null,
-                      child: _buildAvatar(writerId),
+                    // 1. 아바타 + 실시간 배지 Stack (통일)
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _buildAvatar(writerId),
+                        if (currentRank != null)
+                          Positioned(
+                            left: -3,
+                            top: -3,
+                            child: Container(
+                              padding: const EdgeInsets.all(1),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: BadgeWidget(rank: currentRank, size: 12), // 프리뷰는 작게 12
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -107,52 +115,31 @@ class CommentPreview extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         text: TextSpan(
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.black87,
-                          ),
+                          style: const TextStyle(fontSize: 12, color: Colors.black87),
                           children: [
                             WidgetSpan(
-                              child: writerId != null
-                                  ? FutureBuilder<DocumentSnapshot>(
-                                future: FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(writerId)
-                                    .get(),
-                                builder: (context, userSnapshot) {
-                                  String name = '익명';
-                                  if (userSnapshot.hasData &&
-                                      userSnapshot.data!.exists) {
-                                    final userData = userSnapshot.data!.data()
-                                    as Map<String, dynamic>?;
-                                    name = userData?['koreanName']
-                                        ?.toString()
-                                        .trim() ??
-                                        '익명';
-                                  }
+                              child: StreamBuilder<DocumentSnapshot>(
+                                stream: FirebaseFirestore.instance.collection('users').doc(writerId).snapshots(),
+                                builder: (context, userSnap) {
+                                  final name = (userSnap.hasData && userSnap.data!.exists)
+                                      ? (userSnap.data!.data() as Map<String, dynamic>)['koreanName'] ?? '익명'
+                                      : '익명';
+
+                                  // 2. 이름 옆 배지 제거 (아바타 쪽으로 이동했으므로)
                                   return GestureDetector(
-                                    onTap: () => _showProfile(context, writerId),
+                                    onTap: writerId != null ? () => _showProfile(context, writerId) : null,
                                     child: Text(
                                       name,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Theme.of(context).colorScheme.primary,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   );
                                 },
-                              )
-                                  : const Text(
-                                '익명',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey,
-                                ),
                               ),
                             ),
-                            const WidgetSpan(child: SizedBox(width: 4)),
+                            const TextSpan(text: '  '),
                             TextSpan(text: content),
                           ],
                         ),
@@ -163,7 +150,6 @@ class CommentPreview extends StatelessWidget {
               );
             }).toList(),
 
-            // ✅ "댓글 모두 보기"는 차단 제외 후에도 3개 이상일 때만
             if (filteredDocs.length >= 3)
               TextButton(
                 onPressed: () => CommentBottomSheet.show(context, postId),

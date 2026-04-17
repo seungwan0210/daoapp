@@ -9,6 +9,8 @@ import 'package:daoapp/presentation/screens/community/circle/widgets/comment_pre
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
+import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 🆕 추가
+import 'package:daoapp/core/utils/badge_utils.dart'; // 🆕 추가
 
 class PostCard extends ConsumerStatefulWidget {
   final QueryDocumentSnapshot doc;
@@ -20,6 +22,7 @@ class PostCard extends ConsumerStatefulWidget {
   final Map<String, String?>? barrelData;
   final String? monthlyBadge;
   final String? adminBadge;
+  final int? currentRank; // 🆕 실시간 순위 파라미터 추가
 
   final Object? heroTag;
 
@@ -33,6 +36,7 @@ class PostCard extends ConsumerStatefulWidget {
     this.barrelData,
     this.monthlyBadge,
     this.adminBadge,
+    this.currentRank, // 🆕 생성자 추가
     this.heroTag,
   });
 
@@ -197,7 +201,7 @@ class _PostCardState extends ConsumerState<PostCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                initialValue: selected, // ✅ 수정됨: value 대신 initialValue 사용
+                value: selected,
                 items: reasons.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: (v) => setState(() => selected = v ?? selected),
                 decoration: const InputDecoration(labelText: '신고 사유', border: OutlineInputBorder()),
@@ -352,15 +356,34 @@ class _PostCardState extends ConsumerState<PostCard> {
         children: [
           GestureDetector(
             onTap: postUserId != null ? () => _showUserProfileDialog(postUserId) : null,
-            child: _ProfileAvatar(radius: 20, primaryColor: theme.colorScheme.primaryContainer, photoUrl: photo),
+            child: _ProfileAvatar(
+              radius: 20,
+              primaryColor: theme.colorScheme.primaryContainer,
+              photoUrl: photo,
+              currentRank: widget.currentRank, // 사진 옆 배지만 유지
+              monthlyBadge: widget.monthlyBadge,
+              adminBadge: widget.adminBadge,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: theme.colorScheme.primary)),
-                Text(AppDateUtils.formatRelativeTime(widget.doc['timestamp']?.toDate() ?? DateTime.now()), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                // 텍스트(이름) 옆 배지는 중복이라 제거하고 이름만 깔끔하게 표시
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: theme.colorScheme.primary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  AppDateUtils.formatRelativeTime(widget.doc['timestamp']?.toDate() ?? DateTime.now()),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -465,21 +488,50 @@ class _PostCardState extends ConsumerState<PostCard> {
   }
 }
 
+// 🆕 _ProfileAvatar 수정: 아바타 좌측 상단에 배지 중첩 표시
 class _ProfileAvatar extends StatelessWidget {
   final double radius;
   final Color primaryColor;
   final String? photoUrl;
-  const _ProfileAvatar({required this.radius, required this.primaryColor, this.photoUrl});
+  final int? currentRank;
+  final String? monthlyBadge;
+  final String? adminBadge;
+
+  const _ProfileAvatar({
+    required this.radius,
+    required this.primaryColor,
+    this.photoUrl,
+    this.currentRank,
+    this.monthlyBadge,
+    this.adminBadge,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: primaryColor,
-      child: ClipOval(
-        child: (photoUrl != null && photoUrl!.isNotEmpty)
-            ? Image.network(photoUrl!, width: radius * 2, height: radius * 2, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person))
-            : const Icon(Icons.person, color: Colors.white),
-      ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(
+          radius: radius,
+          backgroundColor: primaryColor,
+          child: ClipOval(
+            child: (photoUrl != null && photoUrl!.isNotEmpty)
+                ? Image.network(photoUrl!, width: radius * 2, height: radius * 2, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person))
+                : const Icon(Icons.person, color: Colors.white),
+          ),
+        ),
+        // 실시간 랭킹 배지 (좌측 상단)
+        if (currentRank != null)
+          Positioned(
+            left: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2)]),
+              child: BadgeWidget(rank: currentRank, size: 16),
+            ),
+          ),
+      ],
     );
   }
 }

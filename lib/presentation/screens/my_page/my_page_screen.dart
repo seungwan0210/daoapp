@@ -1,4 +1,5 @@
 // lib/presentation/screens/user/my_page_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,6 +11,8 @@ import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
+// 🆕 실시간 랭킹 구독을 위해 추가
+import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
 
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
@@ -29,26 +32,20 @@ class MyPageScreenBody extends ConsumerWidget {
     final hasProfile = data['hasProfile'] as bool? ?? false;
     final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
     final koreanName = data['koreanName']?.toString().trim();
-    return hasProfile &&
-        isPhoneVerified &&
-        koreanName != null &&
-        koreanName.isNotEmpty;
+    return hasProfile && isPhoneVerified && koreanName != null && koreanName.isNotEmpty;
   }
 
-  // 핵심 기능: 현재는 마이로그만 별도로 상수로 관리
   static const List<_GridItem> _mainFunctions = [
-    _GridItem(
-      Icons.edit_note,
-      '마이로그',
-      RouteConstants.myLogHome,
-      Colors.blueAccent, // 🔵 마이로그 색상
-    ),
+    _GridItem(Icons.edit_note, '마이로그', RouteConstants.myLogHome, Colors.blueAccent),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final theme = Theme.of(context);
+
+    // 🆕 실시간 통합 랭킹 구독 (내 순위 배지 표시용)
+    final totalRanking = ref.watch(totalRankingProvider);
 
     return SafeArea(
       top: true,
@@ -58,20 +55,20 @@ class MyPageScreenBody extends ConsumerWidget {
           data: (user) {
             if (user == null) return _buildLoginPrompt(context);
             return StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .snapshots(),
+              stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
                 final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final hasProfile = _determineHasProfile(data);
-                if (!hasProfile) {
-                  return _buildProfilePrompt(context, ref);
-                }
-                return _buildFullProfile(context, user, data, theme, ref);
+
+                if (!hasProfile) return _buildProfilePrompt(context, ref);
+
+                // 🆕 내 순위 찾기
+                final rankIndex = totalRanking.indexWhere((item) => item['userId'] == user.uid);
+                final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
+
+                return _buildFullProfile(context, user, data, theme, ref, currentRank);
               },
             );
           },
@@ -205,15 +202,19 @@ class MyPageScreenBody extends ConsumerWidget {
       Map<String, dynamic> data,
       ThemeData theme,
       WidgetRef ref,
+      int? currentRank, // 🆕 추가
       ) {
     final profileImageUrl = data['profileImageUrl'] as String?;
     final barrelImageUrl = data['barrelImageUrl'] as String?;
     final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
     final shopName = data['shopName']?.toString().trim() ?? '';
+
+    // 🛠️ 배럴 정보 파싱 (스샷에서 확인된 구조 반영)
     final barrelName = data['barrelName']?.toString().trim() ?? '';
     final shaft = data['shaft']?.toString().trim() ?? '';
     final flight = data['flight']?.toString().trim() ?? '';
     final tip = data['tip']?.toString().trim() ?? '';
+
     final email = user.email ?? '이메일 없음';
     final phoneNumber = data['phoneNumber']?.toString().trim() ?? '';
 
@@ -223,13 +224,17 @@ class MyPageScreenBody extends ConsumerWidget {
         tip.isNotEmpty ||
         (barrelImageUrl?.isNotEmpty == true);
 
-    final badgesMap = BadgeUtils.extractBadges(data);
-    final monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
-    final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+    // 🛡️ 배지 리스트 구성 (실시간 우선)
+    final List<Widget> badgeWidgets = [];
+    if (currentRank != null) {
+      badgeWidgets.add(BadgeWidget(rank: currentRank, size: 22));
+    }
 
-    final badgesToShow = <String>[];
-    if (monthlyBadge != null) badgesToShow.add(monthlyBadge);
-    if (adminBadge != null) badgesToShow.add(adminBadge);
+    final badgesMap = BadgeUtils.extractBadges(data);
+    final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+    if (adminBadge != null && badgeWidgets.length < 2) {
+      badgeWidgets.add(BadgeWidget(badgeKey: adminBadge, size: 22));
+    }
 
     return ListView(
       children: [
@@ -251,13 +256,12 @@ class MyPageScreenBody extends ConsumerWidget {
                                 ? NetworkImage(profileImageUrl!)
                                 : null,
                             child: profileImageUrl?.isNotEmpty != true
-                                ? const Icon(Icons.account_circle,
-                                size: 44, color: Colors.grey)
+                                ? const Icon(Icons.account_circle, size: 44, color: Colors.grey)
                                 : null,
                           ),
-                          ...badgesToShow.asMap().entries.map((entry) {
+                          // 🆕 실시간 배지 렌더링 (아바타 슬라이더와 동일 로직)
+                          ...badgeWidgets.asMap().entries.map((entry) {
                             final index = entry.key;
-                            final key = entry.value;
                             return Positioned(
                               left: -8 - (index * 18),
                               top: -8,
@@ -266,18 +270,9 @@ class MyPageScreenBody extends ConsumerWidget {
                                 decoration: const BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 2,
-                                      offset: Offset(0, 1),
-                                    ),
-                                  ],
+                                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
                                 ),
-                                child: Tooltip(
-                                  message: BadgeUtils.getBadgeTooltip(key),
-                                  child: BadgeWidget(badgeKey: key, size: 20),
-                                ),
+                                child: entry.value,
                               ),
                             );
                           }).toList(),
@@ -292,51 +287,31 @@ class MyPageScreenBody extends ConsumerWidget {
                           Row(
                             children: [
                               Flexible(
-                                child: Text(
-                                  koreanName,
-                                  style: theme.textTheme.titleLarge,
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
+                                child: Text(koreanName, style: theme.textTheme.titleLarge, overflow: TextOverflow.ellipsis),
                               ),
                               if (shopName.isNotEmpty) ...[
                                 const SizedBox(width: 8),
                                 Flexible(
-                                  child: Text(
-                                    '· $shopName',
+                                  child: Text('· $shopName',
                                     style: theme.textTheme.bodyLarge?.copyWith(
                                       color: theme.colorScheme.primary,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
                                   ),
                                 ),
                               ],
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            email,
-                            style: theme.textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
+                          Text(email, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]), overflow: TextOverflow.ellipsis),
                           if (phoneNumber.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                Icon(Icons.phone,
-                                    size: 14, color: Colors.grey[600]),
+                                Icon(Icons.phone, size: 14, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
-                                Text(
-                                  phoneNumber,
-                                  style: theme.textTheme.bodyMedium
-                                      ?.copyWith(color: Colors.grey[700]),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
+                                Text(phoneNumber, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
                               ],
                             ),
                           ],
@@ -348,43 +323,20 @@ class MyPageScreenBody extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(
-                      child: _buildActionButton(
-                        context,
-                        icon: Icons.edit,
-                        label: '프로필 수정',
-                        onTap: () =>
-                            Navigator.pushNamed(context, RouteConstants.profileRegister),
-                      ),
-                    ),
+                    Expanded(child: _buildActionButton(context, icon: Icons.edit, label: '프로필 수정', onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister))),
                     const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildActionButton(
-                        context,
-                        icon: Icons.comment,
-                        label: '내 방명록',
-                        onTap: () => Navigator.pushNamed(
-                          context,
-                          RouteConstants.guestbook,
-                          arguments: user.uid,
-                        ),
-                      ),
-                    ),
+                    Expanded(child: _buildActionButton(context, icon: Icons.comment, label: '내 방명록', onTap: () => Navigator.pushNamed(context, RouteConstants.guestbook, arguments: user.uid))),
                   ],
                 ),
                 if (hasBarrelSetting) ...[
                   const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'PLAYERS_DART',
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+                      Text('PLAYERS_DART', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
+                      const SizedBox(height: 12),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -393,22 +345,12 @@ class MyPageScreenBody extends ConsumerWidget {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
                               child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[200],
-                                  border:
-                                  Border.all(color: Colors.grey.shade400),
-                                ),
+                                width: 64,
+                                height: 64,
+                                decoration: BoxDecoration(color: Colors.grey[100], border: Border.all(color: Colors.grey.shade300)),
                                 child: barrelImageUrl?.isNotEmpty == true
-                                    ? Image.network(
-                                  barrelImageUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                  const Icon(Icons.error),
-                                )
-                                    : const Icon(Icons.sports_esports,
-                                    size: 30, color: Colors.grey),
+                                    ? Image.network(barrelImageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey))
+                                    : const Icon(Icons.sports_esports, size: 30, color: Colors.grey),
                               ),
                             ),
                           ),
@@ -434,49 +376,7 @@ class MyPageScreenBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-
-        // 🔥 하나의 카드 섹션: 마이로그 + 계정 삭제 + 로그아웃
-        AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              childAspectRatio: 0.9,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: [
-                ..._mainFunctions.map(
-                      (item) => _buildIconButton(
-                    context,
-                    icon: item.icon,
-                    label: item.label,
-                    route: item.route,
-                    color: item.color,
-                  ),
-                ),
-                _buildIconButton(
-                  context,
-                  icon: Icons.delete_forever,
-                  label: '계정 삭제',
-                  route: null,
-                  color: Colors.redAccent,
-                  onTap: () => _showAccountDeleteDialog(context, ref),
-                ),
-                _buildIconButton(
-                  context,
-                  icon: Icons.logout,
-                  label: '로그아웃',
-                  route: null,
-                  color: Colors.grey,
-                  onTap: () => _showLogoutDialog(context, ref),
-                ),
-              ],
-            ),
-          ),
-        ),
-
+        _buildFunctionGrid(context, ref),
         const SizedBox(height: 32),
       ],
     );

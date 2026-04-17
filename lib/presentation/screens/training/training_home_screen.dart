@@ -26,9 +26,14 @@ import 'package:daoapp/di/service_locator.dart';
 // 🔹 마이로그 홈 스크린
 import 'package:daoapp/presentation/screens/my_page/my_log/my_log_home_screen.dart';
 
-// ✅ [추가됨] 포즈 분석 화면 import
+// ✅ 포즈 분석 및 그립 랩 화면 import
 import 'package:daoapp/presentation/screens/training/pose_analysis/pose_analysis_screen.dart';
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_lab_home_screen.dart';
+
+// ✅ 자유 랭킹 탭 뷰 import
+import 'package:daoapp/presentation/screens/training/ranking/ranking_tab_view.dart';
+
+enum TrainingTab { free, practice }
 
 class TrainingHomeScreen extends ConsumerStatefulWidget {
   const TrainingHomeScreen({super.key});
@@ -40,11 +45,8 @@ class TrainingHomeScreen extends ConsumerStatefulWidget {
 class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   DaoTrainingProfile? _profile;
   bool _isLoadingProfile = true;
-
-  /// 🔥 한 사이클(게이지 0→100%) 동안 팝업을 딱 1번만 띄우기 위한 플래그
+  TrainingTab _selectedTab = TrainingTab.free;
   bool _ratingDialogShownForThisCycle = false;
-
-  // ========= Firestore 헬퍼 =========
 
   CollectionReference<Map<String, dynamic>> get _trainingCol =>
       FirebaseFirestore.instance.collection('trainingProfiles');
@@ -52,9 +54,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   Future<void> _loadProfileFromFirestore() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      setState(() {
-        _isLoadingProfile = false;
-      });
+      setState(() => _isLoadingProfile = false);
       return;
     }
 
@@ -87,9 +87,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       });
     } catch (e) {
       debugPrint('Failed to load training profile: $e');
-      setState(() {
-        _isLoadingProfile = false;
-      });
+      setState(() => _isLoadingProfile = false);
     }
   }
 
@@ -122,131 +120,59 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("트레이닝 데이터 초기화"),
-        content: const Text(
-          "DAO 트레이닝 레이팅과 티어를 초기화합니다.\n"
-              "다시 레이팅 입력 또는 레벨 테스트로 시작할 수 있습니다.",
-        ),
+        content: const Text("DAO 트레이닝 레이팅과 티어를 초기화합니다.\n다시 레이팅 입력 또는 레벨 테스트로 시작할 수 있습니다."),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("취소"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              "초기화",
-              style: TextStyle(color: Colors.redAccent),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("취소")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("초기화", style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
 
     if (confirm != true) return;
-
     try {
       await _trainingCol.doc(user.uid).delete();
     } catch (e) {
-      debugPrint('Failed to delete training profile: $e');
+      debugPrint('Failed to delete: $e');
     }
-
     if (!mounted) return;
-    setState(() {
-      _profile = null;
-    });
+    setState(() => _profile = null);
   }
-
-  // ========= 레이팅/레벨 테스트 완료 후: XP 게이지 리셋 =========
 
   Future<void> _updateProgressAfterRatingCheck(DaoTrainingTier tier) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-
     try {
       final repo = sl<TrainingProgressRepository>();
-      await repo.markRatingChecked(
-        userId: user.uid,
-        newTier: tier,
-      );
+      await repo.markRatingChecked(userId: user.uid, newTier: tier);
     } catch (e) {
-      debugPrint('Failed to mark rating checked: $e');
+      debugPrint('Failed to update progress: $e');
     }
   }
 
-  // ========= 레이팅/레벨 테스트 화면 이동 =========
-
   Future<void> _openRatingInput() async {
     final result = await Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
-
     if (result is DaoTrainingProfile) {
       setState(() => _profile = result);
       await _saveProfileToFirestore();
-
-      // 🔹 레이팅 입력으로 티어 확정 → XP 게이지도 새 티어 기준으로 리셋
       await _updateProgressAfterRatingCheck(result.tier);
     }
   }
 
   Future<void> _openBoardLevelTest() async {
     final result = await Navigator.pushNamed(context, RouteConstants.boardLevelTest);
-
     if (result is DaoTrainingProfile) {
       setState(() => _profile = result);
       await _saveProfileToFirestore();
-
-      // 🔹 보드 레벨 테스트로 티어 확정 → XP 게이지 리셋
       await _updateProgressAfterRatingCheck(result.tier);
     }
   }
 
-  // 숫자 예쁘게 포맷 (16.00 → 16, 16.63 → 16.63)
   String _formatRating(double? rating) {
     if (rating == null) return "-";
     if (rating % 1 == 0) return rating.toInt().toString();
     return rating.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
   }
 
-  /// 🔥 성장 게이지 100% 달성 시 호출되는 다이얼로그
-  Future<void> _showRatingCheckDialog() async {
-    if (!mounted) return;
-
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: const Text(
-          '🔥 성장 게이지 100% 달성!',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: const Text(
-          '훈련을 통해 성장 게이지가 가득 찼어요.\n\n'
-              '지금 레이팅을 다시 측정하여\n'
-              '성장한 실력을 확인해볼까요?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('나중에 하기'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text(
-              '레이팅 / 레벨 테스트 하기',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (result == true) {
-      Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
-    }
-  }
-
-  /// 🔍 Progress를 보고, 게이지 100% 도달 시 다이얼로그 한 번만 띄우는 로직
   void _handleProgressForRatingDialog(TrainingProgressModel progress) {
     if (progress.isCycleComplete) {
       if (!_ratingDialogShownForThisCycle) {
@@ -254,11 +180,25 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         Future.microtask(_showRatingCheckDialog);
       }
     } else {
-      // 새 사이클 (xpSinceLastCheck 리셋 등) 시작되면 다시 false로
-      if (_ratingDialogShownForThisCycle) {
-        _ratingDialogShownForThisCycle = false;
-      }
+      if (_ratingDialogShownForThisCycle) _ratingDialogShownForThisCycle = false;
     }
+  }
+
+  Future<void> _showRatingCheckDialog() async {
+    if (!mounted) return;
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text('🔥 성장 게이지 100% 달성!', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('훈련을 통해 성장 게이지가 가득 찼어요.\n지금 레이팅을 다시 측정하여 성장한 실력을 확인해볼까요?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('나중에 하기')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('테스트 하기', style: TextStyle(fontWeight: FontWeight.bold))),
+        ],
+      ),
+    );
+    if (result == true && mounted) Navigator.pushNamed(context, RouteConstants.trainingRatingInput);
   }
 
   @override
@@ -271,8 +211,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   Widget build(BuildContext context) {
     final hasRating = _profile?.phoenixClass != null || _profile?.liveRating != null;
     final screenWidth = MediaQuery.of(context).size.width;
-
-    // 🔹 XP/게이지 Progress 구독
     final progressAsync = ref.watch(trainingProgressProvider);
 
     return Scaffold(
@@ -281,153 +219,70 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         child: _isLoadingProfile
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-          padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20), // 상단 패딩 조절
           children: [
-            // === 프로필 없으면 입력 유도 ===
             if (_profile == null) ...[
               _buildEmptyState(),
-              const SizedBox(height: 24),
-
-              // 프로필 없을 때도 기본 게이지(0%)는 보여줄 수 있음
+              const SizedBox(height: 12), // 간격 축소
               progressAsync.when(
-                data: (progress) {
-                  _handleProgressForRatingDialog(progress);
-                  return _buildXpGauge(progress);
-                },
+                data: (p) { _handleProgressForRatingDialog(p); return _buildXpGauge(p); },
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
-
-              const SizedBox(height: 60),
             ] else ...[
-              // === DAO 티어 크게 표시 ===
-              Center(
-                child: DaoTierBadgeLarge(
-                  tier: _profile!.tier,
-                ),
-              ),
-              const SizedBox(height: 12),
+              Center(child: DaoTierBadgeLarge(tier: _profile!.tier)),
+              const SizedBox(height: 8),
               Center(
                 child: Text(
                   "현재 DAO 티어 · ${_profile!.tier.labelKo}",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(height: 24),
-
-              // === 네온 듀얼 게이지 (PHOENIX / LIVE) ===
+              const SizedBox(height: 16), // 간격 축소
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth > 400 ? 20 : 0,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: screenWidth > 400 ? 20 : 0),
                 child: DualNeonGaugeRow(
                   phoenixRating: _profile!.phoenixClass,
                   liveRating: _profile!.liveRating,
-                  gaugeSize: screenWidth > 400 ? 160 : 140,
+                  gaugeSize: screenWidth > 400 ? 150 : 130, // 게이지 사이즈 약간 축소
                 ),
               ),
-              const SizedBox(height: 20),
-
-              // 🔹 XP 성장 게이지
+              const SizedBox(height: 12), // 간격 축소
               progressAsync.when(
-                data: (progress) {
-                  _handleProgressForRatingDialog(progress);
-                  return _buildXpGauge(progress);
-                },
-                loading: () => const SizedBox(
-                  height: 72,
-                  child: Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                error: (e, _) {
-                  debugPrint('Progress load error: $e');
-                  return const SizedBox.shrink();
-                },
+                data: (p) { _handleProgressForRatingDialog(p); return _buildXpGauge(p); },
+                loading: () => const SizedBox(height: 60, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
+                error: (e, _) => const SizedBox.shrink(),
               ),
+              const SizedBox(height: 16), // 간격 축소
 
-              const SizedBox(height: 24),
-
-              // === 상세 정보 카드 + 수정 / 초기화 ===
+              // === 레이팅 상세 정보 카드 (더 컴팩트하게) ===
               AppCard(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   child: Column(
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "PHOENIX CLASS",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            _formatRating(_profile!.phoenixClass),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.cyan,
-                            ),
-                          ),
-                        ],
-                      ),
+                      _buildRatingRow("PHOENIX CLASS", _formatRating(_profile!.phoenixClass), Colors.cyan),
+                      const Divider(height: 16),
+                      _buildRatingRow("DARTSLIVE RATING", _formatRating(_profile!.liveRating), Colors.orange),
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "DARTSLIVE RATING",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            _formatRating(_profile!.liveRating),
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.orange,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // 버튼 2개: 수정 / 초기화
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton.icon(
+                            child: OutlinedButton(
                               onPressed: _openRatingInput,
-                              icon: const Icon(Icons.edit),
-                              label: const Text(
-                                "레이팅 수정하기",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.cyan,
                                 side: const BorderSide(color: Colors.cyan),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
+                              child: const Text("레이팅 수정", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          SizedBox(
-                            width: 110,
-                            child: TextButton(
-                              onPressed: _resetProfile,
-                              child: const Text(
-                                "초기화",
-                                style: TextStyle(
-                                  color: Colors.redAccent,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: _resetProfile,
+                            child: const Text("초기화", style: TextStyle(color: Colors.redAccent, fontSize: 13)),
                           ),
                         ],
                       ),
@@ -435,55 +290,35 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                   ),
                 ),
               ),
-
-              // === 안내 문구 ===
-              if (hasRating) ...[
-                const SizedBox(height: 8),
-                Text(
-                  "※ 이 수치는 DAO 트레이닝을 위한 참고용 레이팅입니다.\n"
-                      "※ 실제 PHOENIX / DARTSLIVE 레이팅과는 약간의 오차가 있을 수 있습니다.",
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-
-              const SizedBox(height: 40),
             ],
 
-            // === 오늘의 추천 연습 ===
-            Text(
-              "오늘의 추천 연습",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "지금 티어에 가장 잘 맞는 드릴로 가볍게 워밍업을 시작해보세요.",
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            const SizedBox(height: 20), // 성장게이지-탭 사이 간격 대폭 축소
+
+            // === 🏆 자유 랭킹 / 🎯 맞춤 연습 (중앙 정렬) ===
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center, // 중앙 정렬
+              children: [
+                _buildModeChip("🏆 자유 랭킹", TrainingTab.free),
+                const SizedBox(width: 12),
+                _buildModeChip("🎯 맞춤 연습", TrainingTab.practice),
+              ],
             ),
             const SizedBox(height: 16),
-            _buildRecommendationCards(_profile?.tier),
-            const SizedBox(height: 40),
+
+            // === 탭 콘텐츠 ===
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: _selectedTab == TrainingTab.free
+                  ? const RankingTabView()
+                  : _buildRecommendationCards(_profile?.tier),
+            ),
+
+            const SizedBox(height: 32),
 
             // === 훈련 도구 ===
-            Text(
-              "훈련 도구",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "기록을 확인하고, 자세를 분석하고, 계산을 도와주는 도구들입니다.",
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-            ),
-            const SizedBox(height: 16),
-            ..._buildPracticeItems(), // ✅ 수정된 리스트가 여기 들어갑니다
+            Text("훈련 도구", style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            ..._buildPracticeItems(),
             const SizedBox(height: 40),
           ],
         ),
@@ -491,76 +326,64 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
     );
   }
 
-  /// ✅ XP 성장 게이지 카드
+  Widget _buildRatingRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+      ],
+    );
+  }
+
+  Widget _buildModeChip(String label, TrainingTab tab) {
+    final isSelected = _selectedTab == tab;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (val) { if (val) setState(() => _selectedTab = tab); },
+      selectedColor: Colors.cyan.withOpacity(0.1),
+      backgroundColor: Colors.grey[50],
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.cyan[800] : Colors.grey[600],
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide(color: isSelected ? Colors.cyan : Colors.transparent),
+      visualDensity: VisualDensity.compact, // 칩 크기 조절
+    );
+  }
+
   Widget _buildXpGauge(TrainingProgressModel progress) {
-    final ratio = progress.progressRatio; // 0.0 ~ 1.0
-    final percentText = (ratio * 100).clamp(0, 100).toStringAsFixed(0);
-    final remain = progress.remainingXp;
-
-    String subtitle;
-    if (ratio >= 1.0) {
-      subtitle = "게이지가 가득 찼습니다! 레이팅/레벨 테스트를 진행해 보세요.";
-    } else if (ratio >= 0.7) {
-      subtitle = "거의 다 왔어요. 집중해서 한두 세션만 더!";
-    } else {
-      subtitle = "연습을 할수록 XP가 쌓이고, 가득 차면 레이팅을 다시 체크합니다.";
-    }
-
+    final ratio = progress.progressRatio;
     return AppCard(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 상단 텍스트
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "성장 게이지",
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  "$percentText%",
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                const Text("성장 게이지", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                Text("${(ratio * 100).toInt()}%", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             ClipRRect(
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: ratio.clamp(0, 1),
-                minHeight: 8,
-                backgroundColor: Colors.grey.shade200,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  Colors.cyan.shade600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              ratio >= 1.0
-                  ? "다음 레이팅 체크를 진행해주세요."
-                  : "레이팅/레벨 재평가까지 남은 XP: $remain",
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
+                minHeight: 6,
+                backgroundColor: Colors.grey.shade100,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.cyan.shade600),
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[500],
-              ),
+              ratio >= 1.0 ? "레이팅 체크 준비 완료" : "재평가까지 남은 XP: ${progress.remainingXp}",
+              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -571,428 +394,87 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   Widget _buildEmptyState() {
     return Column(
       children: [
-        Icon(Icons.sports_esports_outlined, size: 100, color: Colors.grey[400]),
-        const SizedBox(height: 32),
-        const Text(
-          "당신의 다트 실력을 알려주세요!",
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        ),
+        Icon(Icons.sports_esports_outlined, size: 60, color: Colors.grey[300]),
         const SizedBox(height: 16),
-        Text(
-          "피닉스나 다트라이브 레이팅을 입력하거나\n"
-              "간단한 레벨 테스트로 시작해보세요",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey[600], fontSize: 16),
-        ),
-        const SizedBox(height: 40),
+        const Text("다트 실력을 입력해주세요!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: _openRatingInput,
-                icon: const Icon(Icons.bar_chart, color: Colors.white),
-                label: const Text(
-                  "레이팅 입력",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: _openBoardLevelTest,
-                icon: const Icon(Icons.flag),
-                label: const Text(
-                  "레벨 테스트",
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.cyan, width: 2),
-                  foregroundColor: Colors.cyan,
-                  padding: const EdgeInsets.symmetric(vertical: 18),
-                ),
-              ),
-            ),
+            Expanded(child: ElevatedButton(onPressed: _openRatingInput, style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan, padding: const EdgeInsets.symmetric(vertical: 14)), child: const Text("레이팅 입력"))),
+            const SizedBox(width: 10),
+            Expanded(child: OutlinedButton(onPressed: _openBoardLevelTest, style: OutlinedButton.styleFrom(foregroundColor: Colors.cyan, side: const BorderSide(color: Colors.cyan), padding: const EdgeInsets.symmetric(vertical: 14)), child: const Text("레벨 테스트"))),
           ],
         ),
       ],
     );
   }
 
-  /// 티어 기반 "오늘의 추천 드릴" 카드
   Widget _buildRecommendationCards(DaoTrainingTier? tier) {
-    final DaoTrainingTier effectiveTier = tier ?? DaoTrainingTier.beginner;
-
-    final List<TrainingDrillDefinition> drills =
-    program_constants.getRecommendedDrillsForToday(effectiveTier);
-
-    if (drills.isEmpty) {
-      return const Text(
-        "아직 준비된 추천 드릴이 없습니다.",
-        style: TextStyle(color: Colors.grey),
-      );
-    }
-
+    final drills = program_constants.getRecommendedDrillsForToday(tier ?? DaoTrainingTier.beginner);
+    if (drills.isEmpty) return const Center(child: Text("추천 드릴이 없습니다."));
     return Column(
-      children: drills
-          .map(
-            (drill) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: AppCard(
-            child: InkWell(
-              onTap: () {
-                final DaoTrainingTier runTier = _profile?.tier ?? effectiveTier;
-
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => DrillRunScreen(
-                      drill: drill,
-                      tier: runTier,
-                    ),
-                  ),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: _categoryColor(drill.category).withOpacity(0.12),
-                      child: Icon(
-                        _categoryIcon(drill.category),
-                        color: _categoryColor(drill.category),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            drill.titleKo,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            drill.shortDescriptionKo,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              _pill(
-                                _categoryColor(drill.category),
-                                _categoryLabel(drill.category),
-                              ),
-                              _pill(
-                                Colors.blueGrey,
-                                _inputModeLabel(drill.inputMode),
-                              ),
-                              _pill(
-                                Colors.deepPurple,
-                                _tierRangeLabel(drill.tierRange),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.arrow_forward_ios, size: 14),
-                  ],
-                ),
-              ),
-            ),
+      children: drills.map((drill) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: AppCard(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrillRunScreen(drill: drill, tier: _profile?.tier ?? DaoTrainingTier.beginner))),
+          child: ListTile(
+            dense: true,
+            leading: CircleAvatar(radius: 18, backgroundColor: _categoryColor(drill.category).withOpacity(0.1), child: Icon(_categoryIcon(drill.category), color: _categoryColor(drill.category), size: 18)),
+            title: Text(drill.titleKo, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(drill.shortDescriptionKo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 12),
           ),
         ),
-      )
-          .toList(),
+      )).toList(),
     );
   }
 
-  // ✅ [수정됨] 훈련 도구 리스트
   List<Widget> _buildPracticeItems() {
     return [
-      // 1. 트레이닝 히스토리
-      _practiceTile(
-        Icons.timeline,
-        "트레이닝 히스토리",
-        RouteConstants.trainingHistory,
-        Colors.blueGrey,
-      ),
-
-      // 🔥 [NEW] 그립 연구소 (히스토리 바로 아래 추가)
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: AppCard(
-          onTap: () {
-            // 그립 카메라 화면으로 이동
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const GripLabHomeScreen(),
-              ),
-            );
-          },
-          child: const ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Color(0xFFE0F2F1), // 연한 민트색
-              child: Icon(Icons.fingerprint, color: Colors.teal), // 지문/손가락 아이콘
-            ),
-            title: Text(
-              "그립 연구소",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              "AI가 핀치 간격과 손가락 각도를 분석합니다.",
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ),
-        ),
-      ),
-
-      // 2. 자세분석 & 트래킹
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: AppCard(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const PoseAnalysisScreen(),
-              ),
-            );
-          },
-          child: const ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Color(0xFFE3F2FD),
-              child: Icon(Icons.accessibility_new_rounded, color: Color(0xFF1565C0)),
-            ),
-            title: Text(
-              "자세분석 & 트래킹",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              "내 스로우 영상을 분석하여 뼈대를 그려줍니다.",
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ),
-        ),
-      ),
-
-      // 3. 피니시 루트 연습
-      _practiceTile(
-        Icons.sports_score,
-        "피니시 루트 연습",
-        RouteConstants.finishRouteHome,
-        Colors.green,
-      ),
-
-      // 4. 체크아웃 계산기
-      _practiceTile(
-        Icons.calculate,
-        "체크아웃 계산기",
-        RouteConstants.checkoutCalculator,
-        Colors.deepPurple,
-      ),
-
-      // 5. 나만의 다트 이야기 (마이로그)
-      Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: AppCard(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => const MyLogHomeScreen(),
-              ),
-            );
-          },
-          child: const ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Color(0xFFFFF3E0),
-              child: Icon(Icons.menu_book, color: Color(0xFFFF9800)),
-            ),
-            title: Text(
-              "나만의 다트 이야기",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Text(
-              "오늘의 경기, 느낌, 기록을 마이로그에 남겨보세요.",
-              style: TextStyle(fontSize: 12),
-            ),
-            trailing: Icon(Icons.arrow_forward_ios),
-          ),
-        ),
-      ),
-
-      // 6. 하단 광고 배너
-      // ⚠️ [정책 준수 수정] AppCard를 제거하여 프레임 잘림 이슈를 방지합니다.
+      _toolTile(Icons.timeline, "트레이닝 히스토리", Colors.blueGrey, () => Navigator.pushNamed(context, RouteConstants.trainingHistory)),
+      _toolTile(Icons.fingerprint, "그립 연구소", Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GripLabHomeScreen()))),
+      _toolTile(Icons.accessibility_new_rounded, "자세분석 & 트래킹", const Color(0xFF1565C0), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PoseAnalysisScreen()))),
+      _toolTile(Icons.calculate, "체크아웃 계산기", Colors.deepPurple, () => Navigator.pushNamed(context, RouteConstants.checkoutCalculator)),
+      _toolTile(Icons.menu_book, "나만의 다트 이야기", Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyLogHomeScreen()))),
       const SizedBox(height: 12),
-      Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'ADVERTISEMENT',
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[400],
-              letterSpacing: 1.2,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const AdBanner(), // AdBanner.dart에서 수정한 로직이 적용됨
-        ],
-      ),
-      const SizedBox(height: 20), // 하단 여백
+      const Center(child: AdBanner()),
     ];
   }
 
-  Widget _practiceTile(IconData icon, String title, String route, Color color) {
+  Widget _toolTile(IconData icon, String title, Color color, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: AppCard(
-        onTap: () => Navigator.pushNamed(context, route),
+        onTap: onTap,
         child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: color.withOpacity(0.15),
-            child: Icon(icon, color: color),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          trailing: const Icon(Icons.arrow_forward_ios),
+          dense: true,
+          leading: Icon(icon, color: color, size: 22),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          trailing: const Icon(Icons.arrow_forward_ios, size: 12),
         ),
       ),
     );
   }
 
-  // ======= 추천 카드용 헬퍼들 =======
-
   Color _categoryColor(TrainingDrillCategory category) {
     switch (category) {
-      case TrainingDrillCategory.boardMapping:
-        return Colors.teal;
-      case TrainingDrillCategory.finish:
-        return Colors.redAccent;
-      case TrainingDrillCategory.doublePractice:
-        return Colors.indigo;
-      case TrainingDrillCategory.scoring:
-        return Colors.orange;
-      case TrainingDrillCategory.bull:
-        return Colors.green;
-      case TrainingDrillCategory.other:
-        return const Color(0xFFFF8EC7);
+      case TrainingDrillCategory.boardMapping: return Colors.teal;
+      case TrainingDrillCategory.finish: return Colors.redAccent;
+      case TrainingDrillCategory.doublePractice: return Colors.indigo;
+      case TrainingDrillCategory.scoring: return Colors.orange;
+      case TrainingDrillCategory.bull: return Colors.green;
+      case TrainingDrillCategory.other: return const Color(0xFFFF8EC7);
     }
   }
 
   IconData _categoryIcon(TrainingDrillCategory category) {
     switch (category) {
-      case TrainingDrillCategory.boardMapping:
-        return Icons.grid_3x3;
-      case TrainingDrillCategory.finish:
-        return Icons.flag_circle;
-      case TrainingDrillCategory.doublePractice:
-        return Icons.blur_circular;
-      case TrainingDrillCategory.scoring:
-        return Icons.trending_up;
-      case TrainingDrillCategory.bull:
-        return Icons.my_location;
-      case TrainingDrillCategory.other:
-        return Icons.extension;
+      case TrainingDrillCategory.boardMapping: return Icons.grid_3x3;
+      case TrainingDrillCategory.finish: return Icons.flag_circle;
+      case TrainingDrillCategory.doublePractice: return Icons.blur_circular;
+      case TrainingDrillCategory.scoring: return Icons.trending_up;
+      case TrainingDrillCategory.bull: return Icons.my_location;
+      case TrainingDrillCategory.other: return Icons.extension;
     }
-  }
-
-  String _categoryLabel(TrainingDrillCategory category) {
-    switch (category) {
-      case TrainingDrillCategory.boardMapping:
-        return '보드 감각';
-      case TrainingDrillCategory.finish:
-        return '체크아웃';
-      case TrainingDrillCategory.doublePractice:
-        return '더블 연습';
-      case TrainingDrillCategory.scoring:
-        return '스코어링';
-      case TrainingDrillCategory.bull:
-        return 'BULL 연습';
-      case TrainingDrillCategory.other:
-        return '기타';
-    }
-  }
-
-  String _inputModeLabel(TrainingDrillInputMode mode) {
-    switch (mode) {
-      case TrainingDrillInputMode.hitCount:
-        return '명중률 드릴';
-      case TrainingDrillInputMode.cricketMarks:
-        return 'MPR 드릴';
-      case TrainingDrillInputMode.scoreOnly:
-        return '점수 드릴';
-    }
-  }
-
-  String _tierRangeLabel(DrillTierRange range) {
-    if (range.minTier == range.maxTier) {
-      return range.minTier.labelKo;
-    }
-    return '${range.minTier.labelKo}~${range.maxTier.labelKo}';
-  }
-
-  Widget _pill(Color color, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          color: color.darken(),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
-// 간단한 Color 확장
-extension _ColorX on Color {
-  Color darken([double amount = .15]) {
-    final hsl = HSLColor.fromColor(this);
-    final hslDark = hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0));
-    return hslDark.toColor();
   }
 }

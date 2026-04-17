@@ -1,4 +1,3 @@
-// lib/presentation/screens/community/widgets/community_avatar_slider.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
+import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
 
 class CommunityAvatarSlider extends ConsumerWidget {
   const CommunityAvatarSlider({super.key});
@@ -30,8 +30,6 @@ class CommunityAvatarSlider extends ConsumerWidget {
         }
 
         final docs = snapshot.data!.docs;
-
-        // ✅ 내 문서를 맨 앞으로, 나머지는 뒤로
         QueryDocumentSnapshot? myDoc;
         final otherDocs = <QueryDocumentSnapshot>[];
 
@@ -70,9 +68,7 @@ class CommunityAvatarSlider extends ConsumerWidget {
               final data = (doc.data() as Map<String, dynamic>?);
               final uid = data?['uid']?.toString().trim();
 
-              if (uid == null || uid.isEmpty) {
-                return const SizedBox(width: 70);
-              }
+              if (uid == null || uid.isEmpty) return const SizedBox(width: 70);
 
               final isMe = uid == currentUid;
 
@@ -94,59 +90,14 @@ class CommunityAvatarSlider extends ConsumerWidget {
       builder: (_) => FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.data!.exists || snapshot.data!.data() == null) {
-            return UserProfileDialog(
-              koreanName: '프로필 없음',
-              isMe: isMe,
-              userId: userId,
-            );
-          }
-
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-          final hasProfile = data['hasProfile'] == true;
-          if (!hasProfile) {
-            return UserProfileDialog(
-              koreanName: '프로필 미완료',
-              isMe: isMe,
-              userId: userId,
-            );
-          }
-
           final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
-          final englishName = data['englishName']?.toString().trim();
           final photoUrl = (data['profileImageUrl'] as String?)?.trim();
-          final shopName = data['shopName']?.toString().trim();
-
-          final barrelName = data['barrelName']?.toString().trim() ?? '';
-          final shaft = data['shaft']?.toString().trim() ?? '';
-          final flight = data['flight']?.toString().trim() ?? '';
-          final tip = data['tip']?.toString().trim() ?? '';
-          final barrelImageUrl = data['barrelImageUrl'] as String?;
-
-          final hasBarrelInfo = barrelName.isNotEmpty ||
-              shaft.isNotEmpty ||
-              flight.isNotEmpty ||
-              tip.isNotEmpty ||
-              (barrelImageUrl?.isNotEmpty == true);
 
           return UserProfileDialog(
             koreanName: koreanName,
-            englishName: englishName,
             photoUrl: photoUrl,
-            shopName: shopName,
-            barrelData: hasBarrelInfo
-                ? {
-              'barrelImageUrl': barrelImageUrl,
-              'barrelName': barrelName,
-              'shaft': shaft,
-              'flight': flight,
-              'tip': tip,
-            }
-                : null,
             isMe: isMe,
             userId: userId,
           );
@@ -156,8 +107,7 @@ class CommunityAvatarSlider extends ConsumerWidget {
   }
 }
 
-/// ✅ 유저 1명당 users/{uid} 스트림 1개만 사용
-class _OnlineUserTile extends StatelessWidget {
+class _OnlineUserTile extends ConsumerWidget {
   final String uid;
   final bool isMe;
   final VoidCallback onTap;
@@ -169,7 +119,11 @@ class _OnlineUserTile extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final totalRanking = ref.watch(totalRankingProvider);
+    final rankIndex = totalRanking.indexWhere((item) => item['userId'] == uid);
+    final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
+
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
@@ -177,29 +131,33 @@ class _OnlineUserTile extends StatelessWidget {
         child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
           stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
           builder: (context, snapshot) {
-            final userData =
-            (snapshot.hasData && snapshot.data!.exists) ? (snapshot.data!.data() ?? {}) : <String, dynamic>{};
+            final userData = (snapshot.hasData && snapshot.data!.exists)
+                ? (snapshot.data!.data() ?? {})
+                : <String, dynamic>{};
 
-            final name = (userData['koreanName']?.toString().trim().isNotEmpty == true)
-                ? userData['koreanName'].toString().trim()
-                : '이름 없음';
-
+            final name = (userData['koreanName']?.toString().trim() ?? '이름 없음');
             final photoUrl = (userData['profileImageUrl'] as String?)?.trim();
 
-            // 배지 추출
-            final badgesMap = BadgeUtils.extractBadges(userData);
-            final monthlyBadge = BadgeUtils.getLatestMonthlyBadge(badgesMap);
-            final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+            // 배지 위젯 리스트 생성
+            final badgeWidgets = <Widget>[];
 
-            final badgesToShow = <String>[];
-            if (monthlyBadge != null) badgesToShow.add(monthlyBadge);
-            if (adminBadge != null) badgesToShow.add(adminBadge);
+            // 1. 실시간 순위 배지 (rank 전달)
+            if (currentRank != null) {
+              badgeWidgets.add(BadgeWidget(rank: currentRank, size: 20));
+            }
+
+            // 2. 관리자 배지 (badgeKey 전달)
+            final badgesMap = BadgeUtils.extractBadges(userData);
+            final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
+            if (adminBadge != null && badgeWidgets.length < 2) {
+              badgeWidgets.add(BadgeWidget(badgeKey: adminBadge, size: 20));
+            }
 
             return Column(
               children: [
                 _AvatarWithBadges(
                   photoUrl: photoUrl,
-                  badgesToShow: badgesToShow,
+                  badgeWidgets: badgeWidgets,
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -223,11 +181,11 @@ class _OnlineUserTile extends StatelessWidget {
 
 class _AvatarWithBadges extends StatelessWidget {
   final String? photoUrl;
-  final List<String> badgesToShow;
+  final List<Widget> badgeWidgets;
 
   const _AvatarWithBadges({
     required this.photoUrl,
-    required this.badgesToShow,
+    required this.badgeWidgets,
   });
 
   @override
@@ -240,37 +198,26 @@ class _AvatarWithBadges extends StatelessWidget {
         CircleAvatar(
           radius: 28,
           backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
-          backgroundColor: hasPhoto ? null : Colors.grey[200],
-          child: !hasPhoto
-              ? const Icon(Icons.person, size: 32, color: Colors.grey)
-              : null,
+          backgroundColor: Colors.grey[200],
+          child: !hasPhoto ? const Icon(Icons.person, size: 32, color: Colors.grey) : null,
         ),
 
-        // 배지 (최대 2개)
-        ...badgesToShow.take(2).toList().asMap().entries.map((entry) {
+        // 배지 표시
+        ...badgeWidgets.asMap().entries.map((entry) {
           final index = entry.key;
-          final key = entry.value;
+          final widget = entry.value;
 
           return Positioned(
-            left: -8 - (index * 18),
-            top: -8,
+            left: -6 - (index * 16),
+            top: -6,
             child: Container(
               padding: const EdgeInsets.all(2),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 2,
-                    offset: Offset(0, 1),
-                  )
-                ],
+                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
               ),
-              child: Tooltip(
-                message: BadgeUtils.getBadgeTooltip(key),
-                child: BadgeWidget(badgeKey: key, size: 20),
-              ),
+              child: widget, // 이미 BadgeWidget이므로 그대로 사용
             ),
           );
         }).toList(),

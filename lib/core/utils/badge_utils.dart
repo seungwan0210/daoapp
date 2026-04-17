@@ -1,4 +1,6 @@
 // lib/core/utils/badge_utils.dart
+import 'package:daoapp/core/constants/badge_constants.dart';
+
 class BadgeUtils {
   /// Firestore `users` 문서에서 `badges` 맵 추출
   static Map<String, dynamic> extractBadges(Map<String, dynamic> data) {
@@ -18,7 +20,7 @@ class BadgeUtils {
     return active;
   }
 
-  /// 최신 월간 배지 1개만 반환 (예: monthly_2025_11_pro)
+  /// 최신 월간 배지 1개만 반환 (예: monthly_2026_04_pro)
   static String? getLatestMonthlyBadge(Map<String, dynamic> badgesMap) {
     final monthly = badgesMap.keys
         .where((k) => k.startsWith('monthly_') && badgesMap[k] == true)
@@ -40,8 +42,15 @@ class BadgeUtils {
     return admin.first;
   }
 
-  /// 대표 배지: 월간 > 관리자
-  static String? getCurrentBadgeKey(Map<String, dynamic> badgesMap) {
+  /// 🔥 대표 배지 결정 로직 수정
+  /// 우선순위: 실시간 순위 배지 > 과거 월간 우승 배지 > 관리자 부여 배지
+  static String? getCurrentBadgeKey(Map<String, dynamic> badgesMap, {int? currentRank}) {
+    // 1. 실시간 순위권(1~10위)인 경우 해당 순위 배지 반환
+    if (currentRank != null && currentRank >= 1 && currentRank <= 10) {
+      return BadgeConstants.badgeKeyForRank(currentRank);
+    }
+
+    // 2. 순위권 밖이라면 과거 월간 배지나 어드민 배지 확인
     return getLatestMonthlyBadge(badgesMap) ?? getLatestAdminBadge(badgesMap);
   }
 
@@ -51,31 +60,35 @@ class BadgeUtils {
   }
 
   /// 툴팁용 텍스트 생성
-  /// - monthly_2025_11_pro → "2025년 11월 Pro"
+  /// - monthly_2026_04_pro → "2026년 04월 Pro"
   /// - admin_pro → "관리자 배지: Pro"
-  static String getBadgeTooltip(String key) {
+  static String getBadgeTooltip(String key, {int? currentRank}) {
+    // 실시간 순위 배지인 경우
+    if (currentRank != null && currentRank <= 10) {
+      return "현재 실시간 $currentRank위 (${_formatRank(key)})";
+    }
+
     if (key.startsWith('monthly_')) {
       final parts = key.split('_');
       if (parts.length < 4) return key;
       final year = parts[1];
-      final month =
-          int.tryParse(parts[2])?.toString().padLeft(2, '0') ?? parts[2];
+      final month = int.tryParse(parts[2])?.toString().padLeft(2, '0') ?? parts[2];
       final rank = _formatRank(parts[3]);
       return '$year년 $month월 $rank';
     } else if (key.startsWith('admin_')) {
       final rank = _formatRank(key.substring('admin_'.length));
-      return '관리자 배지: $rank';
+      return '관리자 부여: $rank';
     }
-    // 그 외(직접 키를 넣은 경우)는 raw 키 그대로
-    return key;
+
+    return _formatRank(key);
   }
 
-  /// 배지 등급 포맷팅 (Pro, Emerald 등)
+  /// 배지 등급 표시 이름 (BadgeConstants의 키 기준)
   static String _formatRank(String raw) {
     const map = <String, String>{
       'pro': 'Pro',
-      'emerald': 'Emerald',
       'diamond': 'Diamond',
+      'emerald': 'Emerald',
       'platinum1': 'Platinum 1',
       'platinum2': 'Platinum 2',
       'gold1': 'Gold 1',
@@ -86,22 +99,13 @@ class BadgeUtils {
       'bronze2': 'Bronze 2',
       'bronze3': 'Bronze 3',
       'tro': '야미 트로피',
-
-      // 🔥 시즌 배지 표시 이름
-      'season': 'Season Champion', // 시즌 챔피언
-      'season1': 'Season 1st',     // 시즌 1위
-      'season2': 'Season 2nd',     // 시즌 2위
-      'season3': 'Season 3rd',     // 시즌 3위
+      'season': 'Season Champion',
+      'season1': 'Season 1st',
+      'season2': 'Season 2nd',
+      'season3': 'Season 3rd',
     };
-    return map[raw] ?? raw.toUpperCase();
-  }
-
-  /// 디버그용: 모든 배지 키 (최신순)
-  static List<String> getAllBadges(Map<String, dynamic> badgesMap) {
-    return badgesMap.entries
-        .where((e) => e.value == true)
-        .map((e) => e.key)
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
+    // admin_ 이나 monthly_ 접두사가 붙어있을 경우를 대비해 마지막 단어만 추출
+    final cleanKey = raw.split('_').last;
+    return map[cleanKey] ?? cleanKey.toUpperCase();
   }
 }
