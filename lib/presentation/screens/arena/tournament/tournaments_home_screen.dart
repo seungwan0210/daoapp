@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:daoapp/presentation/providers/arena_provider.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
-
 import 'package:daoapp/presentation/screens/arena/tournament/widgets/tournament_card.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/widgets/tournament_filter_chips.dart';
 
@@ -15,88 +14,88 @@ class TournamentsHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final arenaState = ref.watch(arenaProvider);
-
     final currentFilter = arenaState.currentFilter;
-
-    // ✅ provider가 이미 필터 적용해서 내려주는 리스트
     final filtered = arenaState.tournaments.toList(growable: false);
-
     final isInitialLoading = arenaState.isLoading && filtered.isEmpty;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
           '대회 찾기',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 20,
+            letterSpacing: -0.5,
+            color: Colors.black,
+          ),
         ),
         centerTitle: false,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: Colors.black,
+        surfaceTintColor: Colors.transparent,
       ),
       body: Column(
         children: [
           const TournamentFilterChips(),
-          const Divider(height: 1),
+          Container(height: 1, color: Colors.grey[100]), // 아주 연한 구분선
 
           Expanded(
             child: isInitialLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(
+              child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.cyan
+              ),
+            )
                 : RefreshIndicator(
+              color: Colors.cyan,
               onRefresh: () async {
-                // ✅ arenaProvider에 refresh 메서드가 있다면 연결
-                // 없다면 아래 줄을 주석 처리해도 됨.
-                // await ref.read(arenaProvider.notifier).refresh();
+                // refresh 로직
               },
               child: filtered.isEmpty
                   ? _EmptyState(filter: currentFilter)
-                  : NotificationListener<ScrollNotification>(
-                onNotification: (n) {
-                  // ✅ 무한스크롤용 훅 (arenaProvider에 loadMore가 있으면 연결)
-                  // - 스크롤이 바닥 근처(200px 이내)로 오면 다음 페이지 로드
-                  //
-                  // if (n.metrics.pixels >=
-                  //     n.metrics.maxScrollExtent - 200) {
-                  //   ref.read(arenaProvider.notifier).loadMore();
-                  // }
-                  return false;
-                },
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final t = filtered[index];
+                  : ListView.builder(
+                // 마이 토너먼트 스크린처럼 시원하게 여백 확보
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 30),
+                itemCount: filtered.length,
+                itemBuilder: (context, index) {
+                  final t = filtered[index];
 
-                    return TournamentCard(
-                      key: ValueKey(t.id ?? '${t.title}_$index'),
-                      tournament: t,
-                      onTap: () {
-                        final id = t.id;
-                        if (id == null || id.isEmpty) return;
+                  return TournamentCard(
+                    key: ValueKey(t.id ?? '${t.title}_$index'),
+                    tournament: t,
+                    onTap: () {
+                      final id = t.id;
+                      if (id == null || id.isEmpty) return;
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => TournamentDetailScreen(
-                              tournamentId: id,
-                            ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => TournamentDetailScreen(
+                            tournamentId: id,
                           ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ),
 
-          // ✅ (선택) 아래쪽 로딩 인디케이터 슬롯
-          // arenaState.isLoading 이 "추가 로드 중"에도 true라면,
-          // 초기 로딩과 구분하려면 arenaState에 isPaging 같은 플래그를 추가하는 게 베스트.
           if (!isInitialLoading && arenaState.isLoading)
             const Padding(
-              padding: EdgeInsets.only(bottom: 10, top: 6),
+              padding: EdgeInsets.symmetric(vertical: 12),
               child: SizedBox(
-                height: 22,
-                width: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.cyan
+                ),
               ),
             ),
         ],
@@ -107,29 +106,27 @@ class TournamentsHomeScreen extends ConsumerWidget {
 
 class _EmptyState extends StatelessWidget {
   final String filter;
-
   const _EmptyState({required this.filter});
 
   @override
   Widget build(BuildContext context) {
-    final msg = _emptyMessage(filter);
-
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
-        const SizedBox(height: 120),
+        SizedBox(height: MediaQuery.of(context).size.height * 0.2),
         Icon(
           Icons.emoji_events_outlined,
-          size: 64,
-          color: Colors.grey[350],
+          size: 70,
+          color: Colors.grey[200],
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 20),
         Center(
           child: Text(
-            msg,
+            _emptyMessage(filter),
             style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: 14.5,
+              color: Colors.grey[400],
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -141,14 +138,10 @@ class _EmptyState extends StatelessWidget {
 
   String _emptyMessage(String filter) {
     switch (filter) {
-      case 'open':
-        return '현재 참가 가능한 대회가 없습니다.\n새로운 대회가 열리면 여기에서 확인할 수 있어요.';
-      case 'upcoming':
-        return '아직 예정된 대회가 없습니다.\n조만간 새로운 일정이 추가될 수 있어요.';
-      case 'closed':
-        return '마감된 대회가 없습니다.';
-      default:
-        return '등록된 대회가 없습니다.\n첫 번째 대회의 주최자가 되어보세요!';
+      case 'open': return '현재 참여 가능한 대회가 없습니다.\n새로운 대회가 열리면 알려드릴게요!';
+      case 'upcoming': return '아직 예정된 대회가 없습니다.\n곧 멋진 대회가 열릴 예정이니 기다려주세요.';
+      case 'closed': return '마감된 대회가 없습니다.';
+      default: return '등록된 대회가 없습니다.\n직접 대회를 개최해 보시는 건 어떨까요?';
     }
   }
 }

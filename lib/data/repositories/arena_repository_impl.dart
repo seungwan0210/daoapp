@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/data/models/tournament_entry_model.dart';
 import 'package:daoapp/data/repositories/arena_repository.dart';
+import 'arena_repository.dart'; // ✅ 반드시 인터페이스를 import 해야 함
 
 class ArenaRepositoryImpl implements ArenaRepository {
   final FirebaseFirestore _firestore;
@@ -33,7 +34,11 @@ class ArenaRepositoryImpl implements ArenaRepository {
   Future<String> createTournament(TournamentModel tournament) async {
     final ref = await _firestore
         .collection('tournaments')
-        .add(_tournamentDocJson(tournament));
+        .add({
+      ..._tournamentDocJson(tournament),
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     return ref.id;
   }
 
@@ -42,16 +47,32 @@ class ArenaRepositoryImpl implements ArenaRepository {
     final tid = (tournament.id ?? '').trim();
     if (tid.isEmpty) throw ArgumentError('updateTournament: id required');
 
-    await _firestore
-        .collection('tournaments')
-        .doc(tid)
-        .update(_tournamentDocJson(tournament));
+    // ✅ Rules 위반 방지: 앱에서 수정 가능한 필드만 명시하고 updatedAt을 포함합니다.
+    await _firestore.collection('tournaments').doc(tid).update({
+      'title': tournament.title,
+      'location': tournament.location,
+      'maxParticipants': tournament.maxParticipants,
+      'posterUrl': tournament.posterUrl,
+      'description': tournament.description,
+      'entryFee': tournament.entryFee,
+      'eventDate': tournament.eventDate,
+      'entryStartDate': tournament.entryStartDate,
+      'entryEndDate': tournament.entryEndDate,
+      'hostName': tournament.hostName,
+      'hostPhone': tournament.hostPhone,
+      'isCanceled': tournament.isCanceled,
+      'organizerEmails': tournament.organizerEmails,
+      'updatedAt': FieldValue.serverTimestamp(), // 필수
+    });
   }
 
   @override
   Future<void> deleteTournament(String tournamentId) async {
     final tid = tournamentId.trim();
     if (tid.isEmpty) return;
+
+    // ✅ 하위 엔트리가 있을 수 있으므로 실제 삭제 대신 'isCanceled' 처리를 권장하거나,
+    // 필요시 문서만 삭제합니다. (하위 컬렉션 삭제는 클라이언트에서 루프가 필요함)
     await _firestore.collection('tournaments').doc(tid).delete();
   }
 
@@ -184,7 +205,7 @@ class ArenaRepositoryImpl implements ArenaRepository {
   }
 
   // ======================
-  // Entries (🔥 핵심 수정 완료)
+  // Entries (🔥 핵심 수정 완료: updatedAt 추가)
   // ======================
 
   @override
@@ -206,17 +227,13 @@ class ArenaRepositoryImpl implements ArenaRepository {
       if (!tSnap.exists) throw Exception('대회를 찾을 수 없습니다.');
 
       final tData = tSnap.data() as Map<String, dynamic>;
-
-      final int maxParticipants =
-          (tData['maxParticipants'] as int?) ?? 9999;
+      final int maxParticipants = (tData['maxParticipants'] as int?) ?? 9999;
       final bool isCanceled = (tData['isCanceled'] as bool?) ?? false;
       if (isCanceled) throw Exception('취소된 대회입니다.');
 
-      // 이미 참가 여부
       final eSnap = await tx.get(eRef);
       if (eSnap.exists) throw Exception('이미 참가 신청했습니다.');
 
-      // 정원 체크
       final int currentCount = (tData['entryCount'] as int?) ?? 0;
       if (currentCount >= maxParticipants) {
         throw Exception('정원이 마감되었습니다.');
@@ -226,11 +243,14 @@ class ArenaRepositoryImpl implements ArenaRepository {
       tx.set(eRef, {
         ..._entryDocJson(entry),
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'isPaid': false, // 초기값 명시
       });
 
-      // ✅ rules 통과: entryCount만 변경
+      // ✅ Rules 통과 핵심: entryCount와 updatedAt을 동시에 업데이트
       tx.update(tRef, {
         'entryCount': FieldValue.increment(1),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
     });
   }
@@ -254,16 +274,32 @@ class ArenaRepositoryImpl implements ArenaRepository {
       final eSnap = await tx.get(eRef);
       if (!eSnap.exists) throw Exception('참가 기록이 없습니다.');
 
+      // 엔트리 삭제
       tx.delete(eRef);
 
       final tData = tSnap.data() as Map<String, dynamic>;
       final int currentCount = (tData['entryCount'] as int?) ?? 0;
 
+      // ✅ Rules 통과 핵심: entryCount와 updatedAt을 동시에 업데이트
       tx.update(tRef, {
-        'entryCount': currentCount <= 0
-            ? 0
-            : FieldValue.increment(-1),
+        'entryCount': currentCount <= 0 ? 0 : FieldValue.increment(-1),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
+    });
+  }
+
+  /// ✅ 입금 상태 변경 기능 (상세 페이지의 '입금 확인 처리' 대응)
+  Future<void> updatePaymentStatus(String tournamentId, String userUid, bool isPaid) async {
+    final eRef = _firestore
+        .collection('tournaments')
+        .doc(tournamentId)
+        .collection('entries')
+        .doc(userUid);
+
+    await eRef.update({
+      'isPaid': isPaid,
+      'status': isPaid ? 'confirmed' : 'applied',
+      'updatedAt': FieldValue.serverTimestamp(),
     });
   }
 

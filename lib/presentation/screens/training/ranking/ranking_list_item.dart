@@ -5,6 +5,7 @@ import 'package:daoapp/data/models/ranking_game_model.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; //
 
 class RankingListItem extends ConsumerWidget {
   final int rank;
@@ -28,86 +29,94 @@ class RankingListItem extends ConsumerWidget {
     final String currentUid = FirebaseAuth.instance.currentUser?.uid ?? "";
     final bool isAdmin = currentUid == adminUid;
 
-    // 🔥 [수정된 핵심 로직]
-    // 1. 통합(total) 카테고리이면서 10위 밖(rank -1)인 경우에만 '-' 표시
-    // 2. 그 외 일반 종목은 전달받은 rank(순위 숫자)를 그대로 표시
     bool showDash = (category == 'total' && rank == -1);
 
-    return InkWell(
-      onLongPress: (isMe || isAdmin)
-          ? () => _showDeleteDialog(context, ref, isAdmin)
-          : null,
-      child: Container(
-        color: isMe ? Colors.cyan.withOpacity(0.05) : Colors.transparent,
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        child: Row(
-          children: [
-            // 1. 순위/배지 영역
-            SizedBox(
-              width: 32,
-              child: Center(
-                child: (rank >= 1 && rank <= 10)
-                    ? BadgeWidget(rank: rank, size: 26) // 1~10위 공통 배지
-                    : Text(
-                  showDash ? "-" : "$rank", // 통합 10위 밖만 '-', 나머지는 숫자
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isMe ? Colors.cyan[800] : Colors.grey[600],
-                    fontSize: showDash ? 18 : 14,
+    // 🆕 실시간 유저 정보 반영을 위한 StreamBuilder (배지 로직 제외)
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(record.userId).snapshots(),
+      builder: (context, userSnap) {
+        // 실시간 데이터 추출
+        final userData = userSnap.data?.data() as Map<String, dynamic>? ?? {};
+        final liveName = userData['koreanName']?.toString().trim() ?? record.nickname;
+        final livePhoto = userData['profileImageUrl']?.toString().trim() ?? record.profileImageUrl;
+
+        return InkWell(
+          onLongPress: (isMe || isAdmin)
+              ? () => _showDeleteDialog(context, ref, isAdmin)
+              : null,
+          child: Container(
+            color: isMe ? Colors.cyan.withOpacity(0.05) : Colors.transparent,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            child: Row(
+              children: [
+                // 1. 순위/배지 영역 (여기서 이미 배지가 크게 나옴!)
+                SizedBox(
+                  width: 32,
+                  child: Center(
+                    child: (rank >= 1 && rank <= 10)
+                        ? BadgeWidget(rank: rank, size: 26)
+                        : Text(
+                      showDash ? "-" : "$rank",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isMe ? Colors.cyan[800] : Colors.grey[600],
+                        fontSize: showDash ? 18 : 14,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-            // 2. 프로필 이미지
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.grey[200],
-              backgroundImage: record.profileImageUrl != null
-                  ? NetworkImage(record.profileImageUrl!)
-                  : null,
-              child: record.profileImageUrl == null
-                  ? const Icon(Icons.person, size: 20)
-                  : null,
-            ),
-            const SizedBox(width: 14),
+                // 2. 프로필 이미지 (중복 배지 없이 사진만 깔끔하게)
+                CircleAvatar(
+                  radius: 18,
+                  backgroundColor: Colors.grey[200],
+                  backgroundImage: livePhoto != null && livePhoto.isNotEmpty
+                      ? NetworkImage(livePhoto)
+                      : null,
+                  child: (livePhoto == null || livePhoto.isEmpty)
+                      ? const Icon(Icons.person, size: 20)
+                      : null,
+                ),
+                const SizedBox(width: 14),
 
-            // 3. 닉네임
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      record.nickname,
-                      style: TextStyle(
-                        fontWeight: isMe ? FontWeight.bold : FontWeight.w600,
-                        color: isMe ? Colors.cyan[900] : Colors.black87,
+                // 3. 닉네임 (실시간 이름 반영)
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          liveName, // record.nickname 대신 실시간 이름 사용
+                          style: TextStyle(
+                            fontWeight: isMe ? FontWeight.bold : FontWeight.w600,
+                            color: isMe ? Colors.cyan[900] : Colors.black87,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                      if (isAdmin && record.userId != currentUid)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(Icons.shield, size: 12, color: Colors.orange),
+                        ),
+                    ],
                   ),
-                  if (isAdmin && record.userId != currentUid)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 4),
-                      child: Icon(Icons.shield, size: 12, color: Colors.orange),
-                    ),
-                ],
-              ),
-            ),
+                ),
 
-            // 4. 기록 값
-            Text(
-              displayValue,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                color: Colors.cyan,
-                fontSize: 15,
-              ),
+                // 4. 기록 값
+                Text(
+                  displayValue,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.cyan,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -34,7 +34,6 @@ class EntryStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ null/비정상 데이터 방어 (모델이 non-null이어도 legacy 데이터가 있을 수 있음)
     final entryStart = tournament.entryStartDate;
     final entryEnd = tournament.entryEndDate;
     final eventDate = tournament.eventDate;
@@ -48,9 +47,6 @@ class EntryStatusBadge extends StatelessWidget {
     final label = ArenaUtils.statusText(status);
     final color = ArenaUtils.statusColor(status, context);
 
-    // 👉 배지 오른쪽에 붙일 "엔트리 기준" D-Day
-    // - 예정(upcoming): 엔트리 시작일 기준 D-표기
-    // - 엔트리 중(open): 엔트리 마감일 기준 D-표기
     String? entryDdayText;
     if (status == EntryStatus.upcoming) {
       entryDdayText = ArenaUtils.entryDday(entryStart);
@@ -59,55 +55,56 @@ class EntryStatusBadge extends StatelessWidget {
     }
 
     final showChip = (entryDdayText ?? '').trim().isNotEmpty;
-
     final icon = _statusIcon(status);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: color.withOpacity(0.10),
-        border: Border.all(color: color.withOpacity(0.90), width: 1.2),
+        borderRadius: BorderRadius.circular(8), // 조금 더 정갈한 라운딩
+        color: color.withOpacity(0.08),
+        border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
-            size: 14,
+            size: 12, // 아이콘 크기 미세 조정
             color: color,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
 
-          // 상태 텍스트 (엔트리 예정 / 엔트리 중 / 마감 / 진행중 / 종료 ...)
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              height: 1.0,
-              fontWeight: FontWeight.w800,
-              color: color,
+          // ✅ 메인 상태 텍스트: Flexible을 적용하여 오버플로우 방지
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                height: 1.0,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
 
-          // 오른쪽 작은 D-day 칩 (더 고급스럽게: 살짝 채움)
+          // ✅ D-day 표시
           if (showChip) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
-                color: color.withOpacity(0.16),
-                border: Border.all(color: color.withOpacity(0.35), width: 1),
+                borderRadius: BorderRadius.circular(4),
+                color: color.withOpacity(0.12),
               ),
               child: Text(
                 entryDdayText!.trim(),
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   height: 1.0,
                   fontWeight: FontWeight.w900,
                   color: color,
-                  letterSpacing: 0.2,
                 ),
               ),
             ),
