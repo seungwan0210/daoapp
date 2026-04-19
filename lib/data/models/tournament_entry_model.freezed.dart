@@ -14,45 +14,231 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+TeamMember _$TeamMemberFromJson(Map<String, dynamic> json) {
+  return _TeamMember.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TeamMember {
+  String get name => throw _privateConstructorUsedError;
+  String get rating =>
+      throw _privateConstructorUsedError; // ✅ 각 팀원별 추가 질문에 대한 답변 (예: {"상의 사이즈": "L"})
+  Map<String, String> get customAnswers => throw _privateConstructorUsedError;
+
+  /// Serializes this TeamMember to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TeamMember
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TeamMemberCopyWith<TeamMember> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TeamMemberCopyWith<$Res> {
+  factory $TeamMemberCopyWith(
+          TeamMember value, $Res Function(TeamMember) then) =
+      _$TeamMemberCopyWithImpl<$Res, TeamMember>;
+  @useResult
+  $Res call({String name, String rating, Map<String, String> customAnswers});
+}
+
+/// @nodoc
+class _$TeamMemberCopyWithImpl<$Res, $Val extends TeamMember>
+    implements $TeamMemberCopyWith<$Res> {
+  _$TeamMemberCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TeamMember
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? name = null,
+    Object? rating = null,
+    Object? customAnswers = null,
+  }) {
+    return _then(_value.copyWith(
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      rating: null == rating
+          ? _value.rating
+          : rating // ignore: cast_nullable_to_non_nullable
+              as String,
+      customAnswers: null == customAnswers
+          ? _value.customAnswers
+          : customAnswers // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$TeamMemberImplCopyWith<$Res>
+    implements $TeamMemberCopyWith<$Res> {
+  factory _$$TeamMemberImplCopyWith(
+          _$TeamMemberImpl value, $Res Function(_$TeamMemberImpl) then) =
+      __$$TeamMemberImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String name, String rating, Map<String, String> customAnswers});
+}
+
+/// @nodoc
+class __$$TeamMemberImplCopyWithImpl<$Res>
+    extends _$TeamMemberCopyWithImpl<$Res, _$TeamMemberImpl>
+    implements _$$TeamMemberImplCopyWith<$Res> {
+  __$$TeamMemberImplCopyWithImpl(
+      _$TeamMemberImpl _value, $Res Function(_$TeamMemberImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TeamMember
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? name = null,
+    Object? rating = null,
+    Object? customAnswers = null,
+  }) {
+    return _then(_$TeamMemberImpl(
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      rating: null == rating
+          ? _value.rating
+          : rating // ignore: cast_nullable_to_non_nullable
+              as String,
+      customAnswers: null == customAnswers
+          ? _value._customAnswers
+          : customAnswers // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$TeamMemberImpl implements _TeamMember {
+  const _$TeamMemberImpl(
+      {required this.name,
+      required this.rating,
+      final Map<String, String> customAnswers = const {}})
+      : _customAnswers = customAnswers;
+
+  factory _$TeamMemberImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TeamMemberImplFromJson(json);
+
+  @override
+  final String name;
+  @override
+  final String rating;
+// ✅ 각 팀원별 추가 질문에 대한 답변 (예: {"상의 사이즈": "L"})
+  final Map<String, String> _customAnswers;
+// ✅ 각 팀원별 추가 질문에 대한 답변 (예: {"상의 사이즈": "L"})
+  @override
+  @JsonKey()
+  Map<String, String> get customAnswers {
+    if (_customAnswers is EqualUnmodifiableMapView) return _customAnswers;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_customAnswers);
+  }
+
+  @override
+  String toString() {
+    return 'TeamMember(name: $name, rating: $rating, customAnswers: $customAnswers)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TeamMemberImpl &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.rating, rating) || other.rating == rating) &&
+            const DeepCollectionEquality()
+                .equals(other._customAnswers, _customAnswers));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, name, rating,
+      const DeepCollectionEquality().hash(_customAnswers));
+
+  /// Create a copy of TeamMember
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TeamMemberImplCopyWith<_$TeamMemberImpl> get copyWith =>
+      __$$TeamMemberImplCopyWithImpl<_$TeamMemberImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TeamMemberImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TeamMember implements TeamMember {
+  const factory _TeamMember(
+      {required final String name,
+      required final String rating,
+      final Map<String, String> customAnswers}) = _$TeamMemberImpl;
+
+  factory _TeamMember.fromJson(Map<String, dynamic> json) =
+      _$TeamMemberImpl.fromJson;
+
+  @override
+  String get name;
+  @override
+  String get rating; // ✅ 각 팀원별 추가 질문에 대한 답변 (예: {"상의 사이즈": "L"})
+  @override
+  Map<String, String> get customAnswers;
+
+  /// Create a copy of TeamMember
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TeamMemberImplCopyWith<_$TeamMemberImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 TournamentEntryModel _$TournamentEntryModelFromJson(Map<String, dynamic> json) {
   return _TournamentEntryModel.fromJson(json);
 }
 
 /// @nodoc
 mixin _$TournamentEntryModel {
-  /// Firestore document ID (doc.id)
   String? get id => throw _privateConstructorUsedError;
-
-  /// 참가자 유저 UID (entries/{userUid} = userUid 정책이면 사실상 key)
-  String get userUid => throw _privateConstructorUsedError;
-
-  /// 한글 이름
+  String get userUid => throw _privateConstructorUsedError; // 신청자(팀장) 고유 UID
+// --- 대표자(팀장) 정보 ---
   String get nameKo => throw _privateConstructorUsedError;
-
-  /// 영문 이름
   String get nameEn => throw _privateConstructorUsedError;
-
-  /// 연락처
   String get phone => throw _privateConstructorUsedError;
-
-  /// 이메일 (로그인 이메일, 없을 수도 있음)
   String? get email => throw _privateConstructorUsedError;
-
-  /// 레이팅 (선택)
   String? get rating => throw _privateConstructorUsedError;
-
-  /// 홈샵 (선택)
-  String? get homeShop => throw _privateConstructorUsedError;
-
-  /// 신청 시간
+  String? get homeShop =>
+      throw _privateConstructorUsedError; // --- 팀전 전용 정보 ---
+  String? get teamName => throw _privateConstructorUsedError;
+  List<TeamMember> get members => throw _privateConstructorUsedError; // 팀원 목록
+  String? get totalRating =>
+      throw _privateConstructorUsedError; // ✅ 팀장(본인)의 추가 질문에 대한 답변
+  Map<String, String> get customAnswers => throw _privateConstructorUsedError;
   @TimestampConverter()
   Timestamp get createdAt => throw _privateConstructorUsedError;
-
-  /// (권장) 수정 시간
   @TimestampConverter()
   Timestamp? get updatedAt => throw _privateConstructorUsedError;
-
-  /// (권장) 운영 상태값 (지금 당장은 없어도 됨)
   String get status => throw _privateConstructorUsedError;
 
   /// Serializes this TournamentEntryModel to a JSON map.
@@ -80,6 +266,10 @@ abstract class $TournamentEntryModelCopyWith<$Res> {
       String? email,
       String? rating,
       String? homeShop,
+      String? teamName,
+      List<TeamMember> members,
+      String? totalRating,
+      Map<String, String> customAnswers,
       @TimestampConverter() Timestamp createdAt,
       @TimestampConverter() Timestamp? updatedAt,
       String status});
@@ -109,6 +299,10 @@ class _$TournamentEntryModelCopyWithImpl<$Res,
     Object? email = freezed,
     Object? rating = freezed,
     Object? homeShop = freezed,
+    Object? teamName = freezed,
+    Object? members = null,
+    Object? totalRating = freezed,
+    Object? customAnswers = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
     Object? status = null,
@@ -146,6 +340,22 @@ class _$TournamentEntryModelCopyWithImpl<$Res,
           ? _value.homeShop
           : homeShop // ignore: cast_nullable_to_non_nullable
               as String?,
+      teamName: freezed == teamName
+          ? _value.teamName
+          : teamName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      members: null == members
+          ? _value.members
+          : members // ignore: cast_nullable_to_non_nullable
+              as List<TeamMember>,
+      totalRating: freezed == totalRating
+          ? _value.totalRating
+          : totalRating // ignore: cast_nullable_to_non_nullable
+              as String?,
+      customAnswers: null == customAnswers
+          ? _value.customAnswers
+          : customAnswers // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -179,6 +389,10 @@ abstract class _$$TournamentEntryModelImplCopyWith<$Res>
       String? email,
       String? rating,
       String? homeShop,
+      String? teamName,
+      List<TeamMember> members,
+      String? totalRating,
+      Map<String, String> customAnswers,
       @TimestampConverter() Timestamp createdAt,
       @TimestampConverter() Timestamp? updatedAt,
       String status});
@@ -205,6 +419,10 @@ class __$$TournamentEntryModelImplCopyWithImpl<$Res>
     Object? email = freezed,
     Object? rating = freezed,
     Object? homeShop = freezed,
+    Object? teamName = freezed,
+    Object? members = null,
+    Object? totalRating = freezed,
+    Object? customAnswers = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
     Object? status = null,
@@ -242,6 +460,22 @@ class __$$TournamentEntryModelImplCopyWithImpl<$Res>
           ? _value.homeShop
           : homeShop // ignore: cast_nullable_to_non_nullable
               as String?,
+      teamName: freezed == teamName
+          ? _value.teamName
+          : teamName // ignore: cast_nullable_to_non_nullable
+              as String?,
+      members: null == members
+          ? _value._members
+          : members // ignore: cast_nullable_to_non_nullable
+              as List<TeamMember>,
+      totalRating: freezed == totalRating
+          ? _value.totalRating
+          : totalRating // ignore: cast_nullable_to_non_nullable
+              as String?,
+      customAnswers: null == customAnswers
+          ? _value._customAnswers
+          : customAnswers // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
       createdAt: null == createdAt
           ? _value.createdAt
           : createdAt // ignore: cast_nullable_to_non_nullable
@@ -259,7 +493,8 @@ class __$$TournamentEntryModelImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$TournamentEntryModelImpl implements _TournamentEntryModel {
   const _$TournamentEntryModelImpl(
       {this.id,
@@ -270,63 +505,76 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
       this.email,
       this.rating,
       this.homeShop,
+      this.teamName,
+      final List<TeamMember> members = const [],
+      this.totalRating,
+      final Map<String, String> customAnswers = const {},
       @TimestampConverter() required this.createdAt,
       @TimestampConverter() this.updatedAt,
-      this.status = 'applied'});
+      this.status = 'applied'})
+      : _members = members,
+        _customAnswers = customAnswers;
 
   factory _$TournamentEntryModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$TournamentEntryModelImplFromJson(json);
 
-  /// Firestore document ID (doc.id)
   @override
   final String? id;
-
-  /// 참가자 유저 UID (entries/{userUid} = userUid 정책이면 사실상 key)
   @override
   final String userUid;
-
-  /// 한글 이름
+// 신청자(팀장) 고유 UID
+// --- 대표자(팀장) 정보 ---
   @override
   final String nameKo;
-
-  /// 영문 이름
   @override
   final String nameEn;
-
-  /// 연락처
   @override
   final String phone;
-
-  /// 이메일 (로그인 이메일, 없을 수도 있음)
   @override
   final String? email;
-
-  /// 레이팅 (선택)
   @override
   final String? rating;
-
-  /// 홈샵 (선택)
   @override
   final String? homeShop;
+// --- 팀전 전용 정보 ---
+  @override
+  final String? teamName;
+  final List<TeamMember> _members;
+  @override
+  @JsonKey()
+  List<TeamMember> get members {
+    if (_members is EqualUnmodifiableListView) return _members;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_members);
+  }
 
-  /// 신청 시간
+// 팀원 목록
+  @override
+  final String? totalRating;
+// ✅ 팀장(본인)의 추가 질문에 대한 답변
+  final Map<String, String> _customAnswers;
+// ✅ 팀장(본인)의 추가 질문에 대한 답변
+  @override
+  @JsonKey()
+  Map<String, String> get customAnswers {
+    if (_customAnswers is EqualUnmodifiableMapView) return _customAnswers;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_customAnswers);
+  }
+
   @override
   @TimestampConverter()
   final Timestamp createdAt;
-
-  /// (권장) 수정 시간
   @override
   @TimestampConverter()
   final Timestamp? updatedAt;
-
-  /// (권장) 운영 상태값 (지금 당장은 없어도 됨)
   @override
   @JsonKey()
   final String status;
 
   @override
   String toString() {
-    return 'TournamentEntryModel(id: $id, userUid: $userUid, nameKo: $nameKo, nameEn: $nameEn, phone: $phone, email: $email, rating: $rating, homeShop: $homeShop, createdAt: $createdAt, updatedAt: $updatedAt, status: $status)';
+    return 'TournamentEntryModel(id: $id, userUid: $userUid, nameKo: $nameKo, nameEn: $nameEn, phone: $phone, email: $email, rating: $rating, homeShop: $homeShop, teamName: $teamName, members: $members, totalRating: $totalRating, customAnswers: $customAnswers, createdAt: $createdAt, updatedAt: $updatedAt, status: $status)';
   }
 
   @override
@@ -343,6 +591,13 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
             (identical(other.rating, rating) || other.rating == rating) &&
             (identical(other.homeShop, homeShop) ||
                 other.homeShop == homeShop) &&
+            (identical(other.teamName, teamName) ||
+                other.teamName == teamName) &&
+            const DeepCollectionEquality().equals(other._members, _members) &&
+            (identical(other.totalRating, totalRating) ||
+                other.totalRating == totalRating) &&
+            const DeepCollectionEquality()
+                .equals(other._customAnswers, _customAnswers) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -352,8 +607,23 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, userUid, nameKo, nameEn,
-      phone, email, rating, homeShop, createdAt, updatedAt, status);
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      userUid,
+      nameKo,
+      nameEn,
+      phone,
+      email,
+      rating,
+      homeShop,
+      teamName,
+      const DeepCollectionEquality().hash(_members),
+      totalRating,
+      const DeepCollectionEquality().hash(_customAnswers),
+      createdAt,
+      updatedAt,
+      status);
 
   /// Create a copy of TournamentEntryModel
   /// with the given fields replaced by the non-null parameter values.
@@ -383,6 +653,10 @@ abstract class _TournamentEntryModel implements TournamentEntryModel {
       final String? email,
       final String? rating,
       final String? homeShop,
+      final String? teamName,
+      final List<TeamMember> members,
+      final String? totalRating,
+      final Map<String, String> customAnswers,
       @TimestampConverter() required final Timestamp createdAt,
       @TimestampConverter() final Timestamp? updatedAt,
       final String status}) = _$TournamentEntryModelImpl;
@@ -390,49 +664,37 @@ abstract class _TournamentEntryModel implements TournamentEntryModel {
   factory _TournamentEntryModel.fromJson(Map<String, dynamic> json) =
       _$TournamentEntryModelImpl.fromJson;
 
-  /// Firestore document ID (doc.id)
   @override
   String? get id;
-
-  /// 참가자 유저 UID (entries/{userUid} = userUid 정책이면 사실상 key)
   @override
-  String get userUid;
-
-  /// 한글 이름
+  String get userUid; // 신청자(팀장) 고유 UID
+// --- 대표자(팀장) 정보 ---
   @override
   String get nameKo;
-
-  /// 영문 이름
   @override
   String get nameEn;
-
-  /// 연락처
   @override
   String get phone;
-
-  /// 이메일 (로그인 이메일, 없을 수도 있음)
   @override
   String? get email;
-
-  /// 레이팅 (선택)
   @override
   String? get rating;
-
-  /// 홈샵 (선택)
   @override
-  String? get homeShop;
-
-  /// 신청 시간
+  String? get homeShop; // --- 팀전 전용 정보 ---
+  @override
+  String? get teamName;
+  @override
+  List<TeamMember> get members; // 팀원 목록
+  @override
+  String? get totalRating; // ✅ 팀장(본인)의 추가 질문에 대한 답변
+  @override
+  Map<String, String> get customAnswers;
   @override
   @TimestampConverter()
   Timestamp get createdAt;
-
-  /// (권장) 수정 시간
   @override
   @TimestampConverter()
   Timestamp? get updatedAt;
-
-  /// (권장) 운영 상태값 (지금 당장은 없어도 됨)
   @override
   String get status;
 

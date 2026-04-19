@@ -1,3 +1,5 @@
+// lib/presentation/screens/arena/arena_home_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -51,33 +53,10 @@ class ArenaHomeBody extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          /// ==============================
+          /// 1️⃣ [변경] 스틸리그 (최상단)
+          /// ==============================
           const SizedBox(height: 8),
-
-          /// ==========================================
-          /// 🔥 [정책 준수 수정] 상단 배너 광고 영역
-          /// 카드 디자인을 제거하고 여백을 충분히 주어 오클릭을 방지합니다.
-          /// ==========================================
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'ADVERTISEMENT',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey[400],
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 6),
-              const AdBanner(), // 실제 광고 노출
-            ],
-          ),
-          const SizedBox(height: 28), // 메뉴 버튼과의 간격 확보 (기존 16에서 28로 확장)
-
-          /// ==============================
-          /// 스틸리그
-          /// ==============================
           Text(
             '스틸리그',
             style: theme.textTheme.titleMedium?.copyWith(
@@ -93,74 +72,71 @@ class ArenaHomeBody extends ConsumerWidget {
                 crossAxisCount: 3,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 16, // 간격 살짝 넓힘
+                mainAxisSpacing: 16,
                 crossAxisSpacing: 12,
-                childAspectRatio: 0.85, // 아이템 비율 조정
+                childAspectRatio: 0.85,
                 children: [
                   _ArenaGridItem(
                     icon: Icons.leaderboard_outlined,
                     label: '랭킹',
                     color: Colors.indigo,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SteelLeagueRankingScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SteelLeagueRankingScreen())),
                   ),
                   _ArenaGridItem(
                     icon: Icons.event_available_outlined,
                     label: '리그 일정',
                     color: Colors.teal,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SteelLeagueScheduleScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SteelLeagueScheduleScreen())),
                   ),
                   _ArenaGridItem(
                     icon: Icons.calendar_month_outlined,
                     label: '포인트 달력',
                     color: Colors.orange,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SteelLeaguePointCalendarScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SteelLeaguePointCalendarScreen())),
                   ),
                   _ArenaGridItem(
                     icon: Icons.card_membership_outlined,
                     label: 'KDF 정회원',
                     color: Colors.pinkAccent,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MemberListScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MemberListScreen())),
                   ),
                   _ArenaGridItem(
                     icon: Icons.groups_3_outlined,
                     label: '선발 선수',
                     color: Colors.deepPurple,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SelectionPlayersScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SelectionPlayersScreen())),
                   ),
                 ],
               ),
             ),
           ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+
+          /// ==========================================
+          /// 2️⃣ [변경] 슬림 배너 광고 (중간 배치)
+          /// ==========================================
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'AD',
+                style: TextStyle(
+                  fontSize: 9,
+                  color: Colors.grey[400],
+                  letterSpacing: 1.0,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 2),
+              const AdBanner(),
+            ],
+          ),
+
+          const SizedBox(height: 24),
 
           /// ==============================
-          /// 토너먼트
+          /// 3️⃣ [변경] 토너먼트
           /// ==============================
           Text(
             '토너먼트',
@@ -185,12 +161,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     icon: Icons.add_circle_outline,
                     label: '개최하기',
                     color: Colors.cyan,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TournamentCreateScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentCreateScreen())),
                   ),
                   _ArenaGridItem(
                     icon: Icons.how_to_reg_outlined,
@@ -198,10 +169,7 @@ class ArenaHomeBody extends ConsumerWidget {
                     color: Colors.green,
                     onTap: () {
                       ref.read(arenaProvider.notifier).changeFilter('open');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()));
                     },
                   ),
                   _ArenaGridItem(
@@ -210,34 +178,21 @@ class ArenaHomeBody extends ConsumerWidget {
                     color: Colors.blueGrey,
                     onTap: () {
                       ref.read(arenaProvider.notifier).changeFilter('upcoming');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()),
-                      );
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()));
                     },
                   ),
                   _ArenaGridItem(
                     icon: Icons.emoji_events_outlined,
                     label: '내 주최 경기',
                     color: Colors.amber,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MyTournamentsScreen()),
-                      );
-                    },
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyTournamentsScreen())),
                   ),
                   if (isAdmin)
                     _ArenaGridItem(
                       icon: Icons.bug_report_outlined,
                       label: '메일 테스트',
                       color: Colors.redAccent,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const TournamentDebugToolsScreen()),
-                        );
-                      },
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentDebugToolsScreen())),
                     ),
                 ],
               ),
@@ -247,15 +202,12 @@ class ArenaHomeBody extends ConsumerWidget {
           const SizedBox(height: 32),
 
           /// ==============================
-          /// 토너먼트 프리뷰
+          /// 4️⃣ 토너먼트 프리뷰
           /// ==============================
           ArenaPreview(
             onSeeAllPressed: () {
               ref.read(arenaProvider.notifier).changeFilter('open');
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()),
-              );
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const TournamentsHomeScreen()));
             },
           ),
 
@@ -294,11 +246,7 @@ class _ArenaGridItem extends StatelessWidget {
               color: color.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 26,
-              color: color,
-            ),
+            child: Icon(icon, size: 26, color: color),
           ),
           const SizedBox(height: 8),
           Text(

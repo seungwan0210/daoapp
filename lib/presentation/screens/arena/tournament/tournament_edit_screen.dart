@@ -33,6 +33,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
   final _descCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _maxCtrl = TextEditingController();
+  final _teamSizeCtrl = TextEditingController();
 
   DateTime? _eventDay;
   TimeOfDay? _eventTime;
@@ -42,9 +43,11 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
   File? _posterFile;
   String? _posterUrl;
   List<String> _coOrganizers = [];
+  List<String> _customQuestions = []; // ✅ 추가 질문 리스트
 
   bool _isLoading = true;
   bool _isSaving = false;
+  String _selectedType = 'single';
 
   bool get _canSubmit =>
       _titleCtrl.text.trim().isNotEmpty &&
@@ -65,12 +68,12 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     void attach(TextEditingController c) {
       c.addListener(() { if (mounted) setState(() {}); });
     }
-    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _feeCtrl, _maxCtrl].forEach(attach);
+    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _feeCtrl, _maxCtrl, _teamSizeCtrl].forEach(attach);
   }
 
   @override
   void dispose() {
-    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _descCtrl, _feeCtrl, _maxCtrl].forEach((c) => c.dispose());
+    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _descCtrl, _feeCtrl, _maxCtrl, _teamSizeCtrl].forEach((c) => c.dispose());
     super.dispose();
   }
 
@@ -96,6 +99,11 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       _descCtrl.text = data.description;
       _feeCtrl.text = NumberFormat('#,###').format(data.entryFee);
       _maxCtrl.text = data.maxParticipants >= 9999 ? '무제한' : data.maxParticipants.toString();
+      _selectedType = data.type;
+      _teamSizeCtrl.text = data.teamSize.toString();
+
+      // ✅ 기존 질문들 불러오기
+      _customQuestions = List.from(data.customQuestions);
 
       final eventDt = data.eventDate.toDate();
       _eventDay = _stripToDay(eventDt);
@@ -111,7 +119,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     }
   }
 
-  // ✅ [로직 통합] 날짜 선택 시 자동 추천 로직
   void _onEventDayPicked(DateTime picked) {
     setState(() {
       _eventDay = _stripToDay(picked);
@@ -124,11 +131,9 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     });
   }
 
-  // ✅ [다이얼 개선] 알람 스타일 시간 선택기 (스크롤 튐 방지)
   Future<void> _pickTime() async {
     int hour = _eventTime?.hour ?? 9;
     int minute = _eventTime?.minute ?? 0;
-
     await showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -142,7 +147,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
-                  const Text('대회 시간 선택', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const Text('대회 시간 수정', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   TextButton(
                     onPressed: () {
                       setState(() => _eventTime = TimeOfDay(hour: hour, minute: minute));
@@ -189,6 +194,10 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
     final user = sl<FirebaseAuth>().currentUser;
     if (user == null) return;
 
+    final eventDateTime = DateTime(_eventDay!.year, _eventDay!.month, _eventDay!.day, _eventTime!.hour, _eventTime!.minute);
+    final entryStart = DateTime(_entryStartDay!.year, _entryStartDay!.month, _entryStartDay!.day, 0, 0);
+    final entryEnd = DateTime(_entryEndDay!.year, _entryEndDay!.month, _entryEndDay!.day, 23, 59);
+
     setState(() => _isSaving = true);
     try {
       String? posterUrl = _posterUrl;
@@ -197,10 +206,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
       }
       final maxText = _maxCtrl.text.replaceAll(',', '').trim().toLowerCase();
       final int maxParticipants = (maxText == '무제한' || maxText == '0') ? 9999 : (int.tryParse(maxText) ?? 64);
-
-      final eventDateTime = DateTime(_eventDay!.year, _eventDay!.month, _eventDay!.day, _eventTime!.hour, _eventTime!.minute);
-      final entryStart = DateTime(_entryStartDay!.year, _entryStartDay!.month, _entryStartDay!.day, 0, 0);
-      final entryEnd = DateTime(_entryEndDay!.year, _entryEndDay!.month, _entryEndDay!.day, 23, 59);
 
       final Map<String, dynamic> updateData = {
         'title': _titleCtrl.text.trim(),
@@ -214,8 +219,12 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
         'entryStartDate': Timestamp.fromDate(entryStart),
         'entryEndDate': Timestamp.fromDate(entryEnd),
         'organizerEmails': {user.email!, ..._coOrganizers}.whereType<String>().toList(),
-        'updatedAt': FieldValue.serverTimestamp(), // ✅ 규칙 통과를 위해 serverTimestamp 사용
+        'updatedAt': FieldValue.serverTimestamp(),
         'posterUrl': posterUrl,
+        'type': _selectedType,
+        'teamSize': _selectedType == 'single' ? 1 : (int.tryParse(_teamSizeCtrl.text) ?? 2),
+        // ✅ 수정된 질문 리스트 반영
+        'customQuestions': _customQuestions,
       };
 
       await FirebaseFirestore.instance.collection('tournaments').doc(widget.tournamentId).update(updateData);
@@ -260,6 +269,50 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 _buildPosterSection(),
                 const SizedBox(height: 32),
 
+                _sectionTitle('대회 방식 설정', Icons.account_tree_outlined),
+                const SizedBox(height: 12),
+                AppCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ChoiceChip(
+                                label: const Center(child: Text('개인전 (Single)')),
+                                selected: _selectedType == 'single',
+                                onSelected: (val) {
+                                  if (val) setState(() => _selectedType = 'single');
+                                },
+                                selectedColor: Colors.cyan.withOpacity(0.2),
+                                checkmarkColor: Colors.cyan,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ChoiceChip(
+                                label: const Center(child: Text('팀전 (Team)')),
+                                selected: _selectedType == 'team',
+                                onSelected: (val) {
+                                  if (val) setState(() => _selectedType = 'team');
+                                },
+                                selectedColor: Colors.cyan.withOpacity(0.2),
+                                checkmarkColor: Colors.cyan,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_selectedType == 'team') ...[
+                          const SizedBox(height: 16),
+                          _buildTextField(_teamSizeCtrl, '팀당 인원수 (대표자 포함)', Icons.people_alt_outlined, isPhone: true),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
                 _sectionTitle('기본 정보', Icons.info_outline),
                 const SizedBox(height: 12),
                 AppCard(
@@ -281,9 +334,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                 const SizedBox(height: 32),
 
                 _sectionTitle('참가 및 날짜 설정', Icons.settings_outlined),
-                const SizedBox(height: 8),
-                const Text('📩 엔트리 마감 시 참가자 명단이 담당자 이메일로 자동 전송됩니다.',
-                    style: TextStyle(fontSize: 12, color: Colors.cyan, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 AppCard(
                   child: Padding(
@@ -299,7 +349,6 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                         ),
                         const SizedBox(height: 24),
                         _buildDateTile('대회 날짜', _eventDay, Colors.orange, Icons.calendar_today, _onEventDayPicked),
-                        // ✅ 개선된 다이얼 시간 선택기 호출
                         _buildTimeTile('대회 시간', _eventTime, Colors.orange, Icons.access_time, _pickTime),
                         _buildDateTile('엔트리 시작', _entryStartDay, Colors.green, Icons.play_circle_outline, (d) => setState(() => _entryStartDay = d), suffix: "00:00"),
                         _buildDateTile('엔트리 마감', _entryEndDay, Colors.green, Icons.stop_circle_outlined, (d) => setState(() => _entryEndDay = d), suffix: "23:59"),
@@ -319,7 +368,7 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                       maxLines: 6,
                       style: const TextStyle(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: '대회 규칙, 상금, 경기 방식 등을 작성해주세요.',
+                        hintText: '대회 규칙 등을 작성해주세요.',
                         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                         border: InputBorder.none,
                       ),
@@ -327,6 +376,18 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+
+                // ✅ [수정] 커스텀 질문 수정 섹션 (setState 추가)
+                _CustomQuestionInput(
+                  initialQuestions: _customQuestions,
+                  onChanged: (list) {
+                    setState(() {
+                      _customQuestions = list;
+                    });
+                  },
+                ),
+                const SizedBox(height: 32),
+
                 _CoOrganizerInput(initialEmails: _coOrganizers, onChanged: (list) => _coOrganizers = list),
               ],
             ),
@@ -362,13 +423,11 @@ class _TournamentEditScreenState extends State<TournamentEditScreen> {
   Widget _buildDateTile(String label, DateTime? day, Color color, IconData icon, Function(DateTime) onSelect, {String? suffix}) {
     String dateText = day != null ? _formatDay(day) : '선택';
     if (day != null && suffix != null) dateText = "$dateText  $suffix";
-
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color, size: 20),
       title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-      trailing: Text(dateText,
-          style: TextStyle(fontWeight: FontWeight.bold, color: day != null ? Colors.black : Colors.cyan)),
+      trailing: Text(dateText, style: TextStyle(fontWeight: FontWeight.bold, color: day != null ? Colors.black : Colors.cyan)),
       onTap: () async {
         final picked = await showDatePicker(context: context, initialDate: day ?? DateTime.now(), firstDate: DateTime.now().subtract(const Duration(days: 365)), lastDate: DateTime.now().add(const Duration(days: 365)));
         if (picked != null) onSelect(picked);
@@ -423,6 +482,81 @@ class ThousandsFormatter extends TextInputFormatter {
     final text = newValue.text.replaceAll(',', '');
     final formatted = NumberFormat('#,###').format(int.tryParse(text) ?? 0);
     return newValue.copyWith(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
+  }
+}
+
+// ✅ [추가] 커스텀 질문 수정용 입력 위젯
+class _CustomQuestionInput extends StatefulWidget {
+  final List<String> initialQuestions;
+  final Function(List<String>) onChanged;
+  const _CustomQuestionInput({required this.initialQuestions, required this.onChanged});
+
+  @override
+  State<_CustomQuestionInput> createState() => _CustomQuestionInputState();
+}
+
+class _CustomQuestionInputState extends State<_CustomQuestionInput> {
+  final _ctrl = TextEditingController();
+  late List<String> _questions;
+
+  @override
+  void initState() {
+    super.initState();
+    _questions = List.from(widget.initialQuestions);
+  }
+
+  void _addQuestion() {
+    final text = _ctrl.text.trim();
+    if (text.isNotEmpty && !_questions.contains(text)) {
+      setState(() {
+        _questions.add(text);
+        widget.onChanged(_questions);
+      });
+      _ctrl.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.help_outline, size: 18, color: Colors.cyan),
+            const SizedBox(width: 8),
+            const Text('신청 시 추가 질문 (선택)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _ctrl,
+          decoration: InputDecoration(
+            hintText: '질문을 입력하고 추가 버튼을 누르세요.',
+            hintStyle: const TextStyle(fontSize: 13),
+            suffixIcon: IconButton(icon: const Icon(Icons.add_circle, color: Colors.cyan), onPressed: _addQuestion),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
+          ),
+          onSubmitted: (_) => _addQuestion(),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: _questions.map((q) => Chip(
+            label: Text(q, style: const TextStyle(fontSize: 12)),
+            onDeleted: () {
+              setState(() {
+                _questions.remove(q);
+                widget.onChanged(_questions);
+              });
+            },
+            side: BorderSide(color: Colors.cyan.withOpacity(0.1)),
+            backgroundColor: Colors.cyan.withOpacity(0.05),
+            deleteIconColor: Colors.cyan,
+          )).toList(),
+        ),
+      ],
+    );
   }
 }
 

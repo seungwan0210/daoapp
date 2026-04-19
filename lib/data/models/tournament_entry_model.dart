@@ -1,45 +1,54 @@
+// lib/data/models/tournament_entry_model.dart
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'tournament_model.dart'; // TimestampConverter 재사용
+import 'tournament_model.dart'; // TimestampConverter 재사용을 위해 필요
 
 part 'tournament_entry_model.freezed.dart';
 part 'tournament_entry_model.g.dart';
 
 @freezed
+class TeamMember with _$TeamMember {
+  // ✅ 자식 모델도 JSON 변환 시 Map으로 정확히 변환되도록 설정 (스토리지/DB 저장 시 필수)
+  @JsonSerializable(explicitToJson: true)
+  const factory TeamMember({
+    required String name,
+    required String rating,
+
+    // ✅ 각 팀원별 추가 질문에 대한 답변 (예: {"상의 사이즈": "L"})
+    @Default({}) Map<String, String> customAnswers,
+  }) = _TeamMember;
+
+  factory TeamMember.fromJson(Map<String, dynamic> json) => _$TeamMemberFromJson(json);
+}
+
+@freezed
 class TournamentEntryModel with _$TournamentEntryModel {
+  // ✅ 부모 모델에서 명시적 JSON 변환 활성화
+  @JsonSerializable(explicitToJson: true)
   const factory TournamentEntryModel({
-    /// Firestore document ID (doc.id)
     String? id,
+    required String userUid, // 신청자(팀장) 고유 UID
 
-    /// 참가자 유저 UID (entries/{userUid} = userUid 정책이면 사실상 key)
-    required String userUid,
-
-    /// 한글 이름
+    // --- 대표자(팀장) 정보 ---
     required String nameKo,
-
-    /// 영문 이름
     required String nameEn,
-
-    /// 연락처
     required String phone,
-
-    /// 이메일 (로그인 이메일, 없을 수도 있음)
     String? email,
-
-    /// 레이팅 (선택)
     String? rating,
-
-    /// 홈샵 (선택)
     String? homeShop,
 
-    /// 신청 시간
+    // --- 팀전 전용 정보 ---
+    String? teamName,
+    @Default([]) List<TeamMember> members, // 팀원 목록
+    String? totalRating,
+
+    // ✅ 팀장(본인)의 추가 질문에 대한 답변
+    @Default({}) Map<String, String> customAnswers,
+
     @TimestampConverter() required Timestamp createdAt,
-
-    /// (권장) 수정 시간
     @TimestampConverter() Timestamp? updatedAt,
-
-    /// (권장) 운영 상태값 (지금 당장은 없어도 됨)
-    @Default('applied') String status, // applied / canceled / confirmed ...
+    @Default('applied') String status, // applied, confirmed 등
   }) = _TournamentEntryModel;
 
   factory TournamentEntryModel.fromJson(Map<String, dynamic> json) =>

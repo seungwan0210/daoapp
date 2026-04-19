@@ -1,6 +1,10 @@
+// lib/presentation/screens/training/ranking/ranking_game_run_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart'; // ✅ 전면 광고 사용
+import 'package:daoapp/core/utils/ad_manager.dart'; // ✅ 광고 ID 참조
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class RankingGameRunScreen extends ConsumerStatefulWidget {
@@ -12,160 +16,175 @@ class RankingGameRunScreen extends ConsumerStatefulWidget {
 }
 
 class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
-  int _currentRound = 1;
-  final int _maxRounds501 = 10;
-  final int _maxRoundsCricket = 8;
+  // 🔥 전면 광고 판수 카운터 (static으로 선언하여 앱 실행 중 계속 누적)
+  static int _gameCount = 0;
+  InterstitialAd? _interstitialAd;
 
+  int _currentRound = 1;
+  final int _maxRounds = 8;
+  final int _maxRounds501 = 10;
+
+  // 501 관련
   int _leftScore = 501;
   int _totalThrownDarts = 0;
   final List<int> _history501 = [];
 
+  // 크리켓 관련
   int _totalMarks = 0;
   int _selectedMark = 0;
   final List<int> _historyCricket = [];
   final List<String> _cricketTargets = ["20", "19", "18", "17", "16", "15", "BULL", "ANY"];
 
-  final TextEditingController _countUpController = TextEditingController();
-  final TextEditingController _scoreController501 = TextEditingController();
+  // 카운트업 관련
+  int _totalCountUpScore = 0;
+  final List<int> _historyCountUp = [];
+  final TextEditingController _scoreController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _loadInterstitialAd(); // ✅ 시작 시 광고 미리 로드
+  }
+
+  @override
+  void dispose() {
+    _interstitialAd?.dispose();
+    _scoreController.dispose();
+    super.dispose();
+  }
+
+  // 📡 전면 광고 로드 (이 화면 전용)
+  void _loadInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: AdManager.interstitialUnitId,
+      request: const AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) => setState(() => _interstitialAd = ad),
+        onAdFailedToLoad: (error) => _interstitialAd = null,
+      ),
+    );
+  }
+
+  // ⏪ 되돌리기 로직
   void _undoLastRound() {
     if (_currentRound <= 1) return;
     setState(() {
       _currentRound--;
       if (widget.gameType == "501") {
-        final lastScore = _history501.removeLast();
-        _leftScore += lastScore;
+        final last = _history501.removeLast();
+        _leftScore += last;
         _totalThrownDarts -= 3;
       } else if (widget.gameType == "cricket") {
-        final lastMark = _historyCricket.removeLast();
-        _totalMarks -= lastMark;
+        final last = _historyCricket.removeLast();
+        _totalMarks -= last;
         _selectedMark = 0;
+      } else if (widget.gameType == "countup") {
+        final last = _historyCountUp.removeLast();
+        _totalCountUpScore -= last;
       }
     });
   }
 
+  // 🎯 501 점수 제출
   void _submitRound501() {
-    final value = int.tryParse(_scoreController501.text) ?? 0;
-    if (value > 180) { _showSnackBar("최대 180점입니다."); return; }
+    final val = int.tryParse(_scoreController.text) ?? 0;
+    if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
     setState(() {
-      if (value > _leftScore) {
+      if (val > _leftScore) {
         _showSnackBar("BUST!");
-        _history501.add(0); _totalThrownDarts += 3; _nextRound501();
-      } else if (value == _leftScore) {
-        _leftScore = 0; _history501.add(value); _showDartCountPicker();
+        _history501.add(0); _totalThrownDarts += 3; _nextRound();
+      } else if (val == _leftScore) {
+        _leftScore = 0; _history501.add(val); _showDartCountPicker();
       } else {
-        _leftScore -= value; _history501.add(value); _totalThrownDarts += 3; _nextRound501();
+        _leftScore -= val; _history501.add(val); _totalThrownDarts += 3; _nextRound();
       }
-      _scoreController501.clear();
+      _scoreController.clear();
     });
   }
 
-  void _nextRound501() { if (_currentRound >= _maxRounds501) _finishGame(); else _currentRound++; }
-
-  void _showDartCountPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true, // 키보드나 높이 제어를 위해 true 권장
-      builder: (context) => SafeArea( // 하단 내비게이션 바 영역 침범 방지
-        child: Container(
-          // margin을 줘서 바닥에 붙지 않고 떠 있는 느낌으로 만들면 더 깔끔합니다.
-          margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24), // 둥근 모서리로 수정
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              )
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min, // 내용만큼만 높이 차지
-            children: [
-              const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 40),
-              const SizedBox(height: 12),
-              const Text(
-                  "FINISH! 🎯",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                  "마지막 라운드에서 몇 발을 던졌나요?",
-                  style: TextStyle(fontSize: 13, color: Colors.grey)
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [1, 2, 3].map((count) => Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() => _totalThrownDarts += count);
-                        Navigator.pop(context);
-                        _finishGame();
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.cyan[700],
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      ),
-                      child: Text(
-                          "$count발",
-                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)
-                      ),
-                    ),
-                  ),
-                )).toList(),
-              ),
-              const SizedBox(height: 8), // 하단 여백 추가
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
+  // 🎯 크리켓 마크 제출
   void _submitRoundCricket() {
     setState(() {
-      _totalMarks += _selectedMark; _historyCricket.add(_selectedMark);
-      if (_currentRound >= _maxRoundsCricket) _finishGame();
-      else { _currentRound++; _selectedMark = 0; }
+      _totalMarks += _selectedMark;
+      _historyCricket.add(_selectedMark);
+      _selectedMark = 0;
+      _nextRound();
     });
   }
 
-  void _submitCountUp() { if (_countUpController.text.isNotEmpty) _finishGame(); }
+  // 🎯 카운트업 라운드 점수 제출 (180점 제한)
+  void _submitRoundCountUp() {
+    final val = int.tryParse(_scoreController.text) ?? 0;
+    if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
+    setState(() {
+      _totalCountUpScore += val;
+      _historyCountUp.add(val);
+      _scoreController.clear();
+      _nextRound();
+    });
+  }
 
-  // 🔥 [수정] 레포지토리의 변경된 매개변수에 맞춰 nickname 제거
+  void _nextRound() {
+    int max = widget.gameType == "501" ? _maxRounds501 : _maxRounds;
+    if (_currentRound >= max) _finishGame();
+    else _currentRound++;
+  }
+
+  // 💾 최종 저장 및 종료 (광고 정책 적용)
   void _finishGame() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    double? ppd; double? mpr; int? countUpScore;
-    if (widget.gameType == "501") ppd = _totalThrownDarts == 0 ? 0 : (501 - _leftScore) / _totalThrownDarts;
-    else if (widget.gameType == "cricket") mpr = _totalMarks / _maxRoundsCricket;
-    else if (widget.gameType == "countup") countUpScore = int.tryParse(_countUpController.text) ?? 0;
 
+    _gameCount++; // 판수 증가 (1부터 시작)
+
+    double? ppd; double? mpr; int? countUpScore;
+    if (widget.gameType == "501") {
+      ppd = _totalThrownDarts == 0 ? 0 : (501 - _leftScore) / _totalThrownDarts;
+    } else if (widget.gameType == "cricket") {
+      mpr = _historyCricket.isEmpty ? 0 : _totalMarks / _historyCricket.length;
+    } else if (widget.gameType == "countup") {
+      countUpScore = _totalCountUpScore;
+    }
+
+    // 데이터 저장
     await ref.read(rankingRepositoryProvider).updateBestRecord(
-      uid: user.uid, // 닉네임과 프로필은 레포지토리 내부에서 처리함
+      uid: user.uid,
       ppd: ppd,
       mpr: mpr,
       countUp: countUpScore,
     );
-    if (mounted) Navigator.pop(context);
+
+    if (!mounted) return;
+
+    // 🔥 전면 광고 실행 로직 수정
+    // 1회(최초), 4회, 7회, 10회... (1회 이후 3판마다)
+    bool shouldShowAd = (_gameCount == 1) || ((_gameCount - 1) % 3 == 0);
+
+    if (shouldShowAd && _interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          Navigator.pop(context);
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          ad.dispose();
+          Navigator.pop(context);
+        },
+      );
+      _interstitialAd!.show();
+    } else {
+      // 광고 조건이 아니거나 로드 실패 시 바로 종료
+      Navigator.pop(context);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("${widget.gameType.toUpperCase()} RANKING", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+        title: Text("${widget.gameType.toUpperCase()} RANKING",
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
         centerTitle: true, elevation: 0, backgroundColor: Colors.white, foregroundColor: Colors.black87,
         toolbarHeight: 45,
       ),
@@ -174,11 +193,12 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Column(
                   children: [
-                    _roundBadge(widget.gameType == "501" ? _maxRounds501 : 8),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 10),
+                    _roundBadge(),
+                    const SizedBox(height: 10),
                     if (widget.gameType == "501") _build501Content(),
                     if (widget.gameType == "cricket") _buildCricketContent(),
                     if (widget.gameType == "countup") _buildCountUpContent(),
@@ -196,69 +216,41 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   Widget _build501Content() {
     return Column(
       children: [
-        const Text("LEFT SCORE", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
-        Text("$_leftScore", style: const TextStyle(fontSize: 80, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _scoreController501,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-          decoration: InputDecoration(
-            hintText: "Score", filled: true, fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-          ),
-          autofocus: true,
-          onSubmitted: (_) => _submitRound501(),
-        ),
+        const Text("LEFT", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text("$_leftScore", style: const TextStyle(fontSize: 70, fontWeight: FontWeight.w900, height: 1.1)),
+        const SizedBox(height: 10),
+        _buildHistoryRow(_history501),
+        const SizedBox(height: 15),
+        _buildScoreInput("ROUND SCORE"),
       ],
     );
   }
 
   Widget _buildCricketContent() {
-    String currentTarget = _cricketTargets[_currentRound - 1];
-    double currentMpr = _totalMarks / (_currentRound == 1 ? 1 : _currentRound);
+    String target = _cricketTargets[(_currentRound - 1).clamp(0, 7)];
+    double mpr = _historyCricket.isEmpty ? 0 : _totalMarks / _historyCricket.length;
 
     return Column(
       children: [
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [Color(0xFF004D40), Color(0xFF00695C)]),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(20)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _scoreInfoItem("MARKS", "$_totalMarks"),
-                  _scoreInfoItem("MPR", currentMpr.toStringAsFixed(2)),
-                ],
-              ),
-              const Divider(color: Colors.white24, height: 20),
-              const Text("TARGET", style: TextStyle(color: Colors.cyanAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-              Text(currentTarget, style: const TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1)),
+              _scoreInfoItem("MARKS", "$_totalMarks"),
+              _scoreInfoItem("TARGET", target, isTarget: true),
+              _scoreInfoItem("MPR", mpr.toStringAsFixed(2)),
             ],
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 10),
+        _buildHistoryRow(_historyCricket),
+        const SizedBox(height: 15),
         Wrap(
-          spacing: 12, runSpacing: 12,
-          alignment: WrapAlignment.center,
-          children: List.generate(10, (index) => _markButton(index)),
+          spacing: 10, runSpacing: 10,
+          children: List.generate(10, (i) => _markButton(i)),
         ),
-      ],
-    );
-  }
-
-  Widget _scoreInfoItem(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(color: Colors.white60, fontSize: 9, fontWeight: FontWeight.bold)),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
       ],
     );
   }
@@ -266,83 +258,124 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   Widget _buildCountUpContent() {
     return Column(
       children: [
-        const SizedBox(height: 20),
-        const Icon(Icons.emoji_events_rounded, size: 50, color: Colors.amber),
+        const Text("TOTAL SCORE", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text("$_totalCountUpScore", style: const TextStyle(fontSize: 70, fontWeight: FontWeight.w900, color: Colors.amber, height: 1.1)),
+        const SizedBox(height: 10),
+        _buildHistoryRow(_historyCountUp),
         const SizedBox(height: 15),
-        const Text("FINAL SCORE", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _countUpController,
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
-          decoration: InputDecoration(
-            hintText: "0", filled: true, fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 16),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        _buildScoreInput("ROUND SCORE"),
+      ],
+    );
+  }
+
+  Widget _buildHistoryRow(List<int> history) {
+    if (history.isEmpty) return const SizedBox(height: 30);
+    final lastThree = history.reversed.take(3).toList();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: lastThree.asMap().entries.map((e) {
+        int roundNum = history.length - e.key;
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: e.key == 0 ? Colors.cyan.withOpacity(0.1) : Colors.grey[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: e.key == 0 ? Colors.cyan : Colors.transparent),
+          ),
+          child: Text("$roundNum R: ${e.value}", style: TextStyle(fontSize: 10, fontWeight: e.key == 0 ? FontWeight.bold : FontWeight.normal)),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildScoreInput(String label) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.cyan, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 5),
+        SizedBox(
+          width: 140,
+          child: TextField(
+            controller: _scoreController,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            autofocus: true,
+            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            onSubmitted: (_) {
+              if (widget.gameType == "501") _submitRound501();
+              else _submitRoundCountUp();
+            },
           ),
         ),
       ],
     );
   }
 
-  Widget _roundBadge(int max) {
+  Widget _scoreInfoItem(String label, String value, {bool isTarget = false}) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(color: isTarget ? Colors.cyanAccent : Colors.white60, fontSize: 9, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(color: Colors.white, fontSize: isTarget ? 28 : 18, fontWeight: FontWeight.w900)),
+      ],
+    );
+  }
+
+  Widget _roundBadge() {
+    int max = widget.gameType == "501" ? _maxRounds501 : _maxRounds;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(color: Colors.blueGrey[900], borderRadius: BorderRadius.circular(15)),
-      child: Text("ROUND $_currentRound / $max", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11)),
+      decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
+      child: Text("ROUND $_currentRound / $max", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 
   Widget _markButton(int val) {
     bool isSelected = _selectedMark == val;
-    return InkWell(
+    return GestureDetector(
       onTap: () => setState(() => _selectedMark = val),
-      borderRadius: BorderRadius.circular(100),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 52, height: 52,
+      child: Container(
+        width: 50, height: 50,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.cyan[700] : Colors.white,
+          color: isSelected ? Colors.cyan : Colors.white,
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
-          border: Border.all(color: isSelected ? Colors.cyan.shade200 : Colors.grey.shade200, width: 1),
+          border: Border.all(color: isSelected ? Colors.cyan : Colors.grey.shade300),
         ),
-        child: Text("$val", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black87)),
+        child: Text("$val", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black87)),
       ),
     );
   }
 
   Widget _buildBottomControlBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(24)), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)]),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFEEEEEE)))),
       child: Row(
         children: [
-          if (widget.gameType != "countup")
-            Container(
-              margin: const EdgeInsets.only(right: 12),
-              child: InkWell(
-                onTap: _currentRound > 1 ? _undoLastRound : null,
-                borderRadius: BorderRadius.circular(15),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: _currentRound > 1 ? Colors.red[50] : Colors.grey[100], borderRadius: BorderRadius.circular(15)),
-                  child: Icon(Icons.undo_rounded, color: _currentRound > 1 ? Colors.redAccent : Colors.grey, size: 24),
-                ),
-              ),
-            ),
+          IconButton(
+            onPressed: _currentRound > 1 ? _undoLastRound : null,
+            icon: Icon(Icons.undo, color: _currentRound > 1 ? Colors.red : Colors.grey),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: SizedBox(
-              height: 52,
+              height: 48,
               child: ElevatedButton(
-                onPressed: widget.gameType == "501" ? _submitRound501 : widget.gameType == "cricket" ? _submitRoundCricket : _submitCountUp,
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan[700], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 0),
-                child: Text(
-                  widget.gameType == "countup" ? "SUBMIT" : "CONFIRM",
-                  style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w900),
+                onPressed: widget.gameType == "501"
+                    ? _submitRound501
+                    : widget.gameType == "cricket"
+                    ? _submitRoundCricket
+                    : _submitRoundCountUp,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.cyan[700],
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
+                child: const Text("CONFIRM", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ),
@@ -352,6 +385,59 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _showSnackBar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating, duration: const Duration(seconds: 1)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
+  }
+
+  void _showDartCountPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SafeArea(
+          child: Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 20)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("FINISH! 🎯", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
+                const SizedBox(height: 8),
+                const Text("마지막 라운드에서 몇 발을 던졌나요?", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [1, 2, 3].map((count) => Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() => _totalThrownDarts += count);
+                          Navigator.pop(context);
+                          _finishGame();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.cyan[700],
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                        child: Text("$count발", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

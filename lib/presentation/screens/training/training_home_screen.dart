@@ -209,7 +209,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hasRating = _profile?.phoenixClass != null || _profile?.liveRating != null;
     final screenWidth = MediaQuery.of(context).size.width;
     final progressAsync = ref.watch(trainingProgressProvider);
 
@@ -219,11 +218,11 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
         child: _isLoadingProfile
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20), // 상단 패딩 조절
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
           children: [
             if (_profile == null) ...[
               _buildEmptyState(),
-              const SizedBox(height: 12), // 간격 축소
+              const SizedBox(height: 12),
               progressAsync.when(
                 data: (p) { _handleProgressForRatingDialog(p); return _buildXpGauge(p); },
                 loading: () => const SizedBox.shrink(),
@@ -238,24 +237,23 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                   style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(height: 16), // 간격 축소
+              const SizedBox(height: 16),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: screenWidth > 400 ? 20 : 0),
                 child: DualNeonGaugeRow(
                   phoenixRating: _profile!.phoenixClass,
                   liveRating: _profile!.liveRating,
-                  gaugeSize: screenWidth > 400 ? 150 : 130, // 게이지 사이즈 약간 축소
+                  gaugeSize: screenWidth > 400 ? 150 : 130,
                 ),
               ),
-              const SizedBox(height: 12), // 간격 축소
+              const SizedBox(height: 12),
               progressAsync.when(
                 data: (p) { _handleProgressForRatingDialog(p); return _buildXpGauge(p); },
                 loading: () => const SizedBox(height: 60, child: Center(child: CircularProgressIndicator(strokeWidth: 2))),
                 error: (e, _) => const SizedBox.shrink(),
               ),
-              const SizedBox(height: 16), // 간격 축소
+              const SizedBox(height: 16),
 
-              // === 레이팅 상세 정보 카드 (더 컴팩트하게) ===
               AppCard(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -292,11 +290,10 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
               ),
             ],
 
-            const SizedBox(height: 20), // 성장게이지-탭 사이 간격 대폭 축소
+            const SizedBox(height: 20),
 
-            // === 🏆 자유 랭킹 / 🎯 맞춤 연습 (중앙 정렬) ===
             Row(
-              mainAxisAlignment: MainAxisAlignment.center, // 중앙 정렬
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _buildModeChip("🏆 자유 랭킹", TrainingTab.free),
                 const SizedBox(width: 12),
@@ -305,7 +302,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             ),
             const SizedBox(height: 16),
 
-            // === 탭 콘텐츠 ===
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
               child: _selectedTab == TrainingTab.free
@@ -315,10 +311,30 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
             const SizedBox(height: 32),
 
-            // === 훈련 도구 ===
             Text("훈련 도구", style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             ..._buildPracticeItems(),
+
+            /// ==========================================
+            /// 🔥 [정책 준수] 슬림 배너 광고 영역
+            /// ==========================================
+            const SizedBox(height: 12),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'AD',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.grey[400],
+                    letterSpacing: 1.0,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const AdBanner(),
+              ],
+            ),
             const SizedBox(height: 40),
           ],
         ),
@@ -351,7 +367,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       side: BorderSide(color: isSelected ? Colors.cyan : Colors.transparent),
-      visualDensity: VisualDensity.compact, // 칩 크기 조절
+      visualDensity: VisualDensity.compact,
     );
   }
 
@@ -436,8 +452,6 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
       _toolTile(Icons.accessibility_new_rounded, "자세분석 & 트래킹", const Color(0xFF1565C0), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PoseAnalysisScreen()))),
       _toolTile(Icons.calculate, "체크아웃 계산기", Colors.deepPurple, () => Navigator.pushNamed(context, RouteConstants.checkoutCalculator)),
       _toolTile(Icons.menu_book, "나만의 다트 이야기", Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyLogHomeScreen()))),
-      const SizedBox(height: 12),
-      const Center(child: AdBanner()),
     ];
   }
 

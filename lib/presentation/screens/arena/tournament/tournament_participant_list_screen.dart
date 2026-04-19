@@ -1,13 +1,12 @@
-// lib/presentation/screens/arena/tournament/tournament_participant_list_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/data/models/tournament_entry_model.dart';
+import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/data/repositories/arena_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:intl/intl.dart';
 
 class TournamentParticipantListScreen extends StatelessWidget {
   final String tournamentId;
@@ -21,91 +20,128 @@ class TournamentParticipantListScreen extends StatelessWidget {
 
   ArenaRepository get _repo => sl<ArenaRepository>();
   FirebaseFirestore get _db => FirebaseFirestore.instance;
+  String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get _adminUid => "NanHPgCdsbMCFkHEs7MtxS51OSX2"; // 승완님 UID
 
-  // 헬퍼: 특정 엔트리 문서 참조
   DocumentReference<Map<String, dynamic>> _entryRef(String uid) =>
       _db.collection('tournaments').doc(tournamentId).collection('entries').doc(uid);
+
+  // 🛡️ 마스킹 헬퍼 함수 (일반 사용자용)
+  String _maskText(String? text, {bool isPhone = false}) {
+    if (text == null || text.isEmpty) return "-";
+    if (isPhone) {
+      // 010-1234-5678 -> 010-****-5678
+      if (text.contains('-') && text.length >= 10) {
+        final parts = text.split('-');
+        if (parts.length == 3) return "${parts[0]}-****-${parts[2]}";
+      }
+      if (text.length >= 10) return text.replaceRange(3, 7, "****");
+      return "****";
+    } else {
+      // 답변 가리기: "서울시" -> "서*시"
+      if (text.length <= 1) return "*";
+      if (text.length == 2) return "${text[0]}*";
+      return "${text[0]}${'*' * (text.length - 2)}${text[text.length - 1]}";
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // 트레이닝 홈 감성 배경
+      backgroundColor: Colors.white,
       appBar: CommonAppBar(title: tournamentTitle, showBackButton: true),
-      body: StreamBuilder<List<TournamentEntryModel>>(
-        stream: _repo.getEntries(tournamentId),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text('오류: ${snapshot.error}'));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.cyan));
+      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: _db.collection('tournaments').doc(tournamentId).snapshots(),
+          builder: (context, tSnap) {
+            if (!tSnap.hasData) return const Center(child: CircularProgressIndicator(color: Colors.cyan));
+            if (!tSnap.data!.exists) return const Center(child: Text("대회를 찾을 수 없습니다."));
 
-          final entries = List<TournamentEntryModel>.from(snapshot.data ?? []);
-          entries.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+            final tournament = TournamentModel.fromJson(tSnap.data!.data()!);
 
-          if (entries.isEmpty) {
-            return Center(
-              child: Text('아직 참가자가 없습니다',
-                  style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
+            // ✅ 권한 확인: 어드민이거나 대회 주최자인지 확인
+            final bool isMaster = _currentUid == _adminUid || _currentUid == tournament.createdByUid;
+
+            return StreamBuilder<List<TournamentEntryModel>>(
+              stream: _repo.getEntries(tournamentId),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return Center(child: Text('오류: ${snapshot.error}'));
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.cyan));
+
+                final entries = List<TournamentEntryModel>.from(snapshot.data ?? []);
+                entries.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+                if (entries.isEmpty) {
+                  return Center(
+                    child: Text('아직 참가자가 없습니다',
+                        style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
+                  itemCount: entries.length,
+                  itemBuilder: (context, index) {
+                    final e = entries[index];
+                    final bool isPaid = (e.toJson()['isPaid'] ?? false);
+                    final bool isMyEntry = _currentUid == e.userUid; // 본인 신청 건인지
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: AppCard(
+                        onTap: () => _showDetailBottomSheet(context, e, index + 1, tournament.type, isMaster),
+                        child: ListTile(
+                          dense: true,
+                          visualDensity: VisualDensity.compact,
+                          leading: _buildOrderCircle(index + 1),
+                          title: Text(
+                            tournament.type == 'team'
+                                ? '[팀] ${e.teamName ?? '이름 없음'}'
+                                : '${e.nameKo} (${e.nameEn})',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                          ),
+                          subtitle: Text(
+                            tournament.type == 'team'
+                                ? '팀장: ${e.nameKo} · ${ (isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}'
+                                : '${ (isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}${e.homeShop != null ? ' · ${e.homeShop}' : ''}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isMaster) _buildPaymentToggle(e, isPaid), // 입금 확인은 마스터만
+                              const SizedBox(width: 4),
+                              const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             );
           }
-
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-            itemCount: entries.length,
-            itemBuilder: (context, index) {
-              final e = entries[index];
-              // isPaid 필드가 모델에 정의되어 있다고 가정하거나 JSON에서 직접 추출
-              final bool isPaid = (e.toJson()['isPaid'] ?? false);
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AppCard(
-                  onTap: () => _showDetailBottomSheet(context, e, index + 1),
-                  child: ListTile(
-                    dense: true,
-                    visualDensity: VisualDensity.compact,
-                    leading: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('${index + 1}',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
-                    ),
-                    title: Text(
-                      '${e.nameKo} (${e.nameEn})',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
-                    ),
-                    subtitle: Text(
-                      '${e.phone}${e.homeShop != null ? ' · ${e.homeShop}' : ''}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // ✅ 입금 확인 퀵 토글 버튼
-                        _buildPaymentToggle(e, isPaid),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
       ),
     );
   }
 
-  // ✅ 입금 상태를 바로 바꿀 수 있는 칩 위젯
+  Widget _buildOrderCircle(int order) {
+    return Container(
+      width: 28, height: 28,
+      decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+      alignment: Alignment.center,
+      child: Text('$order', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black54)),
+    );
+  }
+
   Widget _buildPaymentToggle(TournamentEntryModel e, bool isPaid) {
     return InkWell(
       onTap: () async {
         try {
-          await _entryRef(e.userUid).update({'isPaid': !isPaid});
+          await _entryRef(e.userUid).update({
+            'isPaid': !isPaid,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
         } catch (err) {
           debugPrint('입금 업데이트 실패: $err');
         }
@@ -117,27 +153,22 @@ class TournamentParticipantListScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           border: Border.all(color: isPaid ? Colors.cyan.withOpacity(0.5) : Colors.grey[300]!),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isPaid) const Icon(Icons.check, size: 12, color: Colors.cyan),
-            if (isPaid) const SizedBox(width: 4),
-            Text(
-              isPaid ? '입금완료' : '미입금',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isPaid ? FontWeight.bold : FontWeight.normal,
-                color: isPaid ? Colors.cyan : Colors.grey[400],
-              ),
-            ),
-          ],
+        child: Text(
+          isPaid ? '입금완료' : '미입금',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: isPaid ? FontWeight.bold : FontWeight.normal,
+            color: isPaid ? Colors.cyan : Colors.grey[400],
+          ),
         ),
       ),
     );
   }
 
-  // ✅ 상세 바텀시트 (수정/삭제 포함)
-  void _showDetailBottomSheet(BuildContext context, TournamentEntryModel e, int order) {
+  void _showDetailBottomSheet(BuildContext context, TournamentEntryModel e, int order, String type, bool isMaster) {
+    final bool isMyEntry = _currentUid == e.userUid;
+    final bool canSeeAll = isMaster || isMyEntry; // 마스터거나 본인이면 다 보임
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -147,7 +178,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.6,
+        initialChildSize: 0.75,
         builder: (_, scrollController) => SingleChildScrollView(
           controller: scrollController,
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
@@ -156,39 +187,86 @@ class TournamentParticipantListScreen extends StatelessWidget {
             children: [
               Center(child: Text('No.$order', style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold))),
               const SizedBox(height: 12),
-              Text('${e.nameKo} (${e.nameEn})', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
-              const Divider(height: 40),
-              _infoRowCompact('연락처', e.phone),
+              Text(
+                  type == 'team' ? '[팀] ${e.teamName}' : '${e.nameKo} (${e.nameEn})',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)
+              ),
+              const Divider(height: 32),
+
+              _infoRowCompact(type == 'team' ? '팀장 성함' : '성함', '${e.nameKo} (${e.nameEn})'),
+              _infoRowCompact('연락처', canSeeAll ? e.phone : _maskText(e.phone, isPhone: true)),
               _infoRowCompact('레이팅', e.rating ?? '-'),
               _infoRowCompact('홈샵', e.homeShop ?? '-'),
-              _infoRowCompact('이메일', e.email ?? '-'),
-              _infoRowCompact('신청일', DateFormat('yyyy.MM.dd HH:mm').format(e.createdAt.toDate())),
-              const SizedBox(height: 40),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () { Navigator.pop(context); _showEditDialog(context, e); },
-                      icon: const Icon(Icons.edit_note, size: 20),
-                      label: const Text('정보 수정'),
-                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
-                    ),
+
+              if (e.customAnswers.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text('신청 질문 답변', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.cyan)),
+                const SizedBox(height: 6),
+                _buildCustomAnswersView(e.customAnswers, canSeeAll: canSeeAll),
+              ],
+
+              if (type == 'team' && e.members.isNotEmpty) ...[
+                const SizedBox(height: 32),
+                const Text('팀원 목록 및 개별 답변', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.cyan)),
+                const SizedBox(height: 12),
+                ...e.members.map((m) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.person_outline, size: 16, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Text(m.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          const Spacer(),
+                          Text('Rt. ${m.rating}', style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      if (m.customAnswers.isNotEmpty) ...[
+                        const Divider(height: 20),
+                        _buildCustomAnswersView(m.customAnswers, isInsideCard: true, canSeeAll: canSeeAll),
+                      ],
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () { Navigator.pop(context); _deleteEntryB(context, e); },
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      label: const Text('엔트리 삭제'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
+                )),
+                if (e.totalRating != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text('팀 합계 레이팅: ${e.totalRating}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  ),
+              ],
+
+              const SizedBox(height: 40),
+              // 관리용 버튼 (마스터만 노출)
+              if (isMaster)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () { Navigator.pop(context); _showEditDialog(context, e); },
+                        icon: const Icon(Icons.edit_note, size: 20),
+                        label: const Text('정보 수정'),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () { Navigator.pop(context); _deleteEntryB(context, e); },
+                        icon: const Icon(Icons.delete_outline, size: 20),
+                        label: const Text('엔트리 삭제'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),
@@ -196,19 +274,48 @@ class TournamentParticipantListScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildCustomAnswersView(Map<String, String> answers, {bool isInsideCard = false, bool canSeeAll = false}) {
+    return Container(
+      width: double.infinity,
+      padding: isInsideCard ? EdgeInsets.zero : const EdgeInsets.all(12),
+      decoration: isInsideCard ? null : BoxDecoration(
+        color: Colors.cyan.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.cyan.withOpacity(0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: answers.entries.map((entry) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('• ${entry.key}: ', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Expanded(
+                  child: Text(
+                      canSeeAll ? entry.value : _maskText(entry.value), // ✅ 답변 마스킹 적용
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
+                  )
+              ),
+            ],
+          ),
+        )).toList(),
+      ),
+    );
+  }
+
   Widget _infoRowCompact(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text(label, style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+          SizedBox(width: 80, child: Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 13))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
         ],
       ),
     );
   }
 
-  // --- 수정 다이얼로그 & 삭제 로직 (기존 기능 유지) ---
   void _showEditDialog(BuildContext context, TournamentEntryModel e) {
     final nameKoCtrl = TextEditingController(text: e.nameKo);
     final nameEnCtrl = TextEditingController(text: e.nameEn);
@@ -273,19 +380,14 @@ class TournamentParticipantListScreen extends StatelessWidget {
       await _db.runTransaction((tx) async {
         final tRef = _db.collection('tournaments').doc(tournamentId);
         final tSnap = await tx.get(tRef);
-
         final entryRef = _entryRef(e.userUid);
         final entrySnap = await tx.get(entryRef);
         if (!entrySnap.exists) return;
-
         final current = (tSnap.data()?['entryCount'] as int?) ?? 0;
-
-        // ✅ 핵심 수정: 'updatedAt' 필드를 서버 시간으로 함께 업데이트해야 규칙을 통과합니다.
         tx.update(tRef, {
           'entryCount': (current - 1).clamp(0, 9999),
-          'updatedAt': FieldValue.serverTimestamp(), // 🔥 이 줄이 열쇠입니다!
+          'updatedAt': FieldValue.serverTimestamp(),
         });
-
         tx.delete(entryRef);
       });
     } catch (e) {

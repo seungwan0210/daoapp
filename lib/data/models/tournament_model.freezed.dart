@@ -24,7 +24,8 @@ mixin _$TournamentModel {
   String get title => throw _privateConstructorUsedError;
   String get location => throw _privateConstructorUsedError;
   int get maxParticipants => throw _privateConstructorUsedError;
-  String? get posterUrl => throw _privateConstructorUsedError;
+  String? get posterUrl =>
+      throw _privateConstructorUsedError; // 🖼️ 완전 삭제 시 스토리지에서 이 URL을 참조해 지웁니다.
   String get description => throw _privateConstructorUsedError;
   int get entryFee => throw _privateConstructorUsedError;
   @TimestampConverter()
@@ -32,18 +33,26 @@ mixin _$TournamentModel {
   @TimestampConverter()
   Timestamp get entryStartDate => throw _privateConstructorUsedError;
   @TimestampConverter()
-  Timestamp get entryEndDate => throw _privateConstructorUsedError;
+  Timestamp get entryEndDate =>
+      throw _privateConstructorUsedError; // 🧹 이 날짜 기준으로 3개월 뒤 자동 청소합니다.
   String get createdByUid => throw _privateConstructorUsedError;
   List<String> get organizerEmails => throw _privateConstructorUsedError;
   String get hostName => throw _privateConstructorUsedError;
   String get hostPhone => throw _privateConstructorUsedError;
   int get entryCount => throw _privateConstructorUsedError;
   bool get entrySummarySent => throw _privateConstructorUsedError;
-  bool get isCanceled => throw _privateConstructorUsedError;
+  bool get isCanceled =>
+      throw _privateConstructorUsedError; // 🚫 사용자가 취소/삭제 시 상태값으로 활용 가능
   @TimestampConverter()
-  Timestamp get createdAt => throw _privateConstructorUsedError; // ✅ 추가 권장
+  Timestamp get createdAt => throw _privateConstructorUsedError;
   @TimestampConverter()
-  Timestamp? get updatedAt => throw _privateConstructorUsedError;
+  Timestamp? get updatedAt =>
+      throw _privateConstructorUsedError; // ✅ 팀전 여부 구분 ('single' 또는 'team')
+  String get type =>
+      throw _privateConstructorUsedError; // ✅ 팀전일 경우 팀당 인원수 (개인전은 1)
+  int get teamSize =>
+      throw _privateConstructorUsedError; // ✅ 주최자가 정의한 커스텀 질문 리스트 (예: ["상의 사이즈", "식사 여부"])
+  List<String> get customQuestions => throw _privateConstructorUsedError;
 
   /// Serializes this TournamentModel to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -80,7 +89,10 @@ abstract class $TournamentModelCopyWith<$Res> {
       bool entrySummarySent,
       bool isCanceled,
       @TimestampConverter() Timestamp createdAt,
-      @TimestampConverter() Timestamp? updatedAt});
+      @TimestampConverter() Timestamp? updatedAt,
+      String type,
+      int teamSize,
+      List<String> customQuestions});
 }
 
 /// @nodoc
@@ -117,6 +129,9 @@ class _$TournamentModelCopyWithImpl<$Res, $Val extends TournamentModel>
     Object? isCanceled = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
+    Object? type = null,
+    Object? teamSize = null,
+    Object? customQuestions = null,
   }) {
     return _then(_value.copyWith(
       id: freezed == id
@@ -195,6 +210,18 @@ class _$TournamentModelCopyWithImpl<$Res, $Val extends TournamentModel>
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as Timestamp?,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as String,
+      teamSize: null == teamSize
+          ? _value.teamSize
+          : teamSize // ignore: cast_nullable_to_non_nullable
+              as int,
+      customQuestions: null == customQuestions
+          ? _value.customQuestions
+          : customQuestions // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ) as $Val);
   }
 }
@@ -226,7 +253,10 @@ abstract class _$$TournamentModelImplCopyWith<$Res>
       bool entrySummarySent,
       bool isCanceled,
       @TimestampConverter() Timestamp createdAt,
-      @TimestampConverter() Timestamp? updatedAt});
+      @TimestampConverter() Timestamp? updatedAt,
+      String type,
+      int teamSize,
+      List<String> customQuestions});
 }
 
 /// @nodoc
@@ -261,6 +291,9 @@ class __$$TournamentModelImplCopyWithImpl<$Res>
     Object? isCanceled = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
+    Object? type = null,
+    Object? teamSize = null,
+    Object? customQuestions = null,
   }) {
     return _then(_$TournamentModelImpl(
       id: freezed == id
@@ -339,6 +372,18 @@ class __$$TournamentModelImplCopyWithImpl<$Res>
           ? _value.updatedAt
           : updatedAt // ignore: cast_nullable_to_non_nullable
               as Timestamp?,
+      type: null == type
+          ? _value.type
+          : type // ignore: cast_nullable_to_non_nullable
+              as String,
+      teamSize: null == teamSize
+          ? _value.teamSize
+          : teamSize // ignore: cast_nullable_to_non_nullable
+              as int,
+      customQuestions: null == customQuestions
+          ? _value._customQuestions
+          : customQuestions // ignore: cast_nullable_to_non_nullable
+              as List<String>,
     ));
   }
 }
@@ -365,8 +410,12 @@ class _$TournamentModelImpl implements _TournamentModel {
       this.entrySummarySent = false,
       this.isCanceled = false,
       @TimestampConverter() required this.createdAt,
-      @TimestampConverter() this.updatedAt})
-      : _organizerEmails = organizerEmails;
+      @TimestampConverter() this.updatedAt,
+      this.type = 'single',
+      this.teamSize = 1,
+      final List<String> customQuestions = const []})
+      : _organizerEmails = organizerEmails,
+        _customQuestions = customQuestions;
 
   factory _$TournamentModelImpl.fromJson(Map<String, dynamic> json) =>
       _$$TournamentModelImplFromJson(json);
@@ -381,6 +430,7 @@ class _$TournamentModelImpl implements _TournamentModel {
   final int maxParticipants;
   @override
   final String? posterUrl;
+// 🖼️ 완전 삭제 시 스토리지에서 이 URL을 참조해 지웁니다.
   @override
   final String description;
   @override
@@ -395,6 +445,7 @@ class _$TournamentModelImpl implements _TournamentModel {
   @override
   @TimestampConverter()
   final Timestamp entryEndDate;
+// 🧹 이 날짜 기준으로 3개월 뒤 자동 청소합니다.
   @override
   final String createdByUid;
   final List<String> _organizerEmails;
@@ -420,17 +471,35 @@ class _$TournamentModelImpl implements _TournamentModel {
   @override
   @JsonKey()
   final bool isCanceled;
+// 🚫 사용자가 취소/삭제 시 상태값으로 활용 가능
   @override
   @TimestampConverter()
   final Timestamp createdAt;
-// ✅ 추가 권장
   @override
   @TimestampConverter()
   final Timestamp? updatedAt;
+// ✅ 팀전 여부 구분 ('single' 또는 'team')
+  @override
+  @JsonKey()
+  final String type;
+// ✅ 팀전일 경우 팀당 인원수 (개인전은 1)
+  @override
+  @JsonKey()
+  final int teamSize;
+// ✅ 주최자가 정의한 커스텀 질문 리스트 (예: ["상의 사이즈", "식사 여부"])
+  final List<String> _customQuestions;
+// ✅ 주최자가 정의한 커스텀 질문 리스트 (예: ["상의 사이즈", "식사 여부"])
+  @override
+  @JsonKey()
+  List<String> get customQuestions {
+    if (_customQuestions is EqualUnmodifiableListView) return _customQuestions;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_customQuestions);
+  }
 
   @override
   String toString() {
-    return 'TournamentModel(id: $id, title: $title, location: $location, maxParticipants: $maxParticipants, posterUrl: $posterUrl, description: $description, entryFee: $entryFee, eventDate: $eventDate, entryStartDate: $entryStartDate, entryEndDate: $entryEndDate, createdByUid: $createdByUid, organizerEmails: $organizerEmails, hostName: $hostName, hostPhone: $hostPhone, entryCount: $entryCount, entrySummarySent: $entrySummarySent, isCanceled: $isCanceled, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'TournamentModel(id: $id, title: $title, location: $location, maxParticipants: $maxParticipants, posterUrl: $posterUrl, description: $description, entryFee: $entryFee, eventDate: $eventDate, entryStartDate: $entryStartDate, entryEndDate: $entryEndDate, createdByUid: $createdByUid, organizerEmails: $organizerEmails, hostName: $hostName, hostPhone: $hostPhone, entryCount: $entryCount, entrySummarySent: $entrySummarySent, isCanceled: $isCanceled, createdAt: $createdAt, updatedAt: $updatedAt, type: $type, teamSize: $teamSize, customQuestions: $customQuestions)';
   }
 
   @override
@@ -473,7 +542,12 @@ class _$TournamentModelImpl implements _TournamentModel {
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
-                other.updatedAt == updatedAt));
+                other.updatedAt == updatedAt) &&
+            (identical(other.type, type) || other.type == type) &&
+            (identical(other.teamSize, teamSize) ||
+                other.teamSize == teamSize) &&
+            const DeepCollectionEquality()
+                .equals(other._customQuestions, _customQuestions));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -498,7 +572,10 @@ class _$TournamentModelImpl implements _TournamentModel {
         entrySummarySent,
         isCanceled,
         createdAt,
-        updatedAt
+        updatedAt,
+        type,
+        teamSize,
+        const DeepCollectionEquality().hash(_customQuestions)
       ]);
 
   /// Create a copy of TournamentModel
@@ -520,26 +597,28 @@ class _$TournamentModelImpl implements _TournamentModel {
 
 abstract class _TournamentModel implements TournamentModel {
   const factory _TournamentModel(
-          {final String? id,
-          required final String title,
-          required final String location,
-          required final int maxParticipants,
-          final String? posterUrl,
-          required final String description,
-          final int entryFee,
-          @TimestampConverter() required final Timestamp eventDate,
-          @TimestampConverter() required final Timestamp entryStartDate,
-          @TimestampConverter() required final Timestamp entryEndDate,
-          required final String createdByUid,
-          required final List<String> organizerEmails,
-          final String hostName,
-          final String hostPhone,
-          final int entryCount,
-          final bool entrySummarySent,
-          final bool isCanceled,
-          @TimestampConverter() required final Timestamp createdAt,
-          @TimestampConverter() final Timestamp? updatedAt}) =
-      _$TournamentModelImpl;
+      {final String? id,
+      required final String title,
+      required final String location,
+      required final int maxParticipants,
+      final String? posterUrl,
+      required final String description,
+      final int entryFee,
+      @TimestampConverter() required final Timestamp eventDate,
+      @TimestampConverter() required final Timestamp entryStartDate,
+      @TimestampConverter() required final Timestamp entryEndDate,
+      required final String createdByUid,
+      required final List<String> organizerEmails,
+      final String hostName,
+      final String hostPhone,
+      final int entryCount,
+      final bool entrySummarySent,
+      final bool isCanceled,
+      @TimestampConverter() required final Timestamp createdAt,
+      @TimestampConverter() final Timestamp? updatedAt,
+      final String type,
+      final int teamSize,
+      final List<String> customQuestions}) = _$TournamentModelImpl;
 
   factory _TournamentModel.fromJson(Map<String, dynamic> json) =
       _$TournamentModelImpl.fromJson;
@@ -553,7 +632,7 @@ abstract class _TournamentModel implements TournamentModel {
   @override
   int get maxParticipants;
   @override
-  String? get posterUrl;
+  String? get posterUrl; // 🖼️ 완전 삭제 시 스토리지에서 이 URL을 참조해 지웁니다.
   @override
   String get description;
   @override
@@ -566,7 +645,7 @@ abstract class _TournamentModel implements TournamentModel {
   Timestamp get entryStartDate;
   @override
   @TimestampConverter()
-  Timestamp get entryEndDate;
+  Timestamp get entryEndDate; // 🧹 이 날짜 기준으로 3개월 뒤 자동 청소합니다.
   @override
   String get createdByUid;
   @override
@@ -580,13 +659,19 @@ abstract class _TournamentModel implements TournamentModel {
   @override
   bool get entrySummarySent;
   @override
-  bool get isCanceled;
+  bool get isCanceled; // 🚫 사용자가 취소/삭제 시 상태값으로 활용 가능
   @override
   @TimestampConverter()
-  Timestamp get createdAt; // ✅ 추가 권장
+  Timestamp get createdAt;
   @override
   @TimestampConverter()
-  Timestamp? get updatedAt;
+  Timestamp? get updatedAt; // ✅ 팀전 여부 구분 ('single' 또는 'team')
+  @override
+  String get type; // ✅ 팀전일 경우 팀당 인원수 (개인전은 1)
+  @override
+  int get teamSize; // ✅ 주최자가 정의한 커스텀 질문 리스트 (예: ["상의 사이즈", "식사 여부"])
+  @override
+  List<String> get customQuestions;
 
   /// Create a copy of TournamentModel
   /// with the given fields replaced by the non-null parameter values.

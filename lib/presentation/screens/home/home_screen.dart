@@ -22,28 +22,43 @@ import 'package:daoapp/data/models/training_progress_model.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_ranking_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_schedule_screen.dart';
 
-// ✅ 배너 광고 위젯 (실제 AdMob 배너는 이 위젯에서 처리)
+// ✅ 배너 광고 위젯
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
-class HomeScreen extends ConsumerWidget {
+// ✅ 추가: 자동 청소를 위한 DI 및 리포지토리 임포트
+import 'package:daoapp/di/service_locator.dart';
+import 'package:daoapp/data/repositories/arena_repository.dart';
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // 홈 진입 시 기본 랭킹 필터 세팅
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
-    });
-
-    return const HomeScreenBody();
-  }
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class HomeScreenBody extends ConsumerWidget {
-  const HomeScreenBody({super.key});
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // 🧹 관리자 자동 청소 로직
+  void _handleAdminCleanup() {
+    final user = FirebaseAuth.instance.currentUser;
+    const String adminUid = "NanHPgCdsbMCFkHEs7MtxS51OSX2"; // 승완님 UID
+
+    if (user != null && user.uid == adminUid) {
+      debugPrint("🚀 관리자(승완님) 접속: 3개월 지난 대회 자동 청소를 시작합니다.");
+      sl<ArenaRepository>().autoCleanOldTournaments();
+    }
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
+      _handleAdminCleanup();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final rankingState = ref.watch(rankingProvider);
     final theme = Theme.of(context);
 
@@ -83,31 +98,31 @@ class HomeScreenBody extends ConsumerWidget {
 
           // === 스폰서 ===
           AppCard(child: _buildSponsorSection(context, ref)),
-          const SizedBox(height: 12), // 간격 살짝 추가
 
           /// ==========================================
-          /// 🔥 [정책 준수 수정] 하단 배너 광고 영역
-          /// AppCard를 제거하여 프레임 잘림 이슈를 방지하고,
-          /// 명확한 광고 라벨을 추가하여 오클릭 정책을 준수합니다.
+          /// 🔥 [수정] 광고 영역 (슬림 배너 스타일 적용)
+          /// 스폰서 영역과 하단 탭바 사이의 여유 공간 활용
           /// ==========================================
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'ADVERTISEMENT',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey[400],
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.bold,
+          const SizedBox(height: 20),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'AD',
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.grey[400],
+                    letterSpacing: 1.0,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              const AdBanner(), // 수정한 AdBanner 위젯 호출
-            ],
+                const SizedBox(height: 2),
+                const AdBanner(),
+              ],
+            ),
           ),
-
-          const SizedBox(height: 32), // 하단 여백 확보
+          const SizedBox(height: 32),
         ],
       ),
     );
@@ -666,8 +681,8 @@ class HomeScreenBody extends ConsumerWidget {
   }
 
   // =========================
-  // 최신 뉴스
-  // =========================
+// 최신 뉴스
+// =========================
   static Widget _buildNewsSection(BuildContext context, WidgetRef ref) {
     final news = ref.watch(newsProvider);
     return news.when(
@@ -709,19 +724,24 @@ class HomeScreenBody extends ConsumerWidget {
                           item['imageUrl']!.isNotEmpty)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
-                          child: Image.network(
-                            item['imageUrl']!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              color: Colors.grey[300],
-                              child:
-                              const Icon(Icons.broken_image, size: 60),
+                          child: Container(
+                            color: Colors.black, // 👈 사진 비율이 안 맞을 때 생기는 여백을 검은색으로 채움
+                            child: Image.network(
+                              item['imageUrl']!,
+                              fit: BoxFit.contain, // 👈 사진이 잘리지 않고 전체가 다 보이도록 수정
+                              errorBuilder: (_, __, ___) => Container(
+                                color: Colors.grey[300],
+                                child: const Icon(Icons.broken_image, size: 60),
+                              ),
                             ),
                           ),
                         )
                       else
                         Container(
-                          color: Colors.grey[300],
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           child: const Icon(Icons.image, size: 60),
                         ),
                       Positioned(
@@ -736,9 +756,8 @@ class HomeScreenBody extends ConsumerWidget {
                               end: Alignment.topCenter,
                               colors: [Colors.black54, Colors.transparent],
                             ),
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
-                            ),
+                            borderRadius:
+                            BorderRadius.vertical(bottom: Radius.circular(16)),
                           ),
                           child: Text(
                             item['title']!,

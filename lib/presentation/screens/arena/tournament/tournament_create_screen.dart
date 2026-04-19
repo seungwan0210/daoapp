@@ -14,6 +14,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
+// ✅ AdMob 배너 광고 위젯 임포트
+import 'package:daoapp/presentation/widgets/ad_banner.dart';
+
 class TournamentCreateScreen extends StatefulWidget {
   const TournamentCreateScreen({super.key});
 
@@ -31,6 +34,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
   final _descCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _maxCtrl = TextEditingController();
+  final _teamSizeCtrl = TextEditingController(text: '2');
 
   DateTime? _eventDay;
   TimeOfDay? _eventTime;
@@ -39,7 +43,9 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
 
   File? _posterFile;
   List<String> _coOrganizers = [];
+  List<String> _customQuestions = [];
   bool _isSaving = false;
+  String _selectedType = 'single';
 
   bool get _canSubmit =>
       _titleCtrl.text.trim().isNotEmpty &&
@@ -59,12 +65,12 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
     void attach(TextEditingController c) {
       c.addListener(() { if (mounted) setState(() {}); });
     }
-    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _feeCtrl, _maxCtrl].forEach(attach);
+    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _feeCtrl, _maxCtrl, _teamSizeCtrl].forEach(attach);
   }
 
   @override
   void dispose() {
-    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _descCtrl, _feeCtrl, _maxCtrl].forEach((c) => c.dispose());
+    [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _descCtrl, _feeCtrl, _maxCtrl, _teamSizeCtrl].forEach((c) => c.dispose());
     super.dispose();
   }
 
@@ -76,10 +82,8 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
     setState(() {
       _eventDay = _stripToDay(picked);
       _eventTime ??= const TimeOfDay(hour: 9, minute: 0);
-
       final start = picked.subtract(const Duration(days: 10));
       final end = picked.subtract(const Duration(days: 3));
-
       final today = _stripToDay(DateTime.now());
       _entryStartDay = start.isBefore(today) ? today : _stripToDay(start);
       _entryEndDay = end.isBefore(_entryStartDay!) ? _entryStartDay : _stripToDay(end);
@@ -125,6 +129,9 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
         entryCount: 0,
         isCanceled: false,
         entrySummarySent: false,
+        type: _selectedType,
+        teamSize: _selectedType == 'single' ? 1 : (int.tryParse(_teamSizeCtrl.text) ?? 2),
+        customQuestions: _customQuestions,
       );
 
       await sl<ArenaRepository>().createTournament(tournament);
@@ -167,6 +174,83 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPosterSection(),
+
+                /// ==========================================
+                /// 🔥 [추가] 광고 영역 (포스터 섹션 아래)
+                /// ==========================================
+                const SizedBox(height: 16),
+                Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'AD',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: Colors.grey[400],
+                          letterSpacing: 1.0,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const AdBanner(),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                _sectionTitle('대회 방식 설정', Icons.account_tree_outlined),
+                const SizedBox(height: 12),
+                AppCard(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ChoiceChip(
+                                label: const Center(child: Text('개인전 (Single)')),
+                                selected: _selectedType == 'single',
+                                onSelected: (val) {
+                                  if (val) setState(() => _selectedType = 'single');
+                                },
+                                selectedColor: Colors.cyan.withOpacity(0.2),
+                                checkmarkColor: Colors.cyan,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ChoiceChip(
+                                label: const Center(child: Text('팀전 (Team)')),
+                                selected: _selectedType == 'team',
+                                onSelected: (val) {
+                                  if (val) setState(() => _selectedType = 'team');
+                                },
+                                selectedColor: Colors.cyan.withOpacity(0.2),
+                                checkmarkColor: Colors.cyan,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_selectedType == 'team') ...[
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            _teamSizeCtrl,
+                            '팀당 인원수 (대표자 포함)',
+                            Icons.people_alt_outlined,
+                            isPhone: true,
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            '※ 팀전 선택 시 신청 폼에서 팀원 정보를 추가로 입력받습니다.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 32),
 
                 _sectionTitle('기본 정보', Icons.info_outline),
@@ -210,11 +294,9 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
                         _buildDateTile('대회 날짜', _eventDay, Colors.orange, Icons.calendar_today, _onEventDayPicked),
                         _buildTimeTile('대회 시간', _eventTime, Colors.orange, Icons.access_time),
 
-                        // ✅ 엔트리 시작 (00:00 고정 표시 추가)
                         _buildDateTile('엔트리 시작', _entryStartDay, Colors.green, Icons.play_circle_outline,
                                 (d) => setState(() => _entryStartDay = d), suffix: "00:00"),
 
-                        // ✅ 엔트리 마감 (23:59 고정 표시 추가)
                         _buildDateTile('엔트리 마감', _entryEndDay, Colors.green, Icons.stop_circle_outlined,
                                 (d) => setState(() => _entryEndDay = d), suffix: "23:59"),
                       ],
@@ -241,6 +323,11 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+
+                // ✅ [추가] 추가 질문 생성 섹션
+                _CustomQuestionInput(onChanged: (list) => _customQuestions = list),
+                const SizedBox(height: 32),
+
                 _CoOrganizerInput(onChanged: (list) => _coOrganizers = list),
               ],
             ),
@@ -273,11 +360,10 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
     );
   }
 
-  // ✅ Suffix(00:00 등)를 추가할 수 있게 수정된 데이트 타일
   Widget _buildDateTile(String label, DateTime? day, Color color, IconData icon, Function(DateTime) onSelect, {String? suffix}) {
     String dateText = day != null ? _formatDay(day) : '선택';
     if (day != null && suffix != null) {
-      dateText = "$dateText  $suffix"; // 날짜 옆에 시간 붙이기
+      dateText = "$dateText  $suffix";
     }
 
     return ListTile(
@@ -357,6 +443,76 @@ class ThousandsFormatter extends TextInputFormatter {
     final text = newValue.text.replaceAll(',', '');
     final formatted = NumberFormat('#,###').format(int.tryParse(text) ?? 0);
     return newValue.copyWith(text: formatted, selection: TextSelection.collapsed(offset: formatted.length));
+  }
+}
+
+// ✅ [추가] 커스텀 질문 입력 위젯
+class _CustomQuestionInput extends StatefulWidget {
+  final Function(List<String>) onChanged;
+  const _CustomQuestionInput({required this.onChanged});
+
+  @override
+  State<_CustomQuestionInput> createState() => _CustomQuestionInputState();
+}
+
+class _CustomQuestionInputState extends State<_CustomQuestionInput> {
+  final _ctrl = TextEditingController();
+  final List<String> _questions = [];
+
+  void _addQuestion() {
+    final text = _ctrl.text.trim();
+    if (text.isNotEmpty && !_questions.contains(text)) {
+      setState(() {
+        _questions.add(text);
+        widget.onChanged(_questions);
+      });
+      _ctrl.clear();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.help_outline, size: 18, color: Colors.cyan),
+            const SizedBox(width: 8),
+            const Text('신청 시 추가 질문 (선택)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const Text('구글 폼처럼 참가자에게 개별적으로 받고 싶은 질문을 추가하세요.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _ctrl,
+          decoration: InputDecoration(
+            hintText: '예: 카드번호, 파트너 이름 등',
+            hintStyle: const TextStyle(fontSize: 13),
+            suffixIcon: IconButton(icon: const Icon(Icons.add_circle, color: Colors.cyan), onPressed: _addQuestion),
+            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
+          ),
+          onSubmitted: (_) => _addQuestion(),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          children: _questions.map((q) => Chip(
+            label: Text(q, style: const TextStyle(fontSize: 12)),
+            onDeleted: () {
+              setState(() {
+                _questions.remove(q);
+                widget.onChanged(_questions);
+              });
+            },
+            side: BorderSide(color: Colors.cyan.withOpacity(0.1)),
+            backgroundColor: Colors.cyan.withOpacity(0.05),
+            deleteIconColor: Colors.cyan,
+          )).toList(),
+        ),
+      ],
+    );
   }
 }
 
