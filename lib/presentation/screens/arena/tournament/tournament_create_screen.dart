@@ -16,6 +16,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 
 // ✅ AdMob 배너 광고 위젯 임포트
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 
 class TournamentCreateScreen extends StatefulWidget {
   const TournamentCreateScreen({super.key});
@@ -180,20 +181,21 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
                 /// ==========================================
                 const SizedBox(height: 16),
                 Center(
-                  child: Column(
+                  child: Column( // 👈 색상 연산 에러 방지를 위해 여기 const를 지워주세요!
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'AD',
                         style: TextStyle(
                           fontSize: 9,
-                          color: Colors.grey[400],
+                          color: Colors.grey[400], // 이제 여기서 에러가 나지 않습니다.
                           letterSpacing: 1.0,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const AdBanner(),
+                      // ✅ 아레나 전용 ID 타입 지정
+                      const AdBanner(type: AdBannerType.detail),
                     ],
                   ),
                 ),

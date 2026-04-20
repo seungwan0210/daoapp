@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
@@ -116,20 +117,22 @@ class ArenaHomeBody extends ConsumerWidget {
           /// ==========================================
           /// 2️⃣ [변경] 슬림 배너 광고 (중간 배치)
           /// ==========================================
-          Column(
+          Column( // 👈 색상 코드 에러 방지를 위해 여기 const를 뺐습니다.
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'AD',
                 style: TextStyle(
                   fontSize: 9,
-                  color: Colors.grey[400],
+                  color: Colors.grey[400], // 여기서 에러 안 나게 부모 const 제거 완료
                   letterSpacing: 1.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              const AdBanner(),
+              // ✅ [핵심] 아레나 전용 ID 타입 지정
+              // 노란 줄이 보기 싫으시면 앞에 const를 붙여주세요!
+              const AdBanner(type: AdBannerType.arena),
             ],
           ),
 

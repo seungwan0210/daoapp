@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
@@ -165,7 +166,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                       /// AppCard 없이 독립적인 공간에 배치하여 프레임 이슈를 방지합니다.
                       /// ==========================================
                       const SizedBox(height: 24),
-                      Center( // 👈 여기에 Center를 추가해서 Column 전체를 중앙으로 보냅니다.
+                      Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -179,7 +180,9 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const AdBanner(), // 이제 이 안의 광고가 화면 정중앙에 옵니다.
+                            // ✅ AdBannerType.main을 명시해줍니다.
+                            // 노란 줄이 거슬린다면 앞에 const를 붙이셔도 됩니다!
+                            const AdBanner(type: AdBannerType.main),
                           ],
                         ),
                       ),

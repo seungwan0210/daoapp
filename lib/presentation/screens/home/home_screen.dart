@@ -24,6 +24,7 @@ import 'package:daoapp/presentation/screens/arena/steel_league/steel_league_sche
 
 // ✅ 배너 광고 위젯
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 
 // ✅ 추가: 자동 청소를 위한 DI 및 리포지토리 임포트
 import 'package:daoapp/di/service_locator.dart';
@@ -118,7 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                const AdBanner(),
+                const AdBanner(type: AdBannerType.main),
               ],
             ),
           ),

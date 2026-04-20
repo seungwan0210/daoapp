@@ -330,7 +330,7 @@ class _PoseAnalysisResultScreenState extends ConsumerState<PoseAnalysisResultScr
                   const SizedBox(height: 16),
 
                   // ✅ 정책 준수 적응형 배너 위젯
-                  const AdBanner(),
+                  const AdBanner(type: AdBannerType.detail),
 
                   const SizedBox(height: 20),
                 ],
@@ -487,34 +487,99 @@ class _RenderingProgressDialogState extends ConsumerState<_RenderingProgressDial
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      // 💡 [핵심 1] insetPadding을 '0' 또는 아주 작게 줘서 다이얼로그가 화면 끝까지 닿게 합니다.
+      // 이렇게 해야 내부 여백을 빼고도 광고 300px이 들어갈 공간이 생깁니다.
+      insetPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          // 상단 광고 영역
-          if (!kAdMobSuspended && _isTopAdLoaded && _topBannerAd != null)
-            Container(height: 50, child: AdWidget(ad: _topBannerAd!))
-          else
-            Container(height: 50, color: Colors.grey[100], child: const Center(child: Text("광고 준비 중", style: TextStyle(fontSize: 10, color: Colors.grey)))),
+      child: ConstrainedBox(
+        // 💡 [핵심 2] 다이얼로그가 너무 좁아지지 않도록 최소 가로폭을 강제로 330 이상 잡습니다.
+        constraints: const BoxConstraints(minWidth: 330),
+        child: SingleChildScrollView(
+          child: Padding(
+            // 💡 [핵심 3] 내부 패딩도 적절히 조절해서 광고가 중앙에 오게 합니다.
+            padding: const EdgeInsets.fromLTRB(15, 24, 15, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 1. 상단 광고 영역 (배너)
+                if (!kAdMobSuspended && _isTopAdLoaded && _topBannerAd != null)
+                  Center(
+                    child: SizedBox(
+                      width: _topBannerAd!.size.width.toDouble(),
+                      height: 50,
+                      child: AdWidget(ad: _topBannerAd!),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 50),
 
-          const SizedBox(height: 24),
-          const Text("영상 생성 중", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 16),
-          Stack(alignment: Alignment.center, children: [
-            SizedBox(width: 70, height: 70, child: CircularProgressIndicator(value: _progress, strokeWidth: 6, color: Colors.cyan, backgroundColor: Colors.grey[200])),
-            Text("${(_progress * 100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          ]),
-          const SizedBox(height: 12),
-          Text(_status, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 20),
+                const Text("영상 생성 중",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 20),
 
-          const SizedBox(height: 24),
-          // 하단 MREC 영역
-          if (!kAdMobSuspended && _isBottomAdLoaded && _bottomMrecAd != null)
-            Container(width: 300, height: 250, child: AdWidget(ad: _bottomMrecAd!))
-          else
-            Container(width: 300, height: 250, decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)), child: const Center(child: Text("DAO DARTS", style: TextStyle(color: Colors.grey)))),
-        ]),
+                // 2. 진행률 표시
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(
+                      width: 80,
+                      height: 80,
+                      child: CircularProgressIndicator(
+                        value: _progress,
+                        strokeWidth: 7,
+                        color: Colors.cyan,
+                        backgroundColor: Colors.grey[100],
+                      ),
+                    ),
+                    Text("${(_progress * 100).toInt()}%",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(_status,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500)),
+
+                const SizedBox(height: 32),
+
+                // 3. [정책 준수 핵심] 하단 MREC 영역 (300x250)
+                // 광고 본체가 짤리지 않도록 정확한 사이즈의 박스 안에 넣고 중앙 정렬합니다.
+                if (!kAdMobSuspended && _isBottomAdLoaded && _bottomMrecAd != null)
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: 300,  // 👈 애드몹이 요구하는 최소 가로폭
+                        height: 250, // 👈 애드몹이 요구하는 최소 세로폭
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[100]!),
+                        ),
+                        child: AdWidget(ad: _bottomMrecAd!),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 300,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: const Center(
+                      child: Text("DAO DARTS",
+                          style: TextStyle(color: Colors.grey, fontSize: 12)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

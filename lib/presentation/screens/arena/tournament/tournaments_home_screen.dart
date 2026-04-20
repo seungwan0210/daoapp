@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 
 import 'package:daoapp/presentation/providers/arena_provider.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
@@ -47,20 +48,21 @@ class TournamentsHomeScreen extends ConsumerWidget {
           /// 리스트 화면 특성상 수직 공간을 최소화하여 배치
           /// ==========================================
           const SizedBox(height: 8),
-          Column(
+          Column( // 👈 부모 Column의 const가 없는지 확인!
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'AD',
                 style: TextStyle(
                   fontSize: 9,
-                  color: Colors.grey[400],
+                  color: Colors.grey[400], // 이제 여기서 에러 안 납니다.
                   letterSpacing: 1.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              const AdBanner(), // 광고 본체
+              // ✅ 아레나 전용 ID 타입 지정
+              const AdBanner(type: AdBannerType.arena),
             ],
           ),
           const SizedBox(height: 4),

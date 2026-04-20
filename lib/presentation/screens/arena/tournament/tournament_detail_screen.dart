@@ -21,6 +21,7 @@ import 'package:share_plus/share_plus.dart'; // ✅ 추가됨
 
 // ✅ AdMob 배너 광고 위젯 임포트
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 
 class TournamentDetailScreen extends ConsumerWidget {
   final String tournamentId;
@@ -119,20 +120,21 @@ class TournamentDetailScreen extends ConsumerWidget {
               /// 🔥 [정책 준수] 광고 영역 삽입 (포스터 이미지 아래)
               /// ==========================================
               const SizedBox(height: 16),
-              Column(
+              Column( // 👈 색상 연산 에러 방지를 위해 여기 const를 뺍니다.
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'AD',
                     style: TextStyle(
                       fontSize: 9,
-                      color: Colors.grey[400],
+                      color: Colors.grey[400], // 이제 에러 없이 잘 작동합니다.
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  const AdBanner(),
+                  // ✅ [핵심] 상세페이지 전용 ID 타입 지정
+                  const AdBanner(type: AdBannerType.detail),
                 ],
               ),
               const SizedBox(height: 24),

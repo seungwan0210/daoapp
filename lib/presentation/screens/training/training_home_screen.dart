@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
+
 
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/constants/training_drill_constants.dart';
@@ -319,20 +321,20 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             /// 🔥 [정책 준수] 슬림 배너 광고 영역
             /// ==========================================
             const SizedBox(height: 12),
-            Column(
+            Column( // 👈 1. 여기 앞에 있던 const를 반드시 지워주세요!
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'AD',
                   style: TextStyle(
                     fontSize: 9,
-                    color: Colors.grey[400],
+                    color: Colors.grey[400], // 이제 여기서 에러가 안 납니다!
                     letterSpacing: 1.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
-                const AdBanner(),
+                const AdBanner(type: AdBannerType.main), // 2. 여기도 const 없이!
               ],
             ),
             const SizedBox(height: 40),
