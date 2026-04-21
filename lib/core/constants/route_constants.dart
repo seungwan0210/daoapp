@@ -69,6 +69,8 @@ class RouteConstants {
   static const String community = '/community';
   static const String circle = '/community/circle';
   static const String postWrite = '/community/circle/post-write';
+  static const String chat = '/community/chat'; // 🔥 이 줄을 추가하세요!
+  static const String blockList = '/my-page/block-list';
 
   // === 마이페이지 ===
   static const String myPage = '/my-page';
@@ -93,4 +95,7 @@ class RouteConstants {
   static const String memberRegister = '/admin/member-register';
   static const String competitionPhotosForm = '/admin/competition-photos-form';
   static const String selectionPlayersAdmin = '/admin/selection-players';
+  static const String adminBlockManage = '/admin/block-manage'; // 전체 차단 현황
+  static const String adminBlockStats = '/admin/block-manage';
+  static const String adminChatConfig = '/admin/chat-config';
 }

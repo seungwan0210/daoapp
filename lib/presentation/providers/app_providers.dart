@@ -57,6 +57,19 @@ final isFullyAuthenticatedProvider = Provider<bool>((ref) {
   return hasProfile && phoneVerified;
 });
 
+// 파일 맨 아래에 추가
+final blockedUserIdsProvider = StreamProvider<Set<String>>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value({});
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('blockedUsers')
+      .snapshots()
+      .map((snap) => snap.docs.map((doc) => doc.id).toSet());
+});
+
 // === 실시간 안 읽은 공지 수 ===
 final unreadNoticesCountProvider = StreamProvider.autoDispose<int>((ref) {
   final user = FirebaseAuth.instance.currentUser;

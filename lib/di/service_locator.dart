@@ -32,6 +32,9 @@ import 'package:daoapp/data/repositories/training_progress_repository_impl.dart'
 import 'package:daoapp/data/repositories/grip_baseline_repository.dart';
 import 'package:daoapp/data/repositories/grip_baseline_repository_impl.dart';
 
+import 'package:daoapp/data/repositories/chat_repository.dart'; // 경로 확인 필요
+import 'package:daoapp/data/repositories/chat_repository_impl.dart';
+
 final sl = GetIt.instance;
 
 void setupDependencies() {
@@ -50,6 +53,11 @@ void setupDependencies() {
   // === Point & Ranking ===
   sl.registerLazySingleton<PointRecordRepository>(
         () => PointRecordRepositoryImpl(),
+  );
+
+  // ✅ 라이브 채팅 Repository 등록
+  sl.registerLazySingleton<ChatRepository>(
+        () => ChatRepositoryImpl(firestore: sl<FirebaseFirestore>()),
   );
 
   // === Arena ===

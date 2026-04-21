@@ -7,6 +7,7 @@ import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+import 'package:daoapp/presentation/providers/app_providers.dart'; // ✅ 중앙 차단 프로바이더 임포트
 
 class CommunityAvatarSlider extends ConsumerWidget {
   const CommunityAvatarSlider({super.key});
@@ -15,6 +16,9 @@ class CommunityAvatarSlider extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     if (currentUid == null) return const SizedBox(height: 90);
+
+    // ✅ [핵심] 중앙 집중식 실시간 차단 목록 구독
+    final blockedIds = ref.watch(blockedUserIdsProvider).value ?? {};
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -37,6 +41,9 @@ class CommunityAvatarSlider extends ConsumerWidget {
           final data = (d.data() as Map<String, dynamic>?);
           final uid = data?['uid']?.toString().trim();
           if (uid == null || uid.isEmpty) continue;
+
+          // 🔥 [필터링] 내가 차단한 유저라면 목록에 추가하지 않고 건너뜁니다.
+          if (blockedIds.contains(uid)) continue;
 
           if (uid == currentUid) {
             myDoc = d;

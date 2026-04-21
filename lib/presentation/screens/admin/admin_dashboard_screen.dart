@@ -100,6 +100,13 @@ class AdminDashboardScreen extends ConsumerWidget {
                 subtitle: '대회 사진 등록·수정·삭제·링크',
                 route: RouteConstants.competitionPhotosForm,
               ),
+              _buildItem(
+                context,
+                icon: Icons.chat_outlined,
+                title: '라이브 톡 전광판 공지',
+                subtitle: '전광판 상단 띠 공지 실시간 수정',
+                route: RouteConstants.adminChatConfig, // 방금 만든 라우트
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -203,6 +210,31 @@ class AdminDashboardScreen extends ConsumerWidget {
                 title: '신고 내역 확인',
                 subtitle: '사용자 신고 확인 및 처리',
                 route: RouteConstants.adminReportList,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // -------------------------
+          // 사용자 차단 관리 (★ 새로 추가)
+          // -------------------------
+          _buildSection(
+            context,
+            title: '사용자 차단 관리',
+            items: [
+              _buildItem(
+                context,
+                icon: Icons.person_off,
+                title: '전체 차단 현황',
+                subtitle: '누가 누구를 차단했는지 확인 및 해제',
+                route: RouteConstants.adminBlockManage,
+              ),
+              _buildItem(
+                context,
+                icon: Icons.analytics,
+                title: '블랙리스트 통계',
+                subtitle: '많이 차단당한 유저 확인 및 관리',
+                route: RouteConstants.adminBlockStats,
               ),
             ],
           ),

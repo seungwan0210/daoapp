@@ -60,6 +60,10 @@ import 'package:daoapp/presentation/screens/admin/admin_report_list_screen.dart'
 import 'package:daoapp/presentation/screens/admin/admin_member_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/selection_players_admin_screen.dart';
 import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
+import 'package:daoapp/presentation/screens/community/chat/chat_screen.dart';
+import 'package:daoapp/presentation/screens/my_page/block_list_screen.dart';
+import 'package:daoapp/presentation/screens/admin/admin_block_manage_screen.dart'; // 전체 차단 관리
+import 'package:daoapp/presentation/screens/admin/forms/admin_chat_config_screen.dart'; // 전광판 설정
 
 // -----------------------------------------------------------
 // ⚠️ [긴급] 애드몹 정지 대응을 위한 설정
@@ -120,6 +124,7 @@ class OnlineStatusManager {
       {
         'uid': _currentUser!.uid,
         'name': _currentUser!.displayName ?? '이름 없음',
+        'photoUrl': _currentUser!.photoURL, // ✅ 채팅창 실시간 아바타용 추가
         'lastSeen': FieldValue.serverTimestamp(),
       },
       SetOptions(merge: true),
@@ -166,6 +171,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
         RouteConstants.steelLeagueRanking: (_) => const SteelLeagueRankingScreen(),
         RouteConstants.steelLeagueSchedule: (_) => const SteelLeagueScheduleScreen(),
+        RouteConstants.chat: (_) => const ChatScreen(), // 승완님이 만든 경로의 화면
         RouteConstants.steelLeaguePointCalendar: (_) => const SteelLeaguePointCalendarScreen(),
         RouteConstants.steelLeagueMembers: (_) => const MemberListScreen(),
         RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
@@ -178,6 +184,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.report: (_) => const ReportFormScreen(),
         RouteConstants.myLogHome: (_) => const MyLogHomeScreen(),
         RouteConstants.adminDashboard: (_) => const AdminDashboardScreen(),
+        RouteConstants.blockList: (_) => const BlockListScreen(),
         RouteConstants.pointAward: (_) => const PointAwardScreen(),
         RouteConstants.pointAwardList: (_) => const PointAwardListScreen(),
         RouteConstants.eventCreate: (_) => const EventCreateScreen(),
@@ -191,6 +198,10 @@ class DaoApp extends StatelessWidget {
         RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(),
         RouteConstants.selectionPlayersAdmin: (_) => const SelectionPlayersAdminScreen(),
         RouteConstants.steelLeagueSelection: (_) => const SelectionPlayersScreen(),
+        RouteConstants.adminBlockManage: (_) => const AdminBlockManageScreen(), // 만약 스크린 만드셨다면 주석 해제
+
+        // 2. 라이브 톡 전광판 설정 (신규)
+        RouteConstants.adminChatConfig: (_) => const AdminChatConfigScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RouteConstants.guestbook) {

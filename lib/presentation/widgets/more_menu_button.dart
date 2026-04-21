@@ -68,7 +68,18 @@ class MoreMenuButton extends ConsumerWidget {
                 children: [
                   Icon(Icons.bug_report, size: 20),
                   SizedBox(width: 12),
-                  Text('버그 신고'),
+                  Text('문의 및 신고'),
+                ],
+              ),
+            ),
+            // ✅ 수정: 일반인은 block_list, 관리자는 admin_block으로 구분
+            PopupMenuItem(
+              value: isAdmin ? 'admin_block' : 'block_manage',
+              child: Row(
+                children: [
+                  Icon(isAdmin ? Icons.admin_panel_settings : Icons.person_off, size: 20),
+                  const SizedBox(width: 12),
+                  Text(isAdmin ? '전체 차단 관리' : '차단 유저 관리'),
                 ],
               ),
             ),
@@ -77,7 +88,7 @@ class MoreMenuButton extends ConsumerWidget {
                 value: 'admin',
                 child: Row(
                   children: [
-                    Icon(Icons.admin_panel_settings, size: 20),
+                    Icon(Icons.dashboard_customize, size: 20),
                     SizedBox(width: 12),
                     Text('관리자 모드'),
                   ],
@@ -85,16 +96,22 @@ class MoreMenuButton extends ConsumerWidget {
               ),
           ],
           onSelected: (value) {
+            // ✅ 모든 이동 로직에 RouteConstants를 적용하여 오타 방지
             if (value == 'notice') {
               Navigator.pushNamed(context, RouteConstants.noticeList);
             } else if (value == 'report') {
               Navigator.pushNamed(context, RouteConstants.report);
+            } else if (value == 'block_manage') {
+              // 일반 유저용 차단 목록
+              Navigator.pushNamed(context, RouteConstants.blockList);
+            } else if (value == 'admin_block') {
+              // 어드민용 블랙리스트 통합 관리
+              Navigator.pushNamed(context, RouteConstants.adminBlockManage);
             } else if (value == 'admin') {
               Navigator.pushNamed(context, RouteConstants.adminDashboard);
             }
           },
         ),
-        // 설정 아이콘 위 배지
         if (count > 0)
           Positioned(
             right: 6,

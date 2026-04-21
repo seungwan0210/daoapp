@@ -10,6 +10,9 @@ import 'package:daoapp/presentation/screens/community/widgets/community_preview.
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/screens/main_screen.dart';
 
+// ✅ 라이브 채팅 전광판 임포트
+import 'package:daoapp/presentation/screens/community/chat/widgets/live_chat_ticker.dart';
+
 // ✅ AdMob 배너 광고 위젯 임포트
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 
@@ -103,8 +106,16 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 12),
+
+                      // 🔥 [UI 개선] 라이브 세션 그룹화
+                      // 온라인 유저 목록
                       const CommunityAvatarSlider(),
-                      const SizedBox(height: 16),
+
+                      // 실시간 채팅 전광판 (슬라이더와 간격 8px로 밀착 배치)
+                      const SizedBox(height: 8),
+                      const LiveChatTicker(),
+
+                      const SizedBox(height: 20),
 
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -161,10 +172,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                         },
                       ),
 
-                      /// ==========================================
-                      /// 🔥 [정책 준수 수정] 커뮤니티 하단 배너 광고
-                      /// AppCard 없이 독립적인 공간에 배치하여 프레임 이슈를 방지합니다.
-                      /// ==========================================
                       const SizedBox(height: 24),
                       Center(
                         child: Column(
@@ -180,8 +187,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // ✅ AdBannerType.main을 명시해줍니다.
-                            // 노란 줄이 거슬린다면 앞에 const를 붙이셔도 됩니다!
                             const AdBanner(type: AdBannerType.main),
                           ],
                         ),
@@ -201,7 +206,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
   }
 
   // ==========================
-  // UGC 동의 게이트 UI
+  // UGC 동의 게이트 UI (생략 없이 유지)
   // ==========================
   Widget _buildUgcTermsGate({
     required BuildContext context,
@@ -272,9 +277,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
     );
   }
 
-  // ==========================
-  // 로그인 유도
-  // ==========================
+  // 로그인 유도 UI
   Widget _buildLoginPrompt(BuildContext context, ThemeData theme) {
     return Center(
       child: SingleChildScrollView(
@@ -285,14 +288,12 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.people_alt_outlined,
-                    size: 64, color: Colors.grey[400]),
+                Icon(Icons.people_alt_outlined, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 20),
                 Text(
                   '커뮤니티를 이용하려면\n로그인이 필요해요',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -302,9 +303,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
     );
   }
 
-  // ==========================
-  // 인증 유도
-  // ==========================
+  // 인증 유도 UI
   Widget _buildVerificationPrompt({
     required BuildContext context,
     required ThemeData theme,
@@ -320,23 +319,17 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.verified_user_outlined,
-                    size: 64, color: Colors.grey[500]),
+                Icon(Icons.verified_user_outlined, size: 64, color: Colors.grey[500]),
                 const SizedBox(height: 20),
                 Text(
                   '커뮤니티 이용을 위해\n인증이 필요해요',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  !hasProfile
-                      ? '프로필 등록을 완료해 주세요.'
-                      : '휴대폰 인증을 완료해 주세요.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[700],
-                  ),
+                  !hasProfile ? '프로필 등록을 완료해 주세요.' : '휴대폰 인증을 완료해 주세요.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                 ),
               ],
             ),

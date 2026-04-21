@@ -1,74 +1,34 @@
 // lib/presentation/screens/community/widgets/community_preview.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // ✅ 추가
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:daoapp/presentation/providers/app_providers.dart'; // ✅ 중앙 차단 프로바이더 추가
 
-class CommunityPreview extends StatefulWidget {
+class CommunityPreview extends ConsumerStatefulWidget { // 👈 ConsumerStatefulWidget으로 변경
   final VoidCallback onSeeAllPressed;
   const CommunityPreview({super.key, required this.onSeeAllPressed});
 
   @override
-  State<CommunityPreview> createState() => _CommunityPreviewState();
+  ConsumerState<CommunityPreview> createState() => _CommunityPreviewState();
 }
 
-class _CommunityPreviewState extends State<CommunityPreview> {
-  int _tab = 0; // 0: 최근, 1: 인기
+class _CommunityPreviewState extends ConsumerState<CommunityPreview> {
+  int _tab = 0;
   static const String _defaultThumbAsset = 'assets/images/circle_main.png';
 
   String? get _currentUid => FirebaseAuth.instance.currentUser?.uid;
 
-  Stream<Set<String>> _blockedIdsStream(String uid) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .collection('blockedUsers')
-        .snapshots()
-        .map((snap) => snap.docs.map((d) => d.id).toSet());
-  }
-
-  bool _isBlockedPost(Map<String, dynamic> data, Set<String> blockedIds) {
-    final postUserId = (data['userId'] as String?)?.trim();
-    if (postUserId == null || postUserId.isEmpty) return false;
-    return blockedIds.contains(postUserId);
-  }
-
-  List<QueryDocumentSnapshot> _filterDocs(
-      List<QueryDocumentSnapshot> docs,
-      Set<String> blockedIds,
-      ) {
-    // ✅ 차단 유저 글 제거
-    final filtered = docs.where((d) {
-      final data = d.data() as Map<String, dynamic>;
-      return !_isBlockedPost(data, blockedIds);
-    }).toList();
-
-    return filtered;
-  }
+  // ✅ [삭제] 이제 개별 스트림 함수(_blockedIdsStream)는 필요 없습니다.
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final uid = _currentUid;
 
-    // ✅ 로그인 안 했으면 기존처럼 그냥 보여줘도 되지만,
-    // 애플 기준상 "커뮤니티 접근은 로그인 후"로 이미 막아둔 상태라면
-    // 여기서도 uid==null일 때는 빈 UI로 처리해도 됨.
-    // (지금은 최대한 안전하게: uid 없으면 차단 필터 없이 그대로 렌더)
-    if (uid == null) {
-      return _buildBody(context, theme, const <String>{});
-    }
+    // ✅ [핵심 수정] 중앙 집중식 차단 목록 구독
+    final blockedIds = ref.watch(blockedUserIdsProvider).value ?? {};
 
-    return StreamBuilder<Set<String>>(
-      stream: _blockedIdsStream(uid),
-      builder: (context, snap) {
-        final blockedIds = snap.data ?? <String>{};
-        return _buildBody(context, theme, blockedIds);
-      },
-    );
-  }
-
-  Widget _buildBody(BuildContext context, ThemeData theme, Set<String> blockedIds) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -97,7 +57,7 @@ class _CommunityPreviewState extends State<CommunityPreview> {
           ),
         ),
 
-        // ✅ 썸네일 영역
+        // 썸네일 영역 (중앙 blockedIds 전달)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Container(
@@ -115,7 +75,7 @@ class _CommunityPreviewState extends State<CommunityPreview> {
 
         const SizedBox(height: 10),
 
-        // ✅ (3) 오늘 커뮤니티 요약 (차단 유저 글 제외)
+        // 오늘 커뮤니티 요약 (중앙 blockedIds 전달)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _TodayCommunitySummaryCard(blockedIds: blockedIds),
@@ -123,7 +83,7 @@ class _CommunityPreviewState extends State<CommunityPreview> {
 
         const SizedBox(height: 10),
 
-        // ✅ (2) 지금 올라온 글 (텍스트 리스트) - 차단 유저 글 제외
+        // 지금 올라온 글 (중앙 blockedIds 전달)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _LiveTextPreviewList(
@@ -141,22 +101,25 @@ class _CommunityPreviewState extends State<CommunityPreview> {
     );
   }
 
+  // 최근/인기 리스트 빌더 (기존 로직 유지하되 blockedIds는 중앙에서 온 것 사용)
   Widget _buildRecentList(BuildContext context, Set<String> blockedIds) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('community')
           .orderBy('timestamp', descending: true)
-          .limit(20) // ✅ 필터링으로 줄어들 수 있어서 약간 넉넉히
+          .limit(20)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty) return const SizedBox();
 
-        final filtered = _filterDocs(docs.cast<QueryDocumentSnapshot>(), blockedIds);
+        final filtered = docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final postUserId = (data['userId'] as String?)?.trim();
+          return postUserId == null || !blockedIds.contains(postUserId);
+        }).toList();
+
         if (filtered.isEmpty) return const SizedBox();
-
-        // ✅ 프리뷰는 최대 10개만
         final shown = filtered.take(10).toList();
 
         return ListView.builder(
@@ -178,16 +141,19 @@ class _CommunityPreviewState extends State<CommunityPreview> {
       stream: FirebaseFirestore.instance
           .collection('community')
           .orderBy('likes', descending: true)
-          .limit(30) // ✅ 필터링 대비
+          .limit(30)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox();
         final docs = snapshot.data!.docs;
-        if (docs.isEmpty) return const SizedBox();
 
-        final filtered = _filterDocs(docs.cast<QueryDocumentSnapshot>(), blockedIds);
+        final filtered = docs.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          final postUserId = (data['userId'] as String?)?.trim();
+          return postUserId == null || !blockedIds.contains(postUserId);
+        }).toList();
+
         if (filtered.isEmpty) return const SizedBox();
-
         final shown = filtered.take(10).toList();
 
         return ListView.builder(

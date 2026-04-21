@@ -139,11 +139,12 @@ class _PostCardState extends ConsumerState<PostCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('사용자 차단'),
-        content: Text('$blockedName 님을 차단할까요?\n\n차단하면 이 사용자의 게시글이 보이지 않습니다.'),
+        backgroundColor: Colors.grey[900], // 다크 테마 적용
+        title: const Text('사용자 차단', style: TextStyle(color: Colors.white)),
+        content: Text('$blockedName 님을 차단할까요?\n\n차단하면 이 사용자의 게시글이 보이지 않습니다.', style: const TextStyle(color: Colors.white70)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('차단')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소', style: TextStyle(color: Colors.grey))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('차단', style: TextStyle(color: Colors.redAccent))),
         ],
       ),
     );
@@ -151,8 +152,15 @@ class _PostCardState extends ConsumerState<PostCard> {
     if (ok != true) return;
 
     try {
-      await _blockedDocRef(blockerUid: me, blockedUid: blockedUid).set({
+      // ✅ 중앙 DB에 차단 기록 (이게 들어가면 전광판/피드/채팅 다 사라짐)
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(me)
+          .collection('blockedUsers')
+          .doc(blockedUid)
+          .set({
         'blockedUserId': blockedUid,
+        'name': blockedName, // 나중에 차단 관리 목록에서 이름을 보여주기 위해 저장
         'createdAt': FieldValue.serverTimestamp(),
       });
 

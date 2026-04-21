@@ -21,8 +21,11 @@
 │       └── dao_training_xp_utils.dart
 │       └── training_cycle_utils.dart
 │       └── geometry_utils.dart 
+│       └── chat_utils.dart
 ├── data/
 │   └── models/
+│       ├── chat_message_model.dart
+│       ├── chat_message_model.freezed.dart
 │       ├── point_record_model.dart
 │       ├── practice_session_summary.dart
 │       ├── ranking_game_model.dart
@@ -43,6 +46,8 @@
 │       └── grip_baseline_model.dart
 │       └── grip_native_payload.dart
 │   ├── repositories/
+│   │   ├── chat_repository.dart
+│   │   ├── chat_repository_impl.dart
 │   │   ├── auth_repository.dart
 │   │   ├── auth_repository_impl.dart
 │   │   ├── point_record_repository.dart
@@ -71,6 +76,8 @@
 │   │   ├── circle_feed_provider.dart
 │   │   ├── arena_provider.dart
 │   │   └── my_log_provider.dart
+│   │   └── chat/ 
+│   │   │   └──chat_provider.dart
 │   │   └── training/ 
 │   │   │   └── training_drill_provider.dart
 │   │   │   └── training_history_provider.dart
@@ -118,6 +125,7 @@
 │   │   │   │   ├── tournament_create_screen.dart
 │   │   │   │   ├── tournament_detail_screen.dart
 │   │   │   │   ├── tournament_entry_form_screen.dart
+│   │   │   │   ├── tournament_entry_edit_screen.dart
 │   │   │   │   ├── tournament_debug_tools_screen.dart
 │   │   │   │   ├── tournament_edit_screen.dart
 │   │   │   │   ├── tournament_participant_list_screen.dart
@@ -141,6 +149,12 @@
 │   │   │   │       ├── comment_button.dart
 │   │   │   │       ├── comment_preview.dart
 │   │   │   │       └── comment_bottom_sheet.dart
+│   │   │   ├── chat/
+│   │   │   │   ├── chat_screen.dart
+│   │   │   │   ├──widgets/
+│   │   │   │       ├── live_chat_ticker.dart
+│   │   │   │       ├── chat_input_field.dart
+│   │   │   │       ├── chat_message_bubble.dart
 │   │   │   ├── widgets/
 │   │   │   │   ├── community_avatar_slider.dart
 │   │   │   │   ├── community_preview.dart
