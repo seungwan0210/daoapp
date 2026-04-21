@@ -1,5 +1,3 @@
-// lib/presentation/screens/arena/tournament/tournament_create_screen.dart
-
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
@@ -14,9 +12,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 
-// ✅ AdMob 배너 광고 위젯 임포트
+// ✅ AdMob 배너 광고 위젯 및 유틸 임포트
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 import 'package:daoapp/core/utils/ad_manager.dart';
+
+// ✅ 시스템 공지 유틸 임포트
+import 'package:daoapp/core/utils/chat_utils.dart';
 
 class TournamentCreateScreen extends StatefulWidget {
   const TournamentCreateScreen({super.key});
@@ -48,8 +49,13 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
   bool _isSaving = false;
   String _selectedType = 'single';
 
+  // ✅ 현재 로그인된 유저 가져오기
+  User? get _currentUser => sl<FirebaseAuth>().currentUser;
+
+  // ✅ 제출 가능 조건 수정 (로그인 상태 포함)
   bool get _canSubmit =>
-      _titleCtrl.text.trim().isNotEmpty &&
+      _currentUser != null &&
+          _titleCtrl.text.trim().isNotEmpty &&
           _locationCtrl.text.trim().isNotEmpty &&
           _hostNameCtrl.text.trim().isNotEmpty &&
           _hostPhoneCtrl.text.trim().isNotEmpty &&
@@ -63,10 +69,39 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
   @override
   void initState() {
     super.initState();
+
+    // ✅ [추가] 페이지 진입 즉시 로그인 체크
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_currentUser == null) {
+        _showLoginRequiredDialog();
+      }
+    });
+
     void attach(TextEditingController c) {
       c.addListener(() { if (mounted) setState(() {}); });
     }
     [_titleCtrl, _locationCtrl, _hostNameCtrl, _hostPhoneCtrl, _feeCtrl, _maxCtrl, _teamSizeCtrl].forEach(attach);
+  }
+
+  // ✅ [추가] 비로그인 유저 차단 다이얼로그
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // 밖을 눌러도 안 꺼지게
+      builder: (context) => AlertDialog(
+        title: const Text('로그인 필요', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('대회를 개설하려면 로그인이 필요합니다.\n로그인 후 다시 이용해주세요.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // 다이얼로그 닫기
+              Navigator.pop(context); // 생성 페이지 나가기
+            },
+            child: const Text('확인', style: TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -94,7 +129,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
   Future<void> _submit() async {
     if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
-    final user = sl<FirebaseAuth>().currentUser;
+    final user = _currentUser;
     if (user == null) return;
 
     setState(() => _isSaving = true);
@@ -135,7 +170,15 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
         customQuestions: _customQuestions,
       );
 
-      await sl<ArenaRepository>().createTournament(tournament);
+      // ✅ 대회 생성 및 ID 수신
+      final String tournamentId = await sl<ArenaRepository>().createTournament(tournament);
+
+      // ✅ 채팅방에 시스템 공지 발송
+      await ChatUtils.sendTournamentNotice(
+          _locationCtrl.text.trim(),
+          tournamentId
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('대회가 성공적으로 개설되었습니다!'), behavior: SnackBarBehavior.floating));
         Navigator.pop(context, true);
@@ -159,7 +202,14 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
             onPressed: _canSubmit && !_isSaving ? _submit : null,
             child: _isSaving
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyan))
-                : const Text('개설하기', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.cyan)),
+                : Text(
+              _currentUser == null ? '로그인 필요' : '개설하기',
+              style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: _canSubmit ? Colors.cyan : Colors.grey
+              ),
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -176,25 +226,16 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
               children: [
                 _buildPosterSection(),
 
-                /// ==========================================
-                /// 🔥 [추가] 광고 영역 (포스터 섹션 아래)
-                /// ==========================================
                 const SizedBox(height: 16),
                 Center(
-                  child: Column( // 👈 색상 연산 에러 방지를 위해 여기 const를 지워주세요!
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         'AD',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: Colors.grey[400], // 이제 여기서 에러가 나지 않습니다.
-                          letterSpacing: 1.0,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: TextStyle(fontSize: 9, color: Colors.grey[400], letterSpacing: 1.0, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 2),
-                      // ✅ 아레나 전용 ID 타입 지정
                       const AdBanner(type: AdBannerType.detail),
                     ],
                   ),
@@ -237,17 +278,9 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
                         ),
                         if (_selectedType == 'team') ...[
                           const SizedBox(height: 16),
-                          _buildTextField(
-                            _teamSizeCtrl,
-                            '팀당 인원수 (대표자 포함)',
-                            Icons.people_alt_outlined,
-                            isPhone: true,
-                          ),
+                          _buildTextField(_teamSizeCtrl, '팀당 인원수 (대표자 포함)', Icons.people_alt_outlined, isPhone: true),
                           const SizedBox(height: 8),
-                          const Text(
-                            '※ 팀전 선택 시 신청 폼에서 팀원 정보를 추가로 입력받습니다.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
-                          ),
+                          const Text('※ 팀전 선택 시 신청 폼에서 팀원 정보를 추가로 입력받습니다.', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
                         ],
                       ],
                     ),
@@ -277,8 +310,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
 
                 _sectionTitle('참가 및 날짜 설정', Icons.settings_outlined),
                 const SizedBox(height: 8),
-                const Text('📩 엔트리 마감 시 참가자 명단이 담당자 이메일로 자동 전송됩니다.',
-                    style: TextStyle(fontSize: 12, color: Colors.cyan, fontWeight: FontWeight.bold)),
+                const Text('📩 엔트리 마감 시 참가자 명단이 담당자 이메일로 자동 전송됩니다.', style: TextStyle(fontSize: 12, color: Colors.cyan, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 AppCard(
                   child: Padding(
@@ -295,12 +327,8 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
                         const SizedBox(height: 24),
                         _buildDateTile('대회 날짜', _eventDay, Colors.orange, Icons.calendar_today, _onEventDayPicked),
                         _buildTimeTile('대회 시간', _eventTime, Colors.orange, Icons.access_time),
-
-                        _buildDateTile('엔트리 시작', _entryStartDay, Colors.green, Icons.play_circle_outline,
-                                (d) => setState(() => _entryStartDay = d), suffix: "00:00"),
-
-                        _buildDateTile('엔트리 마감', _entryEndDay, Colors.green, Icons.stop_circle_outlined,
-                                (d) => setState(() => _entryEndDay = d), suffix: "23:59"),
+                        _buildDateTile('엔트리 시작', _entryStartDay, Colors.green, Icons.play_circle_outline, (d) => setState(() => _entryStartDay = d), suffix: "00:00"),
+                        _buildDateTile('엔트리 마감', _entryEndDay, Colors.green, Icons.stop_circle_outlined, (d) => setState(() => _entryEndDay = d), suffix: "23:59"),
                       ],
                     ),
                   ),
@@ -326,7 +354,6 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // ✅ [추가] 추가 질문 생성 섹션
                 _CustomQuestionInput(onChanged: (list) => _customQuestions = list),
                 const SizedBox(height: 32),
 
@@ -364,20 +391,13 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
 
   Widget _buildDateTile(String label, DateTime? day, Color color, IconData icon, Function(DateTime) onSelect, {String? suffix}) {
     String dateText = day != null ? _formatDay(day) : '선택';
-    if (day != null && suffix != null) {
-      dateText = "$dateText  $suffix";
-    }
+    if (day != null && suffix != null) dateText = "$dateText  $suffix";
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color, size: 20),
       title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-      trailing: Text(dateText,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: day != null ? Colors.black : Colors.cyan,
-            fontSize: 14,
-          )),
+      trailing: Text(dateText, style: TextStyle(fontWeight: FontWeight.bold, color: day != null ? Colors.black : Colors.cyan, fontSize: 14)),
       onTap: () async {
         final picked = await showDatePicker(
             context: context,
@@ -395,8 +415,7 @@ class _TournamentCreateScreenState extends State<TournamentCreateScreen> {
       contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: color, size: 20),
       title: Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-      trailing: Text(time != null ? _formatTime(time!) : '선택',
-          style: TextStyle(fontWeight: FontWeight.bold, color: time != null ? Colors.black : Colors.cyan)),
+      trailing: Text(time != null ? _formatTime(time!) : '선택', style: TextStyle(fontWeight: FontWeight.bold, color: time != null ? Colors.black : Colors.cyan)),
       onTap: () async {
         final initial = time ?? const TimeOfDay(hour: 9, minute: 0);
         await showModalBottomSheet(
@@ -448,11 +467,9 @@ class ThousandsFormatter extends TextInputFormatter {
   }
 }
 
-// ✅ [추가] 커스텀 질문 입력 위젯
 class _CustomQuestionInput extends StatefulWidget {
   final Function(List<String>) onChanged;
   const _CustomQuestionInput({required this.onChanged});
-
   @override
   State<_CustomQuestionInput> createState() => _CustomQuestionInputState();
 }
@@ -460,61 +477,22 @@ class _CustomQuestionInput extends StatefulWidget {
 class _CustomQuestionInputState extends State<_CustomQuestionInput> {
   final _ctrl = TextEditingController();
   final List<String> _questions = [];
-
   void _addQuestion() {
     final text = _ctrl.text.trim();
     if (text.isNotEmpty && !_questions.contains(text)) {
-      setState(() {
-        _questions.add(text);
-        widget.onChanged(_questions);
-      });
+      setState(() { _questions.add(text); widget.onChanged(_questions); });
       _ctrl.clear();
     }
   }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.help_outline, size: 18, color: Colors.cyan),
-            const SizedBox(width: 8),
-            const Text('신청 시 추가 질문 (선택)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        const Text('구글 폼처럼 참가자에게 개별적으로 받고 싶은 질문을 추가하세요.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _ctrl,
-          decoration: InputDecoration(
-            hintText: '예: 카드번호, 파트너 이름 등',
-            hintStyle: const TextStyle(fontSize: 13),
-            suffixIcon: IconButton(icon: const Icon(Icons.add_circle, color: Colors.cyan), onPressed: _addQuestion),
-            focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
-          ),
-          onSubmitted: (_) => _addQuestion(),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          children: _questions.map((q) => Chip(
-            label: Text(q, style: const TextStyle(fontSize: 12)),
-            onDeleted: () {
-              setState(() {
-                _questions.remove(q);
-                widget.onChanged(_questions);
-              });
-            },
-            side: BorderSide(color: Colors.cyan.withOpacity(0.1)),
-            backgroundColor: Colors.cyan.withOpacity(0.05),
-            deleteIconColor: Colors.cyan,
-          )).toList(),
-        ),
-      ],
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [const Icon(Icons.help_outline, size: 18, color: Colors.cyan), const SizedBox(width: 8), const Text('신청 시 추가 질문 (선택)', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16))]),
+      const SizedBox(height: 12),
+      TextField(controller: _ctrl, decoration: InputDecoration(hintText: '예: 카드번호, 파트너 이름 등', suffixIcon: IconButton(icon: const Icon(Icons.add_circle, color: Colors.cyan), onPressed: _addQuestion), focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)))),
+      const SizedBox(height: 12),
+      Wrap(spacing: 8, children: _questions.map((q) => Chip(label: Text(q, style: const TextStyle(fontSize: 12)), onDeleted: () { setState(() { _questions.remove(q); widget.onChanged(_questions); }); }, backgroundColor: Colors.cyan.withOpacity(0.05), deleteIconColor: Colors.cyan)).toList()),
+    ]);
   }
 }
 
@@ -533,23 +511,9 @@ class _CoOrganizerInputState extends State<_CoOrganizerInput> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text('공동주최자 추가', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
       const SizedBox(height: 12),
-      TextField(
-        controller: _ctrl,
-        decoration: InputDecoration(
-          hintText: '이메일 입력',
-          suffixIcon: IconButton(icon: const Icon(Icons.add_circle, color: Colors.cyan), onPressed: _addEmail),
-          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan)),
-        ),
-        onSubmitted: (_) => _addEmail(),
-      ),
+      TextField(controller: _ctrl, decoration: InputDecoration(hintText: '이메일 입력', suffixIcon: IconButton(icon: const Icon(Icons.add_circle, color: Colors.cyan), onPressed: _addEmail), focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan))), onSubmitted: (_) => _addEmail()),
       const SizedBox(height: 12),
-      Wrap(spacing: 8, children: _emails.map((e) => Chip(
-        label: Text(e, style: const TextStyle(fontSize: 12)),
-        onDeleted: () { setState(() { _emails.remove(e); widget.onChanged(_emails); }); },
-        side: BorderSide(color: Colors.cyan.withOpacity(0.1)),
-        backgroundColor: Colors.cyan.withOpacity(0.05),
-        deleteIconColor: Colors.cyan,
-      )).toList()),
+      Wrap(spacing: 8, children: _emails.map((e) => Chip(label: Text(e, style: const TextStyle(fontSize: 12)), onDeleted: () { setState(() { _emails.remove(e); widget.onChanged(_emails); }); }, backgroundColor: Colors.cyan.withOpacity(0.05), deleteIconColor: Colors.cyan)).toList()),
     ]);
   }
   void _addEmail() {

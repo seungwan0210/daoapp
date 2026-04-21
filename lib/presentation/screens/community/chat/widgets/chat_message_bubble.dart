@@ -4,9 +4,13 @@ import 'package:daoapp/data/models/chat_message_model.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
-import 'package:daoapp/core/constants/route_constants.dart'; // ✅ 경로 추가
-import 'package:firebase_auth/firebase_auth.dart'; // 👈 FirebaseAuth용
-import 'package:cloud_firestore/cloud_firestore.dart'; // 👈 FirebaseFirestore, FieldValue용
+import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/core/constants/badge_constants.dart'; // ✅ 배지 경로 참조용 추가
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+// ✅ 대회 상세 페이지 임포트
+import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
 
 class ChatMessageBubble extends ConsumerWidget {
   final ChatMessage message;
@@ -16,11 +20,12 @@ class ChatMessageBubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // ✅ 1. 시스템 메시지 처리 (공지사항 등)
     if (message.type == 'SYSTEM') {
-      return _buildSystemMessage();
+      return _buildSystemMessage(context);
     }
 
-    // 실시간 순위 데이터 구독 (배지 표시용)
+    // 실시간 순위 데이터 구독 (유저 프로필 옆 배지 표시용)
     final totalRanking = ref.watch(totalRankingProvider);
     final rankIndex = totalRanking.indexWhere((item) => item['userId'] == message.uid);
     final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
@@ -46,9 +51,9 @@ class ChatMessageBubble extends ConsumerWidget {
                     child: Text(
                       message.userName,
                       style: const TextStyle(
-                          color: Colors.white60,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600
+                        color: Colors.white60,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -59,7 +64,6 @@ class ChatMessageBubble extends ConsumerWidget {
                   children: [
                     if (isMe) _buildTime(message.timestamp),
 
-                    // 🔥 [수정] GestureDetector에 behavior 추가하여 롱 프레스 인식 개선
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onLongPress: () {
@@ -71,7 +75,6 @@ class ChatMessageBubble extends ConsumerWidget {
                             maxWidth: MediaQuery.of(context).size.width * 0.6
                         ),
                         decoration: BoxDecoration(
-                          // ✅ 내 메시지는 DAO 테마색(Teal), 상대방은 반투명 그레이
                           color: isMe
                               ? Colors.teal.withOpacity(0.9)
                               : Colors.white.withOpacity(0.12),
@@ -119,23 +122,82 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  Widget _buildSystemMessage() {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.amberAccent.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.amberAccent.withOpacity(0.2)),
-        ),
-        child: Text(
-          "📢 ${message.message}",
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-              color: Colors.amberAccent,
-              fontSize: 12,
-              fontWeight: FontWeight.bold
+  // ✅ 시스템 메시지 빌더 (최종 수정본)
+  Widget _buildSystemMessage(BuildContext context) {
+    IconData iconData = Icons.notifications_none;
+    Color themeColor = Colors.amberAccent;
+    String? badgePath; // ✅ 배지 에셋 경로 변수
+
+    // 카테고리에 따른 아이콘 및 테마 설정
+    switch (message.category) {
+      case 'TOURNAMENT':
+        iconData = Icons.emoji_events_outlined;
+        themeColor = Colors.lightBlueAccent;
+        break;
+      case 'RANKING':
+        iconData = Icons.trending_up_rounded;
+        themeColor = Colors.orangeAccent;
+        // 🔥 [핵심] targetId에 담긴 배지 키를 이용해 에셋 경로를 찾습니다.
+        if (message.targetId.isNotEmpty) {
+          badgePath = BadgeConstants.getImagePath(message.targetId);
+        }
+        break;
+      case 'WELCOME':
+        iconData = Icons.celebration_outlined;
+        themeColor = Colors.pinkAccent;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () {
+        // ✅ 🚀 TOURNAMENT 공지 클릭 시 상세 페이지로 이동
+        if (message.category == 'TOURNAMENT' && message.targetId.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TournamentDetailScreen(
+                tournamentId: message.targetId,
+              ),
+            ),
+          );
+        }
+      },
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: themeColor.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: themeColor.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 🔥 [추가] 배지 에셋이 있으면 이미지를, 없으면 기본 아이콘을 보여줌
+              if (badgePath != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Image.asset(badgePath, width: 22, height: 22),
+                )
+              else
+                Icon(iconData, color: themeColor, size: 14),
+
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  message.message,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: themeColor.withOpacity(0.9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -0.4
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -181,10 +243,11 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
+  // ... (신고/차단 관련 _showChatActionMenu 및 _confirmBlock 코드는 이전과 동일)
   void _showChatActionMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1A1A1A), // 딥 다크 배경
+      backgroundColor: const Color(0xFF1A1A1A),
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))
       ),
@@ -193,7 +256,6 @@ class ChatMessageBubble extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 12),
-            // 메시지 요약 표시
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Text(
@@ -210,7 +272,6 @@ class ChatMessageBubble extends ConsumerWidget {
               subtitle: const Text('부적절한 메시지로 신고합니다.', style: TextStyle(color: Colors.white38, fontSize: 11)),
               onTap: () {
                 Navigator.pop(ctx);
-                // ✅ 승완님의 기존 신고 페이지로 연결
                 Navigator.pushNamed(context, RouteConstants.report, arguments: {
                   'targetId': message.uid,
                   'targetName': message.userName,
@@ -234,7 +295,6 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  // 차단 확인 다이얼로그 추가
   void _confirmBlock(BuildContext context) {
     showDialog(
       context: context,
@@ -251,17 +311,15 @@ class ChatMessageBubble extends ConsumerWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-
               final myUid = FirebaseAuth.instance.currentUser?.uid;
               if (myUid == null) return;
 
               try {
-                // 🔥 [핵심] Firestore의 내 차단 목록에 상대방 추가
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(myUid)
                     .collection('blockedUsers')
-                    .doc(message.uid) // 상대방 UID를 문서 ID로 사용
+                    .doc(message.uid)
                     .set({
                   'uid': message.uid,
                   'name': message.userName,

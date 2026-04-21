@@ -95,6 +95,7 @@
 │   │   ├── splash_screen.dart
 │   │   ├── main_screen.dart 
 │   │   ├── admin/
+│   │   │   ├── admin_block_manage_screen.dart
 │   │   │   ├── selection_players_admin_screen.dart
 │   │   │   ├── admin_dashboard_screen.dart
 │   │   │   ├── admin_member_list_screen.dart
@@ -107,6 +108,7 @@
 │   │   │   ├── point_edit_screen.dart
 │   │   │   ├── event_edit_screen.dart
 │   │   │   └── forms/
+│   │   │       ├── admin_chat_config_screen.dart
 │   │   │       ├── notice_form_screen.dart
 │   │   │       ├── news_form_screen.dart
 │   │   │       ├── sponsor_form_screen.dart
@@ -155,6 +157,7 @@
 │   │   │   │       ├── live_chat_ticker.dart
 │   │   │   │       ├── chat_input_field.dart
 │   │   │   │       ├── chat_message_bubble.dart
+│   │   │   │       ├── chat_overlay_sheet.dart
 │   │   │   ├── widgets/
 │   │   │   │   ├── community_avatar_slider.dart
 │   │   │   │   ├── community_preview.dart
@@ -163,6 +166,7 @@
 │   │   ├── login/
 │   │   │   └── login_screen.dart
 │   │   ├── my_page/
+│   │   │   ├── block_list_screen.dart
 │   │   │   ├── my_page_screen.dart          
 │   │   │   ├── profile_register_screen.dart
 │   │   │   ├── notice_list_screen.dart

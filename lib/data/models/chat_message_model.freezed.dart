@@ -25,8 +25,13 @@ mixin _$ChatMessage {
   String get userName => throw _privateConstructorUsedError;
   String? get userProfile => throw _privateConstructorUsedError;
   String get message => throw _privateConstructorUsedError;
-  String get type => throw _privateConstructorUsedError; // USER, SYSTEM
-// Firestore의 Timestamp를 처리하기 위해 DateTime으로 변환
+  String get type => throw _privateConstructorUsedError; // USER, SYSTEM 등
+// ✅ 시스템 메시지 분류 및 에셋/이동을 위한 필드
+// null 방지를 위해 기본값을 빈 문자열로 두면 UI 작업 시 체크가 편합니다.
+  String get category =>
+      throw _privateConstructorUsedError; // WELCOME, TOURNAMENT, RANKING 등
+  String get targetId =>
+      throw _privateConstructorUsedError; // 대회 ID 혹은 배지 에셋 키(pro, diamond 등)
   @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
   DateTime get timestamp => throw _privateConstructorUsedError;
 
@@ -53,6 +58,8 @@ abstract class $ChatMessageCopyWith<$Res> {
       String? userProfile,
       String message,
       String type,
+      String category,
+      String targetId,
       @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
       DateTime timestamp});
 }
@@ -78,6 +85,8 @@ class _$ChatMessageCopyWithImpl<$Res, $Val extends ChatMessage>
     Object? userProfile = freezed,
     Object? message = null,
     Object? type = null,
+    Object? category = null,
+    Object? targetId = null,
     Object? timestamp = null,
   }) {
     return _then(_value.copyWith(
@@ -105,6 +114,14 @@ class _$ChatMessageCopyWithImpl<$Res, $Val extends ChatMessage>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as String,
+      category: null == category
+          ? _value.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as String,
+      targetId: null == targetId
+          ? _value.targetId
+          : targetId // ignore: cast_nullable_to_non_nullable
+              as String,
       timestamp: null == timestamp
           ? _value.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
@@ -128,6 +145,8 @@ abstract class _$$ChatMessageImplCopyWith<$Res>
       String? userProfile,
       String message,
       String type,
+      String category,
+      String targetId,
       @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
       DateTime timestamp});
 }
@@ -151,6 +170,8 @@ class __$$ChatMessageImplCopyWithImpl<$Res>
     Object? userProfile = freezed,
     Object? message = null,
     Object? type = null,
+    Object? category = null,
+    Object? targetId = null,
     Object? timestamp = null,
   }) {
     return _then(_$ChatMessageImpl(
@@ -178,6 +199,14 @@ class __$$ChatMessageImplCopyWithImpl<$Res>
           ? _value.type
           : type // ignore: cast_nullable_to_non_nullable
               as String,
+      category: null == category
+          ? _value.category
+          : category // ignore: cast_nullable_to_non_nullable
+              as String,
+      targetId: null == targetId
+          ? _value.targetId
+          : targetId // ignore: cast_nullable_to_non_nullable
+              as String,
       timestamp: null == timestamp
           ? _value.timestamp
           : timestamp // ignore: cast_nullable_to_non_nullable
@@ -196,6 +225,8 @@ class _$ChatMessageImpl implements _ChatMessage {
       this.userProfile,
       required this.message,
       this.type = 'USER',
+      this.category = '',
+      this.targetId = '',
       @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
       required this.timestamp});
 
@@ -215,15 +246,24 @@ class _$ChatMessageImpl implements _ChatMessage {
   @override
   @JsonKey()
   final String type;
-// USER, SYSTEM
-// Firestore의 Timestamp를 처리하기 위해 DateTime으로 변환
+// USER, SYSTEM 등
+// ✅ 시스템 메시지 분류 및 에셋/이동을 위한 필드
+// null 방지를 위해 기본값을 빈 문자열로 두면 UI 작업 시 체크가 편합니다.
+  @override
+  @JsonKey()
+  final String category;
+// WELCOME, TOURNAMENT, RANKING 등
+  @override
+  @JsonKey()
+  final String targetId;
+// 대회 ID 혹은 배지 에셋 키(pro, diamond 등)
   @override
   @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
   final DateTime timestamp;
 
   @override
   String toString() {
-    return 'ChatMessage(id: $id, uid: $uid, userName: $userName, userProfile: $userProfile, message: $message, type: $type, timestamp: $timestamp)';
+    return 'ChatMessage(id: $id, uid: $uid, userName: $userName, userProfile: $userProfile, message: $message, type: $type, category: $category, targetId: $targetId, timestamp: $timestamp)';
   }
 
   @override
@@ -239,14 +279,18 @@ class _$ChatMessageImpl implements _ChatMessage {
                 other.userProfile == userProfile) &&
             (identical(other.message, message) || other.message == message) &&
             (identical(other.type, type) || other.type == type) &&
+            (identical(other.category, category) ||
+                other.category == category) &&
+            (identical(other.targetId, targetId) ||
+                other.targetId == targetId) &&
             (identical(other.timestamp, timestamp) ||
                 other.timestamp == timestamp));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, id, uid, userName, userProfile, message, type, timestamp);
+  int get hashCode => Object.hash(runtimeType, id, uid, userName, userProfile,
+      message, type, category, targetId, timestamp);
 
   /// Create a copy of ChatMessage
   /// with the given fields replaced by the non-null parameter values.
@@ -272,6 +316,8 @@ abstract class _ChatMessage implements ChatMessage {
       final String? userProfile,
       required final String message,
       final String type,
+      final String category,
+      final String targetId,
       @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
       required final DateTime timestamp}) = _$ChatMessageImpl;
 
@@ -289,8 +335,13 @@ abstract class _ChatMessage implements ChatMessage {
   @override
   String get message;
   @override
-  String get type; // USER, SYSTEM
-// Firestore의 Timestamp를 처리하기 위해 DateTime으로 변환
+  String get type; // USER, SYSTEM 등
+// ✅ 시스템 메시지 분류 및 에셋/이동을 위한 필드
+// null 방지를 위해 기본값을 빈 문자열로 두면 UI 작업 시 체크가 편합니다.
+  @override
+  String get category; // WELCOME, TOURNAMENT, RANKING 등
+  @override
+  String get targetId; // 대회 ID 혹은 배지 에셋 키(pro, diamond 등)
   @override
   @JsonKey(fromJson: _dateTimeFromTimestamp, toJson: _timestampFromDateTime)
   DateTime get timestamp;

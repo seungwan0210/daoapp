@@ -79,10 +79,46 @@ class TournamentDetailScreen extends ConsumerWidget {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).snapshots(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || !snapshot.data!.exists) {
+        // 1. 에러가 발생한 경우
+        if (snapshot.hasError) {
+          return const Scaffold(body: Center(child: Text("데이터 로딩 중 오류가 발생했습니다.")));
+        }
+
+        // 2. 로딩 중일 때 (데이터가 아직 안 왔을 때)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.cyan)));
         }
 
+        // 3. ✅ [핵심] 데이터가 없거나 문서가 삭제된 경우
+        // 채팅방 공지는 남아있는데 대회가 삭제되었을 때 이쪽으로 들어옵니다.
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Scaffold(
+            backgroundColor: Colors.white,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.black),
+                onPressed: () => Navigator.pop(context), // 뒤로가기 가능하게
+              ),
+            ),
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline, size: 48, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "존재하지 않거나 삭제된 대회입니다. 😅",
+                    style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // 4. 데이터가 정상적으로 있을 때 (기존 로직)
         final t = TournamentModel.fromJson(snapshot.data!.data()!).copyWith(id: snapshot.data!.id);
         final isOrganizer = user != null && (t.createdByUid == user.uid || t.organizerEmails.contains(user.email));
         final canManage = isOrganizer || isAdmin;
