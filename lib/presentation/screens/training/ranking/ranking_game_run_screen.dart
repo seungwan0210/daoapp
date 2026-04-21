@@ -1,10 +1,8 @@
-// lib/presentation/screens/training/ranking/ranking_game_run_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart'; // ✅ 전면 광고 사용
-import 'package:daoapp/core/utils/ad_manager.dart'; // ✅ 광고 ID 참조
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:daoapp/core/utils/ad_manager.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class RankingGameRunScreen extends ConsumerStatefulWidget {
@@ -16,7 +14,6 @@ class RankingGameRunScreen extends ConsumerStatefulWidget {
 }
 
 class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
-  // 🔥 전면 광고 판수 카운터 (static으로 선언하여 앱 실행 중 계속 누적)
   static int _gameCount = 0;
   InterstitialAd? _interstitialAd;
 
@@ -43,7 +40,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInterstitialAd(); // ✅ 시작 시 광고 미리 로드
+    _loadInterstitialAd();
   }
 
   @override
@@ -53,7 +50,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     super.dispose();
   }
 
-  // 📡 전면 광고 로드 (이 화면 전용)
   void _loadInterstitialAd() {
     InterstitialAd.load(
       adUnitId: AdManager.interstitialUnitId,
@@ -65,7 +61,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     );
   }
 
-  // ⏪ 되돌리기 로직
   void _undoLastRound() {
     if (_currentRound <= 1) return;
     setState(() {
@@ -85,7 +80,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     });
   }
 
-  // 🎯 501 점수 제출
   void _submitRound501() {
     final val = int.tryParse(_scoreController.text) ?? 0;
     if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
@@ -102,8 +96,14 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     });
   }
 
-  // 🎯 크리켓 마크 제출
   void _submitRoundCricket() {
+    // 🔥 BULL 타겟일 때 비정상적인 마크 입력 방어 로직
+    String target = _cricketTargets[(_currentRound - 1).clamp(0, _cricketTargets.length - 1)];
+    if (target == "BULL" && _selectedMark >= 7) {
+      _showSnackBar("BULL은 최대 6마크까지만 가능합니다.");
+      return;
+    }
+
     setState(() {
       _totalMarks += _selectedMark;
       _historyCricket.add(_selectedMark);
@@ -112,7 +112,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     });
   }
 
-  // 🎯 카운트업 라운드 점수 제출 (180점 제한)
   void _submitRoundCountUp() {
     final val = int.tryParse(_scoreController.text) ?? 0;
     if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
@@ -130,12 +129,11 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     else _currentRound++;
   }
 
-  // 💾 최종 저장 및 종료 (광고 정책 적용)
   void _finishGame() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    _gameCount++; // 판수 증가 (1부터 시작)
+    _gameCount++;
 
     double? ppd; double? mpr; int? countUpScore;
     if (widget.gameType == "501") {
@@ -146,7 +144,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
       countUpScore = _totalCountUpScore;
     }
 
-    // 데이터 저장
     await ref.read(rankingRepositoryProvider).updateBestRecord(
       uid: user.uid,
       ppd: ppd,
@@ -156,8 +153,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
 
     if (!mounted) return;
 
-    // 🔥 전면 광고 실행 로직 수정
-    // 1회(최초), 4회, 7회, 10회... (1회 이후 3판마다)
     bool shouldShowAd = (_gameCount == 1) || ((_gameCount - 1) % 3 == 0);
 
     if (shouldShowAd && _interstitialAd != null) {
@@ -173,7 +168,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
       );
       _interstitialAd!.show();
     } else {
-      // 광고 조건이 아니거나 로드 실패 시 바로 종료
       Navigator.pop(context);
     }
   }
@@ -292,7 +286,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   Widget _buildScoreInput(String label) {
     return Column(
       children: [
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.cyan, fontWeight: FontWeight.bold)),
         const SizedBox(height: 5),
         SizedBox(
           width: 140,
@@ -303,6 +296,8 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
             autofocus: true,
             style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             decoration: InputDecoration(
+              hintText: label,
+              hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
               contentPadding: const EdgeInsets.symmetric(vertical: 8),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
             ),
@@ -335,18 +330,29 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _markButton(int val) {
+    // 🔥 BULL 타겟일 때 7~9마크 버튼 비활성화 로직
+    String target = _cricketTargets[(_currentRound - 1).clamp(0, 7)];
+    bool isDisabled = (target == "BULL" && val >= 7);
     bool isSelected = _selectedMark == val;
+
     return GestureDetector(
-      onTap: () => setState(() => _selectedMark = val),
+      onTap: isDisabled ? null : () => setState(() => _selectedMark = val),
       child: Container(
         width: 50, height: 50,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: isSelected ? Colors.cyan : Colors.white,
+          color: isDisabled ? Colors.grey[200] : (isSelected ? Colors.cyan : Colors.white),
           shape: BoxShape.circle,
           border: Border.all(color: isSelected ? Colors.cyan : Colors.grey.shade300),
         ),
-        child: Text("$val", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black87)),
+        child: Text(
+            "$val",
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: isDisabled ? Colors.grey[400] : (isSelected ? Colors.white : Colors.black87)
+            )
+        ),
       ),
     );
   }
@@ -389,6 +395,9 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _showDartCountPicker() {
+    // 🔥 [핵심 로직] 피니시 점수에 따른 발 수 제한
+    final int finishScore = _history501.isEmpty ? 0 : _history501.last;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -409,29 +418,38 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
               children: [
                 const Text("FINISH! 🎯", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
                 const SizedBox(height: 8),
-                const Text("마지막 라운드에서 몇 발을 던졌나요?", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                Text("마지막 $finishScore점을 몇 발 만에 끝냈나요?", style: const TextStyle(fontSize: 13, color: Colors.grey)),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [1, 2, 3].map((count) => Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          setState(() => _totalThrownDarts += count);
-                          Navigator.pop(context);
-                          _finishGame();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.cyan[700],
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  children: [1, 2, 3].map((count) {
+                    // 🚫 물리적 불가능 발 수 필터링 (한 발 최대 60점 기준)
+                    bool isPossible = true;
+                    if (count == 1 && finishScore > 60) isPossible = false;
+                    if (count == 2 && finishScore > 120) isPossible = false;
+
+                    if (!isPossible) return const SizedBox.shrink();
+
+                    return Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        height: 52,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() => _totalThrownDarts += count);
+                            Navigator.pop(context);
+                            _finishGame();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.cyan[700],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          ),
+                          child: Text("$count발", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         ),
-                        child: Text("$count발", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                       ),
-                    ),
-                  )).toList(),
+                    );
+                  }).toList(),
                 ),
               ],
             ),

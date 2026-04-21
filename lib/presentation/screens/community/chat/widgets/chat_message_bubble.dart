@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/chat_message_model.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/constants/badge_constants.dart'; // ✅ 배지 경로 참조용 추가

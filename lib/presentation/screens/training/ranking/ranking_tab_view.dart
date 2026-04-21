@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart'; // 🆕 추가
 import 'package:daoapp/presentation/screens/training/ranking/ranking_list_item.dart';
 import 'package:daoapp/presentation/screens/training/ranking/game_selection_sheet.dart';
 import 'package:daoapp/data/models/ranking_game_model.dart';

@@ -11,8 +11,8 @@ import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-// 🆕 실시간 랭킹 구독을 위해 추가
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});

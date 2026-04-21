@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart'; // ✅ 임포트 추가
 import 'package:firebase_auth/firebase_auth.dart';
 import 'comment_bottom_sheet.dart';

@@ -8,33 +8,23 @@ import 'package:daoapp/core/constants/badge_constants.dart';
 class RankingRepository {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// 📅 월별 랭킹 컬렉션 참조
-  CollectionReference<Map<String, dynamic>> get _currentRankingCol {
+  /// 📅 월별 랭킹 루트 참조
+  DocumentReference get _monthRootDoc {
     final now = DateTime.now();
     final monthId = "${now.year}_${now.month.toString().padLeft(2, '0')}";
-    return _db.collection('free_rankings').doc(monthId).collection('ranking_list');
+    return _db.collection('free_rankings').doc(monthId);
   }
 
-  /// 🏆 [순위 계산] 특정 필드 기준 현재 순위 산출
-  Future<int> _getCurrentRank(String field, double value) async {
-    final snap = await _currentRankingCol.where(field, isGreaterThan: value).get();
-    return snap.docs.length + 1;
-  }
+  /// 1️⃣ 기존 종목별 점수 컬렉션 (ranking_provider에서 이 곳을 참조합니다)
+  CollectionReference<Map<String, dynamic>> get _currentRankingCol =>
+      _monthRootDoc.collection('ranking_list');
 
-  /// 🏆 [통합 순위 계산] 합산 점수 기준 전체 순위 산출
-  Future<int> _getTotalRank(double totalScore) async {
-    final snap = await _currentRankingCol.get();
-    int rank = 1;
-    for (var doc in snap.docs) {
-      final d = doc.data();
-      // 통합 점수 공식: PPD + (MPR * 10) + (CountUp / 10)
-      double score = (d['bestPpd'] ?? 0.0) + ((d['bestMpr'] ?? 0.0) * 10) + ((d['bestCountUp'] ?? 0) / 10);
-      if (score > totalScore) rank++;
-    }
-    return rank;
-  }
+  /// 2️⃣ 통합 순위/포인트 저장 컬렉션
+  CollectionReference<Map<String, dynamic>> get _totalRankingCol =>
+      _monthRootDoc.collection('total_rankings');
 
-  /// 🏆 종목별 랭킹 스트림 (Top 30)
+  // 🔥 [에러 해결 포인트] StreamProvider가 사용하는 핵심 함수 추가
+  /// 🏆 종목별 랭킹 스트림 (정렬 로직 포함)
   Stream<List<RankingRecord>> getTopRankings(String primaryField, {int limit = 30}) {
     Query<Map<String, dynamic>> query = _currentRankingCol;
 
@@ -46,20 +36,75 @@ class RankingRepository {
       query = query.orderBy('bestCountUp', descending: true).orderBy('bestPpd', descending: true).orderBy('bestMpr', descending: true);
     }
 
-    return query.limit(limit).snapshots().map((snap) => snap.docs.map((doc) => RankingRecord.fromFirestore(doc)).toList());
+    return query.limit(limit).snapshots().map((snap) =>
+        snap.docs.map((doc) => RankingRecord.fromFirestore(doc)).toList());
+  }
+
+  /// 🏆 [종목별 개별 순위 계산]
+  Future<int> _getCurrentRank(String field, double value) async {
+    final snap = await _currentRankingCol.where(field, isGreaterThan: value).get();
+    return snap.docs.length + 1;
+  }
+
+  /// 🏆 [통합 순위 계산 및 DB 저장]
+  Future<int> _updateAndGetTotalRank(String targetUid, {double? newPpd, double? newMpr, int? newCountUp}) async {
+    final snap = await _currentRankingCol.get();
+    final docs = snap.docs;
+
+    List<Map<String, dynamic>> ppdList = docs.map((e) => {'uid': e.id, 'val': (e.data()['bestPpd'] as num?)?.toDouble() ?? 0.0}).toList();
+    List<Map<String, dynamic>> mprList = docs.map((e) => {'uid': e.id, 'val': (e.data()['bestMpr'] as num?)?.toDouble() ?? 0.0}).toList();
+    List<Map<String, dynamic>> cuList = docs.map((e) => {'uid': e.id, 'val': (e.data()['bestCountUp'] as num?)?.toDouble() ?? 0.0}).toList();
+
+    void updateList(List<Map<String, dynamic>> list, String uid, double val) {
+      int idx = list.indexWhere((e) => e['uid'] == uid);
+      if (idx != -1) { if (val > list[idx]['val']) list[idx]['val'] = val; }
+      else { list.add({'uid': uid, 'val': val}); }
+    }
+    if (newPpd != null) updateList(ppdList, targetUid, newPpd);
+    if (newMpr != null) updateList(mprList, targetUid, newMpr);
+    if (newCountUp != null) updateList(cuList, targetUid, newCountUp.toDouble());
+
+    ppdList.sort((a, b) => b['val'].compareTo(a['val']));
+    mprList.sort((a, b) => b['val'].compareTo(a['val']));
+    cuList.sort((a, b) => b['val'].compareTo(a['val']));
+
+    Map<String, int> userPoints = {};
+    void calculate(List<Map<String, dynamic>> list) {
+      for (int i = 0; i < list.length && i < 10; i++) {
+        String uid = list[i]['uid'];
+        userPoints[uid] = (userPoints[uid] ?? 0) + (10 - i);
+      }
+    }
+    calculate(ppdList); calculate(mprList); calculate(cuList);
+
+    int myScore = userPoints[targetUid] ?? 0;
+    if (myScore == 0) return 999;
+
+    int myRank = 1;
+    userPoints.forEach((uid, score) { if (score > myScore) myRank++; });
+
+    // 통합 순위 컬렉션 업데이트
+    await _totalRankingCol.doc(targetUid).set({
+      'rank': myRank,
+      'totalPoints': myScore,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    return myRank;
   }
 
   /// ✨ 기록 삭제 기능
   Future<void> resetMyRecord({required String uid}) async {
     try {
       await _currentRankingCol.doc(uid).delete();
+      await _totalRankingCol.doc(uid).delete();
     } catch (e) {
       debugPrint("❌ 랭킹 삭제 실패: $e");
       rethrow;
     }
   }
 
-  /// 🎯 [핵심] 최고 기록 갱신 및 조건부 통합 공지 로직
+  /// 🎯 [핵심] 최고 기록 갱신 및 공지 실행
   Future<void> updateBestRecord({
     required String uid,
     double? ppd,
@@ -70,98 +115,65 @@ class RankingRepository {
     final rankingDocRef = _currentRankingCol.doc(uid);
 
     final userDoc = await userDocRef.get();
-    final userData = userDoc.data();
-    final currentUser = FirebaseAuth.instance.currentUser;
-    final String finalNickname = userData?['koreanName'] ?? currentUser?.displayName ?? "익명";
+    final String finalNickname = userDoc.data()?['koreanName'] ?? "익명";
 
-    // 1. 업데이트 전 통합 순위 미리 파악 (순위 상승 비교용)
-    int oldTotalRank = 999;
-    if (userDoc.exists) {
-      double oldScore = (userData?['bestPpd'] ?? 0.0) + ((userData?['bestMpr'] ?? 0.0) * 10) + ((userData?['bestCountUp'] ?? 0) / 10);
-      oldTotalRank = await _getTotalRank(oldScore);
-    }
+    final totalSnap = await _totalRankingCol.doc(uid).get();
+    int oldTotalRank = totalSnap.exists ? (totalSnap.data()?['rank'] ?? 999) : 999;
 
     bool isScoreUpdated = false;
-    String? gameTypeForNotice;
-    double? updatedValue;
+    String? gameType;
+    double? updatedVal;
 
     await _db.runTransaction((tx) async {
       final snap = await tx.get(rankingDocRef);
-      Map<String, dynamic> up = {
-        'nickname': finalNickname,
-        'profileImageUrl': userData?['profileImageUrl'] ?? currentUser?.photoURL,
-        'updatedAt': FieldValue.serverTimestamp()
-      };
+      Map<String, dynamic> up = {'nickname': finalNickname, 'updatedAt': FieldValue.serverTimestamp()};
 
       if (!snap.exists) {
-        // 첫 등록 상황
-        tx.set(rankingDocRef, {
-          ...up,
-          'userId': uid,
-          'bestPpd': ppd ?? 0.0,
-          'bestMpr': mpr ?? 0.0,
-          'bestCountUp': countUp ?? 0,
-        });
+        tx.set(rankingDocRef, {...up, 'userId': uid, 'bestPpd': ppd ?? 0.0, 'bestMpr': mpr ?? 0.0, 'bestCountUp': countUp ?? 0});
         isScoreUpdated = true;
-        gameTypeForNotice = (ppd != null) ? '501' : (mpr != null ? '크리켓' : '카운트업');
-        updatedValue = ppd ?? (mpr ?? (countUp?.toDouble()));
+        gameType = (ppd != null) ? '501' : (mpr != null ? '크리켓' : '카운트업');
+        updatedVal = ppd ?? (mpr ?? countUp?.toDouble());
       } else {
-        // 기존 기록 비교
         final d = snap.data()!;
         bool hasBetter = false;
+        if (ppd != null && ppd > (d['bestPpd'] ?? 0.0)) { up['bestPpd'] = ppd; hasBetter = true; gameType = '501'; updatedVal = ppd; }
+        if (mpr != null && mpr > (d['bestMpr'] ?? 0.0)) { up['bestMpr'] = mpr; hasBetter = true; gameType = '크리켓'; updatedVal = mpr; }
+        if (countUp != null && countUp > (d['bestCountUp'] ?? 0)) { up['bestCountUp'] = countUp; hasBetter = true; gameType = '카운트업'; updatedVal = countUp.toDouble(); }
 
-        if (ppd != null && ppd > (d['bestPpd'] ?? 0.0)) {
-          up['bestPpd'] = ppd; hasBetter = true; gameTypeForNotice = '501'; updatedValue = ppd;
-        }
-        if (mpr != null && mpr > (d['bestMpr'] ?? 0.0)) {
-          up['bestMpr'] = mpr; hasBetter = true; gameTypeForNotice = '크리켓'; updatedValue = mpr;
-        }
-        if (countUp != null && countUp > (d['bestCountUp'] ?? 0)) {
-          up['bestCountUp'] = countUp; hasBetter = true; gameTypeForNotice = '카운트업'; updatedValue = countUp.toDouble();
-        }
-
-        tx.update(rankingDocRef, up);
-        if (hasBetter) {
-          tx.update(userDocRef, up);
-          isScoreUpdated = true;
-        }
+        if (hasBetter) { tx.update(rankingDocRef, up); tx.update(userDocRef, up); isScoreUpdated = true; }
       }
     });
 
-    // 🔥 2. 공지 발송
     if (isScoreUpdated) {
       try {
-        // [A] 종목별 공지: 순위와 상관없이 기록 갱신 시 항상 발송
-        String field = gameTypeForNotice == '501' ? 'bestPpd' : (gameTypeForNotice == '크리켓' ? 'bestMpr' : 'bestCountUp');
-        int currentRank = await _getCurrentRank(field, updatedValue ?? 0.0);
+        int currentRank = await _getCurrentRank(gameType == '501' ? 'bestPpd' : (gameType == '크리켓' ? 'bestMpr' : 'bestCountUp'), updatedVal ?? 0.0);
+        await ChatUtils.sendRankingNotice(nickname: finalNickname, badgeKey: 'tro', rank: '$currentRank위', isTotalRanking: false, gameType: gameType);
 
-        await ChatUtils.sendRankingNotice(
-          nickname: finalNickname,
-          badgeKey: 'tro',
-          rank: '$currentRank위',
-          isTotalRanking: false,
-          gameType: gameTypeForNotice,
-        );
+        int newTotalRank = await _updateAndGetTotalRank(uid, newPpd: ppd, newMpr: mpr, newCountUp: countUp);
 
-        // [B] 통합 순위 공지: 순위가 올랐고 + 결과가 10위 이내일 때만 발송
-        double newTotalScore = (ppd ?? (userData?['bestPpd'] ?? 0.0)) +
-            ((mpr ?? (userData?['bestMpr'] ?? 0.0)) * 10) +
-            ((countUp ?? (userData?['bestCountUp'] ?? 0)) / 10);
-        int newTotalRank = await _getTotalRank(newTotalScore);
+        debugPrint("📊 통합 순위 변동: $oldTotalRank위 -> $newTotalRank위");
 
         if (newTotalRank < oldTotalRank && newTotalRank <= 10) {
           await ChatUtils.sendRankingNotice(
             nickname: finalNickname,
-            // 순위에 맞는 배지(금/은/동 등) 자동 매칭
-            badgeKey: BadgeConstants.badgeKeyForRank(newTotalRank) ?? 'pro',
-            rank: '$newTotalRank위',
+            badgeKey: _getBadgeKey(newTotalRank),
+            rank: '$newTotalRank',
             isTotalRanking: true,
           );
         }
-        debugPrint("✅ [$finalNickname] 랭킹 공지 프로세스 완료");
       } catch (e) {
-        debugPrint("❌ 공지 전송 중 에러: $e");
+        debugPrint("❌ 공지 전송 에러: $e");
       }
+    }
+  }
+
+  String _getBadgeKey(int rank) {
+    switch (rank) {
+      case 1: return 'pro'; case 2: return 'diamond'; case 3: return 'emerald';
+      case 4: return 'platinum1'; case 5: return 'platinum2';
+      case 6: return 'gold1'; case 7: return 'gold2';
+      case 8: return 'silver1'; case 9: return 'silver2';
+      case 10: return 'bronze1'; default: return 'pro';
     }
   }
 }

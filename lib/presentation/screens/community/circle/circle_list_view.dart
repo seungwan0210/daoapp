@@ -8,8 +8,8 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:daoapp/presentation/screens/community/circle/widgets/post_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-// 🆕 실시간 통합 랭킹 구독을 위해 추가
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class CircleListView extends ConsumerStatefulWidget { // 👈 ConsumerStatefulWidget으로 변경
   final List<QueryDocumentSnapshot> docs;

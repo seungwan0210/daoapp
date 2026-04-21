@@ -8,8 +8,8 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'widgets/guestbook_header.dart';
 import 'widgets/guestbook_comment_item.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-// 🆕 실시간 랭킹 구독을 위해 추가
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class GuestbookScreen extends ConsumerStatefulWidget {
   final String userId;

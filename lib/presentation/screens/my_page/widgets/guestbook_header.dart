@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // 🆕 추가
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart'; // 🆕 추가
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변경
   final String userId;

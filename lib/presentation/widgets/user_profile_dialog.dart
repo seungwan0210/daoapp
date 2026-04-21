@@ -5,7 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-import 'package:daoapp/presentation/providers/training/ranking/total_ranking_provider.dart';
+// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
+import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class UserProfileDialog extends ConsumerWidget {
   final String koreanName;

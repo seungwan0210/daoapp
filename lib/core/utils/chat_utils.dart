@@ -35,7 +35,7 @@ class ChatUtils {
       message = '🎊 $nickname님이 통합 랭킹 ${rank}위에 등극하며 배지를 획득했습니다!';
     } else {
       // 🎯 일반 종목: 순위 변동 강조
-      message = '📊 $nickname님의 ${gameType ?? "게임"} 순위가 ${rank}위로 변동되었습니다.';
+      message = '📊 $nickname님의 ${gameType ?? "게임"} 순위가 ${rank}로 변동되었습니다.';
     }
 
     return _send(
