@@ -1,5 +1,4 @@
 // lib/presentation/screens/user/my_page_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -11,7 +10,6 @@ import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
 class MyPageScreen extends ConsumerWidget {
@@ -28,15 +26,21 @@ class MyPageScreen extends ConsumerWidget {
 class MyPageScreenBody extends ConsumerWidget {
   const MyPageScreenBody({super.key});
 
-  /// ✅ 수정된 프로필 보유 판단 로직 (아이폰/안드로이드 세션 유지 보강)
+  /// ✅ [수정됨] 글로벌 번호 대응 프로필 보유 판단 로직
   bool _determineHasProfile(Map<String, dynamic> data) {
+    // 1. 휴대폰 인증이 확실히 성공했는지 (isPhoneVerified)
     final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
+
+    // 2. 현재 저장된 번호가 유효한지
     final phoneNumber = data['phoneNumber']?.toString().trim() ?? '';
+
+    // 3. 이름이 입력되었는지
     final koreanName = data['koreanName']?.toString().trim() ?? '';
 
-    // 단순히 hasProfile 필드만 체크하는 대신,
-    // 인증 여부(혹은 번호 존재)와 이름이 모두 있는지 확인하여 튕김 현상을 방지합니다.
-    return (isPhoneVerified || phoneNumber.isNotEmpty) && koreanName.isNotEmpty;
+    // 🔥 핵심: 번호가 바뀌는 중(인증 미완료)이라면 phoneNumber가 있어도
+    // isPhoneVerified가 false이므로 프로필 등록 화면으로 유도하게 됩니다.
+    // 이렇게 해야 Auth 서버와 DB 번호를 강제로 일치시킬 수 있습니다.
+    return isPhoneVerified && phoneNumber.isNotEmpty && koreanName.isNotEmpty;
   }
 
   static const List<_GridItem> _mainFunctions = [
@@ -47,8 +51,6 @@ class MyPageScreenBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final theme = Theme.of(context);
-
-    // 🆕 실시간 통합 랭킹 구독 (내 순위 배지 표시용)
     final totalRanking = ref.watch(totalRankingProvider);
 
     return SafeArea(
@@ -61,7 +63,6 @@ class MyPageScreenBody extends ConsumerWidget {
             return StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
               builder: (context, snapshot) {
-                // ✅ 데이터 로딩 중일 때 깜빡임 방지
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -75,7 +76,6 @@ class MyPageScreenBody extends ConsumerWidget {
 
                 if (!hasProfile) return _buildProfilePrompt(context, ref);
 
-                // 🆕 내 순위 찾기
                 final rankIndex = totalRanking.indexWhere((item) => item['userId'] == user.uid);
                 final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
@@ -213,7 +213,7 @@ class MyPageScreenBody extends ConsumerWidget {
       Map<String, dynamic> data,
       ThemeData theme,
       WidgetRef ref,
-      int? currentRank, // 🆕 추가
+      int? currentRank,
       ) {
     final profileImageUrl = data['profileImageUrl'] as String?;
     final barrelImageUrl = data['barrelImageUrl'] as String?;
@@ -227,7 +227,20 @@ class MyPageScreenBody extends ConsumerWidget {
     final tip = data['tip']?.toString().trim() ?? '';
 
     final email = user.email ?? '이메일 없음';
-    final phoneNumber = data['phoneNumber']?.toString().trim() ?? '';
+
+    // ✅ [수정됨] 국제 번호 표시 대응
+    final rawPhoneNumber = data['phoneNumber']?.toString().trim() ?? '';
+    String displayPhone = rawPhoneNumber;
+
+    // 한국 번호(+82)인 경우에만 가독성을 위해 하이픈 포맷팅 적용
+    if (rawPhoneNumber.startsWith('+82')) {
+      final digits = rawPhoneNumber.substring(3);
+      if (digits.length == 10) {
+        displayPhone = '0${digits.substring(0, 2)}-${digits.substring(2, 6)}-${digits.substring(6)}';
+      } else if (digits.length == 11) {
+        displayPhone = '0${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}';
+      }
+    }
 
     final hasBarrelSetting = barrelName.isNotEmpty ||
         shaft.isNotEmpty ||
@@ -235,7 +248,6 @@ class MyPageScreenBody extends ConsumerWidget {
         tip.isNotEmpty ||
         (barrelImageUrl?.isNotEmpty == true);
 
-    // 🛡️ 배지 리스트 구성
     final List<Widget> badgeWidgets = [];
     if (currentRank != null) {
       badgeWidgets.add(BadgeWidget(rank: currentRank, size: 22));
@@ -315,13 +327,13 @@ class MyPageScreenBody extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(email, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[600]), overflow: TextOverflow.ellipsis),
-                          if (phoneNumber.isNotEmpty) ...[
+                          if (displayPhone.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
                                 Icon(Icons.phone, size: 14, color: Colors.grey[600]),
                                 const SizedBox(width: 4),
-                                Text(phoneNumber, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
+                                Text(displayPhone, style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700])),
                               ],
                             ),
                           ],

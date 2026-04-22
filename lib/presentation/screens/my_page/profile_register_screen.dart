@@ -8,6 +8,8 @@ import 'widgets/profile_image_widget.dart';
 import 'services/profile_service.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+// 🎯 ChatUtils 경로 확인 후 임포트하세요
+import 'package:daoapp/core/utils/chat_utils.dart';
 
 class ProfileRegisterScreen extends ConsumerStatefulWidget {
   const ProfileRegisterScreen({super.key});
@@ -25,10 +27,11 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   @override
   void initState() {
     super.initState();
+    // ProfileService가 ChangeNotifier이므로
+    // initState에서 context와 ref를 넘겨 초기화하는 방식 유지
     service = ProfileService(context, ref);
   }
 
-  /// 공통 스낵바 메서드
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -42,42 +45,49 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   }
 
   Future<void> _onSave() async {
-    // 1) 폼 검증
     final form = _formKey.currentState;
     if (form == null) return;
 
-    final isValid = form.validate();
-    if (!isValid) {
+    if (!form.validate()) {
       _showSnackBar('입력값을 확인해주세요.', isError: true);
       return;
     }
 
-    // 2) 중복 클릭 방지
     if (_isSaving) return;
 
     setState(() => _isSaving = true);
 
     try {
-      // ✅ 서비스 저장 실행
+      // 🎯 [수정] ProfileService에 정의된 변수명 'isFirstRegistration' 사용
+      final bool isFirstTime = service.isFirstRegistration;
+
+      // 서비스 저장 실행
       final result = await service.saveAndReturnResult(_formKey);
 
       if (!mounted) return;
 
       if (result.success) {
-        // 성공 피드백 표시
         _showSnackBar('성공적으로 저장되었습니다!');
 
-        // ✅ 저장 완료 후 약 0.8초 뒤에 자동으로 마이페이지로 이동
-        // 유저가 스낵바를 인지할 시간을 줍니다.
+        // 🎯 [수정] 신규 가입 시에만 ChatUtils의 'sendWelcomeNotice' 호출
+        if (isFirstTime) {
+          try {
+            // 🎯 [수정] ProfileService의 'koreanNameCtrl'에서 텍스트 추출
+            final nickName = service.koreanNameCtrl.text.trim();
+            await ChatUtils.sendWelcomeNotice(nickName);
+          } catch (chatError) {
+            debugPrint('Welcome message error: $chatError');
+          }
+        }
+
         await Future.delayed(const Duration(milliseconds: 800));
 
         if (mounted) {
-          // 마이페이지로 돌아가기 (결과값 true 전달)
           Navigator.of(context).pop(true);
         }
       } else {
-        final msg = (result.message?.trim().isNotEmpty == true)
-            ? result.message!.trim()
+        final msg = (result.message.trim().isNotEmpty == true)
+            ? result.message.trim()
             : '저장에 실패했어요. 다시 시도해주세요.';
         _showSnackBar('저장 실패: $msg', isError: true);
       }
@@ -91,12 +101,10 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold 내부의 내용을 WillPopScope나 PopScope로 감싸서
-    // 저장 중일 때 뒤로가기를 막는 처리도 고려해볼 수 있습니다.
     return Scaffold(
       appBar: CommonAppBar(
         title: '프로필 등록/수정',
-        showBackButton: !_isSaving, // 저장 중일 때는 뒤로가기 버튼 비활성화 권장
+        showBackButton: !_isSaving,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -145,7 +153,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 40), // 하단 여백 추가
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -155,7 +163,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   @override
   void dispose() {
-    // 필요한 경우 여기서 service 내의 컨트롤러들을 정리합니다.
     super.dispose();
   }
 }
