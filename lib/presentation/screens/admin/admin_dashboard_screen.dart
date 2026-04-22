@@ -225,20 +225,29 @@ class AdminDashboardScreen extends ConsumerWidget {
               _buildItem(
                 context,
                 icon: Icons.person_off,
-                title: '전체 차단 현황',
-                subtitle: '누가 누구를 차단했는지 확인 및 해제',
+                title: '블랙리스트 통합 관리', // 명칭 통합
+                subtitle: '누적 차단 횟수 확인 및 유저 정지/해제',
                 route: RouteConstants.adminBlockManage,
-              ),
-              _buildItem(
-                context,
-                icon: Icons.analytics,
-                title: '블랙리스트 통계',
-                subtitle: '많이 차단당한 유저 확인 및 관리',
-                route: RouteConstants.adminBlockStats,
               ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // 시스템 관리 (★ 새로 추가)
+          // -------------------------
+          _buildSection(
+            context,
+            title: '시스템 관리',
+            items: [
+              _buildItem(
+                context,
+                icon: Icons.cleaning_services,
+                title: '데이터 소멸 관리',
+                subtitle: '탈퇴 유저의 찌꺼기 및 흔적 완전 파쇄',
+                route: RouteConstants.adminHardCleanup, // 새로 등록한 라우트
+              ),
+            ],
+          ),
 
           // -------------------------
           // 회원 관리

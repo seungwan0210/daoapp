@@ -28,6 +28,19 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     service = ProfileService(context, ref);
   }
 
+  /// 공통 스낵바 메서드
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isError ? Colors.red : Colors.green,
+        duration: const Duration(milliseconds: 1500),
+      ),
+    );
+  }
+
   Future<void> _onSave() async {
     // 1) 폼 검증
     final form = _formKey.currentState;
@@ -35,13 +48,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
     final isValid = form.validate();
     if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('입력값을 확인해주세요.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('입력값을 확인해주세요.', isError: true);
       return;
     }
 
@@ -51,40 +58,32 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
     setState(() => _isSaving = true);
 
     try {
-      // ✅ service.save()가 이제 결과를 리턴한다고 가정 (아래 2번 참고)
+      // ✅ 서비스 저장 실행
       final result = await service.saveAndReturnResult(_formKey);
 
       if (!mounted) return;
 
       if (result.success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('저장 완료!'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.green,
-          ),
-        );
+        // 성공 피드백 표시
+        _showSnackBar('성공적으로 저장되었습니다!');
+
+        // ✅ 저장 완료 후 약 0.8초 뒤에 자동으로 마이페이지로 이동
+        // 유저가 스낵바를 인지할 시간을 줍니다.
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        if (mounted) {
+          // 마이페이지로 돌아가기 (결과값 true 전달)
+          Navigator.of(context).pop(true);
+        }
       } else {
         final msg = (result.message?.trim().isNotEmpty == true)
             ? result.message!.trim()
             : '저장에 실패했어요. 다시 시도해주세요.';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('저장 실패: $msg'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar('저장 실패: $msg', isError: true);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('저장 중 오류: $e'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar('저장 중 오류가 발생했습니다: $e', isError: true);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -92,8 +91,13 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Scaffold 내부의 내용을 WillPopScope나 PopScope로 감싸서
+    // 저장 중일 때 뒤로가기를 막는 처리도 고려해볼 수 있습니다.
     return Scaffold(
-      appBar: CommonAppBar(title: '프로필 등록/수정', showBackButton: true),
+      appBar: CommonAppBar(
+        title: '프로필 등록/수정',
+        showBackButton: !_isSaving, // 저장 중일 때는 뒤로가기 버튼 비활성화 권장
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -114,18 +118,34 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _onSave,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         child: _isSaving
                             ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
-                            : const Text('완료'),
+                            : const Text(
+                          '저장 완료',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 40), // 하단 여백 추가
             ],
           ),
         ),
@@ -135,7 +155,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   @override
   void dispose() {
-    // service.dispose();  // 삭제!
+    // 필요한 경우 여기서 service 내의 컨트롤러들을 정리합니다.
     super.dispose();
   }
 }

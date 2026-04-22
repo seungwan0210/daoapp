@@ -98,4 +98,5 @@ class RouteConstants {
   static const String adminBlockManage = '/admin/block-manage'; // 전체 차단 현황
   static const String adminBlockStats = '/admin/block-manage';
   static const String adminChatConfig = '/admin/chat-config';
+  static const String adminHardCleanup = '/admin/hard-cleanup';
 }

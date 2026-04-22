@@ -1,3 +1,4 @@
+//lib//presentation/screens/my_log/services/profile_service.dart
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -10,7 +11,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'image_upload_service.dart';
 import 'phone_auth_service.dart';
-import 'package:daoapp/core/utils/chat_utils.dart'; // ✅ 1. ChatUtils 임포트 추가
 
 /// ✅ 저장 결과를 UI로 알려주기 위한 모델
 class SaveResult {
@@ -64,6 +64,8 @@ class ProfileService extends ChangeNotifier {
     return '+82${digits.substring(1)}';
   }
 
+  /// ✅ 앱이 튕기더라도 다시 돌아왔을 때 폼이 유지되도록,
+  ///    인증 요청 전에 현재 입력값을 Firestore에 초안으로 저장
   Future<void> _saveDraftBeforePhoneAuth() async {
     final u = user;
     if (u == null) return;
@@ -358,6 +360,7 @@ class ProfileService extends ChangeNotifier {
     }
   }
 
+  /// ✅ [수정됨] ImageUploadService의 변경사항 반영 (deleteByUrl 사용)
   Future<void> deleteImage(bool isProfile) async {
     final u = user;
     if (u == null) return;
@@ -382,8 +385,10 @@ class ProfileService extends ChangeNotifier {
 
     if (confirmed != true || !context.mounted) return;
 
+    // 1. 삭제할 URL 미리 확보
     final String? targetUrl = isProfile ? firestoreProfileUrl : firestoreBarrelUrl;
 
+    // 2. 로컬 상태 업데이트
     if (isProfile) {
       profileImage = null;
       firestoreProfileUrl = null;
@@ -392,6 +397,7 @@ class ProfileService extends ChangeNotifier {
       firestoreBarrelUrl = null;
     }
 
+    // 3. ✅ ImageUploadService.deleteByUrl 호출 (URL로 개별 파일 삭제)
     if (targetUrl != null && targetUrl.isNotEmpty) {
       await ImageUploadService.deleteByUrl(targetUrl);
     }
@@ -471,10 +477,12 @@ class ProfileService extends ChangeNotifier {
       String? profileUrl;
       String? barrelUrl;
 
+      // ❗ 수정 시 기존 파일 관리를 위해 기존 URL 백업
       final String? oldProfileUrl = firestoreProfileUrl;
       final String? oldBarrelUrl = firestoreBarrelUrl;
 
       if (profileImage != null) {
+        // 새 이미지가 들어오면 기존 이미지는 삭제 (비용 최적화)
         if (oldProfileUrl != null) await ImageUploadService.deleteByUrl(oldProfileUrl);
         profileUrl =
         await ImageUploadService.upload(profileImage!, 'profiles/${u.uid}');
@@ -496,12 +504,8 @@ class ProfileService extends ChangeNotifier {
           .get();
       final isCurrentlyAdmin = (userDoc.data() ?? {})['admin'] == true;
 
-      // ✅ [추가] 공지에 사용할 닉네임 미리 저장
-      final String nickname = koreanNameCtrl.text.trim();
-      final bool wasFirstReg = isFirstRegistration;
-
       await FirebaseFirestore.instance.collection('users').doc(u.uid).set({
-        'koreanName': nickname,
+        'koreanName': koreanNameCtrl.text.trim(),
         'englishName': englishNameCtrl.text.trim(),
         'shopName': shopNameCtrl.text.trim(),
 
@@ -534,21 +538,13 @@ class ProfileService extends ChangeNotifier {
         if (isCurrentlyAdmin) 'admin': true,
       }, SetOptions(merge: true));
 
-      // profile_service.dart 내부
-
-      if (wasFirstReg) {
-        // ✅ 이제 유틸에서 함수 이름만 호출하면 끝!
-        await ChatUtils.sendWelcomeNotice(nickname);
-        isFirstRegistration = false;
-      }
-
       final finalPhotoUrl =
       (profileImage != null) ? (profileUrl ?? '') : (firestoreProfileUrl ?? '');
 
       final onlineRef =
       FirebaseDatabase.instance.ref('online_users/${u.uid}');
       await onlineRef.update({
-        'name': nickname,
+        'name': koreanNameCtrl.text.trim(),
         'photoUrl': finalPhotoUrl,
       });
 

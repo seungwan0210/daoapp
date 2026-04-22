@@ -80,6 +80,17 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     });
   }
 
+  // 🔥 [신규] 501 BUST 전용 처리 함수
+  void _handleBust() {
+    setState(() {
+      _history501.add(0);        // 0점 기록
+      _totalThrownDarts += 3;    // 3발 소모 처리
+      _scoreController.clear();
+      _nextRound();
+    });
+    _showSnackBar("BUST 처리되었습니다.");
+  }
+
   void _submitRound501() {
     final val = int.tryParse(_scoreController.text) ?? 0;
     if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
@@ -97,13 +108,11 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _submitRoundCricket() {
-    // 🔥 BULL 타겟일 때 비정상적인 마크 입력 방어 로직
     String target = _cricketTargets[(_currentRound - 1).clamp(0, _cricketTargets.length - 1)];
     if (target == "BULL" && _selectedMark >= 7) {
       _showSnackBar("BULL은 최대 6마크까지만 가능합니다.");
       return;
     }
-
     setState(() {
       _totalMarks += _selectedMark;
       _historyCricket.add(_selectedMark);
@@ -215,7 +224,28 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
         const SizedBox(height: 10),
         _buildHistoryRow(_history501),
         const SizedBox(height: 15),
-        _buildScoreInput("ROUND SCORE"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _buildScoreInput("ROUND SCORE"),
+            const SizedBox(width: 12),
+            // 🔥 [추가] BUST 버튼 UI
+            SizedBox(
+              height: 52,
+              child: OutlinedButton(
+                onPressed: _handleBust,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.redAccent,
+                  side: const BorderSide(color: Colors.redAccent, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+                child: const Text("BUST", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -285,21 +315,25 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
 
   Widget _buildScoreInput(String label) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 5),
         SizedBox(
-          width: 140,
+          width: 130,
           child: TextField(
             controller: _scoreController,
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             autofocus: true,
-            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
             decoration: InputDecoration(
               hintText: label,
-              hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              hintStyle: const TextStyle(fontSize: 11, color: Colors.grey),
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(15),
+                borderSide: const BorderSide(color: Colors.cyan, width: 2),
+              ),
             ),
             onSubmitted: (_) {
               if (widget.gameType == "501") _submitRound501();
@@ -330,7 +364,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _markButton(int val) {
-    // 🔥 BULL 타겟일 때 7~9마크 버튼 비활성화 로직
     String target = _cricketTargets[(_currentRound - 1).clamp(0, 7)];
     bool isDisabled = (target == "BULL" && val >= 7);
     bool isSelected = _selectedMark == val;
@@ -379,6 +412,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
                     : _submitRoundCountUp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan[700],
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
                 child: const Text("CONFIRM", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
@@ -395,7 +429,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _showDartCountPicker() {
-    // 🔥 [핵심 로직] 피니시 점수에 따른 발 수 제한
     final int finishScore = _history501.isEmpty ? 0 : _history501.last;
 
     showModalBottomSheet(
@@ -423,7 +456,6 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [1, 2, 3].map((count) {
-                    // 🚫 물리적 불가능 발 수 필터링 (한 발 최대 60점 기준)
                     bool isPossible = true;
                     if (count == 1 && finishScore > 60) isPossible = false;
                     if (count == 2 && finishScore > 120) isPossible = false;
@@ -443,6 +475,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.cyan[700],
                             foregroundColor: Colors.white,
+                            elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
                           child: Text("$count발", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),

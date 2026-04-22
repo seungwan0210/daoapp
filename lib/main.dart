@@ -64,6 +64,7 @@ import 'package:daoapp/presentation/screens/community/chat/chat_screen.dart';
 import 'package:daoapp/presentation/screens/my_page/block_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_block_manage_screen.dart'; // 전체 차단 관리
 import 'package:daoapp/presentation/screens/admin/forms/admin_chat_config_screen.dart'; // 전광판 설정
+import 'package:daoapp/presentation/screens/admin/admin_hard_cleanup_screen.dart'; // ✅ 새로 만든 파일 임포트
 
 // -----------------------------------------------------------
 // ⚠️ [긴급] 애드몹 정지 대응을 위한 설정
@@ -199,6 +200,8 @@ class DaoApp extends StatelessWidget {
         RouteConstants.selectionPlayersAdmin: (_) => const SelectionPlayersAdminScreen(),
         RouteConstants.steelLeagueSelection: (_) => const SelectionPlayersScreen(),
         RouteConstants.adminBlockManage: (_) => const AdminBlockManageScreen(), // 만약 스크린 만드셨다면 주석 해제
+        // 🔥 [추가] 데이터 완전 파쇄 스크린 등록
+        RouteConstants.adminHardCleanup: (_) => const AdminHardCleanupScreen(),
 
         // 2. 라이브 톡 전광판 설정 (신규)
         RouteConstants.adminChatConfig: (_) => const AdminChatConfigScreen(),

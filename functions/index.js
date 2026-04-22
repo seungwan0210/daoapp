@@ -137,6 +137,86 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
 }
 
 /**
+ * ✅ [최종 통합본] 관리자 전용: 유저의 모든 흔적 소멸 함수
+ * 수정사항: free_rankings 월별 대응, chats 필드명(uid) 대응, community 하위 댓글/좋아요 찌꺼기 대응
+ */
+exports.adminHardCleanup = functions.region('asia-northeast3').https.onCall(async (data, context) => {
+  // 1. 보안 체크
+  if (!context.auth || (context.auth.token.admin !== true && context.auth.uid !== 'NanHPgCdsbMCFkHEs7MtxS51OSX2')) {
+    throw new functions.https.HttpsError('permission-denied', '관리자 권한이 필요합니다.');
+  }
+
+  const targetUid = data.uid;
+  if (!targetUid) throw new functions.https.HttpsError('invalid-argument', '대상 UID가 누락되었습니다.');
+
+  console.log(`[Admin Hard Cleanup] UID: ${targetUid} 소멸 작업을 시작합니다.`);
+
+  try {
+    // --- 1. 유저 메인 문서 및 하위 찌꺼기 (readNotices 등) 삭제 ---
+    const userDocRef = db.collection('users').doc(targetUid);
+    await safeRecursiveDelete(userDocRef);
+
+    // --- 2. free_rankings 월별 데이터 삭제 (문서 ID가 UID인 경우 대응) ---
+    const monthsSnap = await db.collection('free_rankings').get();
+    for (const monthDoc of monthsSnap.docs) {
+      await safeRecursiveDelete(monthDoc.ref.collection('ranking_list').doc(targetUid));
+      await safeRecursiveDelete(monthDoc.ref.collection('total_rankings').doc(targetUid));
+    }
+
+    // --- 3. chats 컬렉션 삭제 (필드명이 'uid'인 경우 대응) ---
+    const chatSnap = await db.collection('chats').where('uid', '==', targetUid).get();
+    for (const d of chatSnap.docs) {
+      await d.ref.delete(); // 개별 채팅 메시지 삭제
+    }
+
+    // --- 4. 계층형 컬렉션 삭제 (내가 쓴 글 + 그 글의 모든 댓글/좋아요) ---
+    const recursiveCols = ['community', 'trainingProfiles'];
+    for (const col of recursiveCols) {
+      const snap = await db.collection(col).where('userId', '==', targetUid).get();
+      for (const doc of snap.docs) {
+        await safeRecursiveDelete(doc.ref);
+      }
+    }
+
+    // --- 5. [중요] 내가 '다른 사람 글'에 남긴 댓글 및 좋아요 삭제 (찌꺼기 방지) ---
+    // ※ 주의: Firebase 콘솔에서 색인(Index) 생성이 필요할 수 있습니다.
+    const myComments = await db.collectionGroup('comments').where('userId', '==', targetUid).get();
+    for (const d of myComments.docs) await d.ref.delete();
+
+    const myLikes = await db.collectionGroup('likes').where('userId', '==', targetUid).get();
+    for (const d of myLikes.docs) await d.ref.delete();
+
+    // --- 6. 단순 평면 데이터 삭제 (필드명이 'userId'인 것들) ---
+    const flatCols = ['community_chat', 'my_logs', 'online_users', 'entries', 'point_records'];
+    for (const col of flatCols) {
+      await deleteDocsByQuery(db.collection(col).where('userId', '==', targetUid));
+    }
+
+    // --- 7. 유저가 생성한 상위 데이터 (createdByUid 기준) ---
+    const ownerCols = ['tournaments', 'competition_photos'];
+    for (const col of ownerCols) {
+      await deleteDocsByQuery(db.collection(col).where('createdByUid', '==', targetUid));
+    }
+
+    // --- 8. Firebase Auth 계정 최종 삭제 ---
+    try {
+      await admin.auth().deleteUser(targetUid);
+    } catch (e) {
+      console.log('Auth 계정이 이미 없거나 삭제됨');
+    }
+
+    return {
+      success: true,
+      message: `UID: ${targetUid}의 모든 흔적이 완벽히 소멸되었습니다.`
+    };
+
+  } catch (error) {
+    console.error(`[Admin Hard Cleanup Error] uid=${targetUid}`, error);
+    throw new functions.https.HttpsError('internal', `삭제 중 오류 발생: ${error.message}`);
+  }
+});
+
+/**
  * ✅ [수정] 1세대 스케줄러 문법으로 복구
  */
 exports.sendTournamentEntrySummary = functions.pubsub.schedule('every 60 minutes').timeZone('Asia/Seoul').onRun(async (context) => {

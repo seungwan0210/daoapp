@@ -28,11 +28,15 @@ class MyPageScreen extends ConsumerWidget {
 class MyPageScreenBody extends ConsumerWidget {
   const MyPageScreenBody({super.key});
 
+  /// ✅ 수정된 프로필 보유 판단 로직 (아이폰/안드로이드 세션 유지 보강)
   bool _determineHasProfile(Map<String, dynamic> data) {
-    final hasProfile = data['hasProfile'] as bool? ?? false;
     final isPhoneVerified = data['isPhoneVerified'] as bool? ?? false;
-    final koreanName = data['koreanName']?.toString().trim();
-    return hasProfile && isPhoneVerified && koreanName != null && koreanName.isNotEmpty;
+    final phoneNumber = data['phoneNumber']?.toString().trim() ?? '';
+    final koreanName = data['koreanName']?.toString().trim() ?? '';
+
+    // 단순히 hasProfile 필드만 체크하는 대신,
+    // 인증 여부(혹은 번호 존재)와 이름이 모두 있는지 확인하여 튕김 현상을 방지합니다.
+    return (isPhoneVerified || phoneNumber.isNotEmpty) && koreanName.isNotEmpty;
   }
 
   static const List<_GridItem> _mainFunctions = [
@@ -57,7 +61,14 @@ class MyPageScreenBody extends ConsumerWidget {
             return StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                // ✅ 데이터 로딩 중일 때 깜빡임 방지
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || !snapshot.data!.exists) {
+                  return _buildProfilePrompt(context, ref);
+                }
 
                 final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final hasProfile = _determineHasProfile(data);
@@ -209,7 +220,7 @@ class MyPageScreenBody extends ConsumerWidget {
     final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
     final shopName = data['shopName']?.toString().trim() ?? '';
 
-    // 🛠️ 배럴 정보 파싱 (스샷에서 확인된 구조 반영)
+    // 🛠️ 배럴 정보 파싱
     final barrelName = data['barrelName']?.toString().trim() ?? '';
     final shaft = data['shaft']?.toString().trim() ?? '';
     final flight = data['flight']?.toString().trim() ?? '';
@@ -224,7 +235,7 @@ class MyPageScreenBody extends ConsumerWidget {
         tip.isNotEmpty ||
         (barrelImageUrl?.isNotEmpty == true);
 
-    // 🛡️ 배지 리스트 구성 (실시간 우선)
+    // 🛡️ 배지 리스트 구성
     final List<Widget> badgeWidgets = [];
     if (currentRank != null) {
       badgeWidgets.add(BadgeWidget(rank: currentRank, size: 22));
@@ -259,7 +270,6 @@ class MyPageScreenBody extends ConsumerWidget {
                                 ? const Icon(Icons.account_circle, size: 44, color: Colors.grey)
                                 : null,
                           ),
-                          // 🆕 실시간 배지 렌더링 (아바타 슬라이더와 동일 로직)
                           ...badgeWidgets.asMap().entries.map((entry) {
                             final index = entry.key;
                             return Positioned(
@@ -323,9 +333,23 @@ class MyPageScreenBody extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _buildActionButton(context, icon: Icons.edit, label: '프로필 수정', onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister))),
+                    Expanded(
+                        child: _buildActionButton(
+                            context,
+                            icon: Icons.edit,
+                            label: '프로필 수정',
+                            onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister)
+                        )
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: _buildActionButton(context, icon: Icons.comment, label: '내 방명록', onTap: () => Navigator.pushNamed(context, RouteConstants.guestbook, arguments: user.uid))),
+                    Expanded(
+                        child: _buildActionButton(
+                            context,
+                            icon: Icons.comment,
+                            label: '내 방명록',
+                            onTap: () => Navigator.pushNamed(context, RouteConstants.guestbook, arguments: user.uid)
+                        )
+                    ),
                   ],
                 ),
                 if (hasBarrelSetting) ...[
@@ -535,14 +559,12 @@ class MyPageScreenBody extends ConsumerWidget {
     }
   }
 
-  // ✅ 실제 계정 삭제 로직 (서버(Cloud Function)에서 Firestore+Storage+Auth까지 처리)
   Future<void> _deleteAccount(BuildContext context, WidgetRef ref) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     final rootNavigator = Navigator.of(context, rootNavigator: true);
 
-    // 로딩 다이얼로그
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -550,24 +572,14 @@ class MyPageScreenBody extends ConsumerWidget {
     );
 
     try {
-      // ✅ (중요) region 맞춰서 호출
       final functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
-
-      // ✅ 서버에서:
-      // - users/{uid} + 관련 컬렉션 문서들 삭제
-      // - 스토리지 이미지 삭제
-      // - 마지막에 Auth 계정 삭제
       await functions.httpsCallable('requestAccountDeletion').call();
-
-      // ✅ 클라 로컬 세션 정리
       await ref.read(authRepositoryProvider).signOut();
 
-      // 로딩 다이얼로그 닫기
       try {
         if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
 
-      // 로그인 화면으로 이동
       if (context.mounted) {
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -576,73 +588,44 @@ class MyPageScreenBody extends ConsumerWidget {
         );
       }
     } on FirebaseFunctionsException catch (e) {
-      // 로딩 다이얼로그 닫기
       try {
         if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
-
       final msg = _mapAccountDeleteFunctionError(e);
-
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
       }
-
-      // 상황에 따라 세션 정리(권장: 그대로 유지)
-      // await ref.read(authRepositoryProvider).signOut();
     } on FirebaseAuthException catch (e) {
-      // 로딩 다이얼로그 닫기
       try {
         if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
-
-      String message;
-      if (e.code == 'requires-recent-login') {
-        message = '보안을 위해 최근 로그인한 사용자만 계정을 삭제할 수 있어요.\n'
-            '다시 로그인한 후 계정 삭제를 다시 시도해주세요.';
-      } else {
-        message = '계정 삭제 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
-      }
-
+      String message = e.code == 'requires-recent-login'
+          ? '보안을 위해 최근 로그인한 사용자만 계정을 삭제할 수 있어요.\n다시 로그인한 후 시도해주세요.'
+          : '계정 삭제 중 오류가 발생했습니다.';
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (_) {
-      // 로딩 다이얼로그 닫기
       try {
         if (rootNavigator.canPop()) rootNavigator.pop();
       } catch (_) {}
-
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'),
-          ),
+          const SnackBar(content: Text('계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.')),
         );
       }
     }
   }
 
   String _mapAccountDeleteFunctionError(FirebaseFunctionsException e) {
-    // e.code: unauthenticated / permission-denied / invalid-argument / internal ...
     switch (e.code) {
-      case 'unauthenticated':
-        return '로그인이 필요합니다. 다시 로그인한 뒤 시도해주세요.';
-      case 'permission-denied':
-        return '권한이 없습니다. 관리자에게 문의해주세요.';
-      case 'deadline-exceeded':
-        return '삭제 작업이 지연되고 있어요. 네트워크 확인 후 다시 시도해주세요.';
-      case 'unavailable':
-        return '서버 연결이 불안정합니다. 잠시 후 다시 시도해주세요.';
-      case 'internal':
+      case 'unauthenticated': return '로그인이 필요합니다. 다시 로그인한 뒤 시도해주세요.';
+      case 'permission-denied': return '권한이 없습니다. 관리자에게 문의해주세요.';
+      case 'deadline-exceeded': return '삭제 작업이 지연되고 있어요. 네트워크 확인 후 다시 시도해주세요.';
+      case 'unavailable': return '서버 연결이 불안정합니다. 잠시 후 다시 시도해주세요.';
       default:
-      // 서버에서 throw한 기본 메시지가 있으면 그걸 우선
         final details = (e.message ?? '').trim();
-        if (details.isNotEmpty) return details;
-        return '계정 삭제 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        return details.isNotEmpty ? details : '계정 삭제 처리 중 오류가 발생했습니다.';
     }
   }
 
@@ -654,18 +637,9 @@ class MyPageScreenBody extends ConsumerWidget {
         text: TextSpan(
           style: theme.textTheme.bodySmall,
           children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const TextSpan(
-              text: ' ',
-              style: TextStyle(color: Colors.transparent),
-            ),
-            TextSpan(
-              text: value,
-              style: const TextStyle(color: Colors.black87),
-            ),
+            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const TextSpan(text: ' ', style: TextStyle(color: Colors.transparent)),
+            TextSpan(text: value, style: const TextStyle(color: Colors.black87)),
           ],
         ),
         overflow: TextOverflow.ellipsis,
@@ -713,8 +687,7 @@ class MyPageScreenBody extends ConsumerWidget {
               child: Image.network(
                 imageUrl,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                const Icon(Icons.error, color: Colors.white),
+                errorBuilder: (_, __, ___) => const Icon(Icons.error, color: Colors.white),
               ),
             ),
             Positioned(
