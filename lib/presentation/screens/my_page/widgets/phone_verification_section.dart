@@ -121,16 +121,14 @@ class PhoneVerificationSection extends StatelessWidget {
                           onPressed: service.isVerifying ? null : service.sendVerificationCode,
                         ),
 
+                      // lib/user/widgets/phone_verification_section.dart (해당 부분)
+
                       if (isEditing && !isFirstReg && !service.codeSent)
                         IconButton(
                           icon: const Icon(Icons.close, color: Colors.red),
                           onPressed: () {
-                            service.isEditingPhone = false;
-                            service.codeSent = false;
-                            service.phoneCtrl.text = service.originalPhone ?? '';
-                            // originalPhone 로딩 시 국가 코드도 복구되도록 서비스에 로직이 포함됨
-                            service.isPhoneVerified = true;
-                            service.notifyListeners();
+                            // ✅ 개별 변수를 수정하는 대신, 서비스의 통합 롤백 메서드를 호출합니다.
+                            service.cancelEditing();
                           },
                         ),
                     ],

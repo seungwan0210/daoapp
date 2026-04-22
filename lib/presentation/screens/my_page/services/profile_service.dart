@@ -269,59 +269,153 @@ class ProfileService extends ChangeNotifier {
     isVerifying = false; _safeNotify();
   }
 
-  // --- 이미지 및 저장 로직 ---
+  // ──────────────────────────────────────────────────────────────────────────
+  // 🖼️ 이미지 처리 로직 (즉시 반영 방식)
+  // ──────────────────────────────────────────────────────────────────────────
+
   Future<void> pickImage(bool isProfile) async {
+    final u = user;
+    if (u == null) return;
+
     final image = await ImageUploadService.pickImage();
-    if (image != null && context.mounted) {
-      if (isProfile) profileImage = File(image.path);
-      else barrelImage = File(image.path);
+    if (image == null || !context.mounted) return;
+
+    _isSaving = true;
+    _safeNotify();
+
+    try {
+      final file = File(image.path);
+      final String? oldUrl = isProfile ? firestoreProfileUrl : firestoreBarrelUrl;
+
+      if (oldUrl != null) {
+        await ImageUploadService.deleteByUrl(oldUrl);
+      }
+
+      final String folder = isProfile ? 'profiles' : 'barrels';
+
+      // ✅ [수정] 반환 타입에 맞춰 String? 로 변경하거나 강제 캐스팅
+      final String? uploadedUrl = await ImageUploadService.upload(file, '$folder/${u.uid}');
+
+      // 업로드 실패 시 로직 중단
+      if (uploadedUrl == null) {
+        throw Exception('이미지 업로드에 실패했습니다.');
+      }
+
+      await FirebaseFirestore.instance.collection('users').doc(u.uid).update({
+        isProfile ? 'profileImageUrl' : 'barrelImageUrl': uploadedUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (isProfile) {
+        profileImage = null;
+        firestoreProfileUrl = uploadedUrl;
+      } else {
+        barrelImage = null;
+        firestoreBarrelUrl = uploadedUrl;
+      }
+
+      _showSnackBar(isProfile ? '프로필 사진이 저장되었습니다.' : '배럴 사진이 저장되었습니다.', color: Colors.green);
+    } catch (e) {
+      _showSnackBar('이미지 업로드 실패: $e', color: Colors.red);
+    } finally {
+      _isSaving = false;
       _safeNotify();
     }
+  }
+
+  // ✅ [참고] cancelEditing 메서드 누락 확인 (아까 질문하신 에러 해결용)
+  void cancelEditing() {
+    isEditingPhone = false;
+    codeSent = false;
+    verificationId = null;
+    codeCtrl.clear();
+
+    if (originalPhone != null) {
+      String restoreDisplay = originalPhone!;
+      if (restoreDisplay.startsWith('+82')) {
+        final digits = restoreDisplay.substring(3);
+        if (digits.length == 10) {
+          restoreDisplay = '0${digits.substring(0, 2)}-${digits.substring(2, 6)}-${digits.substring(6)}';
+        } else if (digits.length == 11) {
+          restoreDisplay = '0${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}';
+        }
+      }
+      phoneCtrl.text = restoreDisplay;
+
+      if (originalPhone!.startsWith('+82')) selectedCountryCode = '+82';
+      else if (originalPhone!.startsWith('+81')) selectedCountryCode = '+81';
+      else if (originalPhone!.startsWith('+1')) selectedCountryCode = '+1';
+    }
+
+    isPhoneVerified = true;
+    _safeNotify();
   }
 
   Future<void> deleteImage(bool isProfile) async {
-    final u = user; if (u == null) return;
+    final u = user;
+    if (u == null) return;
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('삭제'), content: const Text('삭제하시겠습니까?'),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red)))],
+        title: const Text('이미지 영구 삭제'),
+        content: const Text('삭제된 이미지는 즉시 반영되며 되돌릴 수 없습니다.\n정말 삭제하시겠습니까?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red))),
+        ],
       ),
     );
-    if (confirmed == true && context.mounted) {
+
+    if (confirmed != true) return;
+
+    _isSaving = true;
+    _safeNotify();
+
+    try {
       final String? targetUrl = isProfile ? firestoreProfileUrl : firestoreBarrelUrl;
-      if (isProfile) { profileImage = null; firestoreProfileUrl = null; }
-      else { barrelImage = null; firestoreBarrelUrl = null; }
-      if (targetUrl != null) await ImageUploadService.deleteByUrl(targetUrl);
+      if (targetUrl != null) {
+        await ImageUploadService.deleteByUrl(targetUrl);
+        await FirebaseFirestore.instance.collection('users').doc(u.uid).update({
+          isProfile ? 'profileImageUrl' : 'barrelImageUrl': FieldValue.delete(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      if (isProfile) {
+        profileImage = null;
+        firestoreProfileUrl = null;
+      } else {
+        barrelImage = null;
+        firestoreBarrelUrl = null;
+      }
+
+      _showSnackBar('이미지가 삭제되었습니다.', color: Colors.orange);
+    } catch (e) {
+      _showSnackBar('이미지 삭제 실패: $e', color: Colors.red);
+    } finally {
+      _isSaving = false;
       _safeNotify();
     }
   }
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // 💾 최종 저장 및 유틸리티 로직
+  // ──────────────────────────────────────────────────────────────────────────
+
   Future<SaveResult> saveAndReturnResult(GlobalKey<FormState> formKey) async {
-    if (_isSaving) return const SaveResult(success: false, message: '저장 중...');
+    if (_isSaving) return const SaveResult(success: false, message: '처리 중입니다...');
     final u = user; if (u == null) return const SaveResult(success: false, message: '로그인 필요');
     if (!formKey.currentState!.validate()) return const SaveResult(success: false, message: '입력 확인');
 
     final currentFullPhone = _formatToInternational(phoneCtrl.text.trim(), selectedCountryCode);
 
-    // 🆕 [빈틈 봉쇄 최종] 입력창 번호가 실제 인증된 번호와 다르면 저장 원천 차단
     if (currentFullPhone != originalPhone || !isPhoneVerified) {
       return const SaveResult(success: false, message: '번호 인증이 완료되지 않았습니다.');
     }
 
     _isSaving = true; _safeNotify();
     try {
-      String? profileUrl; String? barrelUrl;
-      if (profileImage != null) {
-        if (firestoreProfileUrl != null) await ImageUploadService.deleteByUrl(firestoreProfileUrl!);
-        profileUrl = await ImageUploadService.upload(profileImage!, 'profiles/${u.uid}');
-      }
-      if (barrelImage != null) {
-        if (firestoreBarrelUrl != null) await ImageUploadService.deleteByUrl(firestoreBarrelUrl!);
-        barrelUrl = await ImageUploadService.upload(barrelImage!, 'barrels/${u.uid}');
-      }
-
       await FirebaseFirestore.instance.collection('users').doc(u.uid).set({
         'koreanName': koreanNameCtrl.text.trim(),
         'englishName': englishNameCtrl.text.trim(),
@@ -332,46 +426,68 @@ class ProfileService extends ChangeNotifier {
         'shaft': shaftCtrl.text.trim(),
         'flight': flightCtrl.text.trim(),
         'tip': tipCtrl.text.trim(),
-        'profileImageUrl': profileUrl ?? firestoreProfileUrl ?? FieldValue.delete(),
-        'barrelImageUrl': barrelUrl ?? firestoreBarrelUrl ?? FieldValue.delete(),
+        'profileImageUrl': firestoreProfileUrl ?? FieldValue.delete(),
+        'barrelImageUrl': firestoreBarrelUrl ?? FieldValue.delete(),
         'hasProfile': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
       isEditingPhone = false;
+
       try {
         final callable = FirebaseFunctions.instance.httpsCallable('setHasProfile');
-        await callable.call(); await u.reload(); ref.invalidate(isAdminProvider);
+        await callable.call();
+        await u.reload();
+        ref.invalidate(isAdminProvider);
       } catch (_) {}
+
       ref.invalidate(userHasProfileProvider);
       return SaveResult.ok;
-    } catch (e) { return SaveResult(success: false, message: '오류: $e'); }
-    finally { _isSaving = false; _safeNotify(); }
+    } catch (e) {
+      return SaveResult(success: false, message: '오류: $e');
+    } finally {
+      _isSaving = false;
+      _safeNotify();
+    }
   }
 
   void _showSnackBar(String message, {Color? color}) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: color, behavior: SnackBarBehavior.floating)
+    );
   }
+
   void _safeNotify() { if (context.mounted) notifyListeners(); }
 
+  // ✅ UI에서 이미지 노출을 결정하는 핵심 메서드들
   ImageProvider? getProfileImageProvider() {
     if (profileImage != null) return FileImage(profileImage!);
     if (firestoreProfileUrl?.isNotEmpty == true) return NetworkImage(firestoreProfileUrl!);
     if (isFirstRegistration && user?.photoURL != null) return NetworkImage(user!.photoURL!);
     return null;
   }
+
   DecorationImage? getBarrelDecorationImage() {
     if (barrelImage != null) return DecorationImage(image: FileImage(barrelImage!), fit: BoxFit.cover);
     if (firestoreBarrelUrl?.isNotEmpty == true) return DecorationImage(image: NetworkImage(firestoreBarrelUrl!), fit: BoxFit.cover);
     return null;
   }
+
   @override
   void dispose() {
+    // 리스너 해제 및 컨트롤러 파기 (메모리 누수 방지)
     phoneCtrl.removeListener(_onPhoneChanged);
-    koreanNameCtrl.dispose(); englishNameCtrl.dispose(); shopNameCtrl.dispose();
-    phoneCtrl.dispose(); codeCtrl.dispose(); barrelNameCtrl.dispose();
-    shaftCtrl.dispose(); flightCtrl.dispose(); tipCtrl.dispose();
+    koreanNameCtrl.dispose();
+    englishNameCtrl.dispose();
+    shopNameCtrl.dispose();
+    phoneCtrl.dispose();
+    codeCtrl.dispose();
+    barrelNameCtrl.dispose();
+    shaftCtrl.dispose();
+    flightCtrl.dispose();
+    tipCtrl.dispose();
     super.dispose();
   }
 }
+

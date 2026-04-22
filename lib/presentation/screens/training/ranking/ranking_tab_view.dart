@@ -135,7 +135,7 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
               ),
               const SizedBox(height: 8),
               Text(
-                "통합 랭킹은 각 종목 TOP 10 기록을 합산하여 결정됩니다.",
+                "통합 랭킹으로 배지가 수여되며\n각 종목 TOP 10 기록을 합산하여 결정됩니다.",
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.cyan[700],
