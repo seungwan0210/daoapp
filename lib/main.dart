@@ -62,36 +62,31 @@ import 'package:daoapp/presentation/screens/admin/selection_players_admin_screen
 import 'package:daoapp/presentation/screens/arena/steel_league/selection_players_screen.dart';
 import 'package:daoapp/presentation/screens/community/chat/chat_screen.dart';
 import 'package:daoapp/presentation/screens/my_page/block_list_screen.dart';
-import 'package:daoapp/presentation/screens/admin/admin_block_manage_screen.dart'; // 전체 차단 관리
-import 'package:daoapp/presentation/screens/admin/forms/admin_chat_config_screen.dart'; // 전광판 설정
-import 'package:daoapp/presentation/screens/admin/admin_hard_cleanup_screen.dart'; // ✅ 새로 만든 파일 임포트
+import 'package:daoapp/presentation/screens/admin/admin_block_manage_screen.dart';
+import 'package:daoapp/presentation/screens/admin/forms/admin_chat_config_screen.dart';
+import 'package:daoapp/presentation/screens/admin/admin_hard_cleanup_screen.dart';
 
-// -----------------------------------------------------------
-// ⚠️ [긴급] 애드몹 정지 대응을 위한 설정
-// -----------------------------------------------------------
 const bool kAdMobSuspended = false;
 const bool kEnableAdsInDebug = false;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp();
 
-  // ✅ App Check 설정 최적화 (Too many attempts 에러 해결)
   await FirebaseAppCheck.instance.activate(
-    // 디버그 모드일 때는 debug 토큰 공급자를 사용하도록 설정
+    // 안드로이드 설정
     androidProvider: kReleaseMode
-        ? AndroidProvider.playIntegrity
-        : AndroidProvider.debug,
-    appleProvider: kReleaseMode
-        ? AppleProvider.deviceCheck
-        : AppleProvider.debug,
-  );
+        ? AndroidProvider.playIntegrity  // 운영 환경: Play Integrity
+        : AndroidProvider.debug,         // 개발 환경: Debug
 
+    // iOS/macOS 설정
+    appleProvider: kReleaseMode
+        ? AppleProvider.deviceCheck      // 운영 환경: Device Check (여기에 써야 합니다!)
+        : AppleProvider.debug,           // 개발 환경: Debug
+  );
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
 
-  // ✅ AdMob 초기화
   if (!kAdMobSuspended) {
     if (kReleaseMode || kEnableAdsInDebug) {
       await MobileAds.instance.initialize();
@@ -99,7 +94,6 @@ void main() async {
     }
   }
 
-  // ✅ 온라인 상태 관리
   FirebaseAuth.instance.authStateChanges().listen((user) {
     if (user != null) {
       OnlineStatusManager.start(user);
@@ -117,21 +111,12 @@ class OnlineStatusManager {
 
   static void _update() {
     if (_currentUser == null) return;
-
-    FirebaseFirestore.instance
-        .collection('online_users')
-        .doc(_currentUser!.uid)
-        .set(
-      {
-        'uid': _currentUser!.uid,
-        'name': _currentUser!.displayName ?? '이름 없음',
-        'photoUrl': _currentUser!.photoURL, // ✅ 채팅창 실시간 아바타용 추가
-        'lastSeen': FieldValue.serverTimestamp(),
-      },
-      SetOptions(merge: true),
-    ).catchError(
-          (e) => debugPrint('Online status error: $e'),
-    );
+    FirebaseFirestore.instance.collection('online_users').doc(_currentUser!.uid).set({
+      'uid': _currentUser!.uid,
+      'name': _currentUser!.displayName ?? '이름 없음',
+      'photoUrl': _currentUser!.photoURL,
+      'lastSeen': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true)).catchError((e) => debugPrint('Online status error: $e'));
   }
 
   static void start(User user) {
@@ -172,7 +157,7 @@ class DaoApp extends StatelessWidget {
         RouteConstants.arenaHome: (_) => const ArenaHomeScreen(),
         RouteConstants.steelLeagueRanking: (_) => const SteelLeagueRankingScreen(),
         RouteConstants.steelLeagueSchedule: (_) => const SteelLeagueScheduleScreen(),
-        RouteConstants.chat: (_) => const ChatScreen(), // 승완님이 만든 경로의 화면
+        RouteConstants.chat: (_) => const ChatScreen(),
         RouteConstants.steelLeaguePointCalendar: (_) => const SteelLeaguePointCalendarScreen(),
         RouteConstants.steelLeagueMembers: (_) => const MemberListScreen(),
         RouteConstants.tournamentCreate: (_) => const TournamentCreateScreen(),
@@ -199,11 +184,8 @@ class DaoApp extends StatelessWidget {
         RouteConstants.adminMemberList: (_) => const AdminMemberListScreen(),
         RouteConstants.selectionPlayersAdmin: (_) => const SelectionPlayersAdminScreen(),
         RouteConstants.steelLeagueSelection: (_) => const SelectionPlayersScreen(),
-        RouteConstants.adminBlockManage: (_) => const AdminBlockManageScreen(), // 만약 스크린 만드셨다면 주석 해제
-        // 🔥 [추가] 데이터 완전 파쇄 스크린 등록
+        RouteConstants.adminBlockManage: (_) => const AdminBlockManageScreen(),
         RouteConstants.adminHardCleanup: (_) => const AdminHardCleanupScreen(),
-
-        // 2. 라이브 톡 전광판 설정 (신규)
         RouteConstants.adminChatConfig: (_) => const AdminChatConfigScreen(),
       },
       onGenerateRoute: (settings) {
@@ -224,10 +206,29 @@ class DaoApp extends StatelessWidget {
           final id = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => TournamentDetailScreen(tournamentId: id));
         }
+
+        // 🎯 [수정된 부분] 수동 모드 대응 로직
         if (settings.name == RouteConstants.tournamentEntryForm) {
-          final id = settings.arguments as String;
-          return MaterialPageRoute(builder: (_) => TournamentEntryFormScreen(tournamentId: id));
+          final args = settings.arguments;
+          if (args is Map<String, dynamic>) {
+            // 주최자가 [수동 추가] 버튼을 눌렀을 때 (Map 전달됨)
+            return MaterialPageRoute(
+              builder: (_) => TournamentEntryFormScreen(
+                tournamentId: args['tournamentId'] as String,
+                isManualMode: args['isManualMode'] as bool? ?? false,
+              ),
+            );
+          } else {
+            // 일반 유저가 [참가 신청] 버튼을 눌렀을 때 (String ID만 전달됨)
+            return MaterialPageRoute(
+              builder: (_) => TournamentEntryFormScreen(
+                tournamentId: args as String,
+                isManualMode: false,
+              ),
+            );
+          }
         }
+
         if (settings.name == RouteConstants.tournamentParticipantList) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(

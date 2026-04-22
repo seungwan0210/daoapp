@@ -44,7 +44,6 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
 
     _customAnswers = Map<String, String>.from(e.customAnswers);
 
-    // ✅ 초기 로드 시 깊은 복사 확실히 수행
     _members = e.members.map((m) => TeamMember(
       name: m.name,
       rating: m.rating,
@@ -66,11 +65,14 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
     setState(() => _isSaving = true);
 
     try {
+      // 🎯 [핵심 수정] 수동 등록자 대응: e.id가 있으면 문서ID로, 없으면 userUid 사용
+      final String docId = widget.entry.id ?? widget.entry.userUid;
+
       await FirebaseFirestore.instance
           .collection('tournaments')
           .doc(widget.tournamentId)
           .collection('entries')
-          .doc(widget.entry.userUid)
+          .doc(docId) // ✅ 정확한 문서 ID 참조
           .update({
         'teamName': _teamNameCtrl.text.trim(),
         'nameKo': _nameCtrl.text.trim(),
@@ -90,6 +92,11 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
       }
     } catch (e) {
       debugPrint("수정 실패: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("수정 실패: $e"), backgroundColor: Colors.redAccent)
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -119,6 +126,22 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
             children: [
+              if (widget.entry.isManual) // 🎯 수동 등록 안내 배너 추가
+                AppCard(
+                  color: Colors.amber.shade50,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  child: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_attributes, color: Colors.orange),
+                        SizedBox(width: 12),
+                        Expanded(child: Text("오프라인으로 직접 추가한 참가자 정보입니다.", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange))),
+                      ],
+                    ),
+                  ),
+                ),
+
               if (widget.entry.teamName != null) ...[
                 _sectionTitle('대회 방식 설정', Icons.account_tree_outlined),
                 const SizedBox(height: 12),
@@ -223,8 +246,6 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   ),
                                   onChanged: (val) {
-                                    // ✅ 핵심 수정 포인트: 맵의 값을 직접 수정하지 않고
-                                    // 새로운 맵을 생성하여 객체를 업데이트합니다.
                                     final newAnswers = Map<String, String>.from(_members[idx].customAnswers);
                                     newAnswers[qKey] = val;
                                     _members[idx] = _members[idx].copyWith(customAnswers: newAnswers);

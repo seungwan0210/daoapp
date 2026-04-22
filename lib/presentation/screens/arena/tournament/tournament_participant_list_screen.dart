@@ -23,14 +23,14 @@ class TournamentParticipantListScreen extends StatelessWidget {
   String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
   String get _adminUid => "NanHPgCdsbMCFkHEs7MtxS51OSX2"; // 승완님 UID
 
-  DocumentReference<Map<String, dynamic>> _entryRef(String uid) =>
-      _db.collection('tournaments').doc(tournamentId).collection('entries').doc(uid);
+  // 🎯 [수정] UID 대신 문서 고유 ID(docId)를 직접 받도록 변경하여 수동 등록자 대응
+  DocumentReference<Map<String, dynamic>> _entryRef(String docId) =>
+      _db.collection('tournaments').doc(tournamentId).collection('entries').doc(docId);
 
-  // 🛡️ 마스킹 헬퍼 함수 (일반 사용자용)
+  // 🛡️ 마스킹 헬퍼 함수
   String _maskText(String? text, {bool isPhone = false}) {
     if (text == null || text.isEmpty) return "-";
     if (isPhone) {
-      // 010-1234-5678 -> 010-****-5678
       if (text.contains('-') && text.length >= 10) {
         final parts = text.split('-');
         if (parts.length == 3) return "${parts[0]}-****-${parts[2]}";
@@ -38,7 +38,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
       if (text.length >= 10) return text.replaceRange(3, 7, "****");
       return "****";
     } else {
-      // 답변 가리기: "서울시" -> "서*시"
       if (text.length <= 1) return "*";
       if (text.length == 2) return "${text[0]}*";
       return "${text[0]}${'*' * (text.length - 2)}${text[text.length - 1]}";
@@ -57,8 +56,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
             if (!tSnap.data!.exists) return const Center(child: Text("대회를 찾을 수 없습니다."));
 
             final tournament = TournamentModel.fromJson(tSnap.data!.data()!);
-
-            // ✅ 권한 확인: 어드민이거나 대회 주최자인지 확인
             final bool isMaster = _currentUid == _adminUid || _currentUid == tournament.createdByUid;
 
             return StreamBuilder<List<TournamentEntryModel>>(
@@ -83,7 +80,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final e = entries[index];
                     final bool isPaid = (e.toJson()['isPaid'] ?? false);
-                    final bool isMyEntry = _currentUid == e.userUid; // 본인 신청 건인지
+                    final bool isMyEntry = _currentUid == e.userUid;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
@@ -93,11 +90,23 @@ class TournamentParticipantListScreen extends StatelessWidget {
                           dense: true,
                           visualDensity: VisualDensity.compact,
                           leading: _buildOrderCircle(index + 1),
-                          title: Text(
-                            tournament.type == 'team'
-                                ? '[팀] ${e.teamName ?? '이름 없음'}'
-                                : '${e.nameKo} (${e.nameEn})',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                          title: Row(
+                            children: [
+                              Text(
+                                tournament.type == 'team'
+                                    ? '[팀] ${e.teamName ?? '이름 없음'}'
+                                    : '${e.nameKo} (${e.nameEn})',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                              ),
+                              // 🎯 [추가] 수동 등록 배지 표시
+                              if (e.isManual)
+                                Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)),
+                                  child: const Text("수동", style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
+                                ),
+                            ],
                           ),
                           subtitle: Text(
                             tournament.type == 'team'
@@ -108,7 +117,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (isMaster) _buildPaymentToggle(e, isPaid), // 입금 확인은 마스터만
+                              if (isMaster) _buildPaymentToggle(e, isPaid),
                               const SizedBox(width: 4),
                               const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
                             ],
@@ -138,7 +147,9 @@ class TournamentParticipantListScreen extends StatelessWidget {
     return InkWell(
       onTap: () async {
         try {
-          await _entryRef(e.userUid).update({
+          // 🎯 [수정] 수동 등록 유저는 e.id(랜덤문서ID)를 사용해야 함
+          final String docId = e.id ?? e.userUid;
+          await _entryRef(docId).update({
             'isPaid': !isPaid,
             'updatedAt': FieldValue.serverTimestamp(),
           });
@@ -167,7 +178,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
 
   void _showDetailBottomSheet(BuildContext context, TournamentEntryModel e, int order, String type, bool isMaster) {
     final bool isMyEntry = _currentUid == e.userUid;
-    final bool canSeeAll = isMaster || isMyEntry; // 마스터거나 본인이면 다 보임
+    final bool canSeeAll = isMaster || isMyEntry;
 
     showModalBottomSheet(
       context: context,
@@ -240,7 +251,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
               ],
 
               const SizedBox(height: 40),
-              // 관리용 버튼 (마스터만 노출)
               if (isMaster)
                 Row(
                   children: [
@@ -293,7 +303,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
               Text('• ${entry.key}: ', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
               Expanded(
                   child: Text(
-                      canSeeAll ? entry.value : _maskText(entry.value), // ✅ 답변 마스킹 적용
+                      canSeeAll ? entry.value : _maskText(entry.value),
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
                   )
               ),
@@ -344,7 +354,9 @@ class TournamentParticipantListScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
           TextButton(
             onPressed: () async {
-              await _entryRef(e.userUid).update({
+              // 🎯 [수정] 수동 등록자 대응을 위해 e.id ?? e.userUid 사용
+              final String docId = e.id ?? e.userUid;
+              await _entryRef(docId).update({
                 'nameKo': nameKoCtrl.text.trim(),
                 'nameEn': nameEnCtrl.text.trim(),
                 'phone': phoneCtrl.text.trim(),
@@ -380,7 +392,11 @@ class TournamentParticipantListScreen extends StatelessWidget {
       await _db.runTransaction((tx) async {
         final tRef = _db.collection('tournaments').doc(tournamentId);
         final tSnap = await tx.get(tRef);
-        final entryRef = _entryRef(e.userUid);
+
+        // 🎯 [수정] 수동 등록자 대응을 위해 e.id ?? e.userUid 사용
+        final String docId = e.id ?? e.userUid;
+        final entryRef = _entryRef(docId);
+
         final entrySnap = await tx.get(entryRef);
         if (!entrySnap.exists) return;
         final current = (tSnap.data()?['entryCount'] as int?) ?? 0;

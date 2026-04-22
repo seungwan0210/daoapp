@@ -1,7 +1,7 @@
 // lib/data/repositories/arena_repository_impl.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart'; // ✅ 스토리지 추가
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/data/models/tournament_entry_model.dart';
@@ -9,7 +9,7 @@ import 'package:daoapp/data/repositories/arena_repository.dart';
 
 class ArenaRepositoryImpl implements ArenaRepository {
   final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage; // ✅ 스토리지 인스턴스 추가
+  final FirebaseStorage _storage;
 
   ArenaRepositoryImpl({
     FirebaseFirestore? firestore,
@@ -66,7 +66,7 @@ class ArenaRepositoryImpl implements ArenaRepository {
       'hostPhone': tournament.hostPhone,
       'isCanceled': tournament.isCanceled,
       'organizerEmails': tournament.organizerEmails,
-      'customQuestions': tournament.customQuestions, // ✅ 커스텀 질문 추가
+      'customQuestions': tournament.customQuestions,
       'type': tournament.type,
       'teamSize': tournament.teamSize,
       'updatedAt': FieldValue.serverTimestamp(),
@@ -79,49 +79,38 @@ class ArenaRepositoryImpl implements ArenaRepository {
     if (tid.isEmpty) return;
 
     try {
-      // 1. 대회 정보 가져오기 (사진 URL 확인용)
       final doc = await _firestore.collection('tournaments').doc(tid).get();
       if (!doc.exists) return;
 
       final data = doc.data() as Map<String, dynamic>;
       final String? posterUrl = data['posterUrl'];
 
-      // 2. 스토리지 사진 삭제 (존재할 경우)
       if (posterUrl != null && posterUrl.isNotEmpty) {
         try {
           await _storage.refFromURL(posterUrl).delete();
-          debugPrint("📸 스토리지 이미지 삭제 완료: $tid");
         } catch (e) {
-          debugPrint("⚠️ 이미지 삭제 실패(이미 없거나 경로 오류): $e");
+          debugPrint("⚠️ 이미지 삭제 실패: $e");
         }
       }
 
-      // 3. 하위 엔트리(참가 명단) 일괄 삭제
       final entries = await _firestore.collection('tournaments').doc(tid).collection('entries').get();
       final batch = _firestore.batch();
       for (var entryDoc in entries.docs) {
         batch.delete(entryDoc.reference);
       }
 
-      // 4. 메인 대회 문서 삭제 후 커밋
       batch.delete(_firestore.collection('tournaments').doc(tid));
       await batch.commit();
 
-      debugPrint("✨ 대회 데이터 완전 삭제 성공: $tid");
     } catch (e) {
-      debugPrint("❌ 대회 완전 삭제 중 오류 발생: $e");
       throw Exception("대회 삭제에 실패했습니다.");
     }
   }
 
-  // ✅ 자동 청소 로직 구현
   @override
   Future<void> autoCleanOldTournaments() async {
     try {
-      // 기준: 오늘로부터 90일(약 3개월) 전
       final ninetyDaysAgo = DateTime.now().subtract(const Duration(days: 90));
-
-      // 마감일(entryEndDate)이 90일보다 더 과거인 대회 쿼리
       final snapshots = await _firestore
           .collection('tournaments')
           .where('entryEndDate', isLessThan: Timestamp.fromDate(ninetyDaysAgo))
@@ -129,13 +118,9 @@ class ArenaRepositoryImpl implements ArenaRepository {
 
       if (snapshots.docs.isEmpty) return;
 
-      debugPrint("🧹 자동 청소: ${snapshots.docs.length}개의 오래된 대회 발견");
-
       for (var doc in snapshots.docs) {
-        // 이미 구현된 완전 삭제 로직(사진+명단+문서) 호출
         await deleteTournament(doc.id);
       }
-      debugPrint("✨ 자동 청소 완료");
     } catch (e) {
       debugPrint("❌ 자동 청소 중 오류: $e");
     }
@@ -264,7 +249,7 @@ class ArenaRepositoryImpl implements ArenaRepository {
   }
 
   // ======================
-  // Entries
+  // 🎯 Entries 핵심 수정 (수동 등록 지원)
   // ======================
 
   @override
@@ -277,7 +262,11 @@ class ArenaRepositoryImpl implements ArenaRepository {
     if (tid.isEmpty || userUid.isEmpty) throw Exception('필수 정보 누락');
 
     final tRef = _firestore.collection('tournaments').doc(tid);
-    final eRef = tRef.collection('entries').doc(userUid);
+
+    // ✅ [수정] 수동 등록(isManual)인 경우 랜덤 문서 ID 생성, 일반 신청은 유저 UID 사용
+    final DocumentReference eRef = entry.isManual
+        ? tRef.collection('entries').doc() // 🎯 수동: 랜덤 ID
+        : tRef.collection('entries').doc(userUid); // 👤 일반: 유저 UID
 
     await _firestore.runTransaction((tx) async {
       final tSnap = await tx.get(tRef);
@@ -287,8 +276,11 @@ class ArenaRepositoryImpl implements ArenaRepository {
       final int maxParticipants = (tData['maxParticipants'] as int?) ?? 9999;
       if (tData['isCanceled'] == true) throw Exception('취소된 대회');
 
-      final eSnap = await tx.get(eRef);
-      if (eSnap.exists) throw Exception('이미 신청됨');
+      // ✅ [수정] 일반 유저 신청인 경우에만 중복 신청 체크
+      if (!entry.isManual) {
+        final eSnap = await tx.get(eRef);
+        if (eSnap.exists) throw Exception('이미 신청됨');
+      }
 
       final int currentCount = (tData['entryCount'] as int?) ?? 0;
       if (currentCount >= maxParticipants) throw Exception('정원 마감');
@@ -297,7 +289,8 @@ class ArenaRepositoryImpl implements ArenaRepository {
         ..._entryDocJson(entry),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
-        'isPaid': false,
+        // ✅ [수정] 주최자 수동 등록은 입금 확인 상태(confirmed)로 간주하거나 수동 관리
+        'isPaid': entry.isManual ? true : false,
       });
 
       tx.update(tRef, {
@@ -310,7 +303,7 @@ class ArenaRepositoryImpl implements ArenaRepository {
   @override
   Future<void> cancelEntry({
     required String tournamentId,
-    required String userUid,
+    required String userUid, // 💡 여기서 userUid는 '문서 ID' 역할을 수행함
   }) async {
     final tid = tournamentId.trim();
     final uid = userUid.trim();
@@ -335,12 +328,13 @@ class ArenaRepositoryImpl implements ArenaRepository {
   }
 
   @override
-  Future<void> updatePaymentStatus(String tournamentId, String userUid, bool isPaid) async {
+  Future<void> updatePaymentStatus(String tournamentId, String entryId, bool isPaid) async {
+    // ✅ [수정] userUid 대신 entryId(문서ID)를 인자로 받아 수동 입력 건도 처리 가능하게 함
     final eRef = _firestore
         .collection('tournaments')
         .doc(tournamentId)
         .collection('entries')
-        .doc(userUid);
+        .doc(entryId);
 
     await eRef.update({
       'isPaid': isPaid,
@@ -365,7 +359,7 @@ class ArenaRepositoryImpl implements ArenaRepository {
           .map(
             (doc) => TournamentEntryModel.fromJson(
           doc.data() as Map<String, dynamic>,
-        ).copyWith(id: doc.id),
+        ).copyWith(id: doc.id), // 🎯 [중요] 문서 ID를 id 필드에 꽂아줌
       )
           .toList(),
     );

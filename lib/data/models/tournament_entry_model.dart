@@ -38,6 +38,10 @@ class TournamentEntryModel with _$TournamentEntryModel {
     String? rating,
     String? homeShop,
 
+    // --- [추가] 수동 등록 관리용 필드 ---
+    @Default(false) bool isManual,     // ✅ true면 주최자가 오프라인으로 받은 정보
+    String? registeredBy,             // ✅ 등록한 주최자의 UID (추적용)
+
     // --- 팀전 전용 정보 ---
     String? teamName,
     @Default([]) List<TeamMember> members, // 팀원 목록

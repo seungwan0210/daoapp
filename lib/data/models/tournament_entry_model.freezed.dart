@@ -229,7 +229,12 @@ mixin _$TournamentEntryModel {
   String? get email => throw _privateConstructorUsedError;
   String? get rating => throw _privateConstructorUsedError;
   String? get homeShop =>
-      throw _privateConstructorUsedError; // --- 팀전 전용 정보 ---
+      throw _privateConstructorUsedError; // --- [추가] 수동 등록 관리용 필드 ---
+  bool get isManual =>
+      throw _privateConstructorUsedError; // ✅ true면 주최자가 오프라인으로 받은 정보
+  String? get registeredBy =>
+      throw _privateConstructorUsedError; // ✅ 등록한 주최자의 UID (추적용)
+// --- 팀전 전용 정보 ---
   String? get teamName => throw _privateConstructorUsedError;
   List<TeamMember> get members => throw _privateConstructorUsedError; // 팀원 목록
   String? get totalRating =>
@@ -266,6 +271,8 @@ abstract class $TournamentEntryModelCopyWith<$Res> {
       String? email,
       String? rating,
       String? homeShop,
+      bool isManual,
+      String? registeredBy,
       String? teamName,
       List<TeamMember> members,
       String? totalRating,
@@ -299,6 +306,8 @@ class _$TournamentEntryModelCopyWithImpl<$Res,
     Object? email = freezed,
     Object? rating = freezed,
     Object? homeShop = freezed,
+    Object? isManual = null,
+    Object? registeredBy = freezed,
     Object? teamName = freezed,
     Object? members = null,
     Object? totalRating = freezed,
@@ -339,6 +348,14 @@ class _$TournamentEntryModelCopyWithImpl<$Res,
       homeShop: freezed == homeShop
           ? _value.homeShop
           : homeShop // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isManual: null == isManual
+          ? _value.isManual
+          : isManual // ignore: cast_nullable_to_non_nullable
+              as bool,
+      registeredBy: freezed == registeredBy
+          ? _value.registeredBy
+          : registeredBy // ignore: cast_nullable_to_non_nullable
               as String?,
       teamName: freezed == teamName
           ? _value.teamName
@@ -389,6 +406,8 @@ abstract class _$$TournamentEntryModelImplCopyWith<$Res>
       String? email,
       String? rating,
       String? homeShop,
+      bool isManual,
+      String? registeredBy,
       String? teamName,
       List<TeamMember> members,
       String? totalRating,
@@ -419,6 +438,8 @@ class __$$TournamentEntryModelImplCopyWithImpl<$Res>
     Object? email = freezed,
     Object? rating = freezed,
     Object? homeShop = freezed,
+    Object? isManual = null,
+    Object? registeredBy = freezed,
     Object? teamName = freezed,
     Object? members = null,
     Object? totalRating = freezed,
@@ -459,6 +480,14 @@ class __$$TournamentEntryModelImplCopyWithImpl<$Res>
       homeShop: freezed == homeShop
           ? _value.homeShop
           : homeShop // ignore: cast_nullable_to_non_nullable
+              as String?,
+      isManual: null == isManual
+          ? _value.isManual
+          : isManual // ignore: cast_nullable_to_non_nullable
+              as bool,
+      registeredBy: freezed == registeredBy
+          ? _value.registeredBy
+          : registeredBy // ignore: cast_nullable_to_non_nullable
               as String?,
       teamName: freezed == teamName
           ? _value.teamName
@@ -505,6 +534,8 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
       this.email,
       this.rating,
       this.homeShop,
+      this.isManual = false,
+      this.registeredBy,
       this.teamName,
       final List<TeamMember> members = const [],
       this.totalRating,
@@ -536,6 +567,14 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
   final String? rating;
   @override
   final String? homeShop;
+// --- [추가] 수동 등록 관리용 필드 ---
+  @override
+  @JsonKey()
+  final bool isManual;
+// ✅ true면 주최자가 오프라인으로 받은 정보
+  @override
+  final String? registeredBy;
+// ✅ 등록한 주최자의 UID (추적용)
 // --- 팀전 전용 정보 ---
   @override
   final String? teamName;
@@ -574,7 +613,7 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
 
   @override
   String toString() {
-    return 'TournamentEntryModel(id: $id, userUid: $userUid, nameKo: $nameKo, nameEn: $nameEn, phone: $phone, email: $email, rating: $rating, homeShop: $homeShop, teamName: $teamName, members: $members, totalRating: $totalRating, customAnswers: $customAnswers, createdAt: $createdAt, updatedAt: $updatedAt, status: $status)';
+    return 'TournamentEntryModel(id: $id, userUid: $userUid, nameKo: $nameKo, nameEn: $nameEn, phone: $phone, email: $email, rating: $rating, homeShop: $homeShop, isManual: $isManual, registeredBy: $registeredBy, teamName: $teamName, members: $members, totalRating: $totalRating, customAnswers: $customAnswers, createdAt: $createdAt, updatedAt: $updatedAt, status: $status)';
   }
 
   @override
@@ -591,6 +630,10 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
             (identical(other.rating, rating) || other.rating == rating) &&
             (identical(other.homeShop, homeShop) ||
                 other.homeShop == homeShop) &&
+            (identical(other.isManual, isManual) ||
+                other.isManual == isManual) &&
+            (identical(other.registeredBy, registeredBy) ||
+                other.registeredBy == registeredBy) &&
             (identical(other.teamName, teamName) ||
                 other.teamName == teamName) &&
             const DeepCollectionEquality().equals(other._members, _members) &&
@@ -617,6 +660,8 @@ class _$TournamentEntryModelImpl implements _TournamentEntryModel {
       email,
       rating,
       homeShop,
+      isManual,
+      registeredBy,
       teamName,
       const DeepCollectionEquality().hash(_members),
       totalRating,
@@ -653,6 +698,8 @@ abstract class _TournamentEntryModel implements TournamentEntryModel {
       final String? email,
       final String? rating,
       final String? homeShop,
+      final bool isManual,
+      final String? registeredBy,
       final String? teamName,
       final List<TeamMember> members,
       final String? totalRating,
@@ -680,7 +727,12 @@ abstract class _TournamentEntryModel implements TournamentEntryModel {
   @override
   String? get rating;
   @override
-  String? get homeShop; // --- 팀전 전용 정보 ---
+  String? get homeShop; // --- [추가] 수동 등록 관리용 필드 ---
+  @override
+  bool get isManual; // ✅ true면 주최자가 오프라인으로 받은 정보
+  @override
+  String? get registeredBy; // ✅ 등록한 주최자의 UID (추적용)
+// --- 팀전 전용 정보 ---
   @override
   String? get teamName;
   @override

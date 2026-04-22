@@ -102,28 +102,82 @@ exports.grantMonthlyBadges = functions.pubsub.schedule('every 24 hours').timeZon
 // ====================== 참가자 명단 CSV 생성 및 토너먼트 메일 발송 ======================
 
 function buildEntriesCsv(entriesDocs) {
-  let csv = '\uFEFFType,TeamName,Name(Ko),Name(En),Phone,Email,Rating,HomeShop,CreatedAt\n';
+  if (entriesDocs.length === 0) return '';
+
+  // 1. 모든 엔트리(팀장+팀원)를 뒤져서 존재하는 모든 '추가 질문 키'를 중복 없이 수집합니다.
+  const customKeysSet = new Set();
+  entriesDocs.forEach((doc) => {
+    const e = doc.data();
+    // 팀장(또는 개인전 참가자)의 답변 키 수집
+    if (e.customAnswers) {
+      Object.keys(e.customAnswers).forEach(key => customKeysSet.add(key));
+    }
+    // 팀원들의 답변 키 수집
+    if (e.members && Array.isArray(e.members)) {
+      e.members.forEach(m => {
+        if (m.customAnswers) {
+          Object.keys(m.customAnswers).forEach(key => customKeysSet.add(key));
+        }
+      });
+    }
+  });
+
+  const customHeaderList = Array.from(customKeysSet);
+
+  // 2. CSV 헤더 생성 (기존 필드 + 동적 추가 질문 필드)
+  let header = 'Type,TeamName,Name(Ko),Name(En),Phone,Email,Rating,HomeShop,CreatedAt';
+  customHeaderList.forEach(key => {
+    header += `,${key}`; // 질문 내용을 컬럼명으로 추가
+  });
+
+  let csv = '\uFEFF' + header + '\n'; // 한글 깨짐 방지용 BOM 추가
+
+  // 3. 데이터 행 생성
   entriesDocs.forEach((doc) => {
     const e = doc.data();
     const createdAt = e.createdAt && e.createdAt.toDate ? e.createdAt.toDate().toISOString() : '';
+
+    // 헬퍼 함수: 질문 헤더 순서대로 답변 값을 가져와서 CSV용 문자열로 변환
+    const getCustomValues = (answersMap) => {
+      return customHeaderList.map(key => {
+        const val = (answersMap && answersMap[key]) ? answersMap[key] : '';
+        // 답변에 쉼표(,)가 있을 경우 CSV 형식이 깨지므로 따옴표로 감싸줌
+        return `"${String(val).replace(/"/g, '""')}"`;
+      }).join(',');
+    };
+
     if (e.members && Array.isArray(e.members) && e.members.length > 0) {
-      csv += `"TEAM","${e.teamName || ''}","${e.nameKo || ''}(팀장)","${e.nameEn || ''}","${e.phone || ''}","${e.email || ''}","${e.rating || ''}","${e.homeShop || ''}","${createdAt}"\n`;
-      e.members.forEach((m) => { csv += `"MEMBER","${e.teamName || ''}","${m.name || ''}","","","","${m.rating || ''}","",""\n`; });
+      // --- 팀장 행 ---
+      const leaderCustoms = getCustomValues(e.customAnswers);
+      csv += `"TEAM","${e.teamName || ''}","${e.nameKo || ''}(팀장)","${e.nameEn || ''}","${e.phone || ''}","${e.email || ''}","${e.rating || ''}","${e.homeShop || ''}","${createdAt}",${leaderCustoms}\n`;
+
+      // --- 팀원 행 ---
+      e.members.forEach((m) => {
+        const memberCustoms = getCustomValues(m.customAnswers);
+        csv += `"MEMBER","${e.teamName || ''}","${m.name || ''}","","","","${m.rating || ''}","","",${memberCustoms}\n`;
+      });
     } else {
-      csv += `"SINGLE","","${e.nameKo || ''}","${e.nameEn || ''}","${e.phone || ''}","${e.email || ''}","${e.rating || ''}","${e.homeShop || ''}","${createdAt}"\n`;
+      // --- 개인전 행 ---
+      const singleCustoms = getCustomValues(e.customAnswers);
+      csv += `"SINGLE","","${e.nameKo || ''}","${e.nameEn || ''}","${e.phone || ''}","${e.email || ''}","${e.rating || ''}","${e.homeShop || ''}","${createdAt}",${singleCustoms}\n`;
     }
   });
+
   return csv;
 }
 
+// sendSummaryForTournament 함수는 기존 코드를 그대로 사용해도 무방합니다.
 async function sendSummaryForTournament(db, tournamentId, tournamentData) {
   const entriesSnap = await db.collection('tournaments').doc(tournamentId).collection('entries').get();
   const entriesDocs = [...entriesSnap.docs].sort((a, b) => (a.data()?.createdAt?.toMillis() || 0) - (b.data()?.createdAt?.toMillis() || 0));
   const organizerEmails = Array.isArray(tournamentData.organizerEmails) ? tournamentData.organizerEmails.filter((e) => typeof e === 'string' && e.includes('@')) : [];
+
   if (organizerEmails.length === 0) return { skipped: true };
+
   const rawTitle = (tournamentData.title || '토너먼트').substring(0, 80);
   const safeTitle = rawTitle.replace(/[^a-zA-Z0-9가-힣\s]/g, '_');
   const csv = buildEntriesCsv(entriesDocs);
+
   try {
     await transporter.sendMail({
       from: `"DAO Arena" <${process.env.EMAIL_USER}>`,
@@ -133,7 +187,9 @@ async function sendSummaryForTournament(db, tournamentId, tournamentData) {
       attachments: [{ filename: `${safeTitle}_참가자명단.csv`, content: Buffer.from(csv, 'utf-8') }],
     });
     return { sent: true };
-  } catch (error) { throw new Error(error?.message || 'sendMail failed'); }
+  } catch (error) {
+    throw new Error(error?.message || 'sendMail failed');
+  }
 }
 
 /**
