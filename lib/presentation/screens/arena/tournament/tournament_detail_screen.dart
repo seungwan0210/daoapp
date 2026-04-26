@@ -1,5 +1,3 @@
-// lib/presentation/screens/arena/tournament/tournament_detail_screen.dart
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
@@ -28,7 +26,7 @@ class TournamentDetailScreen extends ConsumerWidget {
   const TournamentDetailScreen({super.key, required this.tournamentId});
 
   void _onShareTournament(TournamentModel t) {
-    final String deepLink = "https://daoapp.page.link/tournament?id=${t.id}";
+    final String deepLink = "https://daoapp-c0527.web.app/tournament?id=${t.id}";
 
     final String shareMessage =
         '[DAO 아레나] 새로운 다트 대회가 열렸습니다! 🎯\n\n'
@@ -235,13 +233,26 @@ class TournamentDetailScreen extends ConsumerWidget {
             leading: Text("${index + 1}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
             title: Row(
               children: [
-                Text(canSeeAll ? e.nameKo : _maskName(e.nameKo), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                // 🎯 [수정] Flexible로 감싸서 오버플로우 방지
+                Flexible(
+                  child: Text(
+                    canSeeAll ? e.nameKo : _maskName(e.nameKo),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
                 if (e.isManual) Container(margin: const EdgeInsets.only(left: 6), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)), child: const Text("수동", style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold))),
                 const SizedBox(width: 8),
                 if (e.rating != null) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(4)), child: Text("Rt. ${e.rating}", style: TextStyle(fontSize: 10, color: Colors.cyan[800], fontWeight: FontWeight.bold))),
               ],
             ),
-            subtitle: Text(canSeeAll ? e.phone : _maskPhone(e.phone), style: const TextStyle(fontSize: 12)),
+            subtitle: Text(
+              canSeeAll ? e.phone : _maskPhone(e.phone),
+              style: const TextStyle(fontSize: 12),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -267,7 +278,15 @@ class TournamentDetailScreen extends ConsumerWidget {
             children: [
               Text("${index + 1}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(width: 8),
-              Expanded(child: Text("[팀] ${e.teamName ?? '이름 없음'}", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.black87))),
+              // 🎯 [수정] 이미 Expanded가 적용되어 있어 오버플로우에 강하지만, 말줄임표 처리 추가
+              Expanded(
+                  child: Text(
+                    "[팀] ${e.teamName ?? '이름 없음'}",
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.black87),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  )
+              ),
               if (e.isManual) Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)), child: const Text("수동", style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold))),
               if (isPaid) const Icon(Icons.check_circle_rounded, color: Colors.cyan, size: 20) else Text("미입금", style: TextStyle(fontSize: 11, color: Colors.grey[350])),
               if (canManage) IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey), onPressed: () => _showEntryManagementSheet(context, tid, e, isPaid)),
@@ -299,7 +318,7 @@ class TournamentDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildMemberRow(String name, String? rating, {bool isLeader = false}) {
-    return Row(children: [Icon(Icons.person, size: 12, color: isLeader ? Colors.cyan : Colors.grey[400]), const SizedBox(width: 6), Expanded(child: Text(name, style: TextStyle(fontSize: 13, fontWeight: isLeader ? FontWeight.bold : FontWeight.normal))), if (rating != null) Text("Rt. $rating", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500))]);
+    return Row(children: [Icon(Icons.person, size: 12, color: isLeader ? Colors.cyan : Colors.grey[400]), const SizedBox(width: 6), Expanded(child: Text(name, style: TextStyle(fontSize: 13, fontWeight: isLeader ? FontWeight.bold : FontWeight.normal), overflow: TextOverflow.ellipsis, maxLines: 1)), if (rating != null) Text("Rt. $rating", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500))]);
   }
 
   Widget _buildAdminActions(BuildContext context, TournamentModel t, bool isAdmin) {

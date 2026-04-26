@@ -6,15 +6,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
-// ✅ kReleaseMode 사용을 위한 import
 import 'package:flutter/foundation.dart';
+import 'package:app_links/app_links.dart'; // ✅ 딥링크 패키지
 
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
-
-// ✅ AdMob(광고) SDK
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // === Screens Import ===
@@ -74,15 +71,8 @@ void main() async {
   await Firebase.initializeApp();
 
   await FirebaseAppCheck.instance.activate(
-    // 안드로이드 설정
-    androidProvider: kReleaseMode
-        ? AndroidProvider.playIntegrity  // 운영 환경: Play Integrity
-        : AndroidProvider.debug,         // 개발 환경: Debug
-
-    // iOS/macOS 설정
-    appleProvider: kReleaseMode
-        ? AppleProvider.deviceCheck      // 운영 환경: Device Check (여기에 써야 합니다!)
-        : AppleProvider.debug,           // 개발 환경: Debug
+    androidProvider: kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
+    appleProvider: kReleaseMode ? AppleProvider.deviceCheck : AppleProvider.debug,
   );
   await initializeDateFormatting('ko_KR', null);
   setupDependencies();
@@ -134,12 +124,82 @@ class OnlineStatusManager {
   }
 }
 
-class DaoApp extends StatelessWidget {
+class DaoApp extends ConsumerStatefulWidget { // ✅ ConsumerStatefulWidget으로 변경
   const DaoApp({super.key});
+
+  @override
+  ConsumerState<DaoApp> createState() => _DaoAppState();
+}
+
+class _DaoAppState extends ConsumerState<DaoApp> {
+  final _appLinks = AppLinks();
+  StreamSubscription<Uri>? _linkSubscription;
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(); // ✅ 네비게이션용 키
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeepLinks();
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  // 🎯 딥링크 수신 및 처리 로직
+  void _initDeepLinks() async {
+    // 1. 앱이 꺼진 상태에서 링크로 실행된 경우
+    final initialUri = await _appLinks.getInitialLink();
+    if (initialUri != null) {
+      _handleDeepLink(initialUri);
+    }
+
+    // 2. 앱이 켜져 있는 상태에서 링크를 누른 경우 감시
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      debugPrint('🔗 딥링크 감지: $uri');
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    // 💡 앱이 켜지는 초기화 과정(Splash -> Main)과 겹치지 않도록
+    // 1.2초 ~ 1.5초 정도 충분한 딜레이를 줍니다.
+    Future.delayed(const Duration(milliseconds: 1300), () {
+      if (_navigatorKey.currentState == null) return;
+
+      // 🏆 대회 상세 페이지 이동 (tournament?id=...)
+      if (uri.path.contains('tournament')) {
+        final tournamentId = uri.queryParameters['id'];
+        if (tournamentId != null) {
+          debugPrint('🎯 대회 상세 페이지로 강제 이동: $tournamentId');
+          _navigatorKey.currentState?.pushNamed(
+            RouteConstants.tournamentDetail,
+            arguments: tournamentId,
+          );
+        }
+      }
+
+      // 📝 커뮤니티 게시물 이동 (추가 수정)
+      if (uri.path.contains('post')) {
+        final postId = uri.queryParameters['id'];
+        if (postId != null) {
+          debugPrint('🎯 게시물 위치로 이동 시도: $postId');
+          // ✅ 커뮤니티 화면(Circle)으로 보내면서 postId를 인자로 전달
+          _navigatorKey.currentState?.pushNamed(
+            RouteConstants.circle,
+            arguments: postId, // CircleScreen에서 이 ID를 받아서 해당 위치로 스크롤해야 함
+          );
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey, // ✅ 네비게이터 키 등록 필수
       title: 'DAO App - Steel League',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -207,11 +267,9 @@ class DaoApp extends StatelessWidget {
           return MaterialPageRoute(builder: (_) => TournamentDetailScreen(tournamentId: id));
         }
 
-        // 🎯 [수정된 부분] 수동 모드 대응 로직
         if (settings.name == RouteConstants.tournamentEntryForm) {
           final args = settings.arguments;
           if (args is Map<String, dynamic>) {
-            // 주최자가 [수동 추가] 버튼을 눌렀을 때 (Map 전달됨)
             return MaterialPageRoute(
               builder: (_) => TournamentEntryFormScreen(
                 tournamentId: args['tournamentId'] as String,
@@ -219,7 +277,6 @@ class DaoApp extends StatelessWidget {
               ),
             );
           } else {
-            // 일반 유저가 [참가 신청] 버튼을 눌렀을 때 (String ID만 전달됨)
             return MaterialPageRoute(
               builder: (_) => TournamentEntryFormScreen(
                 tournamentId: args as String,

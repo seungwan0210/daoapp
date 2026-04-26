@@ -23,11 +23,9 @@ class TournamentParticipantListScreen extends StatelessWidget {
   String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
   String get _adminUid => "NanHPgCdsbMCFkHEs7MtxS51OSX2"; // 승완님 UID
 
-  // 🎯 [수정] UID 대신 문서 고유 ID(docId)를 직접 받도록 변경하여 수동 등록자 대응
   DocumentReference<Map<String, dynamic>> _entryRef(String docId) =>
       _db.collection('tournaments').doc(tournamentId).collection('entries').doc(docId);
 
-  // 🛡️ 마스킹 헬퍼 함수
   String _maskText(String? text, {bool isPhone = false}) {
     if (text == null || text.isEmpty) return "-";
     if (isPhone) {
@@ -90,15 +88,19 @@ class TournamentParticipantListScreen extends StatelessWidget {
                           dense: true,
                           visualDensity: VisualDensity.compact,
                           leading: _buildOrderCircle(index + 1),
+                          // 🎯 [수정] Row 내부 텍스트를 Flexible로 감싸 오버플로우 방지
                           title: Row(
                             children: [
-                              Text(
-                                tournament.type == 'team'
-                                    ? '[팀] ${e.teamName ?? '이름 없음'}'
-                                    : '${e.nameKo} (${e.nameEn})',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                              Flexible(
+                                child: Text(
+                                  tournament.type == 'team'
+                                      ? '[팀] ${e.teamName ?? '이름 없음'}'
+                                      : '${e.nameKo} (${e.nameEn})',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
                               ),
-                              // 🎯 [추가] 수동 등록 배지 표시
                               if (e.isManual)
                                 Container(
                                   margin: const EdgeInsets.only(left: 6),
@@ -113,6 +115,8 @@ class TournamentParticipantListScreen extends StatelessWidget {
                                 ? '팀장: ${e.nameKo} · ${ (isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}'
                                 : '${ (isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}${e.homeShop != null ? ' · ${e.homeShop}' : ''}',
                             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            overflow: TextOverflow.ellipsis, // 서브타이틀도 안전하게 말줄임표 추가
+                            maxLines: 1,
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -147,7 +151,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
     return InkWell(
       onTap: () async {
         try {
-          // 🎯 [수정] 수동 등록 유저는 e.id(랜덤문서ID)를 사용해야 함
           final String docId = e.id ?? e.userUid;
           await _entryRef(docId).update({
             'isPaid': !isPaid,
@@ -354,7 +357,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
           TextButton(
             onPressed: () async {
-              // 🎯 [수정] 수동 등록자 대응을 위해 e.id ?? e.userUid 사용
               final String docId = e.id ?? e.userUid;
               await _entryRef(docId).update({
                 'nameKo': nameKoCtrl.text.trim(),
@@ -393,7 +395,6 @@ class TournamentParticipantListScreen extends StatelessWidget {
         final tRef = _db.collection('tournaments').doc(tournamentId);
         final tSnap = await tx.get(tRef);
 
-        // 🎯 [수정] 수동 등록자 대응을 위해 e.id ?? e.userUid 사용
         final String docId = e.id ?? e.userUid;
         final entryRef = _entryRef(docId);
 

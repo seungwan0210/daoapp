@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "kr.comong.daoapp",
+      "sha256_cert_fingerprints": [
+        "E6:31:DA:A9:61:67:BC:77:46:98:C8:C1:DA:EA:68:38:8A:82:A1:CE:91:82:70:64:61:07:6B:A9:25:8A:BC",
+        "E7:0B:78:24:74:D0:36:BB:B5:0B:C5:F8:AD:EB:E6:38:C6:3D:AE:33:55:2C:BE:68:82:21:EA:22:78:66:18:26",
+        "B6:B3:44:4B:D4:68:A8:B9:A0:97:BE:27:DB:97:97:6F:10:94:08:67:CE:1F:0D:B0:AF:10:DA:7D:53:6A:89:B4"
+      ]
+    }
+  }
+]

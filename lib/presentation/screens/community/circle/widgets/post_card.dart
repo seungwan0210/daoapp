@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart'; // ✅ TapGestureRecognizer를 위해 필요
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:flutter_linkify/flutter_linkify.dart' as fl; // 별칭 추가
+import 'package:linkify/linkify.dart'; // 순수 linkify 함수 사용을 위해 필요
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:daoapp/presentation/screens/community/circle/widgets/like_button.dart';
 import 'package:daoapp/presentation/screens/community/circle/widgets/comment_button.dart';
@@ -9,8 +13,9 @@ import 'package:daoapp/presentation/screens/community/circle/widgets/comment_pre
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
-import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 🆕 추가
-import 'package:daoapp/core/utils/badge_utils.dart'; // 🆕 추가
+import 'package:daoapp/presentation/widgets/badge_widget.dart';
+import 'package:daoapp/core/utils/badge_utils.dart';
+import 'package:flutter/gestures.dart';
 
 class PostCard extends ConsumerStatefulWidget {
   final QueryDocumentSnapshot doc;
@@ -22,7 +27,7 @@ class PostCard extends ConsumerStatefulWidget {
   final Map<String, String?>? barrelData;
   final String? monthlyBadge;
   final String? adminBadge;
-  final int? currentRank; // 🆕 실시간 순위 파라미터 추가
+  final int? currentRank;
 
   final Object? heroTag;
 
@@ -36,7 +41,7 @@ class PostCard extends ConsumerStatefulWidget {
     this.barrelData,
     this.monthlyBadge,
     this.adminBadge,
-    this.currentRank, // 🆕 생성자 추가
+    this.currentRank,
     this.heroTag,
   });
 
@@ -139,7 +144,7 @@ class _PostCardState extends ConsumerState<PostCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.grey[900], // 다크 테마 적용
+        backgroundColor: Colors.grey[900],
         title: const Text('사용자 차단', style: TextStyle(color: Colors.white)),
         content: Text('$blockedName 님을 차단할까요?\n\n차단하면 이 사용자의 게시글이 보이지 않습니다.', style: const TextStyle(color: Colors.white70)),
         actions: [
@@ -152,7 +157,6 @@ class _PostCardState extends ConsumerState<PostCard> {
     if (ok != true) return;
 
     try {
-      // ✅ 중앙 DB에 차단 기록 (이게 들어가면 전광판/피드/채팅 다 사라짐)
       await FirebaseFirestore.instance
           .collection('users')
           .doc(me)
@@ -160,7 +164,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           .doc(blockedUid)
           .set({
         'blockedUserId': blockedUid,
-        'name': blockedName, // 나중에 차단 관리 목록에서 이름을 보여주기 위해 저장
+        'name': blockedName,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -262,6 +266,17 @@ class _PostCardState extends ConsumerState<PostCard> {
     }
   }
 
+  void _sharePostWithDeepLink(String postId, String content) {
+    final String deepLink = "https://daoapp-c0527.web.app/post?id=$postId";
+    final String shareMessage =
+        '[DAO 커뮤니티] 새로운 게시물이 올라왔습니다! 🎯\n\n'
+        '${content.length > 100 ? "${content.substring(0, 100)}..." : content}\n\n'
+        '지금 DAO 앱에서 확인해보세요.\n'
+        '👉 $deepLink';
+
+    Share.share(shareMessage);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -292,27 +307,23 @@ class _PostCardState extends ConsumerState<PostCard> {
 
         return Container(
           key: _cardKey,
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: theme.colorScheme.primaryContainer, width: 1.5),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
+          margin: EdgeInsets.zero,
+          decoration: BoxDecoration(color: theme.cardColor),
           child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
             stream: userStream,
             builder: (context, snap) {
               final userData = (snap.hasData && snap.data!.exists) ? (snap.data!.data() ?? {}) : {};
               final koreanName = (userData['koreanName']?.toString().isNotEmpty == true) ? userData['koreanName'] : (data['userName'] ?? 'Unknown');
+
+              // ✅ 실시간 프로필 우선 로직
               final profileImageUrl = userData['profileImageUrl'] as String?;
-              final fallbackUserPhotoUrl = data['userPhotoUrl'] as String?;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(theme, postUserId, koreanName, profileImageUrl ?? fallbackUserPhotoUrl, isAuthor, canEdit, canDelete, content, imageUrls, postId),
+                  _buildHeader(theme, postUserId, koreanName, profileImageUrl, isAuthor, canEdit, canDelete, content, imageUrls, postId),
                   _buildImageSlider(imageUrls, widget.heroTag),
-                  _buildActionBar(theme, postId, likes, comments, content, imageUrls.isNotEmpty ? imageUrls.first : null),
+                  _buildActionBar(theme, postId, likes, comments, content),
                   if (content.isNotEmpty) _buildBodyContent(theme, koreanName, content, isLongContent),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
@@ -329,31 +340,47 @@ class _PostCardState extends ConsumerState<PostCard> {
 
   Widget _buildImageSlider(List<String> urls, Object? heroTag) {
     if (urls.isEmpty) {
-      return ClipRRect(child: Image.asset(_fallbackImageAsset, width: double.infinity, height: 350, fit: BoxFit.cover));
+      return ClipRRect(
+          child: Image.asset(
+              _fallbackImageAsset,
+              width: double.infinity,
+              height: 480,
+              fit: BoxFit.cover
+          )
+      );
     }
-    return Stack(
-      children: [
-        SizedBox(
-          height: 350,
-          child: PageView.builder(
+    return Container(
+      height: 480,
+      width: double.infinity,
+      color: Colors.black,
+      child: Stack(
+        children: [
+          PageView.builder(
             itemCount: urls.length,
             onPageChanged: (index) => setState(() => _currentPage = index),
             itemBuilder: (context, index) {
-              final img = Image.network(urls[index], width: double.infinity, height: 350, fit: BoxFit.cover, gaplessPlayback: true, errorBuilder: (_, __, ___) => Image.asset(_fallbackImageAsset, fit: BoxFit.cover));
+              final img = Image.network(
+                  urls[index],
+                  width: double.infinity,
+                  height: 480,
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  errorBuilder: (_, __, ___) => Image.asset(_fallbackImageAsset, fit: BoxFit.cover)
+              );
               return (index == 0 && heroTag != null) ? Hero(tag: heroTag, child: img) : img;
             },
           ),
-        ),
-        if (urls.length > 1)
-          Positioned(
-            top: 12, right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(16)),
-              child: Text('${_currentPage + 1}/${urls.length}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          if (urls.length > 1)
+            Positioned(
+              top: 12, right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(16)),
+                child: Text('${_currentPage + 1}/${urls.length}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -368,7 +395,7 @@ class _PostCardState extends ConsumerState<PostCard> {
               radius: 20,
               primaryColor: theme.colorScheme.primaryContainer,
               photoUrl: photo,
-              currentRank: widget.currentRank, // 사진 옆 배지만 유지
+              currentRank: widget.currentRank,
               monthlyBadge: widget.monthlyBadge,
               adminBadge: widget.adminBadge,
             ),
@@ -378,7 +405,6 @@ class _PostCardState extends ConsumerState<PostCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 텍스트(이름) 옆 배지는 중복이라 제거하고 이름만 깔끔하게 표시
                 Text(
                   name,
                   style: TextStyle(
@@ -401,7 +427,12 @@ class _PostCardState extends ConsumerState<PostCard> {
               onSelected: (v) async {
                 final currentUrl = imageUrls.isNotEmpty ? imageUrls[_currentPage] : null;
                 final preview = content.length > 50 ? '${content.substring(0, 50)}...' : content;
-                if (v == 'share') { Share.share('$content\n${currentUrl ?? ''}'); return; }
+
+                if (v == 'share') {
+                  _sharePostWithDeepLink(postId, content);
+                  return;
+                }
+
                 if (v == 'edit') widget.onEdit?.call();
                 if (v == 'delete') widget.onDelete?.call();
                 if (postUserId == null) return;
@@ -423,7 +454,7 @@ class _PostCardState extends ConsumerState<PostCard> {
     );
   }
 
-  Widget _buildActionBar(ThemeData theme, String postId, int likes, int comments, String content, String? firstPhoto) {
+  Widget _buildActionBar(ThemeData theme, String postId, int likes, int comments, String content) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -432,7 +463,11 @@ class _PostCardState extends ConsumerState<PostCard> {
           const SizedBox(width: 16),
           CommentButton(postId: postId, commentsCount: comments),
           const SizedBox(width: 16),
-          IconButton(icon: const Icon(Icons.send_outlined, size: 24), onPressed: () => Share.share('$content\n${firstPhoto ?? ''}'), color: theme.colorScheme.primary),
+          IconButton(
+              icon: const Icon(Icons.send_outlined, size: 24),
+              onPressed: () => _sharePostWithDeepLink(postId, content),
+              color: theme.colorScheme.primary
+          ),
           const Spacer(),
           const Icon(Icons.bookmark_border, size: 24),
         ],
@@ -441,25 +476,76 @@ class _PostCardState extends ConsumerState<PostCard> {
   }
 
   Widget _buildBodyContent(ThemeData theme, String name, String content, bool isLong) {
+    // ✅ fl.LinkifyOptions로 패키지 명시
+    final elements = linkify(content, options: const fl.LinkifyOptions(humanize: false));
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          RichText(
-            maxLines: _isContentExpanded ? null : 2,
-            text: TextSpan(
-              style: const TextStyle(color: Colors.black87, fontSize: 13),
+          Text.rich(
+            TextSpan(
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: Colors.black87,
+                letterSpacing: -0.3,
+              ),
               children: [
-                TextSpan(text: '$name ', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-                TextSpan(text: content),
+                // 1. 게시자 이름
+                TextSpan(
+                  text: "$name   ",
+                  style: const TextStyle(
+                    fontFamily: 'Pretendard',
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14.5,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+
+                // 2. 본문 내용 (링크 포함)
+                ...elements.map((element) {
+                  if (element is LinkableElement) {
+                    return TextSpan(
+                      text: element.text,
+                      style: TextStyle(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () async {
+                          final uri = Uri.parse(element.url);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                    );
+                  } else {
+                    return TextSpan(text: element.text);
+                  }
+                }).toList(),
               ],
             ),
+            maxLines: _isContentExpanded ? null : 3,
+            overflow: _isContentExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
           ),
           if (isLong)
             GestureDetector(
               onTap: () => setState(() => _isContentExpanded = !_isContentExpanded),
-              child: Text(_isContentExpanded ? '간략히' : '더 보기', style: TextStyle(fontSize: 12, color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  _isContentExpanded ? '간략히' : '더 보기',
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -496,7 +582,6 @@ class _PostCardState extends ConsumerState<PostCard> {
   }
 }
 
-// 🆕 _ProfileAvatar 수정: 아바타 좌측 상단에 배지 중첩 표시
 class _ProfileAvatar extends StatelessWidget {
   final double radius;
   final Color primaryColor;
@@ -524,11 +609,16 @@ class _ProfileAvatar extends StatelessWidget {
           backgroundColor: primaryColor,
           child: ClipOval(
             child: (photoUrl != null && photoUrl!.isNotEmpty)
-                ? Image.network(photoUrl!, width: radius * 2, height: radius * 2, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.person))
+                ? Image.network(
+                photoUrl!,
+                width: radius * 2,
+                height: radius * 2,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(Icons.person, color: Colors.white)
+            )
                 : const Icon(Icons.person, color: Colors.white),
           ),
         ),
-        // 실시간 랭킹 배지 (좌측 상단)
         if (currentRank != null)
           Positioned(
             left: -6,

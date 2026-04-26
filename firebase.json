@@ -36,8 +36,24 @@
     ],
     "rewrites": [
       {
+        "source": "/.well-known/**",
+        "destination": "/.well-known/**"
+      },
+      {
         "source": "/privacy",
         "destination": "/privacy.html"
+      },
+      {
+        "source": "**/tournament/**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "**/post/**",
+        "destination": "/index.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
       }
     ]
   }

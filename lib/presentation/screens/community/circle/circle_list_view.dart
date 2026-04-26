@@ -1,17 +1,16 @@
 // lib/presentation/screens/community/circle/widgets/circle_list_view.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 🆕 추가
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 import 'package:daoapp/presentation/screens/community/circle/widgets/post_card.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 
-class CircleListView extends ConsumerStatefulWidget { // 👈 ConsumerStatefulWidget으로 변경
+class CircleListView extends ConsumerStatefulWidget {
   final List<QueryDocumentSnapshot> docs;
   final String? currentUserId;
   final String? initialPostId;
@@ -50,6 +49,7 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
     }
   }
 
+  /// ✅ [수정] 카드 높이가 480으로 커짐에 따라 alignment를 0.05로 미세 조정
   void _tryScrollToInitial(List<QueryDocumentSnapshot> visibleDocs) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -66,7 +66,7 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
           index: index,
           duration: const Duration(milliseconds: 420),
           curve: Curves.easeOutCubic,
-          alignment: 0.08,
+          alignment: 0.03, // 👈 0.08에서 0.03로 변경 (상단 여유 최적화)
         );
       }
     });
@@ -103,7 +103,6 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
 
     _tryScrollToInitial(visibleDocs);
 
-    // 🆕 실시간 통합 랭킹 데이터 구독
     final totalRanking = ref.watch(totalRankingProvider);
 
     return ScrollablePositionedList.builder(
@@ -117,7 +116,6 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
         final postId = doc.id;
         final userId = (data['userId'] as String?)?.trim();
 
-        // 🔥 [핵심] 해당 포스트 작성자의 실시간 순위 확인
         final rankIndex = totalRanking.indexWhere((item) => item['userId'] == userId);
         final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
@@ -126,15 +124,25 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
           builder: (context, value, child) => Opacity(opacity: value, child: child),
-          child: _PostCardWrapper(
-            postId: postId,
-            doc: doc,
-            userId: userId,
-            currentUserId: widget.currentUserId,
-            onEdit: () => _editPost(context, postId),
-            onDelete: () => _deletePost(postId),
-            userDocStreamOf: _userDocStream,
-            currentRank: currentRank, // 🆕 순위 정보 전달
+          child: Column( // 👈 Column을 추가해서 게시물과 구분 띠를 묶습니다.
+            children: [
+              _PostCardWrapper(
+                postId: postId,
+                doc: doc,
+                userId: userId,
+                currentUserId: widget.currentUserId,
+                onEdit: () => _editPost(context, postId),
+                onDelete: () => _deletePost(postId),
+                userDocStreamOf: _userDocStream,
+                currentRank: currentRank,
+              ),
+              // ✅ 게시물 사이를 구분하는 연한 회색 면 분할
+              Container(
+                height: 10, // 띠의 두께 (8~12 사이가 제일 적당해요)
+                width: double.infinity,
+                color: Colors.grey[50], // 아주 연한 회색 (배경이 흰색일 때 찰떡입니다)
+              ),
+            ],
           ),
         );
       },
@@ -150,7 +158,7 @@ class _PostCardWrapper extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final Stream<DocumentSnapshot<Map<String, dynamic>>> Function(String userId) userDocStreamOf;
-  final int? currentRank; // 🆕 추가
+  final int? currentRank;
 
   const _PostCardWrapper({
     required this.postId,
@@ -160,7 +168,7 @@ class _PostCardWrapper extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.userDocStreamOf,
-    this.currentRank, // 🆕 생성자 추가
+    this.currentRank,
   });
 
   @override
@@ -185,7 +193,7 @@ class _PostCardWrapper extends StatelessWidget {
             currentUserId: currentUserId,
             onEdit: onEdit,
             onDelete: onDelete,
-            currentRank: currentRank, // 🆕 로딩 중에도 순위는 보낼 수 있음
+            currentRank: currentRank,
           );
         }
 
@@ -196,7 +204,6 @@ class _PostCardWrapper extends StatelessWidget {
         if (snapshot.data!.exists) {
           final userData = snapshot.data!.data() ?? <String, dynamic>{};
 
-          // 배럴 정보 파싱
           final barrelName = userData['barrelName']?.toString().trim() ?? '';
           final shaft = userData['shaft']?.toString().trim() ?? '';
           final flight = userData['flight']?.toString().trim() ?? '';
@@ -229,7 +236,7 @@ class _PostCardWrapper extends StatelessWidget {
           barrelData: barrelData,
           monthlyBadge: monthlyBadge,
           adminBadge: adminBadge,
-          currentRank: currentRank, // 🆕 완성된 순위 전달
+          currentRank: currentRank,
         );
       },
     );

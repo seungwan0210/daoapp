@@ -23,7 +23,7 @@ android {
     namespace = "kr.comong.daoapp"
     compileSdk = flutter.compileSdkVersion
 
-    // 🔥 여기에 이 줄을 추가하세요! (오류 메시지에 떴던 버전과 일치해야 함)
+    // 16KB 페이지 지원을 위해 최신 NDK 버전 사용 (r27 이상 권장)
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
@@ -35,12 +35,14 @@ android {
         multiDexEnabled = true
     }
 
-    // 🔥 [이 부분을 추가하세요] 네이티브 라이브러리 정렬 설정
+    // 🔥 [핵심 수정] 16KB 페이지 크기 지원을 위한 패키징 설정
     packaging {
         jniLibs {
-            // 네이티브 라이브러리를 압축하지 않고 페이지 경계에 맞게 정렬합니다.
-            // 16KB 페이지 크기 지원 오류를 해결하는 핵심 설정입니다.
+            // 네이티브 라이브러리를 압축하지 않고 APK/AAB에 포함시켜 16KB 정렬을 가능하게 합니다.
             useLegacyPackaging = false
+        }
+        resources {
+            excludes += "META-INF/*"
         }
     }
 
@@ -64,11 +66,17 @@ android {
 
     buildTypes {
         getByName("release") {
+            // R8 최적화 시 네이티브 라이브러리 정렬이 깨지지 않도록 설정
             isMinifyEnabled = false
             isShrinkResources = false
+
             if (hasKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }
+
+            // 16KB 페이지 지원을 위해 네이티브 라이브러리 압축 안 함을 명시
+            @Suppress("DEPRECATION")
+            manifestPlaceholders["extractNativeLibs"] = "false"
         }
     }
 }
@@ -83,7 +91,7 @@ dependencies {
     debugImplementation("com.google.firebase:firebase-appcheck-debug:17.2.0")
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity:17.2.0")
 
-    // 🔥 [추가됨] MediaPipe & CameraX 필수 라이브러리
+    // MediaPipe & CameraX 필수 라이브러리
     implementation("com.google.mediapipe:tasks-vision:0.10.14")
     implementation("androidx.camera:camera-core:1.3.0")
     implementation("androidx.camera:camera-camera2:1.3.0")

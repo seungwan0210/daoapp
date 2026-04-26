@@ -285,20 +285,27 @@ class ProfileService extends ChangeNotifier {
 
     try {
       final file = File(image.path);
-      final String? oldUrl = isProfile ? firestoreProfileUrl : firestoreBarrelUrl;
-
-      if (oldUrl != null) {
-        await ImageUploadService.deleteByUrl(oldUrl);
-      }
-
       final String folder = isProfile ? 'profiles' : 'barrels';
 
-      // ✅ [수정] 반환 타입에 맞춰 String? 로 변경하거나 강제 캐스팅
-      final String? uploadedUrl = await ImageUploadService.upload(file, '$folder/${u.uid}');
+      // ✅ [수정 1] 파일명을 명시하여 '폴더'가 아닌 '파일'임을 선언 (폴더 증발 방지)
+      final String fileName = isProfile ? 'profile_img.jpg' : 'barrel_img.jpg';
+      final String storagePath = '$folder/${u.uid}/$fileName';
 
-      // 업로드 실패 시 로직 중단
+      // ✅ [수정 2] 새 파일을 먼저 업로드 (실패 시 기존 파일 보존되어 안전)
+      final String? uploadedUrl = await ImageUploadService.upload(file, storagePath);
+
       if (uploadedUrl == null) {
         throw Exception('이미지 업로드에 실패했습니다.');
+      }
+
+      // ✅ [수정 3] 업로드 성공 후, '다른 경로'의 구형 이미지가 있다면 그때 삭제
+      final String? oldUrl = isProfile ? firestoreProfileUrl : firestoreBarrelUrl;
+      if (oldUrl != null && oldUrl != uploadedUrl) {
+        try {
+          await ImageUploadService.deleteByUrl(oldUrl);
+        } catch (e) {
+          debugPrint('이전 파일 삭제 실패(무시가능): $e');
+        }
       }
 
       await FirebaseFirestore.instance.collection('users').doc(u.uid).update({
@@ -314,9 +321,9 @@ class ProfileService extends ChangeNotifier {
         firestoreBarrelUrl = uploadedUrl;
       }
 
-      _showSnackBar(isProfile ? '프로필 사진이 저장되었습니다.' : '배럴 사진이 저장되었습니다.', color: Colors.green);
+      _showSnackBar(isProfile ? '프로필 사진 저장 완료!' : '배럴 사진 저장 완료!', color: Colors.green);
     } catch (e) {
-      _showSnackBar('이미지 업로드 실패: $e', color: Colors.red);
+      _showSnackBar('이미지 처리 실패: $e', color: Colors.red);
     } finally {
       _isSaving = false;
       _safeNotify();
@@ -460,17 +467,28 @@ class ProfileService extends ChangeNotifier {
 
   void _safeNotify() { if (context.mounted) notifyListeners(); }
 
-  // ✅ UI에서 이미지 노출을 결정하는 핵심 메서드들
+  // ✅ 1. 프로필 이미지 노출 결정
   ImageProvider? getProfileImageProvider() {
     if (profileImage != null) return FileImage(profileImage!);
-    if (firestoreProfileUrl?.isNotEmpty == true) return NetworkImage(firestoreProfileUrl!);
-    if (isFirstRegistration && user?.photoURL != null) return NetworkImage(user!.photoURL!);
+
+    if (firestoreProfileUrl != null && firestoreProfileUrl!.isNotEmpty) {
+      return NetworkImage(firestoreProfileUrl!);
+    }
+
+    if (isFirstRegistration && user?.photoURL != null) {
+      return NetworkImage(user!.photoURL!);
+    }
     return null;
   }
 
+  // ✅ 2. 배럴 이미지 노출 결정 (이 부분이 누락되어 에러가 났던 것!)
   DecorationImage? getBarrelDecorationImage() {
-    if (barrelImage != null) return DecorationImage(image: FileImage(barrelImage!), fit: BoxFit.cover);
-    if (firestoreBarrelUrl?.isNotEmpty == true) return DecorationImage(image: NetworkImage(firestoreBarrelUrl!), fit: BoxFit.cover);
+    if (barrelImage != null) {
+      return DecorationImage(image: FileImage(barrelImage!), fit: BoxFit.cover);
+    }
+    if (firestoreBarrelUrl != null && firestoreBarrelUrl!.isNotEmpty) {
+      return DecorationImage(image: NetworkImage(firestoreBarrelUrl!), fit: BoxFit.cover);
+    }
     return null;
   }
 
