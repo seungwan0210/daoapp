@@ -476,73 +476,103 @@ class _PostCardState extends ConsumerState<PostCard> {
   }
 
   Widget _buildBodyContent(ThemeData theme, String name, String content, bool isLong) {
-    // ✅ fl.LinkifyOptions로 패키지 명시
-    final elements = linkify(content, options: const fl.LinkifyOptions(humanize: false));
+    // 1. 판정 로직
+    final int lineCount = '\n'.allMatches(content).length + 1;
+    final bool effectiveIsLong = lineCount >= 3 || content.length > 40;
+
+    // 2. 요약 모드일 때 본문 길이 제한 (더보기가 무조건 보이게 하는 핵심)
+    String displayContent = content;
+    if (effectiveIsLong && !_isContentExpanded) {
+      displayContent = content.replaceAll('\n', '  ');
+      if (displayContent.length > 35) {
+        displayContent = "${displayContent.substring(0, 35)}...";
+      }
+    }
+
+    final elements = linkify(displayContent, options: const fl.LinkifyOptions(humanize: false));
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text.rich(
-            TextSpan(
-              style: const TextStyle(
-                fontSize: 14,
-                height: 1.5,
-                color: Colors.black87,
-                letterSpacing: -0.3,
-              ),
-              children: [
-                // 1. 게시자 이름
-                TextSpan(
-                  text: "$name   ",
-                  style: const TextStyle(
-                    fontFamily: 'Pretendard',
-                    color: Colors.black,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14.5,
-                    letterSpacing: -0.5,
-                  ),
+          GestureDetector(
+            onTap: (!_isContentExpanded && effectiveIsLong)
+                ? () => setState(() => _isContentExpanded = true)
+                : null,
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 14,
+                  height: 1.5,
+                  color: Colors.black87,
+                  letterSpacing: -0.3,
                 ),
+                children: [
+                  // 이름
+                  TextSpan(
+                    text: "$name   ",
+                    style: const TextStyle(
+                      fontFamily: 'Pretendard',
+                      color: Colors.black,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14.5,
+                    ),
+                  ),
 
-                // 2. 본문 내용 (링크 포함)
-                ...elements.map((element) {
-                  if (element is LinkableElement) {
-                    return TextSpan(
-                      text: element.text,
+                  // 본문 내용
+                  ...elements.map((element) {
+                    if (element is LinkableElement) {
+                      return TextSpan(
+                        text: element.text,
+                        style: TextStyle(
+                          color: Colors.blue[800],
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () async {
+                            final uri = Uri.parse(element.url);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            }
+                          },
+                      );
+                    } else {
+                      return TextSpan(text: element.text);
+                    }
+                  }).toList(),
+
+                  // 3. ✨ 더 보기 버튼 (크기 조절 및 파란색 적용)
+                  if (effectiveIsLong && !_isContentExpanded)
+                    TextSpan(
+                      text: "  더 보기",
                       style: TextStyle(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
+                        color: Colors.blue[700], // 신뢰감 있는 진한 파란색
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14.5, // 본문(14)보다 아주 살짝 큼
                       ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () async {
-                          final uri = Uri.parse(element.url);
-                          if (await canLaunchUrl(uri)) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
-                          }
-                        },
-                    );
-                  } else {
-                    return TextSpan(text: element.text);
-                  }
-                }).toList(),
-              ],
+                    ),
+                ],
+              ),
+              maxLines: _isContentExpanded ? null : 3,
+              overflow: _isContentExpanded ? TextOverflow.visible : TextOverflow.clip,
             ),
-            maxLines: _isContentExpanded ? null : 3,
-            overflow: _isContentExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
           ),
-          if (isLong)
+
+          // 4. 간단히 접기 버튼
+          if (_isContentExpanded && effectiveIsLong)
             GestureDetector(
-              onTap: () => setState(() => _isContentExpanded = !_isContentExpanded),
+              onTap: () => setState(() => _isContentExpanded = false),
               child: Padding(
-                padding: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(
-                  _isContentExpanded ? '간략히' : '더 보기',
+                  '간단히 접기 ▲',
                   style: TextStyle(
-                      fontSize: 12,
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600
+                      fontSize: 13,
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.w700,
+                      decoration: TextDecoration.underline
                   ),
                 ),
               ),
