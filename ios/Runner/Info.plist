@@ -34,6 +34,14 @@
              <string>com.googleusercontent.apps.283714687956-f4dif18ia8e2ul9mpeo0jbdk363qoemb</string>
           </array>
        </dict>
+       <dict>
+          <key>CFBundleTypeRole</key>
+          <string>Editor</string>
+          <key>CFBundleURLName</key>
+          <string>kr.comong.daoapp</string> <key>CFBundleURLSchemes</key>
+          <array>
+             <string>daoapp</string> </array>
+       </dict>
     </array>
     <key>CFBundleVersion</key>
     <string>$(FLUTTER_BUILD_NUMBER)</string>
