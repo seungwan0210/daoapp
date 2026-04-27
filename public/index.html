@@ -1,16 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DAO Darts - 다트의 모든 것</title>
   <style>
     body {
-        font-family: 'Pretendard', sans-serif;
+        font-family: 'Pretendard', -apple-system, sans-serif;
         text-align: center;
         padding: 0;
         margin: 0;
-        background-color: #0F172A; /* 승완님 앱 테마에 맞춘 어두운 색 */
+        /* 배경에 은은한 그라데이션을 주어 좀 더 고급스럽게 변경했습니다 */
+        background: radial-gradient(circle at center, #1E293B 0%, #0F172A 100%);
         color: white;
         display: flex;
         flex-direction: column;
@@ -18,50 +19,110 @@
         height: 100vh;
     }
     .container { padding: 20px; }
-    h1 { font-size: 2.5rem; color: #FACC15; margin-bottom: 10px; } /* 노란색 포인트 */
-    p { font-size: 1.1rem; color: #CBD5E1; line-height: 1.6; margin-bottom: 30px; }
-    .logo { width: 120px; margin-bottom: 20px; }
-    .btn-group { display: flex; flex-direction: column; gap: 15px; align-items: center; }
-    .btn {
+    h1 { font-size: 2.2rem; color: #FACC15; margin-bottom: 5px; font-weight: 900; }
+    p { font-size: 1rem; color: #CBD5E1; line-height: 1.5; margin-bottom: 30px; }
+    .btn-group { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
+    /* 메인 액션 버튼: 카톡 탈출 및 앱 이동 핵심 */
+    .btn-main {
         display: inline-block;
-        width: 250px;
-        padding: 15px 0;
+        width: 280px;
+        padding: 18px 0;
         background-color: #FACC15;
         color: #0F172A;
         text-decoration: none;
-        border-radius: 12px;
-        font-weight: bold;
-        font-size: 1rem;
+        border-radius: 14px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(250, 204, 21, 0.3);
         transition: transform 0.2s;
     }
-    .btn:active { transform: scale(0.98); }
-    .btn.ios { background-color: #FFFFFF; color: #000000; }
-    .footer { margin-top: 50px; font-size: 0.8rem; color: #64748B; }
+    .btn-main:active { transform: scale(0.96); }
+
+    /* 스토어 버튼: 보조 역할 */
+    .btn-store {
+        display: inline-block;
+        width: 240px;
+        padding: 12px 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #FFFFFF;
+        text-decoration: none;
+        border-radius: 10px;
+        font-size: 0.9rem;
+        margin-top: 5px;
+        transition: background-color 0.2s;
+    }
+    .btn-store:hover { background-color: rgba(255, 255, 255, 0.2); }
+
+    /* 푸터 스타일: Produced by comong 강조 버전 */
+    .footer {
+        margin-top: 50px;
+        font-size: 0.85rem;
+        color: #94A3B8;
+        line-height: 1.6;
+        letter-spacing: 0.5px;
+    }
+    .footer b {
+        color: #FACC15; /* 강조 텍스트(DAO, comong) 노란색 포인트 */
+        font-weight: 600;
+    }
   </style>
 </head>
 <body>
 <div class="container">
-  <div style="font-size: 60px; margin-bottom: 20px;">🎯</div>
+  <div style="font-size: 50px; margin-bottom: 10px;">🎯</div>
   <h1>DAO Darts</h1>
-  <p>대한민국 다트의 기준<br>실시간 랭킹과 대회 정보를 앱에서 확인하세요!</p>
+  <p>앱에서 실시간 랭킹과<br>커뮤니티 게시글을 확인하세요!</p>
 
   <div class="btn-group">
-    <a href="https://play.google.com/store/apps/details?id=kr.comong.daoapp" class="btn">
-      Google Play에서 설치
-    </a>
-    <a href="https://apps.apple.com/app/id6757020157" class="btn ios">
+    <button onclick="openDaoApp()" class="btn-main">
+      DAO 앱에서 보기
+    </button>
+
+    <div style="margin-top: 20px; color: #64748B; font-size: 0.85rem;">앱이 없으신가요?</div>
+
+    <a href="https://apps.apple.com/app/id6757020157" class="btn-store">
       App Store에서 설치
+    </a>
+    <a href="https://play.google.com/store/apps/details?id=kr.comong.daoapp" class="btn-store">
+      Google Play에서 설치
     </a>
   </div>
 
   <div class="footer">
-    © 2026 Professional Darts Korea Co., Ltd.
+    © 2026 <b>DAO Darts Project</b><br>
+    Produced by <b>comong</b> | Powered by <b>DAO</b>
   </div>
 </div>
 
 <script>
-  // 페이지 로드 시 앱이 있으면 실행을 시도해볼 수 있지만,
-  // 보통은 App Links/Universal Links가 우선적으로 처리하므로 버튼 위주로 구성했습니다.
+  function openDaoApp() {
+      // URL에서 id 파라미터를 읽어옵니다.
+      const urlParams = new URLSearchParams(window.location.search);
+      const postId = urlParams.get('id');
+
+      // 딥링크 커스텀 스킴 설정 (Info.plist 설정값)
+      const appScheme = postId
+          ? "daoapp://post?id=" + postId
+          : "daoapp://home";
+
+      // 앱 실행 시도
+      window.location.href = appScheme;
+
+      // 필요 시 앱이 설치되지 않은 유저를 위해 아래 주석을 풀고 스토어 주소를 넣으세요.
+      /*
+      setTimeout(function() {
+          const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+          if (isIOS) {
+              window.location.href = "https://apps.apple.com/app/id6757020157";
+          } else {
+              window.location.href = "https://play.google.com/store/apps/details?id=kr.comong.daoapp";
+          }
+      }, 2500);
+      */
+  }
 </script>
 </body>
 </html>

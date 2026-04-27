@@ -164,34 +164,43 @@ class _DaoAppState extends ConsumerState<DaoApp> {
   }
 
   void _handleDeepLink(Uri uri) {
-    // 💡 앱이 켜지는 초기화 과정(Splash -> Main)과 겹치지 않도록
-    // 1.2초 ~ 1.5초 정도 충분한 딜레이를 줍니다.
+    debugPrint('🔗 딥링크 분석 시작: $uri');
+    debugPrint('🔗 Scheme: ${uri.scheme}, Host: ${uri.host}, Path: ${uri.path}');
+
     Future.delayed(const Duration(milliseconds: 1300), () {
       if (_navigatorKey.currentState == null) return;
 
-      // 🏆 대회 상세 페이지 이동 (tournament?id=...)
-      if (uri.path.contains('tournament')) {
+      // 1. 대회 상세 페이지 (tournament)
+      // host가 tournament거나 path에 포함된 경우 모두 체크
+      if (uri.host == 'tournament' || uri.path.contains('tournament')) {
         final tournamentId = uri.queryParameters['id'];
         if (tournamentId != null) {
-          debugPrint('🎯 대회 상세 페이지로 강제 이동: $tournamentId');
+          debugPrint('🎯 대회 상세 페이지로 이동: $tournamentId');
           _navigatorKey.currentState?.pushNamed(
             RouteConstants.tournamentDetail,
             arguments: tournamentId,
           );
+          return; // 이동 후 종료
         }
       }
 
-      // 📝 커뮤니티 게시물 이동 (추가 수정)
-      if (uri.path.contains('post')) {
+      // 2. 커뮤니티 게시물 (post)
+      // ✅ daoapp://post?id=... 형태로 들어오면 uri.host가 'post'가 됩니다.
+      if (uri.host == 'post' || uri.path.contains('post')) {
         final postId = uri.queryParameters['id'];
         if (postId != null) {
-          debugPrint('🎯 게시물 위치로 이동 시도: $postId');
-          // ✅ 커뮤니티 화면(Circle)으로 보내면서 postId를 인자로 전달
+          debugPrint('🎯 게시물 위치로 이동: $postId');
           _navigatorKey.currentState?.pushNamed(
             RouteConstants.circle,
-            arguments: postId, // CircleScreen에서 이 ID를 받아서 해당 위치로 스크롤해야 함
+            arguments: postId,
           );
+          return; // 이동 후 종료
         }
+      }
+
+      // 3. 홈으로 이동 (기본값)
+      if (uri.host == 'home') {
+        _navigatorKey.currentState?.pushNamed(RouteConstants.main);
       }
     });
   }
