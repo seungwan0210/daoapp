@@ -29,6 +29,7 @@ import 'package:daoapp/core/utils/ad_manager.dart';
 // ✅ 추가: 자동 청소를 위한 DI 및 리포지토리 임포트
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/data/repositories/arena_repository.dart';
+import 'package:easy_date_timeline/easy_date_timeline.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -38,6 +39,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  DateTime _selectedDate = DateTime.now(); // 👈 선택된 날짜 상태 관리 변수
   // 🧹 관리자 자동 청소 로직
   void _handleAdminCleanup() {
     final user = FirebaseAuth.instance.currentUser;
@@ -68,6 +70,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// === 🔥 [추가] 상단 대회 일정 (주간 타임라인 + 전체보기 버튼) ===
+          _buildWeeklyTimeline(context),
+          _buildSelectedDayEventInfo(), // 👈 요약 정보 추가
+          const SizedBox(height: 16),
           // === 최신 뉴스 ===
           AppCard(child: _buildNewsSection(context, ref)),
           const SizedBox(height: 4),
@@ -124,6 +130,131 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
           const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyTimeline(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. [1줄 레이아웃] 날짜 요일 컨트롤러 + 전체보기
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                // ◀ 이전 달로 이동
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.chevron_left, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      // 이전 달의 1일로 점프
+                      _selectedDate = DateTime(_selectedDate.year, _selectedDate.month - 1, 1);
+                    });
+                  },
+                ),
+                // 현재 월 표시
+                GestureDetector(
+                  onTap: () => setState(() => _selectedDate = DateTime.now()),
+                  child: Text(
+                    "${_selectedDate.month}월 <${_getWeekday(_selectedDate.weekday)}>",
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                // ▶ 다음 달로 이동
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.chevron_right, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      // 다음 달의 1일로 점프
+                      _selectedDate = DateTime(_selectedDate.year, _selectedDate.month + 1, 1);
+                    });
+                  },
+                ),
+              ],
+            ),
+            // 전체 달력 이동 아이콘
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              onPressed: () => debugPrint("전체 달력 이동"),
+              icon: const Icon(Icons.grid_view_rounded, size: 20, color: Colors.grey),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+
+        // 2. 무한 스크롤 타임라인 달력
+        EasyInfiniteDateTimeLine(
+          // 🔥 핵심: 같은 달 안에서는 위젯을 새로 그리지 않음
+          key: ValueKey(_selectedDate.month),
+          firstDate: DateTime(_selectedDate.year, _selectedDate.month, 1),
+          lastDate: DateTime(_selectedDate.year, _selectedDate.month + 1, 0),
+          // 🚀 [수정 포인트] focusedDate -> focusDate (버전 차이 해결)
+          focusDate: _selectedDate,
+          onDateChange: (selectedDate) {
+            setState(() {
+              _selectedDate = selectedDate;
+            });
+          },
+          showTimelineHeader: false,
+          dayProps: EasyDayProps(
+            height: 65,
+            width: 58,
+            dayStructure: DayStructure.dayStrDayNum,
+            inactiveDayStyle: DayStyle(
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            activeDayStyle: DayStyle(
+              decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: theme.colorScheme.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+              ),
+              dayNumStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              dayStrStyle: const TextStyle(color: Colors.white, fontSize: 10),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedDayEventInfo() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          // 현재는 예시로 파란 바(국내)를 넣었지만, 데이터에 따라 색상이 변하게 구성됩니다.
+          Container(
+            width: 3,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Colors.blue, // 👈 국내(Blue), 해외(Red), 모집(Green)
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              "선택한 날짜의 경기 일정을 확인하세요.",
+              style: TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );
