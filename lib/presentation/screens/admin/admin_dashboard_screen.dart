@@ -100,6 +100,14 @@ class AdminDashboardScreen extends ConsumerWidget {
                 subtitle: '대회 사진 등록·수정·삭제·링크',
                 route: RouteConstants.competitionPhotosForm,
               ),
+              // 🔥 [추가] 신규 매거진 등록 메뉴
+              _buildItem(
+                context,
+                icon: Icons.auto_stories,
+                title: '다트 매거진 관리 (신규)',
+                subtitle: '한국/해외 매거진 통합 관리 및 영구 삭제',
+                route: RouteConstants.magazineForm,
+              ),
               _buildItem(
                 context,
                 icon: Icons.chat_outlined,
@@ -159,6 +167,39 @@ class AdminDashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // -------------------------
+          // 공식 일정 관리 (★ 신규 추가)
+          // -------------------------
+          _buildSection(
+            context,
+            title: '공식 일정 관리',
+            items: [
+              _buildItem(
+                context,
+                icon: Icons.calendar_month,
+                title: '공식 일정 등록', // 여기에 title이 잘 들어가 있는지 확인
+                subtitle: '국내·해외·리그 기간별 바(Bar) 일정 등록',
+                route: '/admin/official-calendar/create',
+              ),
+            ],
+          ),
+
+          _buildSection(
+            context,
+            title: '퀵 노티스 관리',
+            items: [
+              _buildItem(
+                context,
+                icon: Icons.campaign_rounded, // 아이콘을 campaign으로 바꾸면 더 직관적입니다
+                title: '퀵 노티스 관리', // 👈 이 줄이 빠져서 에러가 났을 거예요! 추가하세요.
+                subtitle: '홈 화면 하단 흐르는 한 줄 공지 관리',
+                route: RouteConstants.adminQuickNotice,
+              ),
+            ],
+          ),
+
           const SizedBox(height: 16),
 
           // -------------------------

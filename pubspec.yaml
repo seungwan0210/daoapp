@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations: # 👈 여기를 이렇게 수정하세요
+    sdk: flutter
 
   cupertino_icons: ^1.0.8
   flutter_app_badger: ^1.5.0
@@ -138,6 +140,16 @@ flutter:
     - assets/badges/season1.png
     - assets/badges/season2.png
     - assets/badges/season3.png
+
+   # ==== 뉴스 소스 로고 추가 (여기에 넣어주세요) ====
+    - assets/images/logo_phoenix.png
+    - assets/images/logo_dartslive.png
+    - assets/images/logo_pdc.png
+    - assets/images/logo_wdf.png
+    - assets/images/logo_default.png
+
+    # ==== 주최사 로고 (공식 일정용) ====
+    - assets/images/logos/
 
 # ✅ 앱 아이콘 설정
 flutter_launcher_icons:

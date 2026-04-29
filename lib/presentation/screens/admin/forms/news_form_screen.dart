@@ -1,5 +1,3 @@
-// lib/presentation/screens/admin/forms/news_form_screen.dart
-
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -10,7 +8,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 
 // 탭 전환을 위한 MainScreen import
 import 'package:daoapp/presentation/screens/main_screen.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
 
 class NewsFormScreen extends StatefulWidget {
   const NewsFormScreen({super.key});
@@ -23,6 +21,10 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
   File? _image;
   final _titleController = TextEditingController();
   DateTime? _selectedDate;
+
+  // ✅ 카테고리 상태 추가 (기본값: 일반 뉴스)
+  String _category = 'news';
+
   String _actionType = 'none';
   final _actionUrlController = TextEditingController();
   final _actionRouteController = TextEditingController();
@@ -38,7 +40,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
 
     return Scaffold(
       appBar: CommonAppBar(
-        title: '뉴스 등록',
+        title: '뉴스/매거진 등록', // 제목 수정
         showBackButton: true,
       ),
       body: Column(
@@ -62,12 +64,29 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 1. 카테고리 선택 (뉴스/매거진 구분)
+                DropdownButtonFormField<String>(
+                  value: _category,
+                  decoration: const InputDecoration(
+                    labelText: '콘텐츠 구분',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.category),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'news', child: Text('일반 뉴스 (상단 배너)')),
+                    DropdownMenuItem(value: 'magazine_ko', child: Text('다트 매거진 (한국)')),
+                  ],
+                  onChanged: (v) => setState(() => _category = v!),
+                ),
+                const SizedBox(height: 16),
+
                 // 이미지 미리보기
                 Container(
-                  height: 300,
+                  height: 200, // 높이 살짝 조정
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey),
+                    border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(12),
+                    color: Colors.grey[50],
                   ),
                   child: _image == null
                       ? const Center(
@@ -96,6 +115,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                   decoration: const InputDecoration(
                     labelText: '제목',
                     border: OutlineInputBorder(),
+                    hintText: '매거진 제목은 2줄 이내가 예쁩니다.',
                   ),
                   maxLines: 2,
                 ),
@@ -131,7 +151,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                   child: ElevatedButton(
                     onPressed: _saveNews,
                     style: theme.elevatedButtonTheme.style,
-                    child: const Text('뉴스 등록', style: TextStyle(fontSize: 16)),
+                    child: Text(_category == 'news' ? '뉴스 등록' : '매거진 등록', style: const TextStyle(fontSize: 16)),
                   ),
                 ),
               ],
@@ -235,7 +255,9 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
       await ref.putFile(_image!);
       final imageUrl = await ref.getDownloadURL();
 
+      // ✅ category 필드 포함하여 저장
       await _firestore.collection('news').add({
+        'category': _category,
         'title': _titleController.text.trim(),
         'date': Timestamp.fromDate(_selectedDate!),
         'imageUrl': imageUrl,
@@ -247,7 +269,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
       });
 
       _clearForm();
-      _showSnackBar("뉴스 등록 완료!", Colors.green);
+      _showSnackBar("콘텐츠 등록 완료!", Colors.green);
     } catch (e) {
       _showSnackBar("실패: $e", Colors.red);
     } finally {
@@ -263,10 +285,11 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
       _actionType = 'none';
       _actionUrlController.clear();
       _actionRouteController.clear();
+      // _category는 유지하는 것이 편할 수도 있지만, 원하시면 여기서 'news'로 초기화 가능합니다.
     });
   }
 
-  /* ────────────────────────── 뉴스 목록 ────────────────────────── */
+  /* ────────────────────────── 목록 조회 ────────────────────────── */
   Widget _buildNewsList(ThemeData theme) {
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
@@ -278,7 +301,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('등록된 뉴스 없음'));
+          return const Center(child: Text('등록된 콘텐츠 없음'));
         }
 
         return ListView.builder(
@@ -290,6 +313,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
             final docId = doc.id;
             final imageUrl = data['imageUrl'] as String?;
             final isActive = data['isActive'] as bool? ?? true;
+            final category = data['category'] ?? 'news'; // 카테고리 가져오기
 
             return AppCard(
               color: isActive ? null : Colors.grey[100],
@@ -316,11 +340,25 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
-                subtitle: Text(
-                  data['date'] is Timestamp
-                      ? (data['date'] as Timestamp).toDate().toString().substring(0, 10)
-                      : '',
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data['date'] is Timestamp
+                          ? (data['date'] as Timestamp).toDate().toString().substring(0, 10)
+                          : '',
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    // ✅ 목록에서 카테고리 표시
+                    Text(
+                      category == 'magazine_ko' ? '[한국 매거진]' : '[일반 뉴스]',
+                      style: TextStyle(
+                        color: category == 'magazine_ko' ? Colors.blue : Colors.orange,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -344,7 +382,6 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                     ),
                   ],
                 ),
-                // 뉴스 클릭 → 탭 전환만!
                 onTap: () {
                   final type = data['actionType'];
                   final url = data['actionUrl'] as String?;
@@ -368,31 +405,20 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
   void _syncTabWithRoute(String route) {
     int? tabIndex;
     switch (route) {
-      case '/ranking':
-        tabIndex = 1;
-        break;
-      case '/calendar':
-        tabIndex = 2;
-        break;
-      case '/community':
-        tabIndex = 3;
-        break;
-      case '/my-page':
-        tabIndex = 4;
-        break;
-      default:
-        return;
+      case '/ranking': tabIndex = 1; break;
+      case '/calendar': tabIndex = 2; break;
+      case '/community': tabIndex = 3; break;
+      case '/my-page': tabIndex = 4; break;
+      default: return;
     }
-
-    if (tabIndex != null) {
-      MainScreen.changeTab(context, tabIndex);
-    }
+    if (tabIndex != null) MainScreen.changeTab(context, tabIndex);
   }
 
   /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
   void _editNews(String docId, Map<String, dynamic> data, String? currentImageUrl) {
     _titleController.text = data['title'] ?? '';
     _selectedDate = data['date'] is Timestamp ? (data['date'] as Timestamp).toDate() : null;
+    _category = data['category'] ?? 'news'; // 기존 카테고리 로드
     _actionType = data['actionType'] ?? 'none';
     _actionUrlController.text = data['actionUrl'] ?? '';
     _actionRouteController.text = data['actionRoute'] ?? '';
@@ -404,7 +430,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
           File? tempImage;
 
           return AlertDialog(
-            title: const Text("뉴스 수정"),
+            title: const Text("콘텐츠 수정"),
             content: SizedBox(
               width: double.maxFinite,
               child: SingleChildScrollView(
@@ -414,8 +440,19 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // 수정창 카테고리 선택
+                        DropdownButtonFormField<String>(
+                          value: _category,
+                          decoration: const InputDecoration(labelText: '구분', border: OutlineInputBorder()),
+                          items: const [
+                            DropdownMenuItem(value: 'news', child: Text('일반 뉴스')),
+                            DropdownMenuItem(value: 'magazine_ko', child: Text('한국 매거진')),
+                          ],
+                          onChanged: (v) => setStateDialog(() => _category = v!),
+                        ),
+                        const SizedBox(height: 12),
                         Container(
-                          height: 200,
+                          height: 150,
                           decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
                           child: tempImage != null
                               ? Image.file(tempImage, fit: BoxFit.cover)
@@ -483,20 +520,18 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
                     newImageUrl = await ref.getDownloadURL();
 
                     if (currentImageUrl != null) {
-                      try {
-                        await _storage.refFromURL(currentImageUrl).delete();
-                      } catch (_) {}
+                      try { await _storage.refFromURL(currentImageUrl).delete(); } catch (_) {}
                     }
                   }
 
                   await _firestore.collection('news').doc(docId).update({
+                    'category': _category, // 수정 반영
                     'title': _titleController.text.trim(),
                     'date': Timestamp.fromDate(_selectedDate!),
                     'imageUrl': newImageUrl,
                     'actionType': _actionType,
                     'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
                     'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
-                    'isActive': true,
                   });
 
                   if (mounted) {
@@ -533,9 +568,7 @@ class _NewsFormScreenState extends State<NewsFormScreen> {
     if (confirm == true) {
       try {
         await _firestore.collection('news').doc(docId).delete();
-        if (imageUrl != null) {
-          await _storage.refFromURL(imageUrl).delete();
-        }
+        if (imageUrl != null) await _storage.refFromURL(imageUrl).delete();
         if (mounted) _showSnackBar("삭제 완료", Colors.red);
       } catch (e) {
         if (mounted) _showSnackBar("삭제 실패: $e", Colors.red);

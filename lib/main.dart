@@ -62,6 +62,11 @@ import 'package:daoapp/presentation/screens/my_page/block_list_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_block_manage_screen.dart';
 import 'package:daoapp/presentation/screens/admin/forms/admin_chat_config_screen.dart';
 import 'package:daoapp/presentation/screens/admin/admin_hard_cleanup_screen.dart';
+import 'package:daoapp/presentation/screens/admin/official_calendar_create_screen.dart';
+import 'package:daoapp/presentation/screens/home/official_calendar_screen.dart';
+import 'package:flutter_localizations/flutter_localizations.dart'; // 👈 추가
+import 'package:daoapp/presentation/screens/admin/forms/magazine_form_screen.dart';
+import 'package:daoapp/presentation/screens/admin/quick_notice_manage_screen.dart';
 
 const bool kAdMobSuspended = false;
 const bool kEnableAdsInDebug = false;
@@ -212,6 +217,17 @@ class _DaoAppState extends ConsumerState<DaoApp> {
       title: 'DAO App - Steel League',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      // 🔥 [추가] 한국어 및 기본 로컬라이징 설정
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('ko', 'KR'), // 한국어
+        Locale('en', 'US'), // 영어
+      ],
+      // ------------------------------------
       initialRoute: RouteConstants.splash,
       routes: {
         RouteConstants.splash: (_) => const SplashScreen(),
@@ -256,6 +272,10 @@ class _DaoAppState extends ConsumerState<DaoApp> {
         RouteConstants.adminBlockManage: (_) => const AdminBlockManageScreen(),
         RouteConstants.adminHardCleanup: (_) => const AdminHardCleanupScreen(),
         RouteConstants.adminChatConfig: (_) => const AdminChatConfigScreen(),
+        RouteConstants.officialCalendar: (_) => const OfficialCalendarScreen(),
+        RouteConstants.officialCalendarCreate: (_) => const OfficialCalendarCreateScreen(),
+        RouteConstants.magazineForm: (context) => const MagazineFormScreen(),
+        RouteConstants.adminQuickNotice: (_) => const QuickNoticeManageScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RouteConstants.guestbook) {

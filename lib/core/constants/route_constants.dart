@@ -99,4 +99,12 @@ class RouteConstants {
   static const String adminBlockStats = '/admin/block-manage';
   static const String adminChatConfig = '/admin/chat-config';
   static const String adminHardCleanup = '/admin/hard-cleanup';
+  // === 홈 (공식 일정 관련 추가) ===
+  static const String officialCalendar = '/home/official-calendar'; // 공식 일정 전체보기
+
+  // === 관리자 (공식 일정 관리 추가) ===
+  static const String officialCalendarCreate = '/admin/official-calendar/create'; // 일정 등록
+  static const String officialCalendarList = '/admin/official-calendar/list';
+  static const String magazineForm = '/admin/magazine-form';
+  static const String adminQuickNotice = '/admin/quick-notice';
 }
