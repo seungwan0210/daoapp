@@ -20,20 +20,22 @@ import 'package:daoapp/data/repositories/arena_repository_impl.dart';
 // Storage
 import 'package:daoapp/services/storage_service.dart';
 
-// ★★★★★ Training Session 저장용 ★★★★★
+// Training
 import 'package:daoapp/data/repositories/training_repository.dart';
 import 'package:daoapp/data/repositories/training_repository_impl.dart';
-
-// ★★★★★ Training Progress (XP/게이지) 저장용 ★★★★★
 import 'package:daoapp/data/repositories/training_progress_repository.dart';
 import 'package:daoapp/data/repositories/training_progress_repository_impl.dart';
 
-// ✅ Grip Baseline (그립 연구소 기준 그립) 저장용
+// Grip Baseline
 import 'package:daoapp/data/repositories/grip_baseline_repository.dart';
 import 'package:daoapp/data/repositories/grip_baseline_repository_impl.dart';
 
-import 'package:daoapp/data/repositories/chat_repository.dart'; // 경로 확인 필요
+// Chat
+import 'package:daoapp/data/repositories/chat_repository.dart';
 import 'package:daoapp/data/repositories/chat_repository_impl.dart';
+
+// ✅ Google Calendar Service 추가
+import 'package:daoapp/core/services/google_calendar_service.dart';
 
 final sl = GetIt.instance;
 
@@ -51,45 +53,31 @@ void setupDependencies() {
   ));
 
   // === Point & Ranking ===
-  sl.registerLazySingleton<PointRecordRepository>(
-        () => PointRecordRepositoryImpl(),
-  );
+  sl.registerLazySingleton<PointRecordRepository>(() => PointRecordRepositoryImpl());
 
   // ✅ 라이브 채팅 Repository 등록
-  sl.registerLazySingleton<ChatRepository>(
-        () => ChatRepositoryImpl(firestore: sl<FirebaseFirestore>()),
-  );
+  sl.registerLazySingleton<ChatRepository>(() => ChatRepositoryImpl(firestore: sl<FirebaseFirestore>()));
 
   // === Arena ===
-  sl.registerLazySingleton<ArenaRepository>(
-        () => ArenaRepositoryImpl(),
-  );
+  sl.registerLazySingleton<ArenaRepository>(() => ArenaRepositoryImpl());
 
   // === Storage ===
-  sl.registerLazySingleton<StorageService>(
-        () => StorageService(),
+  sl.registerLazySingleton<StorageService>(() => StorageService());
+
+  // === Training Session Repository 등록 ===
+  sl.registerLazySingleton<TrainingRepository>(() => TrainingRepositoryImpl(firestore: sl<FirebaseFirestore>()));
+
+  // === Training Progress Repository 등록 ===
+  sl.registerLazySingleton<TrainingProgressRepository>(() => TrainingProgressRepositoryImpl(firestore: sl<FirebaseFirestore>()));
+
+  // ✅ Grip Baseline Repository 등록
+  sl.registerLazySingleton<GripBaselineRepository>(() => GripBaselineRepositoryImpl(
+    auth: sl<FirebaseAuth>(),
+    firestore: sl<FirebaseFirestore>(),
+    storage: sl<FirebaseStorage>(),
+  ),
   );
 
-  // ★★★★★ Training Session Repository 등록 ★★★★★
-  sl.registerLazySingleton<TrainingRepository>(
-        () => TrainingRepositoryImpl(
-      firestore: sl<FirebaseFirestore>(),
-    ),
-  );
-
-  // ★★★★★ Training Progress Repository 등록 (XP / 게이지) ★★★★★
-  sl.registerLazySingleton<TrainingProgressRepository>(
-        () => TrainingProgressRepositoryImpl(
-      firestore: sl<FirebaseFirestore>(),
-    ),
-  );
-
-  // ✅ Grip Baseline Repository 등록 (그립 연구소 기준 1개 저장)
-  sl.registerLazySingleton<GripBaselineRepository>(
-        () => GripBaselineRepositoryImpl(
-      auth: sl<FirebaseAuth>(),
-      firestore: sl<FirebaseFirestore>(),
-      storage: sl<FirebaseStorage>(),
-    ),
-  );
+  // ✅ [NEW] Google Calendar Service 등록
+  sl.registerLazySingleton<GoogleCalendarService>(() => GoogleCalendarService());
 }

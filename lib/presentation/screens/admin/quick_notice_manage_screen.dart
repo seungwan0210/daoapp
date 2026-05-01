@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:intl/intl.dart';
 
 class QuickNoticeManageScreen extends StatefulWidget {
@@ -12,13 +13,22 @@ class QuickNoticeManageScreen extends StatefulWidget {
 
 class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
   final _contentController = TextEditingController();
+  final _actionUrlController = TextEditingController();
+
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
+  DateTime? _targetDate;    // ✅ 대회 당일 (D-Day 자동 계산용)
+  DateTime? _entryDeadline; // ✅ 엔트리 마감일
+
   String _selectedLogo = 'none';
-  String _selectedHex = 'F1F5F9'; // 기본 파스텔 그레이
+  String _selectedHex = '3B82F6';
+
+  // ✅ 이동 경로 설정 (매거진 관리 로직 이식)
+  String _actionType = 'none';
+  String _selectedRoute = RouteConstants.arenaHome;
+
   bool _isLoading = false;
 
-  // ✅ 로고 옵션
   final Map<String, String> _logoOptions = {
     'none': '로고 없음',
     'phoenix': '피닉스다트',
@@ -29,279 +39,299 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
   };
 
   final List<Map<String, dynamic>> _colorOptions = [
-    {'label': '블루', 'color': const Color(0xFF3B82F6), 'hex': '3B82F6'}, // 선명한 블루
-    {'label': '네온그린', 'color': const Color(0xFF22C55E), 'hex': '22C55E'}, // 네온 그린
-    {'label': '레드', 'color': const Color(0xFFEF4444), 'hex': 'EF4444'}, // 강렬한 레드
-    {'label': '옐로우', 'color': const Color(0xFFEAB308), 'hex': 'EAB308'}, // 골드 옐로우
-    {'label': '퍼플', 'color': const Color(0xFFA855F7), 'hex': 'A855F7'}, // 퍼플
+    {'label': '블루', 'color': const Color(0xFF3B82F6), 'hex': '3B82F6'},
+    {'label': '네온그린', 'color': const Color(0xFF22C55E), 'hex': '22C55E'},
+    {'label': '레드', 'color': const Color(0xFFEF4444), 'hex': 'EF4444'},
+    {'label': '옐로우', 'color': const Color(0xFFEAB308), 'hex': 'EAB308'},
+    {'label': '퍼플', 'color': const Color(0xFFA855F7), 'hex': 'A855F7'},
   ];
 
   @override
   void dispose() {
     _contentController.dispose();
+    _actionUrlController.dispose();
     super.dispose();
   }
 
-  // 날짜 선택 헬퍼
-  Future<void> _selectDate(BuildContext context, bool isStart) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: isStart ? _startDate : _endDate,
-      firstDate: DateTime(2025),
-      lastDate: DateTime(2030),
-      locale: const Locale('ko', 'KR'),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = picked;
-          if (_endDate.isBefore(_startDate)) _endDate = _startDate;
-        } else {
-          _endDate = picked;
-        }
-      });
-    }
-  }
-
-  // 1. 등록 함수
+  // ✅ 등록 함수
   Future<void> _saveNotice() async {
     if (_contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('내용을 입력해주세요.')));
       return;
     }
     setState(() => _isLoading = true);
+
+    String finalActionUrl = '';
+    if (_actionType == 'link') {
+      finalActionUrl = _actionUrlController.text.trim();
+    } else if (_actionType == 'internal') {
+      finalActionUrl = _selectedRoute;
+    }
+
     try {
       await FirebaseFirestore.instance.collection('quick_notices').add({
         'content': _contentController.text.trim(),
+        'actionType': _actionType,
+        'actionUrl': finalActionUrl,
         'logoKey': _selectedLogo,
         'colorHex': _selectedHex,
         'startDate': Timestamp.fromDate(DateTime(_startDate.year, _startDate.month, _startDate.day, 0, 0, 0)),
         'endDate': Timestamp.fromDate(DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59)),
+        'targetDate': _targetDate != null ? Timestamp.fromDate(_targetDate!) : null,
+        'entryDeadline': _entryDeadline != null ? Timestamp.fromDate(_entryDeadline!) : null,
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
-      _contentController.clear();
+
+      _clearForm();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('퀵 노티스가 등록되었습니다.')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // 2. 삭제 함수
+  void _clearForm() {
+    _contentController.clear();
+    _actionUrlController.clear();
+    setState(() {
+      _targetDate = null;
+      _entryDeadline = null;
+      _actionType = 'none';
+      _selectedLogo = 'none';
+      _selectedHex = '3B82F6';
+    });
+  }
+
+  // ✅ 이동 경로 선택 위젯
+  Widget _buildActionSelector(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('이동 경로 설정', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8.0,
+          children: [
+            _buildRadioOption('none', '없음'),
+            _buildRadioOption('link', '외부 링크'),
+            _buildRadioOption('internal', '앱 내부'),
+          ],
+        ),
+        if (_actionType == 'link')
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: TextField(
+              controller: _actionUrlController,
+              decoration: InputDecoration(
+                labelText: 'URL 입력 (https://...)',
+                prefixIcon: const Icon(Icons.link),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          )
+        else if (_actionType == 'internal')
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: DropdownButtonFormField<String>(
+              value: _selectedRoute,
+              isExpanded: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.near_me),
+              ),
+              items: const [
+                DropdownMenuItem(value: RouteConstants.arenaHome, child: Text('아레나(토너먼트) 홈')),
+                DropdownMenuItem(value: RouteConstants.steelLeagueRanking, child: Text('스틸리그 랭킹')),
+                DropdownMenuItem(value: RouteConstants.community, child: Text('커뮤니티 홈')),
+              ],
+              onChanged: (v) => setState(() => _selectedRoute = v!),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildRadioOption(String value, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<String>(
+          value: value,
+          groupValue: _actionType,
+          onChanged: (v) => setState(() => _actionType = v!),
+          visualDensity: VisualDensity.compact,
+        ),
+        Text(label, style: const TextStyle(fontSize: 13)),
+      ],
+    );
+  }
+
+  // ✅ 날짜 선택 헬퍼
+  Future<void> _selectDate({required Function(DateTime) onSelected}) async {
+    final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2025),
+        lastDate: DateTime(2030),
+        locale: const Locale('ko', 'KR')
+    );
+    if (picked != null) onSelected(picked);
+  }
+
+  Widget _buildDateChip(String label, DateTime? date, VoidCallback onTap) {
+    return ActionChip(
+      avatar: Icon(Icons.calendar_today, size: 14, color: date != null ? Colors.white : Colors.grey),
+      label: Text(
+          date != null ? "$label: ${DateFormat('MM/dd').format(date)}" : "$label 설정",
+          style: TextStyle(color: date != null ? Colors.white : Colors.black87, fontSize: 12)
+      ),
+      backgroundColor: date != null ? Colors.blue : Colors.grey[100],
+      onPressed: onTap,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: const CommonAppBar(title: '퀵 노티스 관리', showBackButton: true),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: _contentController,
+                    decoration: const InputDecoration(
+                      hintText: "공지 내용 (예: Taiwan Open 개최)",
+                      prefixIcon: Icon(Icons.campaign),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  _buildActionSelector(theme),
+                  const SizedBox(height: 24),
+
+                  const Text("날짜 옵션 (선택 시 D-Day 자동 노출)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _buildDateChip("대회 당일", _targetDate, () => _selectDate(onSelected: (d) => setState(() => _targetDate = d))),
+                      const SizedBox(width: 8),
+                      _buildDateChip("엔트리 마감", _entryDeadline, () => _selectDate(onSelected: (d) => setState(() => _entryDeadline = d))),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  const Text("배경 색상 선택", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: _colorOptions.map((item) {
+                      final isSelected = _selectedHex == item['hex'];
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedHex = item['hex']),
+                        child: Container(
+                          width: 38, height: 38,
+                          decoration: BoxDecoration(
+                              color: item['color'],
+                              shape: BoxShape.circle,
+                              border: Border.all(color: isSelected ? Colors.black : Colors.transparent, width: 2)
+                          ),
+                          child: isSelected ? const Icon(Icons.check, size: 20, color: Colors.white) : null,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _selectedLogo,
+                          items: _logoOptions.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                          onChanged: (val) => setState(() => _selectedLogo = val!),
+                          decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12), border: OutlineInputBorder()),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _saveNotice,
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(100, 48)
+                        ),
+                        child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("등록"),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  const Text("최근 등록 리스트", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+
+                  // 실시간 리스트 섹션
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance.collection('quick_notices').orderBy('createdAt', descending: true).snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const SizedBox.shrink();
+                      final docs = snapshot.data!.docs;
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: docs.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final data = docs[index].data() as Map<String, dynamic>;
+                          final color = Color(int.parse("0xFF${data['colorHex'] ?? '3B82F6'}"));
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(backgroundColor: color.withOpacity(0.2), child: _buildLogoIcon(data['logoKey'])),
+                            title: Text(data['content'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            subtitle: Text(
+                              "타겟: ${data['targetDate'] != null ? 'D-Day 설정됨' : '없음'} | 경로: ${data['actionType']}",
+                              style: const TextStyle(fontSize: 11),
+                            ),
+                            trailing: IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () => _deleteNotice(docs[index].id)
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoIcon(String? key) {
+    if (key == null || key == 'none') return const Icon(Icons.campaign, size: 20);
+    return Image.asset('assets/images/logos/$key.png', width: 24, errorBuilder: (_, __, ___) => const Icon(Icons.error));
+  }
+
   Future<void> _deleteNotice(String docId) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("공지 삭제"),
-        content: const Text("이 퀵 노티스를 영구 삭제하시겠습니까?"),
+        content: const Text("정말 삭제하시겠습니까?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red))),
         ],
       ),
     );
-    if (ok == true) {
-      await FirebaseFirestore.instance.collection('quick_notices').doc(docId).delete();
-    }
-  }
-
-  // 3. 수정 팝업 함수
-  void _showEditDialog(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    final editController = TextEditingController(text: data['content']);
-    String editLogo = data['logoKey'] ?? 'none';
-    String editHex = data['colorHex'] ?? 'F1F5F9';
-    DateTime editStart = (data['startDate'] as Timestamp).toDate();
-    DateTime editEnd = (data['endDate'] as Timestamp).toDate();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text("퀵 노티스 수정", style: TextStyle(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(controller: editController, decoration: const InputDecoration(labelText: "내용")),
-                const SizedBox(height: 20),
-                DropdownButtonFormField<String>(
-                  value: editLogo,
-                  items: _logoOptions.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
-                  onChanged: (val) => setDialogState(() => editLogo = val!),
-                  decoration: const InputDecoration(labelText: "로고 선택", border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 20),
-                const Text("배경색 수정", style: TextStyle(fontSize: 12)),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: _colorOptions.map((item) {
-                    final isSel = editHex == item['hex'];
-                    return GestureDetector(
-                      onTap: () => setDialogState(() => editHex = item['hex']),
-                      child: Container(
-                        width: 35, height: 35,
-                        decoration: BoxDecoration(
-                          color: item['color'], shape: BoxShape.circle,
-                          border: Border.all(color: isSel ? Colors.blue : Colors.grey[300]!, width: isSel ? 2 : 1),
-                        ),
-                        child: isSel ? const Icon(Icons.check, size: 18, color: Colors.blue) : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseFirestore.instance.collection('quick_notices').doc(doc.id).update({
-                  'content': editController.text.trim(),
-                  'logoKey': editLogo,
-                  'colorHex': editHex,
-                  'startDate': Timestamp.fromDate(editStart),
-                  'endDate': Timestamp.fromDate(editEnd),
-                });
-                if (mounted) Navigator.pop(ctx);
-              },
-              child: const Text("저장하기"),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: const CommonAppBar(title: '퀵 노티스 관리', showBackButton: true),
-      body: Column(
-        children: [
-          // --- 상단: 입력 섹션 ---
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _contentController,
-                  decoration: const InputDecoration(
-                    hintText: "홈 화면에 흐를 공지 내용을 입력하세요",
-                    prefixIcon: Icon(Icons.campaign),
-                    border: UnderlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text("배경 색상 선택", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: _colorOptions.map((item) {
-                    final isSelected = _selectedHex == item['hex'];
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedHex = item['hex']),
-                      child: Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: item['color'], shape: BoxShape.circle,
-                          border: Border.all(color: isSelected ? Colors.blue : Colors.grey[200]!, width: isSelected ? 2.5 : 1),
-                        ),
-                        child: isSelected ? const Icon(Icons.check, size: 20, color: Colors.blue) : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedLogo,
-                        items: _logoOptions.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
-                        onChanged: (val) => setState(() => _selectedLogo = val!),
-                        decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12), border: OutlineInputBorder()),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _saveNotice,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size(100, 48),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text("등록"),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // --- 하단: 실시간 리스트 섹션 ---
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('quick_notices').orderBy('createdAt', descending: true).snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                final docs = snapshot.data!.docs;
-                if (docs.isEmpty) return const Center(child: Text("등록된 퀵 노티스가 없습니다."));
-
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  itemCount: docs.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1, indent: 70),
-                  itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final color = Color(int.parse("0xFF${data['colorHex'] ?? 'F1F5F9'}"));
-
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                      leading: Container(
-                        width: 44, height: 44,
-                        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-                        child: _buildLogoIcon(data['logoKey']),
-                      ),
-                      title: Text(data['content'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text(
-                        "${DateFormat('MM/dd').format((data['startDate'] as Timestamp).toDate())} ~ ${DateFormat('MM/dd').format((data['endDate'] as Timestamp).toDate())}",
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(icon: const Icon(Icons.edit_outlined, size: 20, color: Colors.blueGrey), onPressed: () => _showEditDialog(docs[index])),
-                          IconButton(icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent), onPressed: () => _deleteNotice(docs[index].id)),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 리스트용 로고 아이콘 빌더
-  Widget _buildLogoIcon(String? key) {
-    if (key == null || key == 'none') return const Icon(Icons.campaign, size: 20, color: Colors.blueGrey);
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Image.asset('assets/images/logos/$key.png', fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.error, size: 10)),
-    );
+    if (ok == true) await FirebaseFirestore.instance.collection('quick_notices').doc(docId).delete();
   }
 }

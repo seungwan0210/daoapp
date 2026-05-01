@@ -3,17 +3,16 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import '../../core/utils/ad_manager.dart';
 
-// 정책 위반이 해결되고 광고 게재 제한이 풀릴 때까지는
-// 이 값을 true로 두어 가짜 영역만 보여줄 수도 있습니다.
+/// 정책 위반이 해결되고 광고 게재 제한이 풀릴 때까지 true로 설정하면
+/// 실제 광고 대신 회색 박스가 표시됩니다.
 const bool kAdMobSuspended = false;
 
 class AdBanner extends StatefulWidget {
-  // 1️⃣ 광고 타입을 선택할 수 있는 파라미터 추가
   final AdBannerType type;
 
   const AdBanner({
     super.key,
-    this.type = AdBannerType.main, // 기본값은 메인 배너
+    this.type = AdBannerType.main,
   });
 
   @override
@@ -23,52 +22,92 @@ class AdBanner extends StatefulWidget {
 class _AdBannerState extends State<AdBanner> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _isLoading = false; // 중복 로드 방지 플래그
   AnchoredAdaptiveBannerAdSize? _adSize;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // 중복 로드 방지를 위해 _bannerAd가 null일 때만 로드 시도
-    if (!kAdMobSuspended && _bannerAd == null) {
-      _loadAd();
-    }
+  void initState() {
+    super.initState();
+    // 홈 화면의 비동기 로딩(캘린더 등)과 충돌을 피하기 위해
+    // 첫 프레임 렌더링 이후에 광고 로드를 시작합니다.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!kAdMobSuspended) _loadAd();
+    });
   }
 
   Future<void> _loadAd() async {
-    // [정책 위반 해결 포인트 1] 가용 너비 계산
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final int adWidth = (screenWidth - 32).truncate();
+    if (_isLoading || _bannerAd != null || !mounted) return;
 
-    if (adWidth <= 0) return;
+    setState(() => _isLoading = true);
 
-    final size = await AdSize.getAnchoredAdaptiveBannerAdSize(
-      Orientation.portrait,
-      adWidth,
-    );
+    try {
+      // 1. 가용 너비 확인 (비동기 로딩 중 Context가 불안정할 경우 대비)
+      final double screenWidth = MediaQuery.of(context).size.width;
 
-    if (size == null) return;
+      // 화면 너비가 확보되지 않았다면 잠시 후 다시 시도 (MethodChannel 에러 방지)
+      if (screenWidth <= 0) {
+        Future.delayed(const Duration(milliseconds: 200), _loadAd);
+        setState(() => _isLoading = false);
+        return;
+      }
 
-    if (!mounted) return;
-    setState(() => _adSize = size);
+      final int adWidth = (screenWidth - 32).truncate();
+      if (adWidth <= 0) {
+        setState(() => _isLoading = false);
+        return;
+      }
 
-    // 2️⃣ AdManager에서 전달받은 타입(widget.type)에 맞는 ID를 가져옵니다.
-    final String unitId = AdManager.getBannerUnitId(widget.type);
+      // 2. 적응형 사이즈 계산
+      final size = await AdSize.getAnchoredAdaptiveBannerAdSize(
+        Orientation.portrait,
+        adWidth,
+      );
 
-    _bannerAd = BannerAd(
-      adUnitId: unitId, // 분리된 전용 ID 사용
-      size: size,
-      request: const AdRequest(),
-      listener: BannerAdListener(
-        onAdLoaded: (ad) {
-          if (!mounted) return;
-          setState(() => _isLoaded = true);
-        },
-        onAdFailedToLoad: (ad, error) {
-          ad.dispose();
-          debugPrint('BannerAd [${widget.type}] 로드 실패: $error');
-        },
-      ),
-    )..load();
+      if (size == null || !mounted) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      setState(() => _adSize = size);
+
+      // 3. 광고 객체 생성 및 로드
+      final String unitId = AdManager.getBannerUnitId(widget.type);
+
+      _bannerAd = BannerAd(
+        adUnitId: unitId,
+        size: size,
+        request: const AdRequest(),
+        listener: BannerAdListener(
+          onAdLoaded: (ad) {
+            if (!mounted) {
+              ad.dispose();
+              return;
+            }
+            setState(() {
+              _isLoaded = true;
+              _isLoading = false;
+            });
+            debugPrint('✅ [AdBanner] 로드 성공: ${widget.type}');
+          },
+          onAdFailedToLoad: (ad, error) {
+            debugPrint('❌ [AdBanner] 로드 실패 (${widget.type}): $error');
+            ad.dispose();
+            if (mounted) {
+              setState(() {
+                _bannerAd = null;
+                _isLoaded = false;
+                _isLoading = false;
+              });
+            }
+          },
+        ),
+      );
+
+      await _bannerAd!.load();
+    } catch (e) {
+      debugPrint('⚠️ [AdBanner] 예외 발생: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -87,22 +126,25 @@ class _AdBannerState extends State<AdBanner> {
           color: Colors.grey[200],
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Center(child: Text("광고 준비 중", style: TextStyle(color: Colors.grey))),
+        child: const Center(
+          child: Text("AD", style: TextStyle(color: Colors.grey, fontSize: 10)),
+        ),
       );
     }
 
+    // 광고가 로드된 경우 표시
     if (_isLoaded && _bannerAd != null && _adSize != null) {
-      // [정책 위반 해결 포인트 2] 레이아웃 시프트 방지 및 중앙 정렬
       return Container(
         alignment: Alignment.center,
-        width: double.infinity, // 부모 너비에 맞춤
+        width: double.infinity,
         height: _adSize!.height.toDouble(),
         margin: const EdgeInsets.symmetric(vertical: 12),
         child: AdWidget(ad: _bannerAd!),
       );
     }
 
-    // [정책 위반 해결 포인트 3] 로딩 중 최소 높이 확보
-    return const SizedBox(height: 50);
+    // 로딩 중이거나 로드 전일 때:
+    // 레이아웃 시프트(갑자기 화면이 밀리는 현상) 방지를 위해 최소 높이 확보
+    return SizedBox(height: _adSize?.height.toDouble() ?? 60);
   }
 }
