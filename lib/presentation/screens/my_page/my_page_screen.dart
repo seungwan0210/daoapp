@@ -11,6 +11,17 @@ import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+// ✅ 의존성 주입(sl) 사용을 위해 필요
+import 'package:daoapp/di/service_locator.dart';
+
+// ✅ PracticeRepository 타입을 인식하기 위해 필요
+import 'package:daoapp/data/repositories/practice_repository.dart';
+
+// ✅ invalidate할 프로바이더들을 인식하기 위해 필요 (알려주신 경로 반영)
+import 'package:daoapp/presentation/providers/practice/practice_provider.dart';
+
+// ✅ (선택사항) 에러 로그 출력을 위해 필요 (이미 있다면 제외)
+import 'package:flutter/foundation.dart';
 
 class MyPageScreen extends ConsumerWidget {
   const MyPageScreen({super.key});
@@ -532,7 +543,25 @@ class MyPageScreenBody extends ConsumerWidget {
 
     if (confirmed != true) return;
 
+    // ✅ [추가] 1. 연습 중이라면 데이터 저장 및 종료 처리
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        // 리포지토리를 통해 연습 종료 (마이로그 저장 포함)
+        await sl<PracticeRepository>().stopPractice(user.uid, saveToMyLog: true);
+      } catch (e) {
+        debugPrint('로그아웃 중 연습 종료 실패: $e');
+      }
+    }
+
+    // 2. 실제 로그아웃 수행
     await ref.read(authRepositoryProvider).signOut();
+
+    // ✅ [추가] 3. Riverpod 상태 강제 초기화 (A계정 잔상 제거 핵심)
+    // practice_provider.dart에 있는 주요 프로바이더들을 초기화합니다.
+    ref.invalidate(myPracticeSessionProvider);
+    ref.invalidate(practiceTimerProvider);
+    ref.invalidate(livePracticeUsersProvider);
 
     if (context.mounted) {
       Navigator.pushNamedAndRemoveUntil(

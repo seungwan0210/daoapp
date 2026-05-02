@@ -34,6 +34,8 @@ import 'package:daoapp/presentation/screens/my_page/my_log/my_log_home_screen.da
 import 'package:daoapp/presentation/screens/my_page/block_list_screen.dart';
 import 'package:daoapp/presentation/screens/my_page/report_form_screen.dart';
 import 'package:daoapp/presentation/screens/community/chat/chat_screen.dart';
+import 'package:daoapp/presentation/screens/home/widgets/live_practice_board.dart'; // ✅ 추가
+import 'package:daoapp/presentation/providers/practice/practice_provider.dart';
 
 class _QuickMenuData {
   final IconData icon;
@@ -77,6 +79,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(rankingProvider.notifier).updateFilters('2026', 'total', 'all');
+      // ✅ 삭제: 보드 위젯이 화면에 그려질 때 알아서 호출하므로 여기서 미리 읽을 필요가 없습니다.
+      // ref.read(myPracticeSessionProvider);
       _handleAdminCleanup();
       _loadHomeCalendarEvents();
     });
@@ -204,6 +208,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 4),
           _buildQuickMenuSlider(_getGroup2(context), _quickMenuController2),
           const SizedBox(height: 16),
+
+          // ✅ [이 위치에 추가] 라이브 연습 보드
+          const LivePracticeBoard(),
+          const SizedBox(height: 24),
 
           // 주간 타임라인 (공식 대회 일정)
           _buildWeeklyTimeline(context),

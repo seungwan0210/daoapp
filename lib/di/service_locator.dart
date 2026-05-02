@@ -1,4 +1,3 @@
-// lib/di/service_locator.dart
 import 'package:get_it/get_it.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -34,7 +33,14 @@ import 'package:daoapp/data/repositories/grip_baseline_repository_impl.dart';
 import 'package:daoapp/data/repositories/chat_repository.dart';
 import 'package:daoapp/data/repositories/chat_repository_impl.dart';
 
-// ✅ Google Calendar Service 추가
+// MyLog
+import 'package:daoapp/data/repositories/my_log_repository.dart';
+
+// ✅ Practice [NEW]
+import 'package:daoapp/data/repositories/practice_repository.dart';
+import 'package:daoapp/data/repositories/practice_repository_impl.dart';
+
+// Google Calendar Service
 import 'package:daoapp/core/services/google_calendar_service.dart';
 
 final sl = GetIt.instance;
@@ -51,6 +57,15 @@ void setupDependencies() {
     firebaseAuth: sl<FirebaseAuth>(),
     googleSignIn: sl<GoogleSignIn>(),
   ));
+
+  // === MyLog Repository ===
+  // PracticeRepository에서 의존하므로 상단에 배치합니다.
+  sl.registerLazySingleton<MyLogRepository>(() => MyLogRepository());
+
+  // ✅ [수정됨] Practice Repository 등록 (세미콜론 추가 및 의존성 주입)
+  sl.registerLazySingleton<PracticeRepository>(
+        () => PracticeRepositoryImpl(myLogRepository: sl<MyLogRepository>()),
+  );
 
   // === Point & Ranking ===
   sl.registerLazySingleton<PointRecordRepository>(() => PointRecordRepositoryImpl());
@@ -75,8 +90,7 @@ void setupDependencies() {
     auth: sl<FirebaseAuth>(),
     firestore: sl<FirebaseFirestore>(),
     storage: sl<FirebaseStorage>(),
-  ),
-  );
+  ));
 
   // ✅ [NEW] Google Calendar Service 등록
   sl.registerLazySingleton<GoogleCalendarService>(() => GoogleCalendarService());

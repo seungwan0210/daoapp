@@ -67,6 +67,11 @@ import 'package:daoapp/presentation/screens/home/official_calendar_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; // 👈 추가
 import 'package:daoapp/presentation/screens/admin/forms/magazine_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/quick_notice_manage_screen.dart';
+import 'package:daoapp/presentation/screens/home/live_practice_full_list_screen.dart';
+import 'package:daoapp/core/services/practice_notification_service.dart';
+import 'package:daoapp/data/repositories/practice_repository.dart'; // ✅ 추가
+import 'package:daoapp/presentation/providers/practice/practice_provider.dart'; // ✅ 알려주신 경로 반영
+import 'package:daoapp/di/service_locator.dart'; // ✅ sl 사용을 위해 필요
 
 const bool kAdMobSuspended = false;
 const bool kEnableAdsInDebug = false;
@@ -74,6 +79,9 @@ const bool kEnableAdsInDebug = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  // 알림 서비스 초기화
+  await PracticeNotificationService.init();
 
   await FirebaseAppCheck.instance.activate(
     androidProvider: kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
@@ -85,7 +93,6 @@ void main() async {
   if (!kAdMobSuspended) {
     if (kReleaseMode || kEnableAdsInDebug) {
       await MobileAds.instance.initialize();
-      debugPrint("🚀 AdMob Initialized");
     }
   }
 
@@ -100,6 +107,7 @@ void main() async {
   runApp(const ProviderScope(child: DaoApp()));
 }
 
+// 온라인 상태 관리 클래스 (기존과 동일)
 class OnlineStatusManager {
   static Timer? _timer;
   static User? _currentUser;
@@ -111,7 +119,7 @@ class OnlineStatusManager {
       'name': _currentUser!.displayName ?? '이름 없음',
       'photoUrl': _currentUser!.photoURL,
       'lastSeen': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true)).catchError((e) => debugPrint('Online status error: $e'));
+    }, SetOptions(merge: true));
   }
 
   static void start(User user) {
@@ -129,28 +137,46 @@ class OnlineStatusManager {
   }
 }
 
-class DaoApp extends ConsumerStatefulWidget { // ✅ ConsumerStatefulWidget으로 변경
+class DaoApp extends ConsumerStatefulWidget {
   const DaoApp({super.key});
 
   @override
   ConsumerState<DaoApp> createState() => _DaoAppState();
 }
 
-class _DaoAppState extends ConsumerState<DaoApp> {
+// ✅ [수정 핵심] with WidgetsBindingObserver 를 추가해야 addObserver(this)가 작동합니다.
+class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
-  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>(); // ✅ 네비게이션용 키
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
     super.initState();
+    // ✅ 앱 생명주기 관찰자 등록 (with WidgetsBindingObserver 선언 덕분에 에러 사라짐)
+    WidgetsBinding.instance.addObserver(this);
     _initDeepLinks();
   }
 
   @override
   void dispose() {
+    // ✅ 관찰자 해제
+    WidgetsBinding.instance.removeObserver(this);
     _linkSubscription?.cancel();
     super.dispose();
+  }
+
+  // ✅ 앱 상태 변화 감지 (시스템에 의한 강제 종료 대응)
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.detached) {
+      // 앱이 메모리에서 완전히 해제되기 직전, 현재 진행 중인 연습이 있다면 강제 종료 및 저장
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUid != null) {
+        // sl<PracticeRepository>() 호출을 위해 상단 임포트 필수
+        sl<PracticeRepository>().stopPractice(currentUid, saveToMyLog: true);
+      }
+    }
   }
 
   // 🎯 딥링크 수신 및 처리 로직
@@ -276,6 +302,7 @@ class _DaoAppState extends ConsumerState<DaoApp> {
         RouteConstants.officialCalendarCreate: (_) => const OfficialCalendarCreateScreen(),
         RouteConstants.magazineForm: (context) => const MagazineFormScreen(),
         RouteConstants.adminQuickNotice: (_) => const QuickNoticeManageScreen(),
+        RouteConstants.livePracticeFullList: (_) => const LivePracticeFullListScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == RouteConstants.guestbook) {

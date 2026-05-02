@@ -107,4 +107,6 @@ class RouteConstants {
   static const String officialCalendarList = '/admin/official-calendar/list';
   static const String magazineForm = '/admin/magazine-form';
   static const String adminQuickNotice = '/admin/quick-notice';
+  static const String livePracticeFullList = '/live-practice-full-list';
 }
+
