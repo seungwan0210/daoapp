@@ -54,6 +54,42 @@ class _PostCardState extends ConsumerState<PostCard> {
   late final GlobalKey _cardKey = GlobalKey();
   int _currentPage = 0;
 
+  // 1. ✅ 여기에 _showFullImage 함수를 추가하세요!
+  void _showFullImage(BuildContext context, String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (_, __, ___) => const Icon(Icons.error, color: Colors.white),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(ctx).padding.top + 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(ctx),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   static const String _fallbackImageAsset = 'assets/images/circle_main.png';
 
   @override
@@ -359,15 +395,19 @@ class _PostCardState extends ConsumerState<PostCard> {
             itemCount: urls.length,
             onPageChanged: (index) => setState(() => _currentPage = index),
             itemBuilder: (context, index) {
-              final img = Image.network(
-                  urls[index],
-                  width: double.infinity,
-                  height: 480,
-                  fit: BoxFit.contain,
-                  gaplessPlayback: true,
-                  errorBuilder: (_, __, ___) => Image.asset(_fallbackImageAsset, fit: BoxFit.cover)
+              // ✅ 이미지를 탭하면 확대 다이얼로그 실행
+              return GestureDetector(
+                onTap: () => _showFullImage(context, urls[index]),
+                child: Image.network(
+                    urls[index],
+                    width: double.infinity,
+                    height: 480,
+                    fit: BoxFit.contain,
+                    gaplessPlayback: true,
+                    errorBuilder: (_, __, ___) => Image.asset(_fallbackImageAsset, fit: BoxFit.cover)
+                ),
               );
-              return (index == 0 && heroTag != null) ? Hero(tag: heroTag, child: img) : img;
+              // Hero 효과가 필요하다면 위 GestureDetector 내부의 Image를 Hero로 감싸면 됩니다.
             },
           ),
           if (urls.length > 1)
