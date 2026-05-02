@@ -13,9 +13,9 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
-    <!-- ✅ 라이브 연습 알림을 위한 추가 권한 -->
+    <!-- ✅ 포그라운드 서비스 및 알림 권한 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" /> <!-- 👈 SPECIAL_USE 대신 DATA_SYNC 권장 -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <queries>
@@ -37,6 +37,13 @@
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true"
         android:extractNativeLibs="false">
+
+        <!-- ✅ [추가] 포그라운드 서비스 실제 선언부 -->
+        <!-- flutter_local_notifications 플러그인이 백그라운드에서 동작하기 위해 필수입니다 -->
+        <service
+            android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

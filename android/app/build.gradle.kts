@@ -20,6 +20,7 @@ android {
     namespace = "kr.comong.daoapp"
     compileSdk = flutter.compileSdkVersion
 
+    // ✅ NDK 28 버전은 16KB를 기본 지원하므로 유지합니다.
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
@@ -33,6 +34,7 @@ android {
 
     packaging {
         jniLibs {
+            // ✅ 16KB 페이지 지원을 위한 필수 설정 (기존 유지)
             useLegacyPackaging = false
         }
         resources {
@@ -41,7 +43,6 @@ android {
     }
 
     compileOptions {
-        // ✅ 디슈가링 활성화
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -69,6 +70,7 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
 
+            // ✅ 16KB 메모리 정렬을 위해 네이티브 라이브러리 압축을 강제로 해제합니다.
             @Suppress("DEPRECATION")
             manifestPlaceholders["extractNativeLibs"] = "false"
         }
@@ -80,7 +82,6 @@ flutter {
 }
 
 dependencies {
-    // ✅ 디슈가링 라이브러리 추가
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.3")
 
     implementation("androidx.multidex:multidex:2.0.1")
