@@ -4,20 +4,19 @@ import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/providers/practice/practice_provider.dart';
 import 'package:daoapp/presentation/screens/home/widgets/practice_setup_bottom_sheet.dart';
-// ✅ 새로 만든 종료 바텀시트 임포트 추가
 import 'package:daoapp/presentation/screens/home/widgets/practice_stop_bottom_sheet.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/data/repositories/practice_repository.dart';
-import 'package:daoapp/di/service_locator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/practice_session_model.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class LivePracticeBoard extends ConsumerWidget {
   const LivePracticeBoard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final authState = ref.watch(authStateProvider);
     final mySessionAsync = ref.watch(myPracticeSessionProvider);
     final totalCount = ref.watch(totalPracticingCountProvider).value ?? 0;
@@ -32,13 +31,13 @@ class LivePracticeBoard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('LIVE 연습 현황',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+              Text(s.live_board_title, // 🔹 다국어화
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, RouteConstants.livePracticeFullList),
                 child: Row(
                   children: [
-                    Text('전체보기', style: TextStyle(fontSize: 13, color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                    Text(s.live_board_view_all, style: TextStyle(fontSize: 13, color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
                     Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.primary),
                   ],
                 ),
@@ -93,8 +92,8 @@ class LivePracticeBoard extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       totalCount > 0
-                          ? '현재 $totalCount명의 유저가 연습 중입니다!'
-                          : '아직 연습 중인 유저가 없습니다.',
+                          ? s.live_board_total_count(totalCount.toString()) // 🔹 인자 전달형 다국어
+                          : s.live_board_no_user, // 🔹 다국어화
                       style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -109,23 +108,25 @@ class LivePracticeBoard extends ConsumerWidget {
   }
 
   Widget _buildLoginInvite(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return _buildActionCard(
       context,
-      title: '로그인 후 연습시간을 체크해보세요!',
-      buttonText: '로그인하기',
+      title: s.live_board_login_invite,
+      buttonText: s.login_title, // 기존에 설정한 login_title 재사용
       onTap: () => Navigator.pushNamed(context, RouteConstants.login),
     );
   }
 
   Widget _buildStartAction(BuildContext context, String uid) {
+    final s = AppLocalizations.of(context)!;
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
       builder: (context, snapshot) {
         final hasProfile = snapshot.data?.get('hasProfile') ?? false;
         return _buildActionCard(
           context,
-          title: hasProfile ? '오늘의 연습시간을 체크할까요?' : '프로필 등록 후 연습시간을 체크하세요!',
-          buttonText: hasProfile ? '연습 시작' : '프로필 등록',
+          title: hasProfile ? s.live_board_start_invite : s.live_board_profile_invite,
+          buttonText: hasProfile ? s.live_board_btn_start : s.live_board_btn_profile,
           onTap: () {
             if (hasProfile) {
               _showSetupSheet(context, snapshot.data?.data() as Map<String, dynamic>);
@@ -140,7 +141,10 @@ class LivePracticeBoard extends ConsumerWidget {
   }
 
   Widget _buildMyActiveTimer(BuildContext context, WidgetRef ref, PracticeSessionModel session) {
+    final s = AppLocalizations.of(context)!;
     final timerDuration = ref.watch(practiceTimerProvider).value ?? Duration.zero;
+    final totalDurationBefore = Duration(milliseconds: session.totalDurationBefore);
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -178,14 +182,13 @@ class LivePracticeBoard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '오늘 총 연습: ${_formatDurationSimple(Duration(milliseconds: session.totalDurationBefore))}',
+                  s.live_board_total_today(_formatDurationSimple(context, totalDurationBefore)), // 🔹 시간 포맷 다국어 대응
                   style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
                 ),
               ],
             ),
           ),
           ElevatedButton(
-            // ✅ 세션 정보를 함께 넘겨주도록 수정
             onPressed: () => _showStopConfirm(context, ref, session),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent.withOpacity(0.9),
@@ -194,7 +197,7 @@ class LivePracticeBoard extends ConsumerWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            child: const Text('종료', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(s.live_board_btn_stop, style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -242,16 +245,12 @@ class LivePracticeBoard extends ConsumerWidget {
     );
   }
 
-  // ✅ 연습 종료 확인 로직 (다이얼로그 -> 바텀시트로 교체)
   void _showStopConfirm(BuildContext context, WidgetRef ref, PracticeSessionModel session) {
-    // 1. 현재까지 진행된 타이머 시간을 가져옵니다.
     final timerDuration = ref.read(practiceTimerProvider).value ?? Duration.zero;
-
-    // 2. 결과 입력 및 저장 여부를 묻는 바텀시트를 띄웁니다.
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // 키보드 대응을 위해 필수
-      backgroundColor: Colors.transparent, // 둥근 모서리 적용을 위해 투명 설정
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) => PracticeStopBottomSheet(
         session: session,
         finalDuration: timerDuration,
@@ -266,10 +265,15 @@ class LivePracticeBoard extends ConsumerWidget {
     return "${twoDigits(d.inHours)}:${twoDigits(d.inMinutes.remainder(60))}:${twoDigits(d.inSeconds.remainder(60))}";
   }
 
-  String _formatDurationSimple(Duration d) {
-    if (d.inHours > 0) {
-      return "${d.inHours}시간 ${d.inMinutes.remainder(60)}분";
+  // 🔹 BuildContext를 추가하여 언어팩을 내부에서 호출하도록 수정
+  String _formatDurationSimple(BuildContext context, Duration d) {
+    final s = AppLocalizations.of(context)!;
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60);
+
+    if (hours > 0) {
+      return "${s.common_hour(hours.toString())} ${s.common_minute(minutes.toString())}";
     }
-    return "${d.inMinutes}분";
+    return s.common_minute(minutes.toString());
   }
 }

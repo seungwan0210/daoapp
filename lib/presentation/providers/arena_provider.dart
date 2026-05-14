@@ -26,6 +26,7 @@ class ArenaState {
   /// ✅ older 페이지네이션 마지막 문서
   final DocumentSnapshot<Map<String, dynamic>>? pagingLastDoc;
 
+  /// ✅ 현재 선택된 필터 키 (l10n 키와 매칭)
   final String currentFilter;
 
   const ArenaState({
@@ -287,6 +288,7 @@ class ArenaNotifier extends StateNotifier<ArenaState> {
   }
 
   /// ✅ 필터 의미를 UI와 1:1로 맞춤
+  /// filter 인자값은 'all', 'open', 'upcoming', 'closed' 스트링임
   List<TournamentModel> _applyFilter({
     required List<TournamentModel> list,
     required String filter,
@@ -299,18 +301,18 @@ class ArenaNotifier extends StateNotifier<ArenaState> {
       );
 
       switch (filter) {
-        case 'open':
+        case 'open': // 진행중 (참가 가능)
           return status == EntryStatus.open;
-        case 'upcoming':
+        case 'upcoming': // 예정
           return status == EntryStatus.upcoming;
-        case 'closed':
+        case 'closed': // 마감됨 + 경기중 + 종료됨 모두 포함
           return status == EntryStatus.closed ||
               status == EntryStatus.inProgress ||
               status == EntryStatus.finished;
-        case 'inProgress':
+        case 'inProgress': // 경기 진행중 (필요 시 분리)
           return status == EntryStatus.inProgress;
-        default:
-          return true; // all
+        default: // 전체 (all)
+          return true;
       }
     }).toList();
   }

@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class CheckoutPracticePanel extends StatefulWidget {
   final int minScore;
@@ -11,15 +12,9 @@ class CheckoutPracticePanel extends StatefulWidget {
   final int totalSets;
   final bool requireDoubleOut;
 
-  /// ✅ 세트 성공/실패 카운트 (DrillRunScreen에서 _recordHit(true/false)로 연결)
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
-
-  /// ✅ Undo 시 “방금 카운트한 세트 1회”를 되돌리기 위해 추가
-  /// - wasSuccess = true  → 성공 세트 1회 취소
-  /// - wasSuccess = false → 실패 세트 1회 취소
   final void Function(bool wasSuccess)? onUndoSetResult;
-
   final VoidCallback? onFinishPressed;
   final bool isBusy;
 
@@ -45,11 +40,7 @@ class _SetSnapshot {
   final int currentSet;
   final int? currentScore;
   final int dartsThrown;
-
-  /// ✅ 이 입력이 “세트 종료(성공/실패)”를 발생시켰는지
   final bool endedSet;
-
-  /// ✅ endedSet = true일 때만 의미 있음
   final bool wasSuccessSet;
 
   _SetSnapshot({
@@ -98,7 +89,6 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
     _nextTimer?.cancel();
     _nextTimer = Timer(const Duration(milliseconds: 600), () {
       if (!mounted) return;
-
       if (currentSet >= widget.totalSets) {
         widget.onFinishPressed?.call();
       } else {
@@ -111,17 +101,17 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
   }
 
   void _submitScore() {
-    if (widget.isBusy ||
-        currentScore == null ||
-        dartsThrown >= widget.maxDartsPerSet) return;
+    if (widget.isBusy || currentScore == null || dartsThrown >= widget.maxDartsPerSet) return;
 
     final input = _controller.text.trim();
     if (input.isEmpty) return;
 
     final score = int.tryParse(input);
+    final s = AppLocalizations.of(context)!; // 🔹 S 대신 AppLocalizations 사용
+
     if (score == null || score < 0 || score > 180) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('0~180 사이 숫자를 입력하세요')),
+        SnackBar(content: Text(s.drill_err_score_range)),
       );
       return;
     }
@@ -138,88 +128,43 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
       currentScore = (currentScore ?? 0) - score;
       _controller.clear();
 
-      // === 성공 체크 (DBull 포함!) ===
       if (currentScore == 0) {
-        final bool isDoubleFinish =
-            (score >= 2 && score <= 40 && score.isEven) || // D1~D20
-                score == 50; // DBull
+        final bool isDoubleFinish = (score >= 2 && score <= 40 && score.isEven) || score == 50;
 
         if (!widget.requireDoubleOut || isDoubleFinish) {
           endedSet = true;
           wasSuccessSet = true;
-
-          // ✅ 세트 성공 카운트 (런스크린)
           widget.onHitSuccess?.call();
-
-          // ✅ 히스토리 저장 (세트 종료 발생)
-          _history.add(
-            _SetSnapshot(
-              currentSet: beforeSet,
-              currentScore: beforeScore,
-              dartsThrown: beforeDarts,
-              endedSet: true,
-              wasSuccessSet: true,
-            ),
-          );
-
+          _history.add(_SetSnapshot(currentSet: beforeSet, currentScore: beforeScore, dartsThrown: beforeDarts, endedSet: true, wasSuccessSet: true));
           _scheduleNextSetOrFinish();
           return;
         }
       }
 
-      // === 실패 체크 ===
-      if ((currentScore != null && currentScore! <= 1) ||
-          dartsThrown >= widget.maxDartsPerSet) {
+      if ((currentScore != null && currentScore! <= 1) || dartsThrown >= widget.maxDartsPerSet) {
         endedSet = true;
         wasSuccessSet = false;
-
-        // ✅ 세트 실패 카운트 (런스크린)
         widget.onHitFail?.call();
-
-        // ✅ 히스토리 저장 (세트 종료 발생)
-        _history.add(
-          _SetSnapshot(
-            currentSet: beforeSet,
-            currentScore: beforeScore,
-            dartsThrown: beforeDarts,
-            endedSet: true,
-            wasSuccessSet: false,
-          ),
-        );
-
+        _history.add(_SetSnapshot(currentSet: beforeSet, currentScore: beforeScore, dartsThrown: beforeDarts, endedSet: true, wasSuccessSet: false));
         _scheduleNextSetOrFinish();
         return;
       }
 
-      // ✅ 일반 입력 (세트 유지)
-      _history.add(
-        _SetSnapshot(
-          currentSet: beforeSet,
-          currentScore: beforeScore,
-          dartsThrown: beforeDarts,
-          endedSet: false,
-          wasSuccessSet: false,
-        ),
-      );
+      _history.add(_SetSnapshot(currentSet: beforeSet, currentScore: beforeScore, dartsThrown: beforeDarts, endedSet: false, wasSuccessSet: false));
     });
-
-    // endedSet 처리들은 setState 안에서 return으로 끝남
   }
 
   void _undoLast() {
     if (!_canUndo) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('되돌릴 기록이 없습니다.')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.drill_msg_no_undo)),
       );
       return;
     }
-
-    // ✅ 다음 세트로 넘어가는 타이머가 걸려있으면 취소
     _nextTimer?.cancel();
     _nextTimer = null;
 
     final snap = _history.removeLast();
-
     setState(() {
       currentSet = snap.currentSet;
       currentScore = snap.currentScore;
@@ -227,8 +172,6 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
       _controller.clear();
     });
 
-    // ✅ “세트 종료를 발생시킨 입력”을 Undo하는 경우,
-    // 런스크린에 세트 카운트 되돌리라고 알려야 함
     if (snap.endedSet) {
       widget.onUndoSetResult?.call(snap.wasSuccessSet);
     }
@@ -236,9 +179,9 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 다국어 인스턴스
     final remainingDarts = widget.maxDartsPerSet - dartsThrown;
-    final isBust =
-        currentScore != null && currentScore! <= 1 && currentScore! > 0;
+    final isBust = currentScore != null && currentScore! <= 1 && currentScore! > 0;
     final scoreText = currentScore?.toString() ?? '-';
 
     return Padding(
@@ -247,8 +190,6 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-
-          // 카드
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
@@ -259,85 +200,46 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.purple.withOpacity(0.5),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.5), blurRadius: 16, offset: const Offset(0, 6))],
             ),
             child: Column(
               children: [
                 Text(
-                  "세트 $currentSet / ${widget.totalSets}",
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  "${s.drill_stat_rounds} $currentSet / ${widget.totalSets}",
+                  style: const TextStyle(fontSize: 15, color: Colors.white70, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
-
-                Text(
-                  scoreText,
-                  style: const TextStyle(
-                    fontSize: 72,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    height: 1,
-                  ),
-                ),
-
+                Text(scoreText, style: const TextStyle(fontSize: 72, fontWeight: FontWeight.w900, color: Colors.white, height: 1)),
                 const SizedBox(height: 8),
-
                 Text(
-                  isBust ? "버스트!" : "$remainingDarts 다트 남음",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isBust ? Colors.redAccent : Colors.white70,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  // 🔹 함수형 인자 호출로 수정 ({count} 값 전달)
+                  isBust ? s.drill_msg_bust : s.drill_msg_darts_left(remainingDarts.toString()),
+                  style: TextStyle(fontSize: 14, color: isBust ? Colors.redAccent : Colors.white70, fontWeight: FontWeight.w600),
                 ),
-
                 const SizedBox(height: 8),
-
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 6,
                   runSpacing: 4,
                   children: List.generate(widget.maxDartsPerSet, (i) {
                     final used = i < dartsThrown;
-                    return Icon(
-                      used ? Icons.circle : Icons.circle_outlined,
-                      color: used ? Colors.green.shade400 : Colors.white30,
-                      size: 20,
-                    );
+                    return Icon(used ? Icons.circle : Icons.circle_outlined, color: used ? Colors.green.shade400 : Colors.white30, size: 20);
                   }),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // ✅ Undo 버튼
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: _canUndo ? _undoLast : null,
               icon: const Icon(Icons.undo_rounded, size: 18),
-              label: const Text(
-                '1회 되돌리기',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
+              label: Text(s.calc_undo, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
               style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
             ),
           ),
-
           const SizedBox(height: 10),
-
-          // 입력창 + 전송
           Row(
             children: [
               Expanded(
@@ -346,20 +248,14 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
                   enabled: !widget.isBusy,
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   decoration: InputDecoration(
-                    hintText: "맞춘 점수 입력",
+                    hintText: s.drill_hint_score_input,
                     hintStyle: TextStyle(color: Colors.grey.shade400),
                     filled: true,
                     fillColor: Colors.grey.shade100,
                     contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
                   onSubmitted: (_) => _submitScore(),
                 ),
@@ -367,37 +263,16 @@ class _CheckoutPracticePanelState extends State<CheckoutPracticePanel> {
               const SizedBox(width: 16),
               ElevatedButton(
                 onPressed: widget.isBusy ? null : _submitScore,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyan.shade600,
-                  padding: const EdgeInsets.all(18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  elevation: 8,
-                ),
-                child: const Icon(
-                  Icons.send,
-                  size: 16,
-                  color: Colors.white,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan.shade600, padding: const EdgeInsets.all(18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 8),
+                child: const Icon(Icons.send, size: 16, color: Colors.white),
               ),
             ],
           ),
-
           const SizedBox(height: 16),
-
           TextButton(
             onPressed: widget.isBusy ? null : widget.onFinishPressed,
-            child: const Text(
-              "드릴 종료하고 결과 저장",
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
-              ),
-            ),
+            child: Text(s.drill_btn_finish_save, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.cyan)),
           ),
-
           const SizedBox(height: 12),
         ],
       ),

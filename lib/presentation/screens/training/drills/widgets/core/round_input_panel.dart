@@ -1,6 +1,7 @@
 // lib/presentation/screens/training/drills/widgets/core/round_input_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 경로 확인
 
 class RoundInputPanel extends StatelessWidget {
   final String title;
@@ -11,12 +12,10 @@ class RoundInputPanel extends StatelessWidget {
   final VoidCallback? onConfirm;
   final bool isBusy;
 
-  /// 🔹 값 범위 & 단위(label) 설정
   final int minValue;
   final int maxValue;
   final String unitLabel;
 
-  /// ✅ 추가: "이전 라운드 되돌리기" (확정 후 오입력 복구용)
   final VoidCallback? onUndo;
   final bool canUndo;
 
@@ -29,15 +28,21 @@ class RoundInputPanel extends StatelessWidget {
     required this.onValueChanged,
     this.onConfirm,
     this.isBusy = false,
-    this.minValue = 0, // 기본: 마크 0 ~ 9
+    this.minValue = 0,
     this.maxValue = 9,
-    this.unitLabel = '마크', // 기본 단위 텍스트
+    this.unitLabel = '',
     this.onUndo,
     this.canUndo = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 S 대신 AppLocalizations 사용
+    final s = AppLocalizations.of(context)!;
+
+    // 🔹 unitLabel이 비어있을 경우 기본 단위(마크) 사용
+    final String effectiveUnit = unitLabel.isNotEmpty ? unitLabel : s.drill_unit_marks;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -103,7 +108,8 @@ class RoundInputPanel extends StatelessWidget {
 
           // 범위 안내
           Text(
-            "$minValue ~ $maxValue $unitLabel",
+            // 🔹 함수형 인자 호출로 수정 ({min}, {max}, {unit} 값 전달)
+            s.drill_hint_range(minValue.toString(), maxValue.toString(), effectiveUnit),
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey.shade600,
@@ -179,7 +185,8 @@ class RoundInputPanel extends StatelessWidget {
                 elevation: 4,
               ),
               child: Text(
-                "이번 라운드 확정 ($currentValue $unitLabel)",
+                // 🔹 함수형 인자 호출로 수정 ({val}, {unit} 값 전달)
+                s.drill_confirm_round(currentValue.toString(), effectiveUnit),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -190,15 +197,15 @@ class RoundInputPanel extends StatelessWidget {
 
           const SizedBox(height: 8),
 
-          // ✅ Undo 버튼 (확정 후 오입력 복구)
+          // ✅ Undo 버튼
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: (isBusy || !canUndo || onUndo == null) ? null : onUndo,
               icon: const Icon(Icons.undo_rounded, size: 18),
-              label: const Text(
-                '이전 라운드 되돌리기',
-                style: TextStyle(
+              label: Text(
+                s.drill_btn_undo_round,
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),

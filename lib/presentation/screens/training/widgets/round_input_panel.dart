@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class RoundInputPanel extends StatelessWidget {
   final String title;
@@ -25,6 +26,8 @@ class RoundInputPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     return AppCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
@@ -32,7 +35,7 @@ class RoundInputPanel extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 제목
+            // 제목 (전달받은 String 사용 - 이미 외부에서 다국어 처리되어 넘어옴)
             Text(
               title,
               style: const TextStyle(
@@ -42,9 +45,9 @@ class RoundInputPanel extends StatelessWidget {
             ),
             const SizedBox(height: 8),
 
-            // 라운드 진행 표시
+            // 🔹 라운드 진행 표시 다국어화
             Text(
-              'ROUND $currentRound / $totalRounds',
+              s.drill_stat_rounds_count(currentRound.toString(), totalRounds.toString()),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.cyan[700],
@@ -96,14 +99,14 @@ class RoundInputPanel extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // 확정 버튼
+            // 🔹 확정 버튼 다국어화
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: onConfirm,
-                child: const Text(
-                  '이번 라운드 확정',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                child: Text(
+                  s.drill_confirm_round('', ''), // 인자가 필요 없는 키라면 s.common_confirm 등으로 대체 가능
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),

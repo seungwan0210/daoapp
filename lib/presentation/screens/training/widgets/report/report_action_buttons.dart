@@ -1,12 +1,7 @@
 // lib/presentation/screens/training/widgets/report/report_action_buttons.dart
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
-/// 리포트 하단의 버튼 영역
-///
-/// - 닫기
-/// - 히스토리 이동 (선택)
-/// - 다른 연습 계속하기 (선택)
-/// - 레이팅 체크 (선택)
 class ReportActionButtons extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onGoHistory;
@@ -23,6 +18,7 @@ class ReportActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 추가
     final hasHistory = onGoHistory != null;
     final hasNextDrill = onGoNextDrill != null;
     final hasRatingCheck = onGoRatingCheck != null;
@@ -40,9 +36,9 @@ class ReportActionButtons extends StatelessWidget {
                   side: BorderSide(color: Colors.grey.shade300),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                 ),
-                child: const Text(
-                  "닫기",
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                child: Text(
+                  s.btn_close, // 🔹 수정
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
             ),
@@ -58,9 +54,9 @@ class ReportActionButtons extends StatelessWidget {
                     side: const BorderSide(color: Colors.cyan),
                     padding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  label: const Text(
-                    "히스토리",
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                  label: Text(
+                    s.btn_go_history, // 🔹 수정
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -81,9 +77,9 @@ class ReportActionButtons extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text(
-                      "다른 연습 계속하기",
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    label: Text(
+                      s.btn_continue_drill, // 🔹 수정
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -99,9 +95,9 @@ class ReportActionButtons extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     icon: const Icon(Icons.assessment_rounded),
-                    label: const Text(
-                      "레이팅 체크",
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                    label: Text(
+                      s.btn_rating_check, // 🔹 수정
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),

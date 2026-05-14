@@ -1,14 +1,11 @@
-// lib/presentation/screens/arena/widgets/arena_preview.dart
-// ✅ 카드(사진) 탭 이동 제거 버전
-// ✅ 이동은 "전체 보기" 버튼만 동작
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:daoapp/core/utils/arena_utils.dart';
-import 'package:daoapp/core/utils/date_utils.dart'; // nowKst()
+import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/presentation/providers/arena_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ArenaPreview extends ConsumerWidget {
   final VoidCallback onSeeAllPressed;
@@ -20,14 +17,9 @@ class ArenaPreview extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final arenaState = ref.watch(arenaProvider);
 
-    // ✅ 내부 계산 필요 시 사용 (안 쓰면 삭제해도 됨)
-    final now = nowKst();
-    // ignore: unused_local_variable
-    final _ = now;
-
-    // ✅ 프리뷰는 "원본(all)" 기준
     final sourceList = arenaState.allTournaments;
 
     final openTournaments = sourceList
@@ -64,7 +56,7 @@ class ArenaPreview extends ConsumerWidget {
         children: [
           _buildSection(
             context: context,
-            title: "지금 참가 가능한 대회",
+            title: s.arena_preview_open, // 🔹 다국어 적용
             tournaments: openTournaments,
             showSeeAll: true,
             showDday: true,
@@ -74,12 +66,12 @@ class ArenaPreview extends ConsumerWidget {
           const SizedBox(height: 12),
           _buildSection(
             context: context,
-            title: "예정된 대회",
+            title: s.arena_preview_upcoming, // 🔹 다국어 적용
             tournaments: upcomingTournaments,
             showSeeAll: false,
             showDday: true,
             isLoading: isLoading,
-            onSeeAllPressed: onSeeAllPressed, // required라 유지
+            onSeeAllPressed: onSeeAllPressed,
           ),
         ],
       ),
@@ -95,6 +87,8 @@ class ArenaPreview extends ConsumerWidget {
     required bool isLoading,
     required VoidCallback onSeeAllPressed,
   }) {
+    final s = AppLocalizations.of(context)!;
+
     if (isLoading) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 40),
@@ -120,8 +114,8 @@ class ArenaPreview extends ConsumerWidget {
               ),
               if (showSeeAll)
                 TextButton(
-                  onPressed: onSeeAllPressed, // ✅ 이동은 여기만
-                  child: const Text('전체 보기'),
+                  onPressed: onSeeAllPressed,
+                  child: Text(s.arena_preview_see_all), // 🔹 다국어 적용
                 ),
             ],
           ),
@@ -135,8 +129,8 @@ class ArenaPreview extends ConsumerWidget {
             itemCount: tournaments.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (_, i) {
-              // ✅ 카드 탭 이동 제거 (그냥 카드만 보여줌)
               return _buildCard(
+                context,
                 tournaments[i],
                 showDday: showDday,
               );
@@ -144,7 +138,7 @@ class ArenaPreview extends ConsumerWidget {
           )
               : Center(
             child: Text(
-              '아직 $title가 없어요',
+              s.arena_preview_no_data(title), // 🔹 파라미터 전달 ("대회" 등)
               style: TextStyle(color: Colors.grey[600], fontSize: 14),
             ),
           ),
@@ -153,7 +147,8 @@ class ArenaPreview extends ConsumerWidget {
     );
   }
 
-  Widget _buildCard(TournamentModel t, {required bool showDday}) {
+  Widget _buildCard(BuildContext context, TournamentModel t, {required bool showDday}) {
+    final s = AppLocalizations.of(context)!;
     String dday = '';
 
     if (showDday) {
@@ -168,7 +163,7 @@ class ArenaPreview extends ConsumerWidget {
       } else if (status == EntryStatus.open) {
         dday = ArenaUtils.entryDday(t.entryEndDate);
       } else {
-        dday = '마감됨';
+        dday = s.arena_preview_closed; // 🔹 다국어 적용 ("마감됨")
       }
     }
 

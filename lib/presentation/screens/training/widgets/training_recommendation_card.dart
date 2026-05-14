@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/training_drill_model.dart';
 import 'package:daoapp/presentation/providers/training/training_history_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class TrainingRecommendationCard extends ConsumerWidget {
   final TrainingDrillDefinition drill;
@@ -16,7 +17,7 @@ class TrainingRecommendationCard extends ConsumerWidget {
     this.onTap,
   });
 
-  // targetLabel을 짧은 라벨로 변환 (예: "D16" 또는 "T20×2+Bull" → "D16")
+  // targetLabel을 짧은 라벨로 변환
   String get shortLabel {
     final label = drill.targetLabel;
     if (label.contains('\n')) {
@@ -30,7 +31,30 @@ class TrainingRecommendationCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // todayDrillSessionsProvider는 List를 직접 반환 → AsyncValue 아님
+    final s = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
+    final lang = locale.languageCode;
+
+    // 🔹 다국어 텍스트 선택
+    String title = drill.titleKo;
+    String desc = drill.shortDescriptionKo;
+
+    if (lang == 'en') {
+      title = drill.titleEn;
+      desc = drill.shortDescriptionEn;
+    } else if (lang == 'ja') {
+      title = drill.titleJa;
+      desc = drill.shortDescriptionJa;
+    } else if (lang == 'zh') {
+      if (locale.scriptCode == 'Hant') {
+        title = drill.titleZhHant;
+        desc = drill.shortDescriptionZhHant;
+      } else {
+        title = drill.titleZhHans;
+        desc = drill.shortDescriptionZhHans;
+      }
+    }
+
     final todaySessions = ref.watch(todayDrillSessionsProvider(drill.id));
     final hasDoneToday = todaySessions.isNotEmpty;
 
@@ -70,19 +94,19 @@ class TrainingRecommendationCard extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    drill.titleKo,
+                    title, // 🔹 다국어 적용
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black, // 배경 테마에 맞춰 조정 필요 (AppCard가 흰색이면 검정색)
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    drill.shortDescriptionKo, // 정확한 필드명
+                    desc, // 🔹 다국어 적용
                     style: TextStyle(
                       fontSize: 13,
-                      color: Colors.grey[400],
+                      color: Colors.grey[600],
                       height: 1.3,
                     ),
                     maxLines: 2,
@@ -119,7 +143,7 @@ class TrainingRecommendationCard extends ConsumerWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        hasDoneToday ? "오늘 완료" : "시작하기",
+                        hasDoneToday ? s.drill_rec_done : s.drill_rec_start, // 🔹 다국어 적용
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,

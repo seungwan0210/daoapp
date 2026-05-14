@@ -1,19 +1,19 @@
 // lib/presentation/screens/training/drills/widgets/specialized/around_board_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 enum _AroundThrowResult { success, fail }
 
 class AroundBoardPanel extends StatefulWidget {
   final List<String> sequence;
-  final ValueNotifier<int> thrownDartsNotifier; // 시그니처 유지
+  final ValueNotifier<int> thrownDartsNotifier;
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
   final VoidCallback? onCompleted;
   final bool isBusy;
 
-  // ✅ 외부(DrillRunScreen) Undo 연결용
   final bool canUndo;
   final VoidCallback? onUndo;
 
@@ -26,8 +26,6 @@ class AroundBoardPanel extends StatefulWidget {
     this.onFinishPressed,
     this.onCompleted,
     this.isBusy = false,
-
-    // ✅ 추가
     this.canUndo = false,
     this.onUndo,
   });
@@ -38,8 +36,6 @@ class AroundBoardPanel extends StatefulWidget {
 
 class _AroundBoardPanelState extends State<AroundBoardPanel> {
   int currentIndex = 0;
-
-  /// ✅ 패널 내부 진행도 Undo용 히스토리
   final List<_AroundThrowResult> _history = [];
 
   String get currentTarget => widget.sequence[currentIndex];
@@ -48,7 +44,6 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
   bool get _canUndo =>
       !widget.isBusy && widget.canUndo && _history.isNotEmpty;
 
-  /// 🔹 진행률 보정
   double get progress {
     if (totalTargets <= 1) return 0;
     return currentIndex / (totalTargets - 1);
@@ -57,8 +52,6 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
   void _record(bool success) {
     if (widget.isBusy) return;
 
-    // ✅ "다트를 던졌다"는 카운트는 DrillRunScreen에서 처리(_recordHit)
-    // 여기서는 패널 내부 진행도 + 완료 트리거를 관리
     setState(() {
       _history.add(success ? _AroundThrowResult.success : _AroundThrowResult.fail);
 
@@ -68,7 +61,6 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
         if (currentIndex < totalTargets - 1) {
           currentIndex++;
         } else {
-          // 마지막 타겟까지 성공
           if (widget.onCompleted != null) {
             widget.onCompleted!.call();
           } else {
@@ -81,32 +73,29 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
     });
   }
 
-  /// ✅ Undo: 직전 시도 1회 되돌리기
   void _onUndo() {
+    final s = AppLocalizations.of(context)!;
     if (!_canUndo) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('되돌릴 기록이 없습니다.')),
+        SnackBar(content: Text(s.drill_msg_no_undo)),
       );
       return;
     }
 
     setState(() {
       final last = _history.removeLast();
-
-      // ✅ (중요) 패널 내부 진행도만 되돌림
-      // 성공을 되돌릴 때만 인덱스 -1
       if (last == _AroundThrowResult.success && currentIndex > 0) {
         currentIndex--;
       }
     });
 
-    // ✅ (중요) 카운트/성공률은 DrillRunScreen의 Undo로 정확히 -1 처리
     widget.onUndo?.call();
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isBull = currentTarget == 'SB' || currentTarget == 'DBull';
+    final s = AppLocalizations.of(context)!; // 🔹 S 대신 AppLocalizations 사용
+    final bool isBull = currentTarget == 'SB' || currentTarget == 'DBull' || currentTarget == 'SBull';
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -121,11 +110,13 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
             border: Border.all(color: Colors.grey.shade300),
           ),
           child: Text(
-            "싱글 한 바퀴: ${currentIndex + 1} / $totalTargets 타겟",
+            // 🔹 함수형 인자 호출로 수정 ({count}, {total} 값 전달)
+            s.drill_around_title((currentIndex + 1).toString(), totalTargets.toString()),
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
+            textAlign: TextAlign.center,
           ),
         ),
 
@@ -142,7 +133,7 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
                 width: 160,
                 height: 160,
                 child: CircularProgressIndicator(
-                  value: progress,
+                  value: progress.clamp(0, 1),
                   strokeWidth: 10,
                   backgroundColor: Colors.grey.shade300,
                   valueColor: AlwaysStoppedAnimation<Color>(
@@ -152,6 +143,8 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
               ),
               Container(
                 padding: const EdgeInsets.all(14),
+                width: 110,
+                height: 110,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.black,
@@ -161,22 +154,24 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
                   ),
                 ),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       currentTarget,
                       style: const TextStyle(
-                        fontSize: 30,
+                        fontSize: 28,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      isBull ? "BULL" : "싱글",
+                      isBull ? "BULL" : s.drill_label_single,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         color: Colors.white.withOpacity(0.7),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -194,9 +189,9 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
           child: TextButton.icon(
             onPressed: _canUndo ? _onUndo : null,
             icon: const Icon(Icons.undo_rounded, size: 18),
-            label: const Text(
-              '1회 되돌리기',
-              style: TextStyle(
+            label: Text(
+              s.drill_btn_undo_last,
+              style: const TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -216,9 +211,9 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
               child: ElevatedButton.icon(
                 onPressed: widget.isBusy ? null : () => _record(true),
                 icon: const Icon(Icons.check_circle_outline),
-                label: const Text(
-                  "성공",
-                  style: TextStyle(
+                label: Text(
+                  s.drill_btn_success,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -238,9 +233,9 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
               child: ElevatedButton.icon(
                 onPressed: widget.isBusy ? null : () => _record(false),
                 icon: const Icon(Icons.close),
-                label: const Text(
-                  "실패",
-                  style: TextStyle(
+                label: Text(
+                  s.drill_btn_fail,
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -262,9 +257,9 @@ class _AroundBoardPanelState extends State<AroundBoardPanel> {
 
         TextButton(
           onPressed: widget.isBusy ? null : widget.onFinishPressed,
-          child: const Text(
-            "드릴 종료하고 결과 저장",
-            style: TextStyle(
+          child: Text(
+            s.drill_btn_finish_save,
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
               color: Colors.cyan,

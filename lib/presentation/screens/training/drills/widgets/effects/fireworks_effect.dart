@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'package:confetti/confetti.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class FireworksEffect extends StatefulWidget {
   final bool trigger;
@@ -73,7 +74,7 @@ class _FireworksEffectState extends State<FireworksEffect>
       children: [
         widget.child,
 
-        // 중앙에서 터지는 메인 불꽃놀이
+        // 1. 상단 중앙: 메인 불꽃놀이 (폭발형)
         Align(
           alignment: Alignment.topCenter,
           child: ConfettiWidget(
@@ -99,7 +100,7 @@ class _FireworksEffectState extends State<FireworksEffect>
           ),
         ),
 
-        // 좌우에서 추가 불꽃
+        // 2. 좌측: 대각선 방향 추가 불꽃
         Align(
           alignment: Alignment.centerLeft,
           child: ConfettiWidget(
@@ -111,6 +112,8 @@ class _FireworksEffectState extends State<FireworksEffect>
             colors: const [Colors.red, Colors.orange, Colors.yellow],
           ),
         ),
+
+        // 3. 우측: 대각선 방향 추가 불꽃
         Align(
           alignment: Alignment.centerRight,
           child: ConfettiWidget(
@@ -123,7 +126,7 @@ class _FireworksEffectState extends State<FireworksEffect>
           ),
         ),
 
-        // 화면 전체에 빛나는 펄스 효과
+        // 4. 화면 펄스 효과 (조명 연출)
         if (widget.trigger)
           AnimatedBuilder(
             animation: _pulseController,
@@ -139,6 +142,7 @@ class _FireworksEffectState extends State<FireworksEffect>
     );
   }
 
+  /// 🎆 불꽃 모양의 경로 생성 함수
   Path _drawFirework(Size size) {
     final path = Path();
     final centerX = size.width / 2;
@@ -150,7 +154,6 @@ class _FireworksEffectState extends State<FireworksEffect>
       radius: radius,
     ));
 
-    // 불꽃처럼 퍼지는 선들 추가
     for (int i = 0; i < 12; i++) {
       final angle = i * 30 * math.pi / 180;
       final x2 = centerX + radius * 1.5 * math.cos(angle);

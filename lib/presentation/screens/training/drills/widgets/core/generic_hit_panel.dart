@@ -1,6 +1,7 @@
 // lib/presentation/screens/training/drills/widgets/core/generic_hit_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class GenericHitPanel extends StatelessWidget {
   final String? targetLabel;
@@ -13,7 +14,6 @@ class GenericHitPanel extends StatelessWidget {
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
 
-  // ✅ 추가
   final VoidCallback? onUndo;
   final bool canUndo;
 
@@ -30,7 +30,6 @@ class GenericHitPanel extends StatelessWidget {
     this.onHitSuccess,
     this.onHitFail,
     this.onFinishPressed,
-    // ✅ 추가
     this.onUndo,
     this.canUndo = false,
     this.isBusy = false,
@@ -38,6 +37,8 @@ class GenericHitPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 S 대신 AppLocalizations 사용
+    final s = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Column(
@@ -63,7 +64,7 @@ class GenericHitPanel extends StatelessWidget {
                 ),
               ),
               Text(
-                "$thrownDarts / $totalDarts 다트",
+                "$thrownDarts / $totalDarts ${s.drill_stat_darts}",
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -95,7 +96,7 @@ class GenericHitPanel extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  targetLabel ?? "타겟",
+                  targetLabel ?? s.drill_panel_target,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 40,
@@ -119,7 +120,7 @@ class GenericHitPanel extends StatelessWidget {
               ],
               const SizedBox(height: 8),
               Text(
-                "맞으면  ✅  /  빗나가면  ❌  버튼을 눌러주세요",
+                s.drill_guide_hit_miss,
                 style: TextStyle(
                   fontSize: 11,
                   color: Colors.white.withOpacity(0.65),
@@ -138,9 +139,9 @@ class GenericHitPanel extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: (isBusy || onHitSuccess == null) ? null : onHitSuccess,
                 icon: const Icon(Icons.check_circle_outline),
-                label: const Text(
-                  "성공",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                label: Text(
+                  s.drill_btn_success,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green.shade600,
@@ -157,9 +158,9 @@ class GenericHitPanel extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: (isBusy || onHitFail == null) ? null : onHitFail,
                 icon: const Icon(Icons.close),
-                label: const Text(
-                  "실패",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                label: Text(
+                  s.drill_btn_fail,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red.shade600,
@@ -176,15 +177,15 @@ class GenericHitPanel extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // ✅ 3.5 Undo 버튼 (오입력 방지 핵심)
+        // 3.5 Undo 버튼
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
             onPressed: (isBusy || !canUndo || onUndo == null) ? null : onUndo,
             icon: const Icon(Icons.undo_rounded, size: 18),
-            label: const Text(
-              "이전 입력 되돌리기",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            label: Text(
+              s.calc_undo, // 🔹 범용적인 되돌리기 키 사용
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
             style: TextButton.styleFrom(
               foregroundColor: Colors.redAccent,
@@ -197,9 +198,9 @@ class GenericHitPanel extends StatelessWidget {
         // 4. 종료 버튼
         TextButton(
           onPressed: (isBusy || onFinishPressed == null) ? null : onFinishPressed,
-          child: const Text(
-            "드릴 종료하고 결과 저장",
-            style: TextStyle(
+          child: Text(
+            s.drill_btn_finish_save,
+            style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
               color: Colors.cyan,

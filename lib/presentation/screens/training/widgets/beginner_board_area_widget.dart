@@ -1,6 +1,7 @@
 // lib/presentation/widgets/training/beginner_board_area_widget.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 추가
 
 /// 비기너 4구역 연습용 구역 정의
 enum BeginnerBoardArea {
@@ -11,12 +12,16 @@ enum BeginnerBoardArea {
 }
 
 extension BeginnerBoardAreaX on BeginnerBoardArea {
-  String get labelKo => switch (this) {
-    BeginnerBoardArea.topRight => '오른쪽 위',
-    BeginnerBoardArea.bottomRight => '오른쪽 아래',
-    BeginnerBoardArea.bottomLeft => '왼쪽 아래',
-    BeginnerBoardArea.topLeft => '왼쪽 위',
-  };
+  // 🔹 다국어 라벨 반환 헬퍼 (context 필요)
+  String getLabel(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    return switch (this) {
+      BeginnerBoardArea.topRight => s.area_top_right,
+      BeginnerBoardArea.bottomRight => s.area_bottom_right,
+      BeginnerBoardArea.bottomLeft => s.area_bottom_left,
+      BeginnerBoardArea.topLeft => s.area_top_left,
+    };
+  }
 
   String get labelShort => switch (this) {
     BeginnerBoardArea.topRight => 'TR',
@@ -27,9 +32,6 @@ extension BeginnerBoardAreaX on BeginnerBoardArea {
 }
 
 /// 비기너 4구역 연습용 보드 위젯
-///
-/// - dartboard.png 이미지를 가운데에 표시
-/// - [activeArea] 에 해당하는 구역만 살짝 네온 색으로 오버레이
 class BeginnerBoardAreaWidget extends StatelessWidget {
   final BeginnerBoardArea activeArea;
   final double size; // 정사각형 한 변 길이
@@ -42,16 +44,18 @@ class BeginnerBoardAreaWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     return Column(
       children: [
         Text(
-          '현재 연습 구역: ${activeArea.labelKo}',
+          '${s.drill_active_area}: ${activeArea.getLabel(context)}', // 🔹 다국어 적용
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Center(
           child: SizedBox(
             width: size,

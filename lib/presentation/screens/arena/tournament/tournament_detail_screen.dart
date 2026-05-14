@@ -19,22 +19,23 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
 import 'package:daoapp/core/utils/ad_manager.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class TournamentDetailScreen extends ConsumerWidget {
   final String tournamentId;
 
   const TournamentDetailScreen({super.key, required this.tournamentId});
 
-  void _onShareTournament(TournamentModel t) {
+  void _onShareTournament(BuildContext context, TournamentModel t) {
+    final s = AppLocalizations.of(context)!;
     final String deepLink = "https://daoapp-c0527.web.app/tournament?id=${t.id}";
+    final String dateStr = DateFormat('yyyy.MM.dd HH:mm').format(t.eventDate.toDate());
+    final String feeStr = t.entryFee > 0 ? "${NumberFormat('#,###').format(t.entryFee)}${s.common_currency_won}" : s.common_free;
 
     final String shareMessage =
-        '[DAO 아레나] 새로운 다트 대회가 열렸습니다! 🎯\n\n'
-        '🏆 대회명: ${t.title}\n'
-        '📍 장소: ${t.location}\n'
-        '📅 일시: ${DateFormat('yyyy.MM.dd HH:mm').format(t.eventDate.toDate())}\n'
-        '💰 참가비: ${t.entryFee > 0 ? "${NumberFormat('#,###').format(t.entryFee)}원" : "무료"}\n\n'
-        '지금 DAO 앱에서 실시간 명단을 확인하고 신청하세요!\n'
+        '${s.tournament_detail_share_title}\n\n'
+        '${s.tournament_detail_share_info(t.title, t.location, dateStr, feeStr)}\n\n'
+        '${s.tournament_detail_share_footer}\n'
         '👉 $deepLink';
 
     Share.share(shareMessage);
@@ -67,13 +68,14 @@ class TournamentDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
     final isAdmin = ref.watch(isAdminProvider).valueOrNull ?? false;
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('tournaments').doc(tournamentId).snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return const Scaffold(body: Center(child: Text("데이터 로딩 중 오류가 발생했습니다.")));
+        if (snapshot.hasError) return Scaffold(body: Center(child: Text(s.tournament_detail_loading_error)));
         if (snapshot.connectionState == ConnectionState.waiting) return const Scaffold(body: Center(child: CircularProgressIndicator(color: Colors.cyan)));
 
         if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -90,7 +92,7 @@ class TournamentDetailScreen extends ConsumerWidget {
                 children: [
                   Icon(Icons.info_outline, size: 48, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  const Text("존재하지 않거나 삭제된 대회입니다. 😅", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+                  Text(s.tournament_detail_not_found, style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -107,7 +109,7 @@ class TournamentDetailScreen extends ConsumerWidget {
             title: t.title,
             showBackButton: true,
             actions: [
-              IconButton(icon: const Icon(Icons.ios_share, color: Colors.black, size: 22), onPressed: () => _onShareTournament(t)),
+              IconButton(icon: const Icon(Icons.ios_share, color: Colors.black, size: 22), onPressed: () => _onShareTournament(context, t)),
               const SizedBox(width: 8),
             ],
           ),
@@ -123,12 +125,12 @@ class TournamentDetailScreen extends ConsumerWidget {
                   ),
                 ),
               const SizedBox(height: 16),
-              Column(
+              const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('AD', style: TextStyle(fontSize: 9, color: Colors.grey[400], letterSpacing: 1.0, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 2),
-                  const AdBanner(type: AdBannerType.detail),
+                  Text('AD', style: TextStyle(fontSize: 9, color: Colors.grey, letterSpacing: 1.0, fontWeight: FontWeight.w500)),
+                  SizedBox(height: 2),
+                  AdBanner(type: AdBannerType.detail),
                 ],
               ),
               const SizedBox(height: 24),
@@ -136,7 +138,7 @@ class TournamentDetailScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   EntryStatusBadge(tournament: t),
-                  Text("신청 ${t.entryCount}/${t.maxParticipants >= 9999 ? '∞' : t.maxParticipants}명", style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.bold)),
+                  Text(s.tournament_detail_entry_count(t.entryCount.toString(), t.maxParticipants >= 9999 ? '∞' : t.maxParticipants.toString()), style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -147,31 +149,31 @@ class TournamentDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _buildInfoRow(Icons.location_on_outlined, "장소", t.location),
+                      _buildInfoRow(Icons.location_on_outlined, s.tournament_edit_field_location, t.location),
                       const Divider(height: 24, thickness: 0.5),
-                      _buildInfoRow(Icons.calendar_month_outlined, "일시", DateFormat('yyyy.MM.dd HH:mm').format(t.eventDate.toDate())),
+                      _buildInfoRow(Icons.calendar_month_outlined, s.arena_menu_schedule, DateFormat('yyyy.MM.dd HH:mm').format(t.eventDate.toDate())),
                       const Divider(height: 24, thickness: 0.5),
-                      _buildInfoRow(Icons.paid_outlined, "참가비", t.entryFee > 0 ? "${NumberFormat('#,###').format(t.entryFee)}원" : "무료"),
+                      _buildInfoRow(Icons.paid_outlined, s.tournament_edit_field_fee, t.entryFee > 0 ? "${NumberFormat('#,###').format(t.entryFee)}${s.common_currency_won}" : s.common_free),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 32),
-              const Text("대회 상세 정보", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(s.tournament_detail_info_title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               AppCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(t.description.isEmpty ? "상세 정보가 없습니다." : t.description, style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.black87)),
+                  child: Text(t.description.isEmpty ? s.tournament_detail_no_desc : t.description, style: const TextStyle(fontSize: 14, height: 1.6, color: Colors.black87)),
                 ),
               ),
               const SizedBox(height: 32),
-              _buildParticipantSection(context, t, user, canManage),
+              _buildParticipantSection(context, t, user, canManage, s),
               const SizedBox(height: 32),
-              if (canManage) _buildAdminActions(context, t, isAdmin),
+              if (canManage) _buildAdminActions(context, t, isAdmin, s),
             ],
           ),
-          bottomNavigationBar: _buildBottomEntryAction(context, t, user, canManage),
+          bottomNavigationBar: _buildBottomEntryAction(context, t, user, canManage, s),
         );
       },
     );
@@ -189,18 +191,18 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildParticipantSection(BuildContext context, TournamentModel t, User? user, bool canManage) {
+  Widget _buildParticipantSection(BuildContext context, TournamentModel t, User? user, bool canManage, AppLocalizations s) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("실시간 참가 명단", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(s.tournament_detail_list_title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         StreamBuilder<List<TournamentEntryModel>>(
           stream: sl<ArenaRepository>().getEntries(t.id!),
           builder: (context, snapshot) {
             if (!snapshot.hasData) return const SizedBox.shrink();
             final entries = snapshot.data!;
-            if (entries.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text("아직 신청자가 없습니다.", style: TextStyle(color: Colors.grey[400], fontSize: 13))));
+            if (entries.isEmpty) return Center(child: Padding(padding: const EdgeInsets.all(20.0), child: Text(s.tournament_detail_no_entries, style: TextStyle(color: Colors.grey[400], fontSize: 13))));
 
             return ListView.separated(
               shrinkWrap: true,
@@ -212,8 +214,8 @@ class TournamentDetailScreen extends ConsumerWidget {
                 final bool isPaid = (e.toJson()['isPaid'] ?? false) || e.status == 'confirmed';
                 final bool isMyEntry = user?.uid == e.userUid;
 
-                if (t.type == 'team') return _buildTeamEntryCard(context, t.id!, e, index, isPaid, canManage, isMyEntry);
-                return _buildSingleEntryCard(context, t.id!, e, index, isPaid, canManage, isMyEntry);
+                if (t.type == 'team') return _buildTeamEntryCard(context, t.id!, e, index, isPaid, canManage, isMyEntry, s);
+                return _buildSingleEntryCard(context, t.id!, e, index, isPaid, canManage, isMyEntry, s);
               },
             );
           },
@@ -222,7 +224,7 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSingleEntryCard(BuildContext context, String tid, TournamentEntryModel e, int index, bool isPaid, bool canManage, bool isMyEntry) {
+  Widget _buildSingleEntryCard(BuildContext context, String tid, TournamentEntryModel e, int index, bool isPaid, bool canManage, bool isMyEntry, AppLocalizations s) {
     final bool canSeeAll = canManage || isMyEntry;
     return AppCard(
       child: Column(
@@ -233,7 +235,6 @@ class TournamentDetailScreen extends ConsumerWidget {
             leading: Text("${index + 1}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
             title: Row(
               children: [
-                // 🎯 [수정] Flexible로 감싸서 오버플로우 방지
                 Flexible(
                   child: Text(
                     canSeeAll ? e.nameKo : _maskName(e.nameKo),
@@ -242,7 +243,7 @@ class TournamentDetailScreen extends ConsumerWidget {
                     maxLines: 1,
                   ),
                 ),
-                if (e.isManual) Container(margin: const EdgeInsets.only(left: 6), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)), child: const Text("수동", style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold))),
+                if (e.isManual) Container(margin: const EdgeInsets.only(left: 6), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)), child: Text(s.entry_list_manual, style: const TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold))),
                 const SizedBox(width: 8),
                 if (e.rating != null) Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(4)), child: Text("Rt. ${e.rating}", style: TextStyle(fontSize: 10, color: Colors.cyan[800], fontWeight: FontWeight.bold))),
               ],
@@ -256,8 +257,8 @@ class TournamentDetailScreen extends ConsumerWidget {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (isPaid) const Icon(Icons.check_circle_rounded, color: Colors.cyan, size: 20) else Text("미입금", style: TextStyle(fontSize: 11, color: Colors.grey[350])),
-                if (canManage) IconButton(icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey), onPressed: () => _showEntryManagementSheet(context, tid, e, isPaid)),
+                if (isPaid) const Icon(Icons.check_circle_rounded, color: Colors.cyan, size: 20) else Text(s.entry_list_not_paid, style: TextStyle(fontSize: 11, color: Colors.grey[350])),
+                if (canManage) IconButton(icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey), onPressed: () => _showEntryManagementSheet(context, tid, e, isPaid, s)),
               ],
             ),
           ),
@@ -267,7 +268,7 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTeamEntryCard(BuildContext context, String tid, TournamentEntryModel e, int index, bool isPaid, bool canManage, bool isMyEntry) {
+  Widget _buildTeamEntryCard(BuildContext context, String tid, TournamentEntryModel e, int index, bool isPaid, bool canManage, bool isMyEntry, AppLocalizations s) {
     final bool canSeeAll = canManage || isMyEntry;
     return AppCard(
       padding: const EdgeInsets.all(16),
@@ -278,30 +279,29 @@ class TournamentDetailScreen extends ConsumerWidget {
             children: [
               Text("${index + 1}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
               const SizedBox(width: 8),
-              // 🎯 [수정] 이미 Expanded가 적용되어 있어 오버플로우에 강하지만, 말줄임표 처리 추가
               Expanded(
                   child: Text(
-                    "[팀] ${e.teamName ?? '이름 없음'}",
+                    s.entry_list_team_prefix(e.teamName ?? ''),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.black87),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                   )
               ),
-              if (e.isManual) Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)), child: const Text("수동", style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold))),
-              if (isPaid) const Icon(Icons.check_circle_rounded, color: Colors.cyan, size: 20) else Text("미입금", style: TextStyle(fontSize: 11, color: Colors.grey[350])),
-              if (canManage) IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey), onPressed: () => _showEntryManagementSheet(context, tid, e, isPaid)),
+              if (e.isManual) Container(margin: const EdgeInsets.only(right: 8), padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1), decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)), child: Text(s.entry_list_manual, style: const TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold))),
+              if (isPaid) const Icon(Icons.check_circle_rounded, color: Colors.cyan, size: 20) else Text(s.entry_list_not_paid, style: TextStyle(fontSize: 11, color: Colors.grey[350])),
+              if (canManage) IconButton(visualDensity: VisualDensity.compact, icon: const Icon(Icons.more_vert, size: 18, color: Colors.grey), onPressed: () => _showEntryManagementSheet(context, tid, e, isPaid, s)),
             ],
           ),
           const Divider(height: 20),
-          _buildMemberRow("팀장: ${canSeeAll ? e.nameKo : _maskName(e.nameKo)} (${canSeeAll ? e.phone : _maskPhone(e.phone)})", e.rating, isLeader: true),
+          _buildMemberRow("${s.entry_list_info_leader}: ${canSeeAll ? e.nameKo : _maskName(e.nameKo)} (${canSeeAll ? e.phone : _maskPhone(e.phone)})", e.rating, isLeader: true),
           if (e.customAnswers.isNotEmpty) _buildCustomAnswersView(e.customAnswers, isTeamMember: true, canSeeAll: canSeeAll),
           const SizedBox(height: 8),
           ...e.members.asMap().entries.map((entry) {
             final m = entry.value;
             final idx = entry.key;
-            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildMemberRow("팀원${idx + 1}: ${canSeeAll ? m.name : _maskName(m.name)}", m.rating), if (m.customAnswers.isNotEmpty) _buildCustomAnswersView(m.customAnswers, isTeamMember: true, canSeeAll: canSeeAll), const SizedBox(height: 6)]);
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildMemberRow("${s.entry_form_field_member_no(idx + 1)}: ${canSeeAll ? m.name : _maskName(m.name)}", m.rating), if (m.customAnswers.isNotEmpty) _buildCustomAnswersView(m.customAnswers, isTeamMember: true, canSeeAll: canSeeAll), const SizedBox(height: 6)]);
           }),
-          if (e.totalRating != null) ...[const Divider(height: 16, thickness: 0.5), Align(alignment: Alignment.centerRight, child: Text("팀 합계 Rt. ${e.totalRating}", style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.bold)))]
+          if (e.totalRating != null) ...[const Divider(height: 16, thickness: 0.5), Align(alignment: Alignment.centerRight, child: Text(s.entry_list_total_rating(e.totalRating!), style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.bold)))]
         ],
       ),
     );
@@ -321,26 +321,25 @@ class TournamentDetailScreen extends ConsumerWidget {
     return Row(children: [Icon(Icons.person, size: 12, color: isLeader ? Colors.cyan : Colors.grey[400]), const SizedBox(width: 6), Expanded(child: Text(name, style: TextStyle(fontSize: 13, fontWeight: isLeader ? FontWeight.bold : FontWeight.normal), overflow: TextOverflow.ellipsis, maxLines: 1)), if (rating != null) Text("Rt. $rating", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500))]);
   }
 
-  Widget _buildAdminActions(BuildContext context, TournamentModel t, bool isAdmin) {
+  Widget _buildAdminActions(BuildContext context, TournamentModel t, bool isAdmin, AppLocalizations s) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Divider(height: 40),
-        Text(isAdmin ? "관리자 권한" : "주최자 권한", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+        Text(isAdmin ? s.common_admin_authority : s.tournament_detail_admin_title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.redAccent)),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.edit, size: 16), label: const Text("대회 수정"), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TournamentEditScreen(tournamentId: t.id!))))),
+            Expanded(child: OutlinedButton.icon(icon: const Icon(Icons.edit, size: 16), label: Text(s.tournament_edit_title), onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TournamentEditScreen(tournamentId: t.id!))))),
             const SizedBox(width: 8),
-            Expanded(child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: Colors.red), icon: const Icon(Icons.delete_outline, size: 16), label: const Text("대회 삭제"), onPressed: () => _deleteTournament(context, t.id!))),
+            Expanded(child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: Colors.red), icon: const Icon(Icons.delete_outline, size: 16), label: Text(s.tournament_detail_admin_delete), onPressed: () => _deleteTournament(context, t.id!, s))),
           ],
         ),
       ],
     );
   }
 
-  // 🎯 하단 액션 바: 주최자용 수동 추가 버튼과 일반 신청 버튼을 구분하여 배치
-  Widget _buildBottomEntryAction(BuildContext context, TournamentModel t, User? user, bool canManage) {
+  Widget _buildBottomEntryAction(BuildContext context, TournamentModel t, User? user, bool canManage, AppLocalizations s) {
     if (user == null) return const SizedBox.shrink();
 
     final now = DateTime.now();
@@ -353,19 +352,19 @@ class TournamentDetailScreen extends ConsumerWidget {
       stream: FirebaseFirestore.instance.collection('tournaments').doc(t.id).collection('entries').doc(user.uid).snapshots(),
       builder: (context, snapshot) {
         final hasEntry = snapshot.hasData && snapshot.data!.exists;
-        String buttonText = "참가 신청하기";
+        String buttonText = s.tournament_detail_btn_apply;
         Color buttonColor = Colors.cyan[700]!;
         bool isButtonEnabled = true;
 
         if (hasEntry) {
-          buttonText = "참가 신청 취소하기";
+          buttonText = s.tournament_detail_btn_cancel;
           buttonColor = Colors.grey[800]!;
         } else if (isBeforeEntry) {
-          buttonText = "신청 기간이 아닙니다";
+          buttonText = s.tournament_detail_btn_not_period;
           buttonColor = Colors.grey[400]!;
           isButtonEnabled = false;
         } else if (isAfterEntry) {
-          buttonText = "신청이 마감되었습니다";
+          buttonText = s.tournament_detail_btn_closed;
           buttonColor = Colors.grey[400]!;
           isButtonEnabled = false;
         }
@@ -376,14 +375,13 @@ class TournamentDetailScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 🏆 주최자/어드민 전용: 수동 추가 버튼
                 if (canManage) ...[
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pushNamed(context, RouteConstants.tournamentEntryForm, arguments: {'tournamentId': t.id, 'isManualMode': true}),
                       icon: const Icon(Icons.person_add_alt_1_outlined, size: 20),
-                      label: const Text("오프라인 참가자 직접 추가", style: TextStyle(fontWeight: FontWeight.bold)),
+                      label: Text(s.tournament_detail_btn_manual, style: const TextStyle(fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         foregroundColor: Colors.cyan[800],
@@ -394,13 +392,12 @@ class TournamentDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
-                // 👤 공용: 본인 참가 신청/취소 버튼
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isButtonEnabled
                         ? () {
-                      if (hasEntry) _cancelMyEntry(context, t.id!, user.uid);
+                      if (hasEntry) _cancelMyEntry(context, t.id!, user.uid, s);
                       else Navigator.pushNamed(context, RouteConstants.tournamentEntryForm, arguments: t.id);
                     }
                         : null,
@@ -422,7 +419,7 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showEntryManagementSheet(BuildContext context, String tid, TournamentEntryModel e, bool isPaid) {
+  void _showEntryManagementSheet(BuildContext context, String tid, TournamentEntryModel e, bool isPaid, AppLocalizations s) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -432,7 +429,7 @@ class TournamentDetailScreen extends ConsumerWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_note, color: Colors.blue),
-              title: const Text("참가자 정보 수정"),
+              title: Text(s.tournament_detail_manage_edit),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(context, MaterialPageRoute(builder: (context) => TournamentEntryEditScreen(tournamentId: tid, entry: e)));
@@ -440,19 +437,19 @@ class TournamentDetailScreen extends ConsumerWidget {
             ),
             ListTile(
               leading: Icon(isPaid ? Icons.money_off : Icons.check_circle, color: isPaid ? Colors.red : Colors.cyan),
-              title: Text(isPaid ? "입금 확인 취소" : "입금 확인 처리"),
+              title: Text(isPaid ? s.tournament_detail_manage_pay_off : s.tournament_detail_manage_pay_on),
               onTap: () async {
-                await sl<ArenaRepository>().updatePaymentStatus(tid, e.id ?? e.userUid, !isPaid); // ✅ id가 있으면 id(문서ID) 사용
+                await sl<ArenaRepository>().updatePaymentStatus(tid, e.id ?? e.userUid, !isPaid);
                 Navigator.pop(context);
               },
             ),
             ListTile(
               leading: const Icon(Icons.delete_sweep, color: Colors.red),
-              title: const Text("엔트리 강제 삭제", style: TextStyle(color: Colors.red)),
+              title: Text(s.tournament_detail_manage_delete, style: const TextStyle(color: Colors.red)),
               onTap: () async {
                 Navigator.pop(context);
-                final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text("엔트리 삭제"), content: Text("${e.nameKo} 참가자를 삭제하시겠습니까?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red)))]));
-                if (confirmed == true) await sl<ArenaRepository>().cancelEntry(tournamentId: tid, userUid: e.id ?? e.userUid); // ✅ id(문서ID)로 삭제
+                final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(s.entry_list_delete_confirm_title), content: Text(s.entry_list_delete_confirm_msg(e.nameKo)), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.common_delete, style: const TextStyle(color: Colors.red)))]));
+                if (confirmed == true) await sl<ArenaRepository>().cancelEntry(tournamentId: tid, userUid: e.id ?? e.userUid);
               },
             ),
           ],
@@ -461,29 +458,29 @@ class TournamentDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _deleteTournament(BuildContext context, String id) async {
-    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text("대회 완전 삭제"), content: const Text("참가자 명단과 포스터 사진을 포함한 모든 데이터가 영구적으로 삭제됩니다. 정말 진행하시겠습니까?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))]));
+  Future<void> _deleteTournament(BuildContext context, String id, AppLocalizations s) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(s.tournament_detail_admin_delete), content: Text(s.tournament_detail_admin_delete_msg), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.common_delete, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)))]));
     if (confirmed == true) {
       try {
         await sl<ArenaRepository>().deleteTournament(id);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("대회가 완전히 삭제되었습니다.")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.tournament_detail_admin_delete))); // 혹은 삭제 완료 메시지
           Navigator.pop(context);
         }
       } catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("삭제 실패: $e")));
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
 
-  Future<void> _cancelMyEntry(BuildContext context, String tid, String uid) async {
-    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text("참가 취소"), content: const Text("참가 신청을 취소하시겠습니까?"), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("아니오")), TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("취소하기", style: TextStyle(color: Colors.red)))]));
+  Future<void> _cancelMyEntry(BuildContext context, String tid, String uid, AppLocalizations s) async {
+    final confirmed = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: Text(s.entry_form_cancel_title), content: Text(s.entry_form_cancel_msg), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_no)), TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.entry_form_cancel_confirm, style: const TextStyle(color: Colors.red)))]));
     if (confirmed == true) {
       try {
         await sl<ArenaRepository>().cancelEntry(tournamentId: tid, userUid: uid);
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("참가 신청이 취소되었습니다.")));
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.entry_form_cancel_success)));
       } catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("오류가 발생했습니다: $e")));
+        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }

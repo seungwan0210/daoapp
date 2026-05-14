@@ -1,4 +1,4 @@
-import 'dart:math' as math; // 각도 계산용
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,25 +6,29 @@ import 'package:daoapp/presentation/providers/training/grip_baseline_provider.da
 import 'package:daoapp/presentation/screens/training/grip_lab/grip_camera_screen.dart';
 import 'package:daoapp/data/models/grip_baseline_model.dart';
 import 'package:daoapp/presentation/screens/training/grip_lab/widgets/grip_gauge_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class GripBaselineAnalysisScreen extends ConsumerWidget {
   const GripBaselineAnalysisScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩
     final state = ref.watch(gripBaselineProvider);
 
     ref.listen<GripBaselineState>(gripBaselineProvider, (prev, next) {
       final msg = next.errorMessage;
       if (msg == null || msg.isEmpty) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      }
       ref.read(gripBaselineProvider.notifier).clearError();
     });
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        title: const Text("그립 분석 리포트", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(s.grip_report_title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -47,39 +51,36 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. 히어로 이미지 (탭하여 확대 가능)
               _HeroImageSection(baseline: state.baseline!),
               const SizedBox(height: 24),
 
-              // 2. 메인 분석 (엄지/검지) - 녹색 & 파랑
-              const _SectionHeader(title: "메인 컨트롤 (Main Control)", icon: Icons.precision_manufacturing),
+              _SectionHeader(title: s.grip_report_main_ctrl, icon: Icons.precision_manufacturing),
               const SizedBox(height: 12),
 
               GripGaugeCard(
-                title: "엄지-검지 간격 (Gap)",
+                title: s.grip_report_gap,
                 valueText: "${(state.baseline!.pinchGap * 100).toStringAsFixed(1)}%",
                 normalizedValue: (state.baseline!.pinchGap / 0.2).clamp(0.0, 1.0),
-                labelLeft: "타이트함",
-                labelRight: "와이드함",
-                color: Colors.green[700]!, // 🟢 녹색
+                labelLeft: s.grip_report_tight,
+                labelRight: s.grip_report_wide,
+                color: Colors.green[700]!,
               ),
               const SizedBox(height: 12),
 
               GripGaugeCard(
-                title: "검지 굽힘 (Index Angle)",
+                title: s.grip_report_index,
                 valueText: "${state.baseline!.indexAngle.toStringAsFixed(0)}°",
                 normalizedValue: ((state.baseline!.indexAngle - 90) / 90).clamp(0.0, 1.0),
-                labelLeft: "많이 굽힘",
-                labelRight: "펴짐",
-                color: Colors.blue[700]!, // 🔵 파랑
+                labelLeft: s.grip_report_bent,
+                labelRight: s.grip_report_straight,
+                color: Colors.blue[700]!,
               ),
               const SizedBox(height: 24),
 
-              // 3. 보조 손가락 분석 (중지/약지/소지) - 주황 & 보라 & 빨강
-              const _SectionHeader(title: "보조 지지대 (Support Fingers)", icon: Icons.front_hand),
+              _SectionHeader(title: s.grip_report_support, icon: Icons.front_hand),
               const SizedBox(height: 12),
 
-              _buildSupportFingerCards(state.baseline!.landmarks),
+              _buildSupportFingerCards(state.baseline!.landmarks, s),
 
               const SizedBox(height: 24),
 
@@ -99,27 +100,26 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
                   children: [
                     Icon(Icons.ad_units, color: Colors.grey[400]),
                     const SizedBox(height: 4),
-                    Text("AdMob 배너 광고 영역", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                    Text(s.grip_report_ad_area, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
                   ],
                 ),
               ),
 
               const SizedBox(height: 24),
 
-              // 5. 하단 버튼
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
-                        final ok = await _confirmDelete(context);
+                        final ok = await _confirmDelete(context, s);
                         if (ok) {
                           await ref.read(gripBaselineProvider.notifier).deleteBaseline();
                           if (context.mounted) Navigator.pop(context);
                         }
                       },
                       icon: const Icon(Icons.delete_outline, size: 20),
-                      label: const Text("삭제"),
+                      label: Text(s.common_delete), // 🔹 공통 키 사용
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                         side: const BorderSide(color: Colors.redAccent),
@@ -136,7 +136,7 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
                         ref.read(gripBaselineProvider.notifier).fetchBaseline();
                       },
                       icon: const Icon(Icons.camera_alt_outlined, size: 20, color: Colors.white),
-                      label: const Text("다시 촬영"),
+                      label: Text(s.pose_result_btn_repick), // 🔹 포즈 분석 재사용
                       style: ElevatedButton.styleFrom(
                         minimumSize: const Size.fromHeight(52),
                         backgroundColor: Colors.black87,
@@ -155,12 +155,9 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  // 📐 3개의 보조 손가락 카드 생성 로직
-  Widget _buildSupportFingerCards(List<Offset> landmarks) {
-    if (landmarks.length < 21) return const Text("데이터 부족으로 분석 불가");
+  Widget _buildSupportFingerCards(List<Offset> landmarks, AppLocalizations s) {
+    if (landmarks.length < 21) return Text(s.grip_comp_no_result);
 
-    // 각도 계산 (PIP 관절 기준: MCP -> PIP -> DIP)
-    // 중지: 9-10-11, 약지: 13-14-15, 소지: 17-18-19
     final middleAngle = _calculateJointAngle(landmarks[9], landmarks[10], landmarks[11]);
     final ringAngle = _calculateJointAngle(landmarks[13], landmarks[14], landmarks[15]);
     final pinkyAngle = _calculateJointAngle(landmarks[17], landmarks[18], landmarks[19]);
@@ -168,36 +165,35 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
     return Column(
       children: [
         GripGaugeCard(
-          title: "중지 받침 각도 (Middle)",
+          title: s.grip_report_middle,
           valueText: "${middleAngle.toStringAsFixed(0)}°",
           normalizedValue: ((middleAngle - 70) / 110).clamp(0.0, 1.0),
-          labelLeft: "깊게 잡음",
-          labelRight: "얕게 잡음",
-          color: Colors.orange[800]!, // 🟠 주황 (진하게)
+          labelLeft: s.grip_report_deep,
+          labelRight: s.grip_report_shallow,
+          color: Colors.orange[800]!,
         ),
         const SizedBox(height: 12),
         GripGaugeCard(
-          title: "약지 굽힘 (Ring)",
+          title: s.grip_report_ring,
           valueText: "${ringAngle.toStringAsFixed(0)}°",
           normalizedValue: ((ringAngle - 60) / 120).clamp(0.0, 1.0),
-          labelLeft: "말아 쥠",
-          labelRight: "편안함",
-          color: Colors.purple[700]!, // 🟣 보라
+          labelLeft: s.grip_report_rolled,
+          labelRight: s.grip_report_relaxed,
+          color: Colors.purple[700]!,
         ),
         const SizedBox(height: 12),
         GripGaugeCard(
-          title: "소지 밸런스 (Pinky)",
+          title: s.grip_report_pinky,
           valueText: "${pinkyAngle.toStringAsFixed(0)}°",
           normalizedValue: ((pinkyAngle - 60) / 120).clamp(0.0, 1.0),
-          labelLeft: "안쪽 지지",
-          labelRight: "바깥 지지",
-          color: Colors.red[700]!, // 🔴 빨강
+          labelLeft: s.grip_report_inner,
+          labelRight: s.grip_report_outer,
+          color: Colors.red[700]!,
         ),
       ],
     );
   }
 
-  // 🧮 3점 사잇각 계산 함수 (로컬 헬퍼)
   double _calculateJointAngle(Offset a, Offset b, Offset c) {
     final double angle1 = math.atan2(a.dy - b.dy, a.dx - b.dx);
     final double angle2 = math.atan2(c.dy - b.dy, c.dx - b.dx);
@@ -207,23 +203,21 @@ class GripBaselineAnalysisScreen extends ConsumerWidget {
     return angle;
   }
 
-  Future<bool> _confirmDelete(BuildContext context) async {
+  Future<bool> _confirmDelete(BuildContext context, AppLocalizations s) async {
     return await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("기준 삭제"),
-        content: const Text("정말 삭제하시겠습니까?"),
+        title: Text(s.grip_report_delete_confirm),
+        content: Text(s.grip_report_delete_msg),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.common_delete, style: const TextStyle(color: Colors.red))),
         ],
       ),
-    ) ??
-        false;
+    ) ?? false;
   }
 }
 
-// 🖼️ 히어로 이미지 (확대 기능 복구됨)
 class _HeroImageSection extends StatelessWidget {
   final GripBaselineModel baseline;
   const _HeroImageSection({required this.baseline});
@@ -257,6 +251,7 @@ class _HeroImageSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return GestureDetector(
       onTap: () => _openFull(context),
       child: Container(
@@ -286,11 +281,11 @@ class _HeroImageSection extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.zoom_in, color: Colors.white, size: 14),
-                        SizedBox(width: 4),
-                        Text("탭하여 확대", style: TextStyle(color: Colors.white, fontSize: 11)),
+                        const Icon(Icons.zoom_in, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        Text(s.grip_report_zoom, style: const TextStyle(color: Colors.white, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -321,7 +316,6 @@ class _HeroImageSection extends StatelessWidget {
   String _formatDate(DateTime dt) => "${dt.year}.${dt.month}.${dt.day}";
 }
 
-// 🏷️ 섹션 헤더 (아이콘 + 텍스트)
 class _SectionHeader extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -344,18 +338,19 @@ class _EmptyBaselineView extends StatelessWidget {
   const _EmptyBaselineView({required this.onTake});
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.image_not_supported_outlined, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
-          const Text("데이터를 불러올 수 없습니다.", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+          Text(s.grip_comp_no_result, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: onTake,
             style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan),
-            child: const Text("새로 촬영하기", style: TextStyle(color: Colors.white)),
+            child: Text(s.pose_result_btn_repick, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

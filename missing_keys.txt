@@ -1,0 +1,21 @@
+{
+  "ja": [
+    "common_hour",
+    "common_minute"
+  ],
+
+  "zh": [
+    "common_hour",
+    "common_minute"
+  ],
+
+  "zh_Hans": [
+    "common_hour",
+    "common_minute"
+  ],
+
+  "zh_Hant": [
+    "common_hour",
+    "common_minute"
+  ]
+}

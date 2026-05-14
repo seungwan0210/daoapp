@@ -1,6 +1,7 @@
 // lib/presentation/screens/training/training_rating_input_screen.dart
 import 'package:flutter/material.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 다국어 임포트
 
 class TrainingRatingInputScreen extends StatefulWidget {
   const TrainingRatingInputScreen({super.key});
@@ -29,7 +30,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // 실시간 미리보기
+    // 실시간 미리보기 리스너
     final listener = () => _calculatePreview();
     _phoenixPpdController.addListener(listener);
     _phoenixMprController.addListener(listener);
@@ -45,6 +46,17 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
     _livePpdController.dispose();
     _liveMprController.dispose();
     super.dispose();
+  }
+
+  // 🔹 티어 라벨 다국어 헬퍼
+  String _getTierLabel(DaoTrainingTier tier) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'en') return tier.labelEn;
+    if (locale.languageCode == 'ja') return tier.labelJa;
+    if (locale.languageCode == 'zh') {
+      return locale.scriptCode == 'Hant' ? tier.labelZhHant : tier.labelZhHans;
+    }
+    return tier.labelKo;
   }
 
   void _calculatePreview() {
@@ -71,6 +83,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
   }
 
   void _calculateAndReturn() {
+    final s = AppLocalizations.of(context)!;
     final phoenixPpd = _parseDouble(_phoenixPpdController.text);
     final phoenixMpr = _parseDouble(_phoenixMprController.text);
     final livePpd = _parseDouble(_livePpdController.text);
@@ -81,7 +94,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
         livePpd == null &&
         liveMpr == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('최소 한 가지 값을 입력해주세요.')),
+        SnackBar(content: Text(s.rating_msg_min_input)), // 🔹 다국어화
       );
       return;
     }
@@ -109,9 +122,11 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("실력 입력"),
+        title: Text(s.rating_input_title), // 🔹 다국어화
         centerTitle: true,
         backgroundColor: Colors.grey[50],
         elevation: 0,
@@ -121,9 +136,9 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
           unselectedLabelColor: Colors.grey,
           indicatorColor: Colors.cyan,
           indicatorWeight: 3,
-          tabs: const [
-            Tab(icon: Icon(Icons.home_outlined), text: "PHOENIX"),
-            Tab(icon: Icon(Icons.sports_esports_outlined), text: "DARTSLIVE"),
+          tabs: [
+            Tab(icon: const Icon(Icons.home_outlined), text: s.rating_tab_phoenix),
+            Tab(icon: const Icon(Icons.sports_esports_outlined), text: s.rating_tab_live),
           ],
         ),
       ),
@@ -131,20 +146,20 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
         controller: _tabController,
         children: [
           _buildInputForm(
-            title: "PHOENIX (온라인/홈보드)",
+            title: "${s.rating_tab_phoenix} (Online/Home)",
             ppdController: _phoenixPpdController,
             mprController: _phoenixMprController,
-            ppdHint: "예: 28.52",
-            mprHint: "예: 3.29",
+            ppdHint: "ex: 28.52",
+            mprHint: "ex: 3.29",
             icon: Icons.home,
             color: Colors.cyan,
           ),
           _buildInputForm(
-            title: "DARTSLIVE",
+            title: s.rating_tab_live,
             ppdController: _livePpdController,
             mprController: _liveMprController,
-            ppdHint: "예: 89.98",
-            mprHint: "예: 3.44",
+            ppdHint: "ex: 89.98",
+            mprHint: "ex: 3.44",
             icon: Icons.gamepad,
             color: Colors.orange,
           ),
@@ -154,8 +169,8 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
         onPressed: _calculateAndReturn,
         backgroundColor: Colors.cyan,
         icon: const Icon(Icons.check_circle),
-        label: const Text("적용하기",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: Text(s.common_confirm, // 🔹 적용하기 -> 확인
+            style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
@@ -170,6 +185,8 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
     required IconData icon,
     required Color color,
   }) {
+    final s = AppLocalizations.of(context)!;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
       child: Column(
@@ -186,7 +203,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
           ]),
           const SizedBox(height: 16),
           Text(
-            "PPD와 MPR을 모두 입력하면 가장 정확합니다.\n하나만 입력해도 대략적인 값을 계산합니다.",
+            s.rating_guide_desc, // 🔹 다국어화
             style: TextStyle(color: Colors.grey[600]),
           ),
           const SizedBox(height: 32),
@@ -210,7 +227,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
           ),
           const SizedBox(height: 20),
 
-          /// 🔹 MPR 입력 (색 통일!)
+          /// 🔹 MPR 입력
           TextFormField(
             controller: mprController,
             keyboardType:
@@ -218,7 +235,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
             decoration: InputDecoration(
               labelText: "MPR",
               hintText: mprHint,
-              prefixIcon: Icon(Icons.speed, color: color), // ← 수정 포인트
+              prefixIcon: Icon(Icons.speed, color: color),
               border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12)),
               focusedBorder: OutlineInputBorder(
@@ -250,8 +267,8 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
                   Row(children: [
                     Icon(Icons.preview, color: color),
                     const SizedBox(width: 6),
-                    const Text("실시간 계산 결과",
-                        style: TextStyle(
+                    Text(s.rating_preview_title, // 🔹 다국어화
+                        style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                   ]),
                   const SizedBox(height: 16),
@@ -270,7 +287,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      "DAO 티어: ${_previewProfile!.tier.labelKo}",
+                      "${s.tier_predict_label}: ${_getTierLabel(_previewProfile!.tier)}", // 🔹 예상 티어 다국어화
                       style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: color.darken()),
@@ -291,7 +308,7 @@ class _TrainingRatingInputScreenState extends State<TrainingRatingInputScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label),
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
           Text(
             value,
             style:

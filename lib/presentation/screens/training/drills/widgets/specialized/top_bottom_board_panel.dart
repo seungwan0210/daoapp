@@ -1,20 +1,19 @@
 // lib/presentation/screens/training/drills/widgets/specialized/top_bottom_board_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 확인
 
 class TopBottomBoardPanel extends StatelessWidget {
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
 
-  /// ✅ Undo 지원 (선택)
   final bool canUndo;
   final VoidCallback? onUndo;
 
   final bool isBusy;
-  final int totalDarts; // 예: 60 (상단 30 + 하단 30)
+  final int totalDarts;
 
-  /// ✅ RunScreen의 thrownDarts를 그대로 받아서 UI 표시까지 동기화
   final ValueNotifier<int>? thrownDartsNotifier;
 
   const TopBottomBoardPanel({
@@ -42,6 +41,9 @@ class TopBottomBoardPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 S 대신 AppLocalizations 사용
+    final s = AppLocalizations.of(context)!;
+
     Widget content(int thrown) {
       final int safeTotal = (totalDarts <= 0 ? 60 : totalDarts);
       final int dartsPerArea = (safeTotal ~/ 2);
@@ -49,16 +51,16 @@ class TopBottomBoardPanel extends StatelessWidget {
       final bool isFinished = thrown >= safeTotal;
       final bool isTopPhase = thrown < dartsPerArea;
 
-      // ✅ “이번 구역” 진행은 1부터 보이게
       final int currentInArea = (thrown % dartsPerArea) + 1;
 
       final Color highlightColor = isTopPhase
           ? const Color(0xFFE91E63) // 상단: 핫핑크
           : const Color(0xFFFF6D00); // 하단: 오렌지
 
-      final String mainTitle = isTopPhase ? '상단 영역 집중' : '하단 영역 집중';
-      final String subtitle =
-      isTopPhase ? '위쪽 반만 정확히 노려주세요!' : '아래쪽 반만 노려주세요!';
+      // 🔹 타이틀 및 가이드 텍스트 (기존 키 활용)
+      final String mainTitle = isTopPhase ? s.drill_top_half : s.drill_bottom_half;
+      // 가이드 키가 따로 없을 경우 범용 가이드 키(drill_quadrant_guide) 사용
+      final String subtitle = s.drill_quadrant_guide;
 
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -89,7 +91,6 @@ class TopBottomBoardPanel extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // 기본 보드
                         ClipOval(
                           child: Image.asset(
                             'assets/images/dartboard.png',
@@ -99,35 +100,18 @@ class TopBottomBoardPanel extends StatelessWidget {
                           ),
                         ),
 
-                        // 활성 영역(위/아래) 정확히 반원만 색 입히기
                         ShaderMask(
                           blendMode: BlendMode.srcATop,
                           shaderCallback: (Rect bounds) {
-                            if (isTopPhase) {
-                              return LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  highlightColor.withOpacity(0.7),
-                                  highlightColor.withOpacity(0.7),
-                                  Colors.transparent,
-                                  Colors.transparent,
-                                ],
-                                stops: const [0.0, 0.5, 0.5, 1.0],
-                              ).createShader(bounds);
-                            } else {
-                              return LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.transparent,
-                                  highlightColor.withOpacity(0.7),
-                                  highlightColor.withOpacity(0.7),
-                                ],
-                                stops: const [0.0, 0.5, 0.5, 1.0],
-                              ).createShader(bounds);
-                            }
+                            // 상단/하단 강조 그라데이션
+                            return LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: isTopPhase
+                                  ? [highlightColor.withOpacity(0.7), highlightColor.withOpacity(0.7), Colors.transparent, Colors.transparent]
+                                  : [Colors.transparent, Colors.transparent, highlightColor.withOpacity(0.7), highlightColor.withOpacity(0.7)],
+                              stops: const [0.0, 0.5, 0.5, 1.0],
+                            ).createShader(bounds);
                           },
                           child: ClipOval(
                             child: Image.asset(
@@ -144,7 +128,6 @@ class TopBottomBoardPanel extends StatelessWidget {
 
                   const SizedBox(height: 16),
 
-                  // 메인 타이틀
                   Text(
                     mainTitle,
                     style: const TextStyle(
@@ -155,7 +138,6 @@ class TopBottomBoardPanel extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
-                  // 부제목
                   Text(
                     subtitle,
                     style: TextStyle(
@@ -168,25 +150,31 @@ class TopBottomBoardPanel extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // ✅ Undo (선택)
+                  // UNDO 버튼
                   if (onUndo != null)
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
                         onPressed: (isBusy || !canUndo) ? null : onUndo,
                         icon: const Icon(Icons.undo, size: 18),
-                        label: const Text(
-                          'UNDO',
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        label: Text(
+                          s.calc_undo.toUpperCase(),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
 
                   const SizedBox(height: 8),
 
-                  // 진행 정보
-                  _buildInfoRow('이번 구역', '$currentInArea / $dartsPerArea 다트'),
-                  _buildInfoRow('전체 진행', '$thrown / $safeTotal 다트'),
+                  // 🔹 정보 행 다국어화
+                  _buildInfoRow(
+                      s.drill_quadrant_title, // "이번 구역 진행" 또는 "에어리어 연습"
+                      '$currentInArea / $dartsPerArea ${s.drill_stat_darts}'
+                  ),
+                  _buildInfoRow(
+                      s.drill_progress_title, // "진행률" 또는 "전체 진행"
+                      '$thrown / $safeTotal ${s.drill_stat_darts}'
+                  ),
                 ],
               ),
             ),
@@ -198,8 +186,7 @@ class TopBottomBoardPanel extends StatelessWidget {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed:
-                    isBusy || isFinished ? null : () => _record(true, thrown),
+                    onPressed: isBusy || isFinished ? null : () => _record(true, thrown),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green.shade600,
                       foregroundColor: Colors.white,
@@ -209,18 +196,16 @@ class TopBottomBoardPanel extends StatelessWidget {
                       ),
                       elevation: 8,
                     ),
-                    child: const Text(
-                      "성공",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    child: Text(
+                      s.drill_btn_success,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: isBusy || isFinished
-                        ? null
-                        : () => _record(false, thrown),
+                    onPressed: isBusy || isFinished ? null : () => _record(false, thrown),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red.shade600,
                       foregroundColor: Colors.white,
@@ -230,9 +215,9 @@ class TopBottomBoardPanel extends StatelessWidget {
                       ),
                       elevation: 8,
                     ),
-                    child: const Text(
-                      "실패",
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    child: Text(
+                      s.drill_btn_fail,
+                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -253,20 +238,20 @@ class TopBottomBoardPanel extends StatelessWidget {
                   ),
                   elevation: 10,
                 ),
-                child: const Text(
-                  "결과 확인하기",
-                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
+                child: Text(
+                  s.drill_check_result,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               )
             else
               TextButton(
                 onPressed: isBusy ? null : onFinishPressed,
                 child: Text(
-                  "드릴 종료하고 결과 저장",
-                  style: TextStyle(
-                    fontSize: 15,
+                  s.drill_btn_finish_save,
+                  style: const TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.cyan.shade400,
+                    color: Colors.cyan,
                   ),
                 ),
               ),
@@ -277,7 +262,6 @@ class TopBottomBoardPanel extends StatelessWidget {
       );
     }
 
-    // ✅ notifier가 있으면 UI 완전 동기화
     if (thrownDartsNotifier != null) {
       return ValueListenableBuilder<int>(
         valueListenable: thrownDartsNotifier!,
@@ -285,7 +269,6 @@ class TopBottomBoardPanel extends StatelessWidget {
       );
     }
 
-    // ✅ notifier가 없으면(구버전 호환) 0으로 표시 (권장: notifier 넘겨라)
     return content(0);
   }
 

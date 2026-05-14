@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:daoapp/core/utils/ad_manager.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class RankingGameRunScreen extends ConsumerStatefulWidget {
   final String gameType;
@@ -80,20 +81,21 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
     });
   }
 
-  // 🔥 [신규] 501 BUST 전용 처리 함수
   void _handleBust() {
+    final s = AppLocalizations.of(context)!;
     setState(() {
-      _history501.add(0);        // 0점 기록
-      _totalThrownDarts += 3;    // 3발 소모 처리
+      _history501.add(0);
+      _totalThrownDarts += 3;
       _scoreController.clear();
       _nextRound();
     });
-    _showSnackBar("BUST 처리되었습니다.");
+    _showSnackBar(s.rank_msg_bust);
   }
 
   void _submitRound501() {
+    final s = AppLocalizations.of(context)!;
     final val = int.tryParse(_scoreController.text) ?? 0;
-    if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
+    if (val > 180) { _showSnackBar(s.rank_msg_max_score); return; }
     setState(() {
       if (val > _leftScore) {
         _showSnackBar("BUST!");
@@ -108,9 +110,10 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _submitRoundCricket() {
+    final s = AppLocalizations.of(context)!;
     String target = _cricketTargets[(_currentRound - 1).clamp(0, _cricketTargets.length - 1)];
     if (target == "BULL" && _selectedMark >= 7) {
-      _showSnackBar("BULL은 최대 6마크까지만 가능합니다.");
+      _showSnackBar(s.rank_msg_bull_max);
       return;
     }
     setState(() {
@@ -122,8 +125,9 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _submitRoundCountUp() {
+    final s = AppLocalizations.of(context)!;
     final val = int.tryParse(_scoreController.text) ?? 0;
-    if (val > 180) { _showSnackBar("최대 180점입니다."); return; }
+    if (val > 180) { _showSnackBar(s.rank_msg_max_score); return; }
     setState(() {
       _totalCountUpScore += val;
       _historyCountUp.add(val);
@@ -217,9 +221,10 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _build501Content() {
+    final s = AppLocalizations.of(context)!;
     return Column(
       children: [
-        const Text("LEFT", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(s.rank_game_left, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
         Text("$_leftScore", style: const TextStyle(fontSize: 70, fontWeight: FontWeight.w900, height: 1.1)),
         const SizedBox(height: 10),
         _buildHistoryRow(_history501),
@@ -228,9 +233,8 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _buildScoreInput("ROUND SCORE"),
+            _buildScoreInput(s.rank_game_round_score),
             const SizedBox(width: 12),
-            // 🔥 [추가] BUST 버튼 UI
             SizedBox(
               height: 52,
               child: OutlinedButton(
@@ -251,6 +255,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _buildCricketContent() {
+    final s = AppLocalizations.of(context)!;
     String target = _cricketTargets[(_currentRound - 1).clamp(0, 7)];
     double mpr = _historyCricket.isEmpty ? 0 : _totalMarks / _historyCricket.length;
 
@@ -263,7 +268,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _scoreInfoItem("MARKS", "$_totalMarks"),
-              _scoreInfoItem("TARGET", target, isTarget: true),
+              _scoreInfoItem(s.rank_game_target, target, isTarget: true),
               _scoreInfoItem("MPR", mpr.toStringAsFixed(2)),
             ],
           ),
@@ -280,14 +285,15 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _buildCountUpContent() {
+    final s = AppLocalizations.of(context)!;
     return Column(
       children: [
-        const Text("TOTAL SCORE", style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(s.rank_game_total_score, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.bold)),
         Text("$_totalCountUpScore", style: const TextStyle(fontSize: 70, fontWeight: FontWeight.w900, color: Colors.amber, height: 1.1)),
         const SizedBox(height: 10),
         _buildHistoryRow(_historyCountUp),
         const SizedBox(height: 15),
-        _buildScoreInput("ROUND SCORE"),
+        _buildScoreInput(s.rank_game_round_score),
       ],
     );
   }
@@ -355,11 +361,12 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _roundBadge() {
+    final s = AppLocalizations.of(context)!;
     int max = widget.gameType == "501" ? _maxRounds501 : _maxRounds;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-      child: Text("ROUND $_currentRound / $max", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+      child: Text(s.rank_game_round(_currentRound.toString(), max.toString()), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -391,6 +398,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   Widget _buildBottomControlBar() {
+    final s = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
       decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFEEEEEE)))),
@@ -415,7 +423,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
-                child: const Text("CONFIRM", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                child: Text(s.rank_game_confirm, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ),
@@ -429,6 +437,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
   }
 
   void _showDartCountPicker() {
+    final s = AppLocalizations.of(context)!;
     final int finishScore = _history501.isEmpty ? 0 : _history501.last;
 
     showModalBottomSheet(
@@ -449,9 +458,9 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("FINISH! 🎯", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
+                Text(s.rank_finish_title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1A1A1A))),
                 const SizedBox(height: 8),
-                Text("마지막 $finishScore점을 몇 발 만에 끝냈나요?", style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                Text(s.rank_finish_sub(finishScore.toString()), style: const TextStyle(fontSize: 13, color: Colors.grey)),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -478,7 +487,7 @@ class _RankingGameRunScreenState extends ConsumerState<RankingGameRunScreen> {
                             elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           ),
-                          child: Text("$count발", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          child: Text(s.rank_darts_count(count.toString()), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                         ),
                       ),
                     );

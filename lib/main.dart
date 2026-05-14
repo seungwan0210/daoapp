@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter/foundation.dart';
-import 'package:app_links/app_links.dart'; // ✅ 딥링크 패키지
+import 'package:app_links/app_links.dart';
 
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/theme/app_theme.dart';
@@ -64,14 +64,15 @@ import 'package:daoapp/presentation/screens/admin/forms/admin_chat_config_screen
 import 'package:daoapp/presentation/screens/admin/admin_hard_cleanup_screen.dart';
 import 'package:daoapp/presentation/screens/admin/official_calendar_create_screen.dart';
 import 'package:daoapp/presentation/screens/home/official_calendar_screen.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // 👈 추가
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:daoapp/presentation/screens/admin/forms/magazine_form_screen.dart';
 import 'package:daoapp/presentation/screens/admin/quick_notice_manage_screen.dart';
 import 'package:daoapp/presentation/screens/home/live_practice_full_list_screen.dart';
 import 'package:daoapp/core/services/practice_notification_service.dart';
-import 'package:daoapp/data/repositories/practice_repository.dart'; // ✅ 추가
-import 'package:daoapp/presentation/providers/practice/practice_provider.dart'; // ✅ 알려주신 경로 반영
-import 'package:daoapp/di/service_locator.dart'; // ✅ sl 사용을 위해 필요
+import 'package:daoapp/data/repositories/practice_repository.dart';
+import 'package:daoapp/presentation/providers/practice/practice_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
+import 'package:daoapp/presentation/providers/locale_provider.dart';
 
 const bool kAdMobSuspended = false;
 const bool kEnableAdsInDebug = false;
@@ -83,11 +84,15 @@ void main() async {
   // 알림 서비스 초기화
   await PracticeNotificationService.init();
 
+  // ✅ [수정] App Check 활성화 로직 주석 처리 (보안 장벽 일시 해제)
+  /*
   await FirebaseAppCheck.instance.activate(
     androidProvider: kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
     appleProvider: kReleaseMode ? AppleProvider.deviceCheck : AppleProvider.debug,
   );
-  await initializeDateFormatting('ko_KR', null);
+  */
+
+  await initializeDateFormatting();
   setupDependencies();
 
   if (!kAdMobSuspended) {
@@ -107,7 +112,6 @@ void main() async {
   runApp(const ProviderScope(child: DaoApp()));
 }
 
-// 온라인 상태 관리 클래스 (기존과 동일)
 class OnlineStatusManager {
   static Timer? _timer;
   static User? _currentUser;
@@ -144,7 +148,6 @@ class DaoApp extends ConsumerStatefulWidget {
   ConsumerState<DaoApp> createState() => _DaoAppState();
 }
 
-// ✅ [수정 핵심] with WidgetsBindingObserver 를 추가해야 addObserver(this)가 작동합니다.
 class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
@@ -153,41 +156,33 @@ class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    // ✅ 앱 생명주기 관찰자 등록 (with WidgetsBindingObserver 선언 덕분에 에러 사라짐)
     WidgetsBinding.instance.addObserver(this);
     _initDeepLinks();
   }
 
   @override
   void dispose() {
-    // ✅ 관찰자 해제
     WidgetsBinding.instance.removeObserver(this);
     _linkSubscription?.cancel();
     super.dispose();
   }
 
-  // ✅ 앱 상태 변화 감지 (시스템에 의한 강제 종료 대응)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.detached) {
-      // 앱이 메모리에서 완전히 해제되기 직전, 현재 진행 중인 연습이 있다면 강제 종료 및 저장
       final currentUid = FirebaseAuth.instance.currentUser?.uid;
       if (currentUid != null) {
-        // sl<PracticeRepository>() 호출을 위해 상단 임포트 필수
         sl<PracticeRepository>().stopPractice(currentUid, saveToMyLog: true);
       }
     }
   }
 
-  // 🎯 딥링크 수신 및 처리 로직
   void _initDeepLinks() async {
-    // 1. 앱이 꺼진 상태에서 링크로 실행된 경우
     final initialUri = await _appLinks.getInitialLink();
     if (initialUri != null) {
       _handleDeepLink(initialUri);
     }
 
-    // 2. 앱이 켜져 있는 상태에서 링크를 누른 경우 감시
     _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
       debugPrint('🔗 딥링크 감지: $uri');
       _handleDeepLink(uri);
@@ -195,41 +190,31 @@ class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
   }
 
   void _handleDeepLink(Uri uri) {
-    debugPrint('🔗 딥링크 분석 시작: $uri');
-    debugPrint('🔗 Scheme: ${uri.scheme}, Host: ${uri.host}, Path: ${uri.path}');
-
     Future.delayed(const Duration(milliseconds: 1300), () {
       if (_navigatorKey.currentState == null) return;
 
-      // 1. 대회 상세 페이지 (tournament)
-      // host가 tournament거나 path에 포함된 경우 모두 체크
       if (uri.host == 'tournament' || uri.path.contains('tournament')) {
         final tournamentId = uri.queryParameters['id'];
         if (tournamentId != null) {
-          debugPrint('🎯 대회 상세 페이지로 이동: $tournamentId');
           _navigatorKey.currentState?.pushNamed(
             RouteConstants.tournamentDetail,
             arguments: tournamentId,
           );
-          return; // 이동 후 종료
+          return;
         }
       }
 
-      // 2. 커뮤니티 게시물 (post)
-      // ✅ daoapp://post?id=... 형태로 들어오면 uri.host가 'post'가 됩니다.
       if (uri.host == 'post' || uri.path.contains('post')) {
         final postId = uri.queryParameters['id'];
         if (postId != null) {
-          debugPrint('🎯 게시물 위치로 이동: $postId');
           _navigatorKey.currentState?.pushNamed(
             RouteConstants.circle,
             arguments: postId,
           );
-          return; // 이동 후 종료
+          return;
         }
       }
 
-      // 3. 홈으로 이동 (기본값)
       if (uri.host == 'home') {
         _navigatorKey.currentState?.pushNamed(RouteConstants.main);
       }
@@ -238,22 +223,16 @@ class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final currentLocale = ref.watch(localeProvider);
+
     return MaterialApp(
-      navigatorKey: _navigatorKey, // ✅ 네비게이터 키 등록 필수
+      navigatorKey: _navigatorKey,
       title: 'DAO App - Steel League',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      // 🔥 [추가] 한국어 및 기본 로컬라이징 설정
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('ko', 'KR'), // 한국어
-        Locale('en', 'US'), // 영어
-      ],
-      // ------------------------------------
+      locale: currentLocale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       initialRoute: RouteConstants.splash,
       routes: {
         RouteConstants.splash: (_) => const SplashScreen(),
@@ -322,7 +301,6 @@ class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
           final id = settings.arguments as String;
           return MaterialPageRoute(builder: (_) => TournamentDetailScreen(tournamentId: id));
         }
-
         if (settings.name == RouteConstants.tournamentEntryForm) {
           final args = settings.arguments;
           if (args is Map<String, dynamic>) {
@@ -341,7 +319,6 @@ class _DaoAppState extends ConsumerState<DaoApp> with WidgetsBindingObserver {
             );
           }
         }
-
         if (settings.name == RouteConstants.tournamentParticipantList) {
           final args = settings.arguments as Map<String, dynamic>;
           return MaterialPageRoute(

@@ -5,16 +5,16 @@ import 'package:flutter/material.dart';
 class DualNeonGaugeRow extends StatelessWidget {
   final double? phoenixRating;
   final double? liveRating;
-  final double gaugeSize; // 기본 목표 사이즈 (화면에 맞춰 줄어듦)
+  final double gaugeSize;
   final Duration duration;
 
   const DualNeonGaugeRow({
-    Key? key,
+    super.key, // 🔹 Key? key 대신 super.key 사용
     this.phoenixRating,
     this.liveRating,
     this.gaugeSize = 140,
     this.duration = const Duration(milliseconds: 2400),
-  }) : super(key: key);
+  }); // 🔹 : super(key: key) 제거
 
   @override
   Widget build(BuildContext context) {
@@ -31,14 +31,9 @@ class DualNeonGaugeRow extends StatelessWidget {
           return const SizedBox.shrink();
         }
 
-        // 두 개 있을 때만 사이 간격 고정 16px
         const spacing = 16.0;
         final totalSpacing = gaugeCount == 2 ? spacing : 0.0;
-
-        // 각 게이지에 쓸 수 있는 최대 너비
         final perGaugeMaxWidth = (maxWidth - totalSpacing) / gaugeCount;
-
-        // 최소 80, 최대 perGaugeMaxWidth 안에서 clamp
         final effectiveSize = gaugeSize.clamp(80.0, perGaugeMaxWidth);
 
         return Row(
@@ -48,7 +43,7 @@ class DualNeonGaugeRow extends StatelessWidget {
               _NeonGauge(
                 value: phoenixRating!,
                 max: 30.0,
-                label: "PHOENIX",
+                label: "PHOENIX", // 🔹 브랜드명이라 번역 불필요
                 gradient: const [Colors.cyan, Colors.greenAccent, Colors.yellow],
                 duration: duration,
                 size: effectiveSize,
@@ -59,7 +54,7 @@ class DualNeonGaugeRow extends StatelessWidget {
               _NeonGauge(
                 value: liveRating!,
                 max: 18.0,
-                label: "LIVE",
+                label: "LIVE", // 🔹 브랜드명이라 번역 불필요
                 gradient: const [Colors.orangeAccent, Colors.deepOrange, Colors.redAccent],
                 duration: duration,
                 size: effectiveSize,
@@ -110,6 +105,7 @@ class _NeonGauge extends StatelessWidget {
                   ),
                 ),
                 Column(
+                  mainAxisSize: MainAxisSize.min, // 🔹 불필요한 영역 차지 방지
                   children: [
                     Text(
                       _formatRating(animValue),

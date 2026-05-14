@@ -10,7 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_localizations: # 👈 여기를 이렇게 수정하세요
+  # 1. 다국어 지원 핵심 패키지
+  flutter_localizations:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
@@ -26,6 +27,7 @@ dependencies:
   firebase_database: ^12.3.0
   firebase_app_check: ^0.4.3
   easy_date_timeline: ^2.0.9
+  shared_preferences: ^2.3.5  # 👈 이 줄을 추가하세요
 
   # ==== 상태관리 / 유틸 ====
   flutter_riverpod: ^2.4.0
@@ -34,8 +36,11 @@ dependencies:
   rxdart: ^0.28.0
   collection: ^1.17.0
   path: ^1.8.3
-  intl: ^0.20.2
-  http: ^1.2.0    # ✅ 추가
+  intl: ^0.20.2 # ✅ 다국어 날짜/숫자 포맷 필수
+  http: ^1.2.0
+
+  # 2. 실시간 게시글 번역을 위한 Gemini API 패키지
+  google_generative_ai: ^0.4.0
 
   # ==== UI / 위젯 ====
   table_calendar: ^3.1.2
@@ -82,11 +87,17 @@ dev_dependencies:
   freezed: ^2.4.7
   json_serializable: ^6.7.1
 
+  # 3. 코드 내 한국어 자동 추출 및 번역 보조 도구
+  # 터미널에서 'dart run arb_utils' 등으로 활용 가능
+  arb_utils: ^0.1.0
+
   # ✅ 앱 아이콘 생성용
   flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+  # 4. 다국어 자동 클래스 생성을 위해 true로 설정
+  generate: true
 
   fonts:
     - family: Pretendard
@@ -102,65 +113,17 @@ flutter:
 
   assets:
     - assets/fonts/
-
-    # ==== 공통 이미지 ====
-    - assets/images/app_icon.png
-    - assets/images/logo_dao.png
-    - assets/images/splash_portrait.png
-    - assets/images/login_background.png
-    - assets/images/google_logo.png
-    - assets/images/dartboard.png
-    - assets/images/circle_main.png
-
-    # ✅ 포즈 분석 가이드 이미지 (기존)
-    - assets/images/guide_good.png
-    - assets/images/guide_bad.png
-
-    # ✅ 그립 분석 가이드 이미지 (새로 추가됨)
-    - assets/images/grip_guide_good.png
-    - assets/images/grip_guide_bad.png
-
-    # ==== Android Adaptive Icon 리소스 ====
-    - assets/images/ic_launcher_background.png
-    - assets/images/ic_launcher_foreground.png
-
-    # ==== 뱃지 이미지 ====
-    - assets/badges/pro.png
-    - assets/badges/emerald.png
-    - assets/badges/diamond.png
-    - assets/badges/platinum1.png
-    - assets/badges/platinum2.png
-    - assets/badges/gold1.png
-    - assets/badges/gold2.png
-    - assets/badges/silver1.png
-    - assets/badges/silver2.png
-    - assets/badges/bronze1.png
-    - assets/badges/bronze2.png
-    - assets/badges/bronze3.png
-    - assets/badges/tro.png
-    - assets/badges/season.png
-    - assets/badges/season1.png
-    - assets/badges/season2.png
-    - assets/badges/season3.png
-
-   # ==== 뉴스 소스 로고 추가 (여기에 넣어주세요) ====
-    - assets/images/logo_phoenix.png
-    - assets/images/logo_dartslive.png
-    - assets/images/logo_pdc.png
-    - assets/images/logo_wdf.png
-    - assets/images/logo_default.png
-
-    # ==== 주최사 로고 (공식 일정용) ====
+    - assets/images/
+    - assets/badges/
     - assets/images/logos/
+    # 5. 다국어 파일 폴더 추가 (없다면 만드셔야 합니다)
+    - lib/l10n/
 
 # ✅ 앱 아이콘 설정
 flutter_launcher_icons:
   android: true
   ios: true
-
   image_path: "assets/images/app_icon.png"
-
   min_sdk_android: 21
-
   adaptive_icon_background: "assets/images/ic_launcher_background.png"
   adaptive_icon_foreground: "assets/images/ic_launcher_foreground.png"

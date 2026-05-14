@@ -10,6 +10,7 @@ import 'package:daoapp/presentation/screens/training/grip_lab/grip_camera_screen
 import 'package:daoapp/presentation/screens/training/grip_lab/widgets/ghost_overlay_painter.dart';
 import 'package:daoapp/core/utils/grip_coach.dart';
 import 'package:daoapp/data/services/native_grip_bridge.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class GripCompareScreen extends ConsumerStatefulWidget {
   const GripCompareScreen({super.key});
@@ -35,7 +36,6 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // iOS 네이티브 뷰 안착 대기 후 분석 시작
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) ref.read(gripLabProvider.notifier).startAnalysis();
       });
@@ -51,17 +51,10 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
   Widget _buildNativeCameraView() {
     const String viewType = 'dao_grip_camera_view';
     const codec = StandardMessageCodec();
-
     if (Platform.isIOS) {
-      return const UiKitView(
-        viewType: viewType,
-        creationParamsCodec: codec,
-      );
+      return const UiKitView(viewType: viewType, creationParamsCodec: codec);
     } else {
-      return const AndroidView(
-        viewType: viewType,
-        creationParamsCodec: codec,
-      );
+      return const AndroidView(viewType: viewType, creationParamsCodec: codec);
     }
   }
 
@@ -70,7 +63,6 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
       _cooldownSeconds = 5;
       _isProcessing = true;
     });
-
     _cooldownTimer?.cancel();
     _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -88,37 +80,31 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
     });
   }
 
-  // ✅ 핵심 수정: 재촬영 로직 안정화
-  // 시스템이 카메라 세션을 정리할 시간을 준 뒤 분석기를 재시작합니다.
   void _resetCapture() {
     setState(() {
       _isCaptured = false;
       _capturedLandmarks = null;
       _aiFeedback = [];
     });
-
-    // 1. 먼저 명확하게 분석 중지 명령을 내립니다.
     ref.read(gripLabProvider.notifier).stopAnalysis();
-
-    // 2. iOS 시스템이 카메라 소스를 정리하도록 약간 대기합니다 (300ms)
     Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        // 3. 다시 분석 시작
-        ref.read(gripLabProvider.notifier).startAnalysis();
-      }
+      if (mounted) ref.read(gripLabProvider.notifier).startAnalysis();
     });
   }
 
   void _captureAndAnalyze() {
     if (_isProcessing || _cooldownSeconds > 0) return;
 
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스 가져오기
     final gripState = ref.read(gripLabProvider);
     final baseline = ref.read(gripBaselineProvider).baseline;
 
     if (gripState.isHandDetected && gripState.landmarks.length >= 21 && baseline != null) {
       _startCooldown();
 
+      // 🔹 s: s 파라미터를 추가하여 분석 로직에 언어팩을 전달합니다.
       final feedback = GripCoach.analyze(
+        s: s,
         baseline: baseline.landmarks,
         current: gripState.landmarks,
       );
@@ -128,14 +114,13 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
         _capturedLandmarks = List.from(gripState.landmarks);
         _aiFeedback = feedback;
       });
-
-      // 촬영 후 분석 일시 정지
       ref.read(gripLabProvider.notifier).stopAnalysis();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final baselineState = ref.watch(gripBaselineProvider);
     final gripState = ref.watch(gripLabProvider);
 
@@ -153,7 +138,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(
-          _isCaptured ? "분석 결과" : "그립 비교 촬영",
+          _isCaptured ? s.grip_comp_result_title : s.grip_comp_title,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -166,7 +151,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: "기준 그립 반전",
+            tooltip: s.grip_comp_mirror_on,
             icon: Icon(
               Icons.flip_rounded,
               color: _mirrorBaseline ? Colors.cyanAccent : Colors.grey,
@@ -175,7 +160,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
               setState(() => _mirrorBaseline = !_mirrorBaseline);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(_mirrorBaseline ? "기준 뼈대 반전(거울 모드)" : "기준 뼈대 원복"),
+                  content: Text(_mirrorBaseline ? s.grip_comp_mirror_on : s.grip_comp_mirror_off),
                   duration: const Duration(milliseconds: 600),
                 ),
               );
@@ -189,19 +174,18 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
           if (_isCaptured)
             TextButton(
               onPressed: _resetCapture,
-              child: const Text("재촬영", style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
+              child: Text(s.grip_comp_retake, style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold)),
             ),
         ],
       ),
       body: _isCaptured
-          ? _buildCapturedSplitView(baselineModel, gripState)
-          : _buildLiveView(baselineModel, isHandLive, gripState),
+          ? _buildCapturedSplitView(baselineModel, gripState, s)
+          : _buildLiveView(baselineModel, isHandLive, gripState, s),
     );
   }
 
-  Widget _buildCapturedSplitView(dynamic baselineModel, dynamic gripState) {
+  Widget _buildCapturedSplitView(dynamic baselineModel, dynamic gripState, AppLocalizations s) {
     if (_capturedLandmarks == null) return const SizedBox.shrink();
-
     return Column(
       children: [
         Expanded(
@@ -228,24 +212,24 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
           flex: 1,
           child: Container(
             color: const Color(0xFF121212),
-            child: _buildResultScrollView(),
+            child: _buildResultScrollView(s),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildResultScrollView() {
+  Widget _buildResultScrollView(AppLocalizations s) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.analytics_rounded, color: Colors.cyanAccent, size: 28),
-              SizedBox(width: 12),
-              Text("AI 그립 분석 결과", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+              const Icon(Icons.analytics_rounded, color: Colors.cyanAccent, size: 28),
+              const SizedBox(width: 12),
+              Text(s.grip_comp_ai_title, style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
             ],
           ),
           const SizedBox(height: 16),
@@ -256,15 +240,15 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white24),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.info_outline, color: Colors.white70, size: 20),
-                SizedBox(width: 10),
+                const Icon(Icons.info_outline, color: Colors.white70, size: 20),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    "거리 분석 기준: 엄지 손톱 끝과 검지 손톱 끝 사이의 직선 거리를 비교합니다.",
-                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                    s.grip_comp_info_dist,
+                    style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
                   ),
                 ),
               ],
@@ -272,9 +256,9 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
           ),
           const SizedBox(height: 24),
           if (_aiFeedback.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Text("분석 결과가 없습니다.", style: TextStyle(color: Colors.white54, fontSize: 16)),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(s.grip_comp_no_result, style: const TextStyle(color: Colors.white54, fontSize: 16)),
             ),
           ..._aiFeedback.map((text) => Container(
             margin: const EdgeInsets.only(bottom: 16),
@@ -303,7 +287,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
                 backgroundColor: Colors.cyan[700],
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: const Text("다시 촬영하기", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              child: Text(s.grip_comp_btn_retake, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
           const SizedBox(height: 30),
@@ -312,7 +296,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
     );
   }
 
-  Widget _buildLiveView(dynamic baselineModel, bool isHandLive, dynamic gripState) {
+  Widget _buildLiveView(dynamic baselineModel, bool isHandLive, dynamic gripState, AppLocalizations s) {
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -331,7 +315,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
             ),
           )
         else
-          const Center(child: Text("손을 카메라에 비춰주세요", style: TextStyle(color: Colors.white54))),
+          Center(child: Text(s.grip_comp_live_guide, style: const TextStyle(color: Colors.white54))),
 
         Positioned(
           top: 20, right: 20,
@@ -353,7 +337,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
                     child: Container(
                       color: Colors.black.withOpacity(0.6),
                       padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: const Text("기준 그립", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      child: Text(s.grip_comp_baseline_label, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                     ),
                   )
                 ],
@@ -362,12 +346,12 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
           ),
         ),
         Center(child: CustomPaint(painter: _CrosshairPainter(), child: const SizedBox.expand())),
-        Positioned(bottom: 30, left: 20, right: 20, child: _buildCaptureButton(isHandLive)),
+        Positioned(bottom: 30, left: 20, right: 20, child: _buildCaptureButton(isHandLive, s)),
       ],
     );
   }
 
-  Widget _buildCaptureButton(bool enabled) {
+  Widget _buildCaptureButton(bool enabled, AppLocalizations s) {
     final bool canClick = enabled && !_isProcessing && _cooldownSeconds == 0;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -377,14 +361,14 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(20)),
-            child: const Text("기준 사진과 비슷하게 잡고\n+ 중심에 맞춰 촬영하세요", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 14)),
+            child: Text(s.grip_comp_shoot_guide, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 14)),
           )
         else if (_cooldownSeconds > 0)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             margin: const EdgeInsets.only(bottom: 20),
             decoration: BoxDecoration(color: Colors.red.withOpacity(0.8), borderRadius: BorderRadius.circular(20)),
-            child: Text("$_cooldownSeconds초 뒤 촬영 가능", style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+            child: Text(s.grip_comp_cooldown(_cooldownSeconds.toString()), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
           ),
         GestureDetector(
           onTap: () {
@@ -432,15 +416,16 @@ class _NoBaselineView extends StatelessWidget {
   const _NoBaselineView({required this.onTake});
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return Scaffold(
-      appBar: AppBar(title: const Text("그립 비교"), centerTitle: true),
+      appBar: AppBar(title: Text(s.grip_comp_title), centerTitle: true),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text("기준 그립이 없습니다."),
+            Text(s.grip_comp_no_baseline),
             const SizedBox(height: 20),
-            ElevatedButton(onPressed: onTake, child: const Text("촬영하러 가기"))
+            ElevatedButton(onPressed: onTake, child: Text(s.grip_comp_btn_go_shoot))
           ],
         ),
       ),

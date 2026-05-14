@@ -6,6 +6,7 @@ import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.
 import 'package:daoapp/presentation/screens/training/ranking/ranking_list_item.dart';
 import 'package:daoapp/presentation/screens/training/ranking/game_selection_sheet.dart';
 import 'package:daoapp/data/models/ranking_game_model.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class RankingTabView extends ConsumerStatefulWidget {
   const RankingTabView({super.key});
@@ -20,7 +21,6 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
   @override
   void initState() {
     super.initState();
-    // 탭 개수를 4개로 늘렸습니다 (501, Cricket, Count-Up, 통합)
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
@@ -37,9 +37,10 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 추가
+
     return Column(
       children: [
-        // 1. 슬림한 탭바 디자인
         TabBar(
           controller: _tabController,
           labelColor: Colors.cyan[800],
@@ -47,16 +48,15 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
           indicatorColor: Colors.cyan,
           indicatorWeight: 2,
           labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-          tabs: const [
-            Tab(height: 36, text: "501"),
-            Tab(height: 36, text: "Cricket"),
-            Tab(height: 36, text: "Count-Up"),
-            Tab(height: 36, text: "통합 🔥"), // 🆕 통합 탭 추가
+          tabs: [
+            const Tab(height: 36, text: "501"),
+            const Tab(height: 36, text: "Cricket"),
+            const Tab(height: 36, text: "Count-Up"),
+            Tab(height: 36, text: s.rank_tab_total), // 🔹 다국어화
           ],
         ),
         const SizedBox(height: 12),
 
-        // 2. 랭킹 리스트 영역
         AppCard(
           child: AnimatedSwitcher(
             duration: const Duration(milliseconds: 250),
@@ -66,7 +66,6 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
 
         const SizedBox(height: 16),
 
-        // 3. 도전 버튼
         Center(
           child: InkWell(
             onTap: () => _showGameSelectionSheet(context),
@@ -84,14 +83,14 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.bolt, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
+                  const Icon(Icons.bolt, color: Colors.white, size: 16),
+                  const SizedBox(width: 8),
                   Text(
-                    "랭킹 도전하기",
-                    style: TextStyle(
+                    s.rank_btn_challenge, // 🔹 다국어화
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -103,29 +102,27 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
           ),
         ),
 
-        // 4. 안내 문구
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
           child: Column(
             children: [
-              const Text(
-                "💡 기록 관리 안내",
-                style: TextStyle(
+              Text(
+                s.rank_guide_title, // 🔹 다국어화
+                style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                   color: Colors.grey,
                 ),
               ),
               const SizedBox(height: 6),
-              const Text(
-                "내 기록을 길게 꾹 누르면 해당 기록을 삭제할 수 있습니다.",
-                style: TextStyle(fontSize: 10, color: Colors.grey),
+              Text(
+                s.rank_guide_delete, // 🔹 다국어화
+                style: const TextStyle(fontSize: 10, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 4),
-              // 🔥 경고 문구: 부정한 방법 기록 삭제 안내
               Text(
-                "공정한 랭킹 문화를 위해 부적절한 방법으로 등록된 기록은\n관리자에 의해 예고 없이 삭제될 수 있습니다.",
+                s.rank_guide_warning, // 🔹 다국어화
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.redAccent.withOpacity(0.8),
@@ -135,7 +132,7 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
               ),
               const SizedBox(height: 8),
               Text(
-                "통합 랭킹으로 배지가 수여되며\n각 종목 TOP 10 기록을 합산하여 결정됩니다.",
+                s.rank_guide_badge, // 🔹 다국어화
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.cyan[700],
@@ -145,12 +142,14 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
             ],
           ),
         ),
-      ], // Column children 끝
-    ); // return Column 끝
+      ],
+    );
   }
 
   Widget _buildCurrentRankingList() {
     final myUid = FirebaseAuth.instance.currentUser?.uid ?? "";
+    final s = AppLocalizations.of(context)!;
+
     switch (_tabController.index) {
       case 0:
         return _buildRankingList(
@@ -176,24 +175,22 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
           myUid: myUid,
           category: 'countup',
         );
-      case 3: // 🆕 통합 랭킹 전용 빌더 호출
+      case 3:
         return _buildTotalRankingSection(myUid);
       default:
         return const SizedBox.shrink();
     }
   }
 
-  // -----------------------------------------------------------------
-  // 🏆 [통합 랭킹 빌더] - 10위 밖은 순위 없음(-) 처리 로직 포함
-  // -----------------------------------------------------------------
   Widget _buildTotalRankingSection(String myUid) {
+    final s = AppLocalizations.of(context)!;
     final totalRanking = ref.watch(totalRankingProvider);
 
     if (totalRanking.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(40),
-          child: Text("아직 통합 집계 데이터가 없습니다.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+          padding: const EdgeInsets.all(40),
+          child: Text(s.rank_no_total_data, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ),
       );
     }
@@ -205,7 +202,6 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // --- [통합 TOP 10] ---
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -223,12 +219,10 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
             );
           },
         ),
-
-        // --- [내 통합 순위 섹션: 10위 밖일 때 '-'로 표시] ---
         if (!isInTop10 && hasMyData) ...[
           const Divider(thickness: 2, color: Colors.cyan),
           RankingListItem(
-            rank: -1, // 👈 10위 밖이므로 '-' 표시를 위해 -1 전달
+            rank: -1,
             record: totalRanking[myIndex]['record'],
             displayValue: "${totalRanking[myIndex]['totalPoints']} P",
             isMe: true,
@@ -239,9 +233,6 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
     );
   }
 
-  // -----------------------------------------------------------------
-  // 🎯 [일반 종목 빌더] - 기존 로직 유지 (순위 모두 표시)
-  // -----------------------------------------------------------------
   Widget _buildRankingList({
     required Key key,
     required AsyncValue<List<RankingRecord>> asyncRanking,
@@ -249,15 +240,16 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
     required String myUid,
     required String category,
   }) {
+    final s = AppLocalizations.of(context)!;
     return Container(
       key: key,
       child: asyncRanking.when(
         data: (list) {
           if (list.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(40),
-                child: Text("아직 기록이 없습니다.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                padding: const EdgeInsets.all(40),
+                child: Text(s.rank_no_data, style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ),
             );
           }
@@ -283,11 +275,10 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
                   category: category,
                 ),
               ),
-
               if (!isInTop10 && hasMyData) ...[
                 const Divider(thickness: 2, color: Colors.cyan),
                 RankingListItem(
-                  rank: myIndex + 1, // 👈 일반 종목은 10위 밖이라도 정확한 숫자를 보여줍니다.
+                  rank: myIndex + 1,
                   record: list[myIndex],
                   displayValue: valueFormatter(list[myIndex]),
                   isMe: true,
@@ -303,8 +294,8 @@ class _RankingTabViewState extends ConsumerState<RankingTabView> with SingleTick
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
-        error: (e, _) => const Center(
-          child: Padding(padding: EdgeInsets.all(40), child: Text("데이터 로드 실패")),
+        error: (e, _) => Center(
+          child: Padding(padding: const EdgeInsets.all(40), child: Text(s.rank_load_failed)),
         ),
       ),
     );

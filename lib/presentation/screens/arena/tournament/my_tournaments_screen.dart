@@ -10,6 +10,7 @@ import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_create_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/widgets/tournament_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class MyTournamentsScreen extends StatelessWidget {
   const MyTournamentsScreen({super.key});
@@ -20,18 +21,19 @@ class MyTournamentsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final user = _auth.currentUser;
 
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('내가 주최한 대회'),
+          title: Text(s.my_tournaments_title), // 🔹 다국어 적용
           backgroundColor: theme.scaffoldBackgroundColor,
           elevation: 0,
           foregroundColor: theme.colorScheme.onBackground,
           surfaceTintColor: Colors.transparent,
         ),
-        body: const Center(child: Text('로그인이 필요합니다')),
+        body: Center(child: Text(s.login_required)), // 🔹 공통 키 활용
       );
     }
 
@@ -40,14 +42,14 @@ class MyTournamentsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('내가 주최한 대회'),
+        title: Text(s.my_tournaments_title), // 🔹 다국어 적용
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         foregroundColor: theme.colorScheme.onBackground,
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
-            tooltip: '대회 개최하기',
+            tooltip: s.my_tournaments_btn_create, // 🔹 다국어 적용
             icon: const Icon(Icons.add_circle_outline),
             onPressed: () {
               Navigator.push(
@@ -60,7 +62,6 @@ class MyTournamentsScreen extends StatelessWidget {
         ],
       ),
 
-      // ✅ Stream = 실시간 반영 (주최/공동주최 포함)
       body: StreamBuilder<List<TournamentModel>>(
         stream: _repo.getMyHostedTournaments(
           userUid: userUid,
@@ -74,7 +75,7 @@ class MyTournamentsScreen extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  '대회 정보를 불러오는 중 오류가 발생했습니다.\n${snapshot.error}',
+                  '${s.my_tournaments_error}\n${snapshot.error}', // 🔹 다국어 적용
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.redAccent),
                 ),
@@ -103,16 +104,16 @@ class MyTournamentsScreen extends StatelessWidget {
                       color: Colors.grey[400],
                     ),
                     const SizedBox(height: 18),
-                    const Text(
-                      '아직 주최한 대회가 없어요',
-                      style: TextStyle(
+                    Text(
+                      s.my_tournaments_no_data, // 🔹 다국어 적용
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '지금 바로 첫 대회를 만들어보세요!',
+                      s.my_tournaments_no_data_guide, // 🔹 다국어 적용
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w600,
@@ -123,7 +124,7 @@ class MyTournamentsScreen extends StatelessWidget {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.add),
-                        label: const Text('대회 개최하기'),
+                        label: Text(s.my_tournaments_btn_create), // 🔹 다국어 적용
                         onPressed: () {
                           Navigator.push(
                             context,
@@ -140,11 +141,9 @@ class MyTournamentsScreen extends StatelessWidget {
             );
           }
 
-          // list (✅ 당겨서 새로고침 UX)
+          // list
           return RefreshIndicator(
             onRefresh: () async {
-              // StreamBuilder라 “강제 리프레시”는 따로 필요 없지만,
-              // 사용자는 당겨서 새로고침을 기대하니까 UX용으로 200ms만
               await Future.delayed(const Duration(milliseconds: 200));
             },
             child: ListView.builder(

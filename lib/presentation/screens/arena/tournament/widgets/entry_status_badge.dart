@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 /// 토너먼트 카드 상단에 붙는 엔트리 상태 + D-day 배지
 class EntryStatusBadge extends StatelessWidget {
@@ -32,6 +33,27 @@ class EntryStatusBadge extends StatelessWidget {
     }
   }
 
+  // 🔹 상태별 다국어 라벨 매핑 헬퍼
+  String _getStatusLabel(BuildContext context, EntryStatus status) {
+    final s = AppLocalizations.of(context)!;
+    switch (status) {
+      case EntryStatus.open:
+        return s.arena_status_open;
+      case EntryStatus.upcoming:
+        return s.arena_status_upcoming;
+      case EntryStatus.closed:
+        return s.arena_status_closed;
+      case EntryStatus.inProgress:
+        return s.arena_status_in_progress;
+      case EntryStatus.finished:
+        return s.arena_status_finished;
+      case EntryStatus.canceled:
+        return s.arena_status_canceled;
+      default:
+        return ArenaUtils.statusText(status); // 예외 상황은 유틸 텍스트 유지
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final entryStart = tournament.entryStartDate;
@@ -44,7 +66,7 @@ class EntryStatusBadge extends StatelessWidget {
       eventDate: eventDate,
     );
 
-    final label = ArenaUtils.statusText(status);
+    final label = _getStatusLabel(context, status); // 🔹 다국어 적용
     final color = ArenaUtils.statusColor(status, context);
 
     String? entryDdayText;
@@ -60,7 +82,7 @@ class EntryStatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8), // 조금 더 정갈한 라운딩
+        borderRadius: BorderRadius.circular(8),
         color: color.withOpacity(0.08),
         border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
@@ -69,12 +91,11 @@ class EntryStatusBadge extends StatelessWidget {
         children: [
           Icon(
             icon,
-            size: 12, // 아이콘 크기 미세 조정
+            size: 12,
             color: color,
           ),
           const SizedBox(width: 4),
 
-          // ✅ 메인 상태 텍스트: Flexible을 적용하여 오버플로우 방지
           Flexible(
             child: Text(
               label,
@@ -89,7 +110,6 @@ class EntryStatusBadge extends StatelessWidget {
             ),
           ),
 
-          // ✅ D-day 표시
           if (showChip) ...[
             const SizedBox(width: 6),
             Container(

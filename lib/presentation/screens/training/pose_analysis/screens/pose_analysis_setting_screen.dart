@@ -6,6 +6,7 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/providers/training/pose_analysis_provider.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_process_screen.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class PoseAnalysisSettingScreen extends ConsumerStatefulWidget {
   const PoseAnalysisSettingScreen({super.key});
@@ -23,7 +24,22 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
     super.dispose();
   }
 
-  // ✅ 영상 변경 로직
+  String _getTranslatedPartName(String rawKey, AppLocalizations s) {
+    // 손목
+    if (rawKey.contains('오른쪽 손목') || rawKey.contains('Right Wrist')) return s.pose_label_r_wrist;
+    if (rawKey.contains('왼쪽 손목') || rawKey.contains('Left Wrist')) return s.pose_label_l_wrist;
+
+    // 팔꿈치
+    if (rawKey.contains('오른쪽 팔꿈치') || rawKey.contains('Right Elbow')) return s.pose_label_r_elbow;
+    if (rawKey.contains('왼쪽 팔꿈치') || rawKey.contains('Left Elbow')) return s.pose_label_l_elbow;
+
+    // 어깨 (새로 추가)
+    if (rawKey.contains('오른쪽 어깨') || rawKey.contains('Right Shoulder')) return s.pose_label_r_shoulder;
+    if (rawKey.contains('왼쪽 어깨') || rawKey.contains('Left Shoulder')) return s.pose_label_l_shoulder;
+
+    return rawKey;
+  }
+
   Future<void> _changeVideo() async {
     _previewController?.pause();
     final notifier = ref.read(poseAnalysisProvider.notifier);
@@ -32,10 +48,10 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final state = ref.watch(poseAnalysisProvider);
     final notifier = ref.read(poseAnalysisProvider.notifier);
 
-    // 현재 선택된 부위/색상
     final currentPart = state.activeTracks.isNotEmpty
         ? state.activeTracks.keys.first
         : PoseLandmarkType.rightWrist;
@@ -52,7 +68,7 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text("분석 설정", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(s.pose_setting_title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         centerTitle: true,
         backgroundColor: Colors.white,
         elevation: 0,
@@ -60,7 +76,6 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
       ),
       body: Column(
         children: [
-          // 영상 미리보기 영역
           Container(
             height: 250,
             width: double.infinity,
@@ -76,7 +91,6 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                 else
                   const Center(child: CircularProgressIndicator(color: Colors.white)),
 
-                // 영상 변경 버튼
                 Positioned(
                   right: 16,
                   bottom: 16,
@@ -88,14 +102,14 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                       onTap: _changeVideo,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.video_library_outlined, color: Colors.white, size: 16),
-                            SizedBox(width: 6),
+                            const Icon(Icons.video_library_outlined, color: Colors.white, size: 16),
+                            const SizedBox(width: 6),
                             Text(
-                              "영상 변경",
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                              s.pose_setting_change_video,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                             ),
                           ],
                         ),
@@ -112,7 +126,6 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // 🔥 [추가됨] 분석 가이드 팁 (파란색 박스)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
@@ -129,13 +142,13 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                           children: [
                             Icon(Icons.tips_and_updates_outlined, size: 18, color: Colors.blue[800]),
                             const SizedBox(width: 8),
-                            Text("정확한 분석을 위한 팁", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900], fontSize: 14)),
+                            Text(s.pose_setting_tip_title, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900], fontSize: 14)),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        _buildTipText("• 원활한 분석을 위해 20~25초 내외의 영상을 권장합니다."),
+                        _buildTipText(s.pose_setting_tip1),
                         const SizedBox(height: 4),
-                        _buildTipText("• 측면에서 몸과 팔 전체가 나오도록 촬영하면 가장 정확합니다."),
+                        _buildTipText(s.pose_setting_tip2),
                       ],
                     ),
                   ),
@@ -146,7 +159,7 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildSectionHeader("추적 부위 선택", Icons.ads_click),
+                          _buildSectionHeader(s.pose_setting_section_part, Icons.ads_click),
                           const SizedBox(height: 12),
                           Wrap(
                             spacing: 8, runSpacing: 8,
@@ -156,7 +169,8 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                             }).map((entry) {
                               final isSelected = currentPart == entry.value;
                               return ChoiceChip(
-                                label: Text(entry.key),
+                                // ✅ 헬퍼 함수를 통해 번역된 텍스트를 적용합니다.
+                                label: Text(_getTranslatedPartName(entry.key, s)),
                                 labelStyle: TextStyle(
                                     color: isSelected ? Colors.white : Colors.grey[700],
                                     fontSize: 13,
@@ -183,7 +197,7 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                           const Divider(),
                           const SizedBox(height: 16),
 
-                          _buildSectionHeader("뼈대 색상", Icons.palette_outlined),
+                          _buildSectionHeader(s.pose_setting_section_skeleton, Icons.palette_outlined),
                           const SizedBox(height: 12),
                           _buildColorRow(
                               [Colors.white, Colors.redAccent, Colors.greenAccent, Colors.black],
@@ -193,7 +207,7 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
 
                           const SizedBox(height: 24),
 
-                          _buildSectionHeader("트래킹 라인 색상", Icons.timeline),
+                          _buildSectionHeader(s.pose_setting_section_line, Icons.timeline),
                           const SizedBox(height: 12),
                           _buildColorRow(
                               [const Color(0xFFFFEB3B), Colors.blueAccent, Colors.purpleAccent, Colors.orangeAccent],
@@ -227,7 +241,7 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: const Text("분석 시작", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                child: Text(s.pose_setting_btn_start, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ),
@@ -236,7 +250,6 @@ class _PoseAnalysisSettingScreenState extends ConsumerState<PoseAnalysisSettingS
     );
   }
 
-  // 가이드 텍스트 스타일 헬퍼
   Widget _buildTipText(String text) {
     return Text(
       text,

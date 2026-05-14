@@ -1,10 +1,10 @@
-// lib/presentation/screens/training/calculator/checkout_calculator_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:daoapp/presentation/providers/training/calculator/checkout_calculator_provider.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class CheckoutCalculatorScreen extends StatefulWidget {
   const CheckoutCalculatorScreen({super.key});
@@ -26,10 +26,12 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
   }
 
   void _startWithScore(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final score = int.tryParse(_initialController.text);
+
     if (score == null || score < 2 || score > 170) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("2~170 사이의 점수를 입력하세요")),
+        SnackBar(content: Text(s.calc_error_range)),
       );
       return;
     }
@@ -38,6 +40,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
   }
 
   void _onKeyPressed(BuildContext context, String key) {
+    final s = AppLocalizations.of(context)!;
     setState(() {
       if (key == 'backspace') {
         if (_currentInput.isNotEmpty) _currentInput.removeLast();
@@ -55,7 +58,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
           _currentInput.clear();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("남은 점수보다 클 수 없어요")),
+            SnackBar(content: Text(s.calc_error_exceed)),
           );
         }
         return;
@@ -74,10 +77,11 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
       create: (_) => CheckoutCalculatorProvider(),
       child: Builder(
         builder: (innerContext) {
+          final s = AppLocalizations.of(innerContext)!;
           final theme = Theme.of(innerContext);
 
           return Scaffold(
-            appBar: const CommonAppBar(title: "체크아웃 계산기"),
+            appBar: CommonAppBar(title: s.calc_title),
             body: SafeArea(
               child: Consumer<CheckoutCalculatorProvider>(
                 builder: (ctx, provider, _) {
@@ -102,7 +106,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  "시작 점수를 입력하세요",
+                                  s.calc_start_msg,
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -117,7 +121,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: "2 ~ 170",
+                                    hintText: s.calc_start_hint,
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -133,7 +137,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                   child: ElevatedButton(
                                     onPressed: () =>
                                         _startWithScore(innerContext),
-                                    child: const Text("시작하기"),
+                                    child: Text(s.calc_btn_start),
                                   ),
                                 ),
                               ],
@@ -170,7 +174,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                         MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            "남은 점수",
+                                            s.calc_remain_score,
                                             style: TextStyle(
                                                 color: Colors.grey[600]),
                                           ),
@@ -183,7 +187,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                               },
                                               icon: const Icon(Icons.undo,
                                                   size: 18),
-                                              label: const Text("되돌리기"),
+                                              label: Text(s.calc_undo),
                                               style: TextButton.styleFrom(
                                                 padding: const EdgeInsets
                                                     .symmetric(horizontal: 8),
@@ -208,7 +212,7 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                       if (currentInputStr.isNotEmpty) ...[
                                         const SizedBox(height: 12),
                                         Text(
-                                          "이번 턴: $currentInputStr",
+                                          s.calc_current_turn(currentInputStr),
                                           style: TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.w600,
@@ -233,13 +237,13 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                       CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          children: const [
-                                            Icon(Icons.lightbulb,
+                                          children: [
+                                            const Icon(Icons.lightbulb,
                                                 color: Colors.amber, size: 26),
-                                            SizedBox(width: 10),
+                                            const SizedBox(width: 10),
                                             Text(
-                                              "추천 체크아웃 루트",
-                                              style: TextStyle(
+                                              s.calc_recommend_title,
+                                              style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
                                               ),
@@ -262,9 +266,9 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                                         if (provider.routes.first.alts
                                             .isNotEmpty) ...[
                                           const SizedBox(height: 8),
-                                          const Text(
-                                            "대안 루트:",
-                                            style: TextStyle(
+                                          Text(
+                                            s.calc_alt_route,
+                                            style: const TextStyle(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -309,18 +313,18 @@ class _CheckoutCalculatorScreenState extends State<CheckoutCalculatorScreen> {
                             mainAxisSpacing: 10,
                             crossAxisSpacing: 10,
                             children: [
-                              _buildKey(ctx, '7'),
-                              _buildKey(ctx, '8'),
-                              _buildKey(ctx, '9'),
-                              _buildKey(ctx, '4'),
-                              _buildKey(ctx, '5'),
-                              _buildKey(ctx, '6'),
-                              _buildKey(ctx, '1'),
-                              _buildKey(ctx, '2'),
-                              _buildKey(ctx, '3'),
-                              _buildKey(ctx, 'backspace', isBackspace: true),
-                              _buildKey(ctx, '0'),
-                              _buildKey(ctx, 'confirm', isConfirm: true),
+                              _buildKey(innerContext, '7'),
+                              _buildKey(innerContext, '8'),
+                              _buildKey(innerContext, '9'),
+                              _buildKey(innerContext, '4'),
+                              _buildKey(innerContext, '5'),
+                              _buildKey(innerContext, '6'),
+                              _buildKey(innerContext, '1'),
+                              _buildKey(innerContext, '2'),
+                              _buildKey(innerContext, '3'),
+                              _buildKey(innerContext, 'backspace', isBackspace: true),
+                              _buildKey(innerContext, '0'),
+                              _buildKey(innerContext, 'confirm', isConfirm: true),
                             ],
                           ),
                         ),

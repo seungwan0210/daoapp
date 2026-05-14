@@ -11,12 +11,14 @@ import 'package:daoapp/presentation/screens/arena/tournament/widgets/tournament_
 
 // ✅ AdMob 배너 광고 위젯 임포트
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class TournamentsHomeScreen extends ConsumerWidget {
   const TournamentsHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final arenaState = ref.watch(arenaProvider);
     final currentFilter = arenaState.currentFilter;
     final filtered = arenaState.tournaments.toList(growable: false);
@@ -25,9 +27,9 @@ class TournamentsHomeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          '대회 찾기',
-          style: TextStyle(
+        title: Text(
+          s.tournament_home_title, // 🔹 다국어 적용
+          style: const TextStyle(
             fontWeight: FontWeight.w900,
             fontSize: 20,
             letterSpacing: -0.5,
@@ -43,25 +45,20 @@ class TournamentsHomeScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          /// ==========================================
-          /// 🔥 [정책 준수] 슬림 배너 광고 영역
-          /// 리스트 화면 특성상 수직 공간을 최소화하여 배치
-          /// ==========================================
           const SizedBox(height: 8),
-          Column( // 👈 부모 Column의 const가 없는지 확인!
+          Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'AD',
                 style: TextStyle(
                   fontSize: 9,
-                  color: Colors.grey[400], // 이제 여기서 에러 안 납니다.
+                  color: Colors.grey[400],
                   letterSpacing: 1.0,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 2),
-              // ✅ 아레나 전용 ID 타입 지정
               const AdBanner(type: AdBannerType.arena),
             ],
           ),
@@ -69,7 +66,7 @@ class TournamentsHomeScreen extends ConsumerWidget {
 
           /// 필터 칩 영역
           const TournamentFilterChips(),
-          Container(height: 1, color: Colors.grey[100]), // 아주 연한 구분선
+          Container(height: 1, color: Colors.grey[100]),
 
           Expanded(
             child: isInitialLoading
@@ -80,7 +77,7 @@ class TournamentsHomeScreen extends ConsumerWidget {
                 : RefreshIndicator(
               color: Colors.cyan,
               onRefresh: () async {
-                // refresh 로직 (필요 시 arenaProvider 등을 통해 구현)
+                // refresh 로직
               },
               child: filtered.isEmpty
                   ? _EmptyState(filter: currentFilter)
@@ -134,6 +131,8 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
@@ -146,7 +145,7 @@ class _EmptyState extends StatelessWidget {
         const SizedBox(height: 20),
         Center(
           child: Text(
-            _emptyMessage(filter),
+            _emptyMessage(filter, s), // 🔹 s 전달
             style: TextStyle(
               color: Colors.grey[400],
               fontSize: 14,
@@ -160,16 +159,17 @@ class _EmptyState extends StatelessWidget {
     );
   }
 
-  String _emptyMessage(String filter) {
+  // 🔹 다국어 대응을 위해 s를 인자로 받음
+  String _emptyMessage(String filter, AppLocalizations s) {
     switch (filter) {
       case 'open':
-        return '현재 참여 가능한 대회가 없습니다.\n새로운 대회가 열리면 알려드릴게요!';
+        return s.tournament_empty_open;
       case 'upcoming':
-        return '아직 예정된 대회가 없습니다.\n곧 멋진 대회가 열릴 예정이니 기다려주세요.';
+        return s.tournament_empty_upcoming;
       case 'closed':
-        return '마감된 대회가 없습니다.';
+        return s.tournament_empty_closed;
       default:
-        return '등록된 대회가 없습니다.\n직접 대회를 개최해 보시는 건 어떨까요?';
+        return s.tournament_empty_default;
     }
   }
 }

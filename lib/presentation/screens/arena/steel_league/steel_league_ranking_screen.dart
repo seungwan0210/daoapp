@@ -8,6 +8,7 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class SteelLeagueRankingScreen extends ConsumerStatefulWidget {
   const SteelLeagueRankingScreen({super.key});
@@ -33,10 +34,11 @@ class _SteelLeagueRankingScreenState
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: CommonAppBar(
-        title: '스틸리그 랭킹',
-        showBackButton: true, // 아레나 탭 안에서 들어오는 화면이니까 뒤로가기 O
+        title: s.ranking_title,
+        showBackButton: true,
       ),
       body: const SteelLeagueRankingScreenBody(),
     );
@@ -48,6 +50,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!;
     final rankingState = ref.watch(rankingProvider);
     final theme = Theme.of(context);
 
@@ -63,7 +66,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.08),
                     borderRadius: const BorderRadius.only(
@@ -72,7 +75,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
                     ),
                   ),
                   child: Text(
-                    '필터',
+                    s.ranking_filter_title,
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.primary,
@@ -85,17 +88,17 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
                     children: [
                       Row(
                         children: [
-                          Expanded(child: _buildYearDropdown(ref)),
+                          Expanded(child: _buildYearDropdown(ref, s)),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildPhaseDropdown(ref)),
+                          Expanded(child: _buildPhaseDropdown(ref, s)),
                         ],
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          Expanded(child: _buildGenderDropdown(ref)),
+                          Expanded(child: _buildGenderDropdown(ref, s)),
                           const SizedBox(width: 8),
-                          Expanded(child: _buildTop9Dropdown(ref)),
+                          Expanded(child: _buildTop9Dropdown(ref, s)),
                         ],
                       ),
                     ],
@@ -112,7 +115,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
                 if (rankings.isEmpty) {
                   return Center(
                     child: Text(
-                      '랭킹 데이터가 없습니다.\n포인트를 부여해 보세요!',
+                      s.ranking_no_data,
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: Colors.grey,
@@ -173,7 +176,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      user.gender == 'male' ? '남자' : '여자',
+                                      user.gender == 'male' ? s.ranking_filter_gender_male : s.ranking_filter_gender_female,
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: user.gender == 'male'
@@ -184,7 +187,6 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 6),
-                                  // 배지 (이름 + 성별 옆)
                                   FutureBuilder<DocumentSnapshot>(
                                     future: FirebaseFirestore.instance
                                         .collection('users')
@@ -275,7 +277,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
                               if (user.top9Points != null &&
                                   user.top9Points != user.totalPoints)
                                 Text(
-                                  '전체: ${user.totalPoints}',
+                                  s.ranking_total_points(user.totalPoints.toString()),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey,
@@ -292,7 +294,7 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
               loading: () =>
               const Center(child: CircularProgressIndicator()),
               error: (_, __) =>
-              const Center(child: Text('랭킹 로드 오류')),
+                  Center(child: Text(s.ranking_load_error)),
             ),
           ),
         ],
@@ -302,12 +304,12 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
 
   // === 필터 위젯들 ===
 
-  static Widget _buildYearDropdown(WidgetRef ref) {
+  static Widget _buildYearDropdown(WidgetRef ref, AppLocalizations s) {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<String>(
       value: notifier.selectedYear,
       decoration: InputDecoration(
-        labelText: '연도',
+        labelText: s.ranking_filter_year,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -320,61 +322,61 @@ class SteelLeagueRankingScreenBody extends ConsumerWidget {
     );
   }
 
-  static Widget _buildPhaseDropdown(WidgetRef ref) {
+  static Widget _buildPhaseDropdown(WidgetRef ref, AppLocalizations s) {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<String>(
       value: notifier.selectedPhase,
       decoration: InputDecoration(
-        labelText: '시즌',
+        labelText: s.ranking_filter_season,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-      items: const [
-        DropdownMenuItem(value: 'total', child: Text('통합')),
-        DropdownMenuItem(value: 'season1', child: Text('시즌1')),
-        DropdownMenuItem(value: 'season2', child: Text('시즌2')),
-        DropdownMenuItem(value: 'season3', child: Text('시즌3')),
+      items: [
+        DropdownMenuItem(value: 'total', child: Text(s.ranking_filter_season_total)),
+        DropdownMenuItem(value: 'season1', child: Text(s.ranking_filter_season_1)),
+        DropdownMenuItem(value: 'season2', child: Text(s.ranking_filter_season_2)),
+        DropdownMenuItem(value: 'season3', child: Text(s.ranking_filter_season_3)),
       ],
       onChanged: (v) =>
           notifier.updateFilters(notifier.selectedYear, v!, notifier.selectedGender),
     );
   }
 
-  static Widget _buildGenderDropdown(WidgetRef ref) {
+  static Widget _buildGenderDropdown(WidgetRef ref, AppLocalizations s) {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<String>(
       value: notifier.selectedGender,
       decoration: InputDecoration(
-        labelText: '성별',
+        labelText: s.ranking_filter_gender,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-      items: const [
-        DropdownMenuItem(value: 'all', child: Text('전체')),
-        DropdownMenuItem(value: 'male', child: Text('남자')),
-        DropdownMenuItem(value: 'female', child: Text('여자')),
+      items: [
+        DropdownMenuItem(value: 'all', child: Text(s.ranking_filter_gender_all)),
+        DropdownMenuItem(value: 'male', child: Text(s.ranking_filter_gender_male)),
+        DropdownMenuItem(value: 'female', child: Text(s.ranking_filter_gender_female)),
       ],
       onChanged: (v) =>
           notifier.updateFilters(notifier.selectedYear, notifier.selectedPhase, v!),
     );
   }
 
-  static Widget _buildTop9Dropdown(WidgetRef ref) {
+  static Widget _buildTop9Dropdown(WidgetRef ref, AppLocalizations s) {
     final notifier = ref.read(rankingProvider.notifier);
     return DropdownButtonFormField<bool>(
       value: notifier.selectedPhase == 'total' ? false : notifier.top9Mode,
       decoration: InputDecoration(
-        labelText: '종합',
+        labelText: s.ranking_filter_mode,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding:
         const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       items: [
-        const DropdownMenuItem(value: false, child: Text('종합')),
+        DropdownMenuItem(value: false, child: Text(s.ranking_filter_mode_total)),
         if (notifier.selectedPhase != 'total')
-          const DropdownMenuItem(value: true, child: Text('상위 9개')),
+          DropdownMenuItem(value: true, child: Text(s.ranking_filter_mode_top9)),
       ],
       onChanged: notifier.selectedPhase == 'total'
           ? null

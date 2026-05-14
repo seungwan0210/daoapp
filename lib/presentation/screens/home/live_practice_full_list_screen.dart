@@ -7,16 +7,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/practice_session_model.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class LivePracticeFullListScreen extends ConsumerWidget {
   const LivePracticeFullListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!;
     final authState = ref.watch(authStateProvider);
     final isLoggedIn = authState.value != null;
 
-    // ✅ 새벽 4시 기준점 계산 (오늘 데이터만 필터링)
+    // ✅ 새벽 4시 기준점 계산
     final now = DateTime.now();
     final threshold = DateTime(now.year, now.month, now.day, 4, 0, 0);
     final finalThreshold = now.isBefore(threshold)
@@ -25,8 +27,8 @@ class LivePracticeFullListScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const CommonAppBar(
-        title: '오늘의 연습 현황',
+      appBar: CommonAppBar(
+        title: s.live_list_title, // 🔹 다국어화
         showBackButton: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -40,9 +42,9 @@ class LivePracticeFullListScreen extends ConsumerWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text('오늘 연습 기록이 아직 없습니다.',
-                  style: TextStyle(color: Colors.grey)),
+            return Center(
+              child: Text(s.live_list_empty, // 🔹 다국어화
+                  style: const TextStyle(color: Colors.grey)),
             );
           }
 
@@ -50,18 +52,11 @@ class LivePracticeFullListScreen extends ConsumerWidget {
               .map((doc) => PracticeSessionModel.fromFirestore(doc))
               .toList();
 
-          // ✅ [개선된 정렬 로직]
-          // 1순위: LIVE 상태 유저 우선
-          // 2순위: 오늘 총 연습 시간순
+          // 정렬 로직 (LIVE 우선 -> 시간순)
           allSessions.sort((a, b) {
             final aLive = a.isActive && !a.isPaused ? 1 : 0;
             final bLive = b.isActive && !b.isPaused ? 1 : 0;
-
-            if (aLive != bLive) {
-              return bLive.compareTo(aLive); // LIVE(1)가 종료(0)보다 위로
-            }
-
-            // 동일한 상태 내에서는 총 연습 시간순 정렬
+            if (aLive != bLive) return bLive.compareTo(aLive);
             return b.getTodayTotalDuration().compareTo(a.getTodayTotalDuration());
           });
 
@@ -70,9 +65,8 @@ class LivePracticeFullListScreen extends ConsumerWidget {
             itemCount: allSessions.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final session = allSessions[index];
               return _FullListTile(
-                session: session,
+                session: allSessions[index],
                 isBlur: !isLoggedIn,
               );
             },
@@ -91,10 +85,10 @@ class _FullListTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!;
     final bool isLive = session.isActive && !session.isPaused;
-    final totalDuration = session.getTodayTotalDuration(); //
+    final totalDuration = session.getTodayTotalDuration();
 
-    // 실시간 랭킹 정보 (배지 노출용)
     final totalRanking = ref.watch(totalRankingProvider);
     final rankIndex = totalRanking.indexWhere((item) => item['userId'] == session.uid);
     final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
@@ -177,7 +171,9 @@ class _FullListTile extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isBlur ? '**** · ****' : '${session.machineType} · ${session.shopName ?? '장소 미지정'}',
+                  isBlur
+                      ? s.live_blur_text // 🔹 다국어화
+                      : '${session.machineType} · ${session.shopName ?? s.live_no_shop}', // 🔹 다국어화
                   style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -189,7 +185,7 @@ class _FullListTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                isLive ? 'LIVE' : '종료됨',
+                isLive ? s.live_status_live : s.live_status_finished, // 🔹 다국어화
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w900,

@@ -1,12 +1,13 @@
 // lib/presentation/screens/training/drills/widgets/effects/neon_glow_effect.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class NeonGlowEffect extends StatefulWidget {
   final bool trigger;           // true일 때 발동
   final Widget child;
   final Color glowColor;        // 기본: cyan
-  final Duration duration;      // 발동 시간 (기본 1.5초)
+  final Duration duration;      // 발동 시간
   final double maxGlowSize;     // 최대 글로우 크기
 
   const NeonGlowEffect({
@@ -52,6 +53,7 @@ class _NeonGlowEffectState extends State<NeonGlowEffect>
   @override
   void didUpdateWidget(NeonGlowEffect oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // 트리거가 꺼졌다 켜질 때 애니메이션 리셋 및 재시작
     if (widget.trigger && !oldWidget.trigger) {
       _controller.forward(from: 0.0);
     }
@@ -74,7 +76,7 @@ class _NeonGlowEffectState extends State<NeonGlowEffect>
         return Stack(
           alignment: Alignment.center,
           children: [
-            // 네온 아우라 (여러 겹)
+            // 1. 네온 아우라 (5겹 중첩으로 깊이감 표현)
             ...List.generate(5, (index) {
               final opacity = (1.0 - index * 0.15).clamp(0.0, 1.0);
               final size = glow * (1 + index * 0.3);
@@ -99,11 +101,11 @@ class _NeonGlowEffectState extends State<NeonGlowEffect>
               );
             }),
 
-            // 진짜 위젯 (약간 커지고 흔들림)
+            // 2. 메인 콘텐츠 위젯 (스케일 및 회전 연출)
             Transform.scale(
               scale: scale,
               child: Transform.rotate(
-                angle: _controller.value * 0.1, // 살짝 회전
+                angle: _controller.value * 0.1, // 0.1 라디안 정도 살짝 회전
                 child: widget.child,
               ),
             ),

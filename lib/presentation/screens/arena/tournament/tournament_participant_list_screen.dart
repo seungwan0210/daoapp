@@ -7,6 +7,7 @@ import 'package:daoapp/data/repositories/arena_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class TournamentParticipantListScreen extends StatelessWidget {
   final String tournamentId;
@@ -21,7 +22,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
   ArenaRepository get _repo => sl<ArenaRepository>();
   FirebaseFirestore get _db => FirebaseFirestore.instance;
   String get _currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
-  String get _adminUid => "NanHPgCdsbMCFkHEs7MtxS51OSX2"; // 승완님 UID
+  String get _adminUid => "NanHPgCdsbMCFkHEs7MtxS51OSX2";
 
   DocumentReference<Map<String, dynamic>> _entryRef(String docId) =>
       _db.collection('tournaments').doc(tournamentId).collection('entries').doc(docId);
@@ -44,6 +45,8 @@ class TournamentParticipantListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CommonAppBar(title: tournamentTitle, showBackButton: true),
@@ -51,7 +54,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
           stream: _db.collection('tournaments').doc(tournamentId).snapshots(),
           builder: (context, tSnap) {
             if (!tSnap.hasData) return const Center(child: CircularProgressIndicator(color: Colors.cyan));
-            if (!tSnap.data!.exists) return const Center(child: Text("대회를 찾을 수 없습니다."));
+            if (!tSnap.data!.exists) return Center(child: Text(s.entry_list_not_found));
 
             final tournament = TournamentModel.fromJson(tSnap.data!.data()!);
             final bool isMaster = _currentUid == _adminUid || _currentUid == tournament.createdByUid;
@@ -59,7 +62,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
             return StreamBuilder<List<TournamentEntryModel>>(
               stream: _repo.getEntries(tournamentId),
               builder: (context, snapshot) {
-                if (snapshot.hasError) return Center(child: Text('오류: ${snapshot.error}'));
+                if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Colors.cyan));
 
                 final entries = List<TournamentEntryModel>.from(snapshot.data ?? []);
@@ -67,7 +70,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
 
                 if (entries.isEmpty) {
                   return Center(
-                    child: Text('아직 참가자가 없습니다',
+                    child: Text(s.entry_list_no_data,
                         style: TextStyle(fontSize: 15, color: Colors.grey[400], fontWeight: FontWeight.w500)),
                   );
                 }
@@ -88,13 +91,12 @@ class TournamentParticipantListScreen extends StatelessWidget {
                           dense: true,
                           visualDensity: VisualDensity.compact,
                           leading: _buildOrderCircle(index + 1),
-                          // 🎯 [수정] Row 내부 텍스트를 Flexible로 감싸 오버플로우 방지
                           title: Row(
                             children: [
                               Flexible(
                                 child: Text(
                                   tournament.type == 'team'
-                                      ? '[팀] ${e.teamName ?? '이름 없음'}'
+                                      ? s.entry_list_team_prefix(e.teamName ?? '')
                                       : '${e.nameKo} (${e.nameEn})',
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5),
                                   overflow: TextOverflow.ellipsis,
@@ -106,22 +108,22 @@ class TournamentParticipantListScreen extends StatelessWidget {
                                   margin: const EdgeInsets.only(left: 6),
                                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(4)),
-                                  child: const Text("수동", style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
+                                  child: Text(s.entry_list_manual, style: const TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold)),
                                 ),
                             ],
                           ),
                           subtitle: Text(
                             tournament.type == 'team'
-                                ? '팀장: ${e.nameKo} · ${ (isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}'
-                                : '${ (isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}${e.homeShop != null ? ' · ${e.homeShop}' : ''}',
+                                ? '${s.entry_list_team_leader(e.nameKo)} · ${(isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}'
+                                : '${(isMaster || isMyEntry) ? e.phone : _maskText(e.phone, isPhone: true)}${e.homeShop != null ? ' · ${e.homeShop}' : ''}',
                             style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            overflow: TextOverflow.ellipsis, // 서브타이틀도 안전하게 말줄임표 추가
+                            overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (isMaster) _buildPaymentToggle(e, isPaid),
+                              if (isMaster) _buildPaymentToggle(context, e, isPaid),
                               const SizedBox(width: 4),
                               const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
                             ],
@@ -147,7 +149,8 @@ class TournamentParticipantListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentToggle(TournamentEntryModel e, bool isPaid) {
+  Widget _buildPaymentToggle(BuildContext context, TournamentEntryModel e, bool isPaid) {
+    final s = AppLocalizations.of(context)!;
     return InkWell(
       onTap: () async {
         try {
@@ -157,7 +160,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
             'updatedAt': FieldValue.serverTimestamp(),
           });
         } catch (err) {
-          debugPrint('입금 업데이트 실패: $err');
+          debugPrint('Update failed: $err');
         }
       },
       child: Container(
@@ -168,7 +171,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
           border: Border.all(color: isPaid ? Colors.cyan.withOpacity(0.5) : Colors.grey[300]!),
         ),
         child: Text(
-          isPaid ? '입금완료' : '미입금',
+          isPaid ? s.entry_list_paid : s.entry_list_not_paid,
           style: TextStyle(
             fontSize: 11,
             fontWeight: isPaid ? FontWeight.bold : FontWeight.normal,
@@ -180,6 +183,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
   }
 
   void _showDetailBottomSheet(BuildContext context, TournamentEntryModel e, int order, String type, bool isMaster) {
+    final s = AppLocalizations.of(context)!;
     final bool isMyEntry = _currentUid == e.userUid;
     final bool canSeeAll = isMaster || isMyEntry;
 
@@ -199,29 +203,29 @@ class TournamentParticipantListScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(child: Text('No.$order', style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold))),
+              Center(child: Text(s.entry_list_detail_no(order), style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.bold))),
               const SizedBox(height: 12),
               Text(
-                  type == 'team' ? '[팀] ${e.teamName}' : '${e.nameKo} (${e.nameEn})',
+                  type == 'team' ? s.entry_list_team_prefix(e.teamName ?? '') : '${e.nameKo} (${e.nameEn})',
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)
               ),
               const Divider(height: 32),
 
-              _infoRowCompact(type == 'team' ? '팀장 성함' : '성함', '${e.nameKo} (${e.nameEn})'),
-              _infoRowCompact('연락처', canSeeAll ? e.phone : _maskText(e.phone, isPhone: true)),
-              _infoRowCompact('레이팅', e.rating ?? '-'),
-              _infoRowCompact('홈샵', e.homeShop ?? '-'),
+              _infoRowCompact(type == 'team' ? s.entry_list_info_leader : s.entry_list_info_name, '${e.nameKo} (${e.nameEn})'),
+              _infoRowCompact(s.entry_list_info_phone, canSeeAll ? e.phone : _maskText(e.phone, isPhone: true)),
+              _infoRowCompact(s.entry_list_info_rating, e.rating ?? '-'),
+              _infoRowCompact(s.entry_list_info_homeshop, e.homeShop ?? '-'),
 
               if (e.customAnswers.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                const Text('신청 질문 답변', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.cyan)),
+                Text(s.entry_list_qna_title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.cyan)),
                 const SizedBox(height: 6),
                 _buildCustomAnswersView(e.customAnswers, canSeeAll: canSeeAll),
               ],
 
               if (type == 'team' && e.members.isNotEmpty) ...[
                 const SizedBox(height: 32),
-                const Text('팀원 목록 및 개별 답변', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.cyan)),
+                Text(s.entry_list_member_title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.cyan)),
                 const SizedBox(height: 12),
                 ...e.members.map((m) => Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -249,7 +253,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
                 if (e.totalRating != null)
                   Align(
                     alignment: Alignment.centerRight,
-                    child: Text('팀 합계 레이팅: ${e.totalRating}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: Text(s.entry_list_total_rating(e.totalRating!), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
               ],
 
@@ -261,7 +265,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () { Navigator.pop(context); _showEditDialog(context, e); },
                         icon: const Icon(Icons.edit_note, size: 20),
-                        label: const Text('정보 수정'),
+                        label: Text(s.entry_list_btn_edit),
                         style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                       ),
                     ),
@@ -270,7 +274,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
                       child: OutlinedButton.icon(
                         onPressed: () { Navigator.pop(context); _deleteEntryB(context, e); },
                         icon: const Icon(Icons.delete_outline, size: 20),
-                        label: const Text('엔트리 삭제'),
+                        label: Text(s.entry_list_btn_delete),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           foregroundColor: Colors.red,
@@ -322,7 +326,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          SizedBox(width: 80, child: Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 13))),
+          SizedBox(width: 100, child: Text(label, style: TextStyle(color: Colors.grey[500], fontSize: 13))),
           Expanded(child: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600))),
         ],
       ),
@@ -330,6 +334,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
   }
 
   void _showEditDialog(BuildContext context, TournamentEntryModel e) {
+    final s = AppLocalizations.of(context)!;
     final nameKoCtrl = TextEditingController(text: e.nameKo);
     final nameEnCtrl = TextEditingController(text: e.nameEn);
     final phoneCtrl = TextEditingController(text: e.phone);
@@ -340,21 +345,21 @@ class TournamentParticipantListScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('참가자 정보 수정', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(s.entry_list_edit_dialog_title, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameKoCtrl, decoration: const InputDecoration(labelText: '한글 이름')),
-              TextField(controller: nameEnCtrl, decoration: const InputDecoration(labelText: '영문 이름')),
-              TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: '연락처'), keyboardType: TextInputType.phone),
-              TextField(controller: ratingCtrl, decoration: const InputDecoration(labelText: '레이팅 (선택)')),
-              TextField(controller: homeShopCtrl, decoration: const InputDecoration(labelText: '홈샵 (선택)')),
+              TextField(controller: nameKoCtrl, decoration: InputDecoration(labelText: s.entry_list_edit_name_ko)),
+              TextField(controller: nameEnCtrl, decoration: InputDecoration(labelText: s.entry_list_edit_name_en)),
+              TextField(controller: phoneCtrl, decoration: InputDecoration(labelText: s.entry_list_edit_phone), keyboardType: TextInputType.phone),
+              TextField(controller: ratingCtrl, decoration: InputDecoration(labelText: s.entry_list_edit_rating)),
+              TextField(controller: homeShopCtrl, decoration: InputDecoration(labelText: s.entry_list_edit_homeshop)),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.common_cancel)),
           TextButton(
             onPressed: () async {
               final String docId = e.id ?? e.userUid;
@@ -368,7 +373,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
               });
               if(context.mounted) Navigator.pop(ctx);
             },
-            child: const Text('저장', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.cyan)),
+            child: Text(s.common_save, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyan)),
           ),
         ],
       ),
@@ -376,14 +381,15 @@ class TournamentParticipantListScreen extends StatelessWidget {
   }
 
   Future<void> _deleteEntryB(BuildContext context, TournamentEntryModel e) async {
+    final s = AppLocalizations.of(context)!;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('엔트리 삭제'),
-        content: Text('"${e.nameKo}" 참가자를 삭제하시겠습니까?'),
+        title: Text(s.entry_list_delete_confirm_title),
+        content: Text(s.entry_list_delete_confirm_msg(e.nameKo)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.common_delete, style: const TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -408,7 +414,7 @@ class TournamentParticipantListScreen extends StatelessWidget {
         tx.delete(entryRef);
       });
     } catch (e) {
-      debugPrint('삭제 실패: $e');
+      debugPrint('Delete failed: $e');
     }
   }
 }

@@ -3,20 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:daoapp/core/constants/route_constants.dart'; // 로그인 라우트용
-// ✅ 가이드 화면 import
+import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_guide_screen.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class PoseAnalysisScreen extends ConsumerWidget {
   const PoseAnalysisScreen({super.key});
 
   @override
+  // 🔹 WidgetRef ref 파라미터를 추가하여 오버라이드 오류를 해결합니다.
   Widget build(BuildContext context, WidgetRef ref) {
-    // 🔥 로그인 상태 실시간 감지
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // 로딩 중
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: Colors.white,
@@ -26,29 +25,27 @@ class PoseAnalysisScreen extends ConsumerWidget {
 
         final user = snapshot.data;
 
-        // 1. 비로그인 상태 -> 로그인 유도 화면
         if (user == null) {
           return Scaffold(
             backgroundColor: Colors.white,
-            appBar: _buildAppBar(),
+            appBar: _buildAppBar(context),
             body: _buildLoginPrompt(context),
           );
         }
 
-        // 2. 로그인 상태 -> 정상 기능 화면 (프로필 체크 없이 바로 보여줌)
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: _buildAppBar(),
+          appBar: _buildAppBar(context),
           body: _buildMainContent(context),
         );
       },
     );
   }
 
-  // 상단 앱바 (공통 사용)
-  AppBar _buildAppBar() {
+  AppBar _buildAppBar(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return AppBar(
-      title: const Text("AI 자세 분석", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      title: Text(s.pose_title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
       centerTitle: true,
       backgroundColor: Colors.white,
       elevation: 0,
@@ -56,8 +53,8 @@ class PoseAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  // 🔒 로그인 유도 화면
   Widget _buildLoginPrompt(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -66,13 +63,13 @@ class PoseAnalysisScreen extends ConsumerWidget {
           children: [
             Icon(Icons.lock_outline_rounded, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 24),
-            const Text(
-              "로그인이 필요해요",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              s.history_login_required,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
-              "자세 분석 기능을 사용하고 기록을 저장하려면\n로그인이 필요합니다.",
+              s.pose_login_msg,
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
             ),
@@ -80,17 +77,14 @@ class PoseAnalysisScreen extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // 로그인 화면으로 이동
-                  Navigator.pushNamed(context, RouteConstants.login);
-                },
+                onPressed: () => Navigator.pushNamed(context, RouteConstants.login),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyan[600],
                   minimumSize: const Size.fromHeight(52),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: const Text("로그인 하러 가기", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                child: Text(s.login_title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ],
@@ -99,58 +93,54 @@ class PoseAnalysisScreen extends ConsumerWidget {
     );
   }
 
-  // 📸 메인 기능 화면 (로그인 된 경우)
   Widget _buildMainContent(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. 상단 타이틀 영역
-            const Text(
-              "내 스로우, 분석하기.",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.3),
+            Text(
+              s.pose_main_title,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, height: 1.3),
             ),
             const SizedBox(height: 8),
             Text(
-              "영상을 업로드하면 뼈대와 궤적을 추적하여\n시각적으로 분석해 드립니다.",
+              s.pose_main_sub,
               style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
             ),
             const SizedBox(height: 30),
 
-            // 2. 기능 설명 (AppCard 스타일)
             Expanded(
               child: ListView(
                 children: [
                   _buildInfoCard(
                     Icons.accessibility_new_rounded,
-                    "스켈레톤(뼈대) 분석",
-                    "어깨, 팔꿈치, 손목의 움직임을 뼈대로 시각화합니다.",
+                    s.pose_feature1_title,
+                    s.pose_feature1_desc,
                     Colors.cyan,
                   ),
                   const SizedBox(height: 12),
                   _buildInfoCard(
                     Icons.timeline,
-                    "손목 궤적 트래킹",
-                    "릴리즈 순간의 손목 이동 경로를 선으로 그려줍니다.",
+                    s.pose_feature2_title,
+                    s.pose_feature2_desc,
                     Colors.orange,
                   ),
                   const SizedBox(height: 12),
                   _buildInfoCard(
                     Icons.slow_motion_video,
-                    "프레임 단위 정밀 진단",
-                    "30FPS 고화질 분석으로 미세한 흔들림까지 확인하세요.",
+                    s.pose_feature3_title,
+                    s.pose_feature3_desc,
                     Colors.indigo,
                   ),
                 ],
               ),
             ),
 
-            // 3. 하단 시작 버튼
             ElevatedButton(
               onPressed: () {
-                // 🚀 가이드 화면으로 이동
                 Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => const PoseAnalysisGuideScreen())
@@ -162,7 +152,7 @@ class PoseAnalysisScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
-              child: const Text("영상 선택하기", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+              child: Text(s.pose_btn_select_video, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
             ),
           ],
         ),

@@ -12,6 +12,7 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class SteelLeaguePointCalendarScreen extends StatefulWidget {
   const SteelLeaguePointCalendarScreen({super.key});
@@ -113,48 +114,44 @@ class _SteelLeaguePointCalendarScreenState
     });
   }
 
-  // 시즌/통합 라벨 텍스트
-  String _buildSeasonLabel(PointRecord record) {
-    final seasonId = record.seasonId; // 예: '2026'
+  // 🔹 시즌/통합 라벨 텍스트 다국어 적용
+  String _buildSeasonLabel(PointRecord record, AppLocalizations s) {
+    final year = record.seasonId;
     switch (record.phase) {
       case 'season1':
-        return '$seasonId 시즌 1';
+        return s.point_calendar_label_season(year, '1');
       case 'season2':
-        return '$seasonId 시즌 2';
+        return s.point_calendar_label_season(year, '2');
       case 'season3':
-        return '$seasonId 시즌 3';
+        return s.point_calendar_label_season(year, '3');
       case 'total':
-        return '$seasonId 통합';
+        return s.point_calendar_label_total(year);
       default:
         return record.phase;
     }
   }
 
-  // 시즌/통합 칩 색상
   Color _phaseColor(String phase) {
     switch (phase) {
-      case 'season1':
-        return Colors.blueAccent;
-      case 'season2':
-        return Colors.purple;
-      case 'season3':
-        return Colors.teal;
-      case 'total':
-        return Colors.orange;
-      default:
-        return Colors.grey;
+      case 'season1': return Colors.blueAccent;
+      case 'season2': return Colors.purple;
+      case 'season3': return Colors.teal;
+      case 'total': return Colors.orange;
+      default: return Colors.grey;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final repo = sl<PointRecordRepository>();
+    final locale = Localizations.localeOf(context).toString();
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       appBar: CommonAppBar(
-        title: _isSearching ? '' : '스틸리그 포인트 달력',
+        title: _isSearching ? '' : s.point_calendar_title,
         showBackButton: true,
         actions: _isSearching
             ? null
@@ -168,26 +165,23 @@ class _SteelLeaguePointCalendarScreenState
       ),
       body: CustomScrollView(
         slivers: [
-          // 검색바
           if (_isSearching)
             SliverToBoxAdapter(
               child: Container(
                 color: theme.colorScheme.primaryContainer.withOpacity(0.95),
-                padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: TextField(
                   controller: _searchController,
                   autofocus: true,
                   decoration: InputDecoration(
-                    hintText: '이름 검색 (한글/영어)',
+                    hintText: s.point_calendar_search_hint,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.clear),
@@ -199,16 +193,15 @@ class _SteelLeaguePointCalendarScreenState
               ),
             ),
 
-          // 달력
           SliverToBoxAdapter(
             child: AppCard(
               margin: const EdgeInsets.all(16),
               elevation: 6,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               child: SizedBox(
                 height: 400,
                 child: TableCalendar(
+                  locale: locale, // 🔹 다국어 로케일 적용
                   firstDay: AppDateUtils.firstDay,
                   lastDay: AppDateUtils.lastDay,
                   focusedDay: _focusedDay,
@@ -222,28 +215,20 @@ class _SteelLeaguePointCalendarScreenState
                       });
                     }
                   },
-                  onPageChanged: (focusedDay) =>
-                      setState(() => _focusedDay = focusedDay),
+                  onPageChanged: (focusedDay) => setState(() => _focusedDay = focusedDay),
                   eventLoader: _getEventsForDay,
                   headerStyle: const HeaderStyle(
                     formatButtonVisible: false,
                     titleCentered: true,
                     formatButtonShowsNext: false,
-                    titleTextStyle: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    titleTextStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   calendarStyle: CalendarStyle(
                     outsideDaysVisible: false,
-                    todayDecoration: BoxDecoration(
-                        color: theme.colorScheme.primary,
-                        shape: BoxShape.circle),
-                    todayTextStyle: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    selectedDecoration: BoxDecoration(
-                        color: theme.colorScheme.secondary,
-                        shape: BoxShape.circle),
-                    selectedTextStyle: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
+                    todayDecoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                    todayTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    selectedDecoration: BoxDecoration(color: theme.colorScheme.secondary, shape: BoxShape.circle),
+                    selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                   calendarBuilders: CalendarBuilders(
                     markerBuilder: (context, day, events) {
@@ -251,13 +236,9 @@ class _SteelLeaguePointCalendarScreenState
                       return Align(
                         alignment: Alignment.bottomCenter,
                         child: Container(
-                          width: 6,
-                          height: 6,
+                          width: 6, height: 6,
                           margin: const EdgeInsets.only(bottom: 2),
-                          decoration: const BoxDecoration(
-                            color: Colors.green,
-                            shape: BoxShape.circle,
-                          ),
+                          decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
                         ),
                       );
                     },
@@ -267,23 +248,17 @@ class _SteelLeaguePointCalendarScreenState
             ),
           ),
 
-          // 리스트
           _isSearching
               ? SliverFillRemaining(
             hasScrollBody: true,
             child: StreamBuilder<List<PointRecord>>(
               stream: repo.getAllPointRecords(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                      child: CircularProgressIndicator());
-                }
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 final allRecords = snapshot.data!;
                 final searchResults = _getSearchResults(allRecords);
                 final sortedResults = _sortAndRank(searchResults);
-                if (sortedResults.isEmpty) {
-                  return const Center(child: Text('검색 결과 없음'));
-                }
+                if (sortedResults.isEmpty) return Center(child: Text(s.point_calendar_search_empty));
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -291,32 +266,24 @@ class _SteelLeaguePointCalendarScreenState
                   itemBuilder: (_, i) {
                     final record = sortedResults[i];
                     final rank = record.rank ?? i + 1;
-                    return _buildRecordCardWithBadge(
-                        context, theme, record, rank);
+                    return _buildRecordCardWithBadge(context, theme, record, rank, s);
                   },
                 );
               },
             ),
           )
               : _selectedDay == null
-              ? const SliverFillRemaining(
-            child: Center(child: Text('날짜를 선택하세요')),
-          )
+              ? SliverFillRemaining(child: Center(child: Text(s.point_calendar_no_selection)))
               : _getEventsForDay(_selectedDay!).isEmpty
-              ? const SliverFillRemaining(
-            child: Center(child: Text('해당 날짜에 포인트 내역 없음')),
-          )
+              ? SliverFillRemaining(child: Center(child: Text(s.point_calendar_no_data)))
               : SliverList(
             delegate: SliverChildBuilderDelegate(
                   (_, i) {
-                final record =
-                _getEventsForDay(_selectedDay!)[i];
+                final record = _getEventsForDay(_selectedDay!)[i];
                 final rank = record.rank ?? i + 1;
-                return _buildRecordCardWithBadge(
-                    context, theme, record, rank);
+                return _buildRecordCardWithBadge(context, theme, record, rank, s);
               },
-              childCount:
-              _getEventsForDay(_selectedDay!).length,
+              childCount: _getEventsForDay(_selectedDay!).length,
             ),
           ),
         ],
@@ -324,22 +291,18 @@ class _SteelLeaguePointCalendarScreenState
     );
   }
 
-  // 배지 포함 카드
   Widget _buildRecordCardWithBadge(
-      BuildContext context, ThemeData theme, PointRecord record, int rank) {
-    final dateStr =
-        '${record.date.year}.${record.date.month.toString().padLeft(2, '0')}.${record.date.day.toString().padLeft(2, '0')}';
-    final seasonLabel = _buildSeasonLabel(record);
+      BuildContext context, ThemeData theme, PointRecord record, int rank, AppLocalizations s) {
+    final dateStr = '${record.date.year}.${record.date.month.toString().padLeft(2, '0')}.${record.date.day.toString().padLeft(2, '0')}';
+    final seasonLabel = _buildSeasonLabel(record, s);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
         elevation: 3,
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
-          padding:
-          const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -350,13 +313,7 @@ class _SteelLeaguePointCalendarScreenState
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: rank == 1
-                        ? Colors.amber
-                        : rank == 2
-                        ? Colors.grey
-                        : rank == 3
-                        ? Colors.brown.shade600
-                        : Colors.blue,
+                    color: rank == 1 ? Colors.amber : rank == 2 ? Colors.grey : rank == 3 ? Colors.brown.shade600 : Colors.blue,
                   ),
                 ),
               ),
@@ -366,101 +323,58 @@ class _SteelLeaguePointCalendarScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 이름 + 배지
                     Row(
                       children: [
                         Expanded(
                           child: Text(
                             record.koreanName,
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
+                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        // 배지 (이름 옆)
                         FutureBuilder<DocumentSnapshot>(
-                          future: FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(record.userId)
-                              .get(),
+                          future: FirebaseFirestore.instance.collection('users').doc(record.userId).get(),
                           builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const SizedBox.shrink();
-                            }
-                            final userData = snapshot.data!.data()
-                            as Map<String, dynamic>? ??
-                                {};
-                            final badgesMap =
-                            BadgeUtils.extractBadges(userData);
-                            final monthly =
-                            BadgeUtils.getLatestMonthlyBadge(badgesMap);
-                            final admin =
-                            BadgeUtils.getLatestAdminBadge(badgesMap);
+                            if (!snapshot.hasData) return const SizedBox.shrink();
+                            final userData = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                            final badgesMap = BadgeUtils.extractBadges(userData);
+                            final monthly = BadgeUtils.getLatestMonthlyBadge(badgesMap);
+                            final admin = BadgeUtils.getLatestAdminBadge(badgesMap);
                             final badges = <String>[];
                             if (monthly != null) badges.add(monthly);
                             if (admin != null) badges.add(admin);
 
                             return Wrap(
                               spacing: 2,
-                              children: badges
-                                  .map(
-                                    (key) => Tooltip(
-                                  message:
-                                  BadgeUtils.getBadgeTooltip(key),
-                                  child: BadgeWidget(
-                                    badgeKey: key,
-                                    size: 18,
-                                  ),
-                                ),
-                              )
-                                  .toList(),
+                              children: badges.map((key) => Tooltip(message: BadgeUtils.getBadgeTooltip(key), child: BadgeWidget(badgeKey: key, size: 18))).toList(),
                             );
                           },
                         ),
                       ],
                     ),
-                    // 영어 이름
                     Text(
                       record.englishName,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: Colors.grey.shade600),
+                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade600),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    // 날짜 + 시즌(통합/시즌1/2/3) 라벨 → Wrap으로 overflow 방지
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 2,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 6, runSpacing: 2, crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text(
-                          dateStr,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey.shade500,
-                            fontSize: 11,
-                          ),
-                        ),
+                        Text(dateStr, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey.shade500, fontSize: 11)),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: _phaseColor(record.phase).withOpacity(0.12),
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: _phaseColor(record.phase),
-                              width: 0.8,
-                            ),
+                            border: Border.all(color: _phaseColor(record.phase), width: 0.8),
                           ),
                           child: Text(
                             seasonLabel,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: _phaseColor(record.phase),
-                            ),
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _phaseColor(record.phase)),
                           ),
                         ),
                       ],
@@ -470,25 +384,11 @@ class _SteelLeaguePointCalendarScreenState
               ),
               Expanded(
                 flex: 2,
-                child: Text(
-                  record.shopName,
-                  style: theme.textTheme.bodyMedium,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text(record.shopName, style: theme.textTheme.bodyMedium, textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
               ),
               Expanded(
                 flex: 1,
-                child: Text(
-                  '+${record.points}',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                  textAlign: TextAlign.right,
-                ),
+                child: Text('+${record.points}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green), textAlign: TextAlign.right),
               ),
             ],
           ),

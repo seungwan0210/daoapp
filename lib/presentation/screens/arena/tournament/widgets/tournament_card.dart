@@ -7,6 +7,7 @@ import 'package:daoapp/data/models/tournament_model.dart';
 import 'package:daoapp/core/utils/arena_utils.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/screens/arena/tournament/widgets/entry_status_badge.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class TournamentCard extends StatelessWidget {
   final TournamentModel tournament;
@@ -37,12 +38,12 @@ class TournamentCard extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: color), // 공간 확보를 위해 아이콘 미세 축소
+          Icon(icon, size: 11, color: color),
           const SizedBox(width: 4),
           Text(
             text,
             style: TextStyle(
-              fontSize: 10.5, // 공간 확보를 위해 폰트 미세 축소
+              fontSize: 10.5,
               height: 1.0,
               fontWeight: FontWeight.bold,
               color: color,
@@ -60,23 +61,32 @@ class TournamentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final theme = Theme.of(context);
 
-    final eventDday = ArenaUtils.eventDday(tournament.eventDate);
+    // 🔹 D-day 다국어 처리
+    String eventDday = ArenaUtils.eventDday(tournament.eventDate);
     Color ddayColor = Colors.grey[600]!;
-    if (eventDday == '오늘!') ddayColor = Colors.redAccent;
-    else if (eventDday.startsWith('D-')) ddayColor = Colors.orange.shade700;
+    if (eventDday == '오늘!') {
+      eventDday = s.arena_dday_today;
+      ddayColor = Colors.redAccent;
+    } else if (eventDday.startsWith('D-')) {
+      ddayColor = Colors.orange.shade700;
+    }
 
     final int maxP = tournament.maxParticipants;
     final int count = tournament.entryCount;
     final bool unlimited = (maxP <= 0 || maxP >= 9999);
 
-    // 공간 확보를 위해 '참가' 글자 제외 가능성 고려
-    final String capacityText = unlimited ? '$count명' : '$count/$maxP';
+    // 🔹 인원수 다국어 처리
+    final String capacityText = unlimited ? s.common_unit_people(count.toString()) : '$count/$maxP';
 
     Color capacityColor = Colors.cyan.shade600;
-    if (maxP > 0 && count >= maxP) capacityColor = Colors.redAccent;
-    else if (maxP > 0 && (count / maxP) >= 0.8) capacityColor = Colors.orange.shade700;
+    if (maxP > 0 && count >= maxP) {
+      capacityColor = Colors.redAccent;
+    } else if (maxP > 0 && (count / maxP) >= 0.8) {
+      capacityColor = Colors.orange.shade700;
+    }
 
     return AppCard(
       onTap: onTap,
@@ -113,17 +123,14 @@ class TournamentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. 배지 및 현황 행 (🔥 오버플로우 방지 핵심 수정 구역)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // 왼쪽 배지 영역: 남은 공간에 따라 유연하게 줄어듦
                     Flexible(
                       flex: 5,
                       child: EntryStatusBadge(tournament: tournament),
                     ),
                     const SizedBox(width: 8),
-                    // 오른쪽 칩 영역: 자기 크기를 유지하되 너무 밀리면 Flexible하게
                     Flexible(
                       flex: 4,
                       child: Row(
@@ -131,7 +138,7 @@ class TournamentCard extends StatelessWidget {
                         children: [
                           _buildCompactPill(
                             icon: Icons.people_rounded,
-                            text: capacityText, // '참가' 문구 제거로 공간 확보
+                            text: capacityText,
                             color: capacityColor,
                           ),
                           const SizedBox(width: 4),
@@ -148,7 +155,6 @@ class TournamentCard extends StatelessWidget {
 
                 const SizedBox(height: 14),
 
-                // 2. 대회명
                 Text(
                   tournament.title,
                   style: const TextStyle(
@@ -164,7 +170,6 @@ class TournamentCard extends StatelessWidget {
 
                 const SizedBox(height: 12),
 
-                // 3. 장소 및 참가비
                 Row(
                   children: [
                     Icon(Icons.location_on_outlined, size: 16, color: Colors.grey[500]),
@@ -182,10 +187,11 @@ class TournamentCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
+                    // 🔹 참가비 다국어 처리
                     Text(
                       tournament.entryFee > 0
-                          ? '${_formatMoney(tournament.entryFee)}원'
-                          : '무료',
+                          ? '${_formatMoney(tournament.entryFee)}${s.common_currency_won}'
+                          : s.common_free,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,

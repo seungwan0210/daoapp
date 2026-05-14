@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
-// ReleasePoint 클래스 경로 확인 (파일 위치에 따라 수정 필요)
 import 'package:daoapp/presentation/screens/training/pose_analysis/screens/pose_analysis_result_screen.dart';
 
 class PosePainter extends CustomPainter {
@@ -13,12 +12,19 @@ class PosePainter extends CustomPainter {
   final Map<PoseLandmarkType, Color> allPartColors;
 
   final bool showTrackingLines;
-  final bool showReleasePoints; // ✅ [NEW] 릴리즈 포인트 토글 변수 추가
+  final bool showReleasePoints;
   final String referenceMode;
 
   final Map<PoseLandmarkType, double> setupHeights;
   final List<ReleasePoint> releasePoints;
   final int currentFrameIndex;
+
+  // 🔹 다국어 라벨을 위한 필드 추가
+  final String labelRElbow;
+  final String labelLElbow;
+  final String labelRWrist;
+  final String labelLWrist;
+  final String labelSet;
 
   PosePainter({
     required this.pose,
@@ -28,17 +34,22 @@ class PosePainter extends CustomPainter {
     this.activeTrackColors = const {},
     this.allPartColors = const {},
     this.showTrackingLines = true,
-    this.showReleasePoints = true, // ✅ 기본값 true
+    this.showReleasePoints = true,
     this.referenceMode = 'NONE',
     this.setupHeights = const {},
     this.releasePoints = const [],
     this.currentFrameIndex = 0,
+    // 🔹 생성자 파라미터 추가
+    required this.labelRElbow,
+    required this.labelLElbow,
+    required this.labelRWrist,
+    required this.labelLWrist,
+    required this.labelSet,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-
-    // 1. 트래킹 궤적 (showTrackingLines 체크)
+    // 1. 트래킹 궤적
     if (showTrackingLines) {
       activeTrackColors.forEach((part, color) {
         if (!multiPaths.containsKey(part)) return;
@@ -139,9 +150,10 @@ class PosePainter extends CustomPainter {
           startX += dashWidth + dashSpace;
         }
 
-        String label = _getPartLabel(partType);
+        // 🔹 다국어 라벨 적용
+        String partLabel = _getPartLabel(partType);
         final textSpan = TextSpan(
-          text: ' $label SET ',
+          text: ' $partLabel $labelSet ',
           style: TextStyle(color: displayColor, fontSize: 11, fontWeight: FontWeight.bold, backgroundColor: Colors.black54),
         );
         final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
@@ -150,10 +162,8 @@ class PosePainter extends CustomPainter {
       }
     }
 
-    // 4. 릴리즈 포인트 (시간 순서 표시 + 토글 제어)
-    // 🔥 [수정됨] showReleasePoints가 true일 때만 그림
+    // 4. 릴리즈 포인트
     if (showReleasePoints && releasePoints.isNotEmpty) {
-
       final pointPaint = Paint()
         ..color = Colors.redAccent
         ..style = PaintingStyle.fill;
@@ -167,22 +177,17 @@ class PosePainter extends CustomPainter {
           color: Colors.white,
           fontSize: 10,
           fontWeight: FontWeight.bold,
-          shadows: [Shadow(color: Colors.black, blurRadius: 2)]
+          shadows: [const Shadow(color: Colors.black, blurRadius: 2)]
       );
 
       for (int i = 0; i < releasePoints.length; i++) {
         final data = releasePoints[i];
-
-        // 시간차 공격: 미래의 점은 그리지 않음
         if (data.frameIndex > currentFrameIndex) continue;
 
         Offset start = _transformPoint(data.point, size);
-
-        // 점 그리기
         canvas.drawCircle(start, 5.0, pointPaint);
         canvas.drawCircle(start, 5.0, borderPaint);
 
-        // 번호 표시 (1, 2, 3...)
         final textSpan = TextSpan(text: '${i + 1}', style: textStyle);
         final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
         textPainter.layout();
@@ -191,7 +196,6 @@ class PosePainter extends CustomPainter {
     }
   }
 
-  // Helper Functions
   bool _isKeyJoint(PoseLandmarkType type) {
     return [
       PoseLandmarkType.leftShoulder, PoseLandmarkType.rightShoulder,
@@ -204,12 +208,13 @@ class PosePainter extends CustomPainter {
     ].contains(type);
   }
 
+  // 🔹 전달받은 다국어 변수를 반환하도록 수정
   String _getPartLabel(PoseLandmarkType type) {
     switch (type) {
-      case PoseLandmarkType.rightElbow: return "R-ELBOW";
-      case PoseLandmarkType.leftElbow: return "L-ELBOW";
-      case PoseLandmarkType.rightWrist: return "R-WRIST";
-      case PoseLandmarkType.leftWrist: return "L-WRIST";
+      case PoseLandmarkType.rightElbow: return labelRElbow;
+      case PoseLandmarkType.leftElbow: return labelLElbow;
+      case PoseLandmarkType.rightWrist: return labelRWrist;
+      case PoseLandmarkType.leftWrist: return labelLWrist;
       default: return "";
     }
   }

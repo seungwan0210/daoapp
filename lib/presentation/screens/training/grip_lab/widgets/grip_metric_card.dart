@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 /// 그립 연구소 - 수치 카드
-/// (아이콘 지원 추가됨)
+/// 부모 위젯에서 AppLocalizations를 통해 번역된 String을 주입받아 사용합니다.
 class GripMetricCard extends StatelessWidget {
   final String title;
   final String value;
   final String sub;
   final Color color;
-  final IconData? icon; // ✅ [Fix] 아이콘 파라미터 추가
+  final IconData? icon;
 
   const GripMetricCard({
     super.key,
@@ -15,7 +15,7 @@ class GripMetricCard extends StatelessWidget {
     required this.value,
     required this.sub,
     required this.color,
-    this.icon, // ✅ [Fix] 생성자 추가
+    this.icon,
   });
 
   @override
@@ -34,7 +34,7 @@ class GripMetricCard extends StatelessWidget {
         ],
       ),
       child: FittedBox(
-        fit: BoxFit.scaleDown,
+        fit: BoxFit.scaleDown, // 🔹 텍스트가 길어지는 언어(영어 등) 대응
         alignment: Alignment.centerLeft,
         child: Column(
           mainAxisSize: MainAxisSize.min,

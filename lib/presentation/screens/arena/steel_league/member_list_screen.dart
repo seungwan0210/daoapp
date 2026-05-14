@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:daoapp/presentation/widgets/badge_widget.dart'; // 추가
-import 'package:daoapp/core/utils/badge_utils.dart'; // 추가
+import 'package:daoapp/presentation/widgets/badge_widget.dart';
+import 'package:daoapp/core/utils/badge_utils.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class MemberListScreen extends StatefulWidget {
   const MemberListScreen({super.key});
@@ -35,10 +36,11 @@ class _MemberListScreenState extends State<MemberListScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
 
     return Scaffold(
       appBar: CommonAppBar(
-        title: 'KDF 정회원 명단',
+        title: s.member_list_title,
         showBackButton: true,
       ),
       body: Column(
@@ -50,7 +52,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
               controller: _searchController,
               style: const TextStyle(fontSize: 15),
               decoration: InputDecoration(
-                hintText: '이름 또는 이메일로 검색',
+                hintText: s.member_list_search_hint,
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.grey[100],
@@ -72,13 +74,13 @@ class _MemberListScreenState extends State<MemberListScreen> {
           ),
 
           // 정회원 리스트
-          Expanded(child: _buildMemberList(theme)),
+          Expanded(child: _buildMemberList(theme, s)),
         ],
       ),
     );
   }
 
-  Widget _buildMemberList(ThemeData theme) {
+  Widget _buildMemberList(ThemeData theme, AppLocalizations s) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('official_members')
@@ -89,8 +91,8 @@ class _MemberListScreenState extends State<MemberListScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text('등록된 정회원이 없습니다.', style: TextStyle(fontSize: 15, color: Colors.grey)),
+          return Center(
+            child: Text(s.member_list_no_data, style: const TextStyle(fontSize: 15, color: Colors.grey)),
           );
         }
 
@@ -170,7 +172,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        data['koreanName'] ?? '이름 없음',
+                        data['koreanName'] ?? s.member_list_no_name,
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -184,7 +186,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
-                        data['gender'] == 'male' ? '남자' : '여자',
+                        data['gender'] == 'male' ? s.ranking_filter_gender_male : s.ranking_filter_gender_female,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -206,7 +208,7 @@ class _MemberListScreenState extends State<MemberListScreen> {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      data['email'] ?? '이메일 없음',
+                      data['email'] ?? s.member_list_no_email,
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

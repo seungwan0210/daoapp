@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/tournament_entry_model.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class TournamentEntryEditScreen extends StatefulWidget {
   final String tournamentId;
@@ -62,17 +63,17 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_isSaving) return;
 
+    final s = AppLocalizations.of(context)!;
     setState(() => _isSaving = true);
 
     try {
-      // 🎯 [핵심 수정] 수동 등록자 대응: e.id가 있으면 문서ID로, 없으면 userUid 사용
       final String docId = widget.entry.id ?? widget.entry.userUid;
 
       await FirebaseFirestore.instance
           .collection('tournaments')
           .doc(widget.tournamentId)
           .collection('entries')
-          .doc(docId) // ✅ 정확한 문서 ID 참조
+          .doc(docId)
           .update({
         'teamName': _teamNameCtrl.text.trim(),
         'nameKo': _nameCtrl.text.trim(),
@@ -87,14 +88,14 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("참가 정보가 수정되었습니다."), behavior: SnackBarBehavior.floating)
+            SnackBar(content: Text(s.entry_edit_success), behavior: SnackBarBehavior.floating)
         );
       }
     } catch (e) {
-      debugPrint("수정 실패: $e");
+      debugPrint("Update failed: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("수정 실패: $e"), backgroundColor: Colors.redAccent)
+            SnackBar(content: Text(s.entry_edit_fail(e.toString())), backgroundColor: Colors.redAccent)
         );
       }
     } finally {
@@ -104,17 +105,19 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: CommonAppBar(
-        title: "엔트리 정보 수정",
+        title: s.entry_edit_title,
         showBackButton: true,
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _updateEntry,
             child: _isSaving
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyan))
-                : const Text('저장', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.cyan)),
+                : Text(s.common_save, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.cyan)),
           ),
           const SizedBox(width: 8),
         ],
@@ -126,48 +129,48 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
             children: [
-              if (widget.entry.isManual) // 🎯 수동 등록 안내 배너 추가
+              if (widget.entry.isManual)
                 AppCard(
                   color: Colors.amber.shade50,
                   margin: const EdgeInsets.only(bottom: 24),
-                  child: const Padding(
-                    padding: EdgeInsets.all(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
                     child: Row(
                       children: [
-                        Icon(Icons.edit_attributes, color: Colors.orange),
-                        SizedBox(width: 12),
-                        Expanded(child: Text("오프라인으로 직접 추가한 참가자 정보입니다.", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange))),
+                        const Icon(Icons.edit_attributes, color: Colors.orange),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(s.entry_edit_manual_banner, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange))),
                       ],
                     ),
                   ),
                 ),
 
               if (widget.entry.teamName != null) ...[
-                _sectionTitle('대회 방식 설정', Icons.account_tree_outlined),
+                _sectionTitle(s.entry_edit_setup, Icons.account_tree_outlined),
                 const SizedBox(height: 12),
                 AppCard(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: _buildTextField(_teamNameCtrl, "팀명", Icons.groups_outlined),
+                    child: _buildTextField(_teamNameCtrl, s.entry_form_field_team_name, Icons.groups_outlined, s),
                   ),
                 ),
                 const SizedBox(height: 32),
               ],
 
-              _sectionTitle('대표자(팀장) 정보', Icons.person_outline),
+              _sectionTitle(s.entry_edit_section_leader, Icons.person_outline),
               const SizedBox(height: 12),
               AppCard(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _buildTextField(_nameCtrl, "성함", Icons.badge_outlined),
+                      _buildTextField(_nameCtrl, s.entry_list_info_name, Icons.badge_outlined, s),
                       const SizedBox(height: 16),
-                      _buildTextField(_phoneCtrl, "연락처", Icons.phone_android_outlined, isPhone: true),
+                      _buildTextField(_phoneCtrl, s.entry_form_field_phone, Icons.phone_android_outlined, s, isPhone: true),
                       const SizedBox(height: 16),
-                      _buildTextField(_ratingCtrl, "레이팅", Icons.bolt_outlined),
+                      _buildTextField(_ratingCtrl, s.entry_form_field_rating, Icons.bolt_outlined, s),
                       const SizedBox(height: 16),
-                      _buildTextField(_homeShopCtrl, "홈샵", Icons.storefront_outlined),
+                      _buildTextField(_homeShopCtrl, s.entry_form_field_homeshop, Icons.storefront_outlined, s),
                     ],
                   ),
                 ),
@@ -175,7 +178,7 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
 
               if (_customAnswers.isNotEmpty) ...[
                 const SizedBox(height: 32),
-                _sectionTitle('대표자 개별 답변', Icons.quiz_outlined),
+                _sectionTitle(s.entry_edit_section_leader_qna, Icons.quiz_outlined),
                 const SizedBox(height: 12),
                 AppCard(
                   child: Padding(
@@ -201,7 +204,7 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
 
               if (_members.isNotEmpty) ...[
                 const SizedBox(height: 32),
-                _sectionTitle('팀원 정보 및 답변 수정', Icons.people_alt_outlined),
+                _sectionTitle(s.entry_edit_section_member, Icons.people_alt_outlined),
                 const SizedBox(height: 12),
                 ..._members.asMap().entries.map((entry) {
                   int idx = entry.key;
@@ -214,26 +217,26 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('팀원 ${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyan, fontSize: 13)),
+                            Text(s.entry_edit_field_member_no(idx + 1), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.cyan, fontSize: 13)),
                             const SizedBox(height: 12),
                             TextFormField(
                               initialValue: m.name,
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                              decoration: const InputDecoration(labelText: "성함", prefixIcon: Icon(Icons.person_outline, size: 20)),
+                              decoration: InputDecoration(labelText: s.entry_list_info_name, prefixIcon: const Icon(Icons.person_outline, size: 20)),
                               onChanged: (val) => _members[idx] = m.copyWith(name: val),
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               initialValue: m.rating,
                               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                              decoration: const InputDecoration(labelText: "레이팅", prefixIcon: Icon(Icons.bolt_outlined, size: 20)),
+                              decoration: InputDecoration(labelText: s.entry_form_field_rating, prefixIcon: const Icon(Icons.bolt_outlined, size: 20)),
                               onChanged: (val) => _members[idx] = m.copyWith(rating: val),
                             ),
 
                             if (m.customAnswers.isNotEmpty) ...[
-                              const Padding(
-                                padding: EdgeInsets.only(top: 20, bottom: 8),
-                                child: Text("팀원 개별 답변", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 20, bottom: 8),
+                                child: Text(s.entry_edit_field_member_qna, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                               ),
                               ...m.customAnswers.keys.map((qKey) => Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
@@ -277,7 +280,7 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
     ],
   );
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {bool isPhone = false}) {
+  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, AppLocalizations s, {bool isPhone = false}) {
     return TextFormField(
       controller: ctrl,
       keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
@@ -288,7 +291,7 @@ class _TournamentEntryEditScreenState extends State<TournamentEntryEditScreen> {
         labelStyle: const TextStyle(fontSize: 13),
         focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyan, width: 2)),
       ),
-      validator: (v) => (v == null || v.trim().isEmpty) ? '필수 입력' : null,
+      validator: (v) => (v == null || v.trim().isEmpty) ? s.entry_form_field_required : null,
     );
   }
 }

@@ -1,17 +1,20 @@
+// lib/data/models/training_progress_model.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 
-/// DAO 트레이닝 누적 Progress (XP 게이지용)
+/// DAO 트레이닝 누적 Progress (XP 게이지 및 사이클 관리 모델)
 ///
-/// - totalXp: 지금까지 모은 전체 XP (히스토리/통계용)
-/// - xpSinceLastCheck: 마지막 레이팅 체크 이후 누적 XP (게이지용)
-/// - cycleSize: 게이지 1바퀴에 필요한 XP (기본 100)
-/// - ratingCheckCount: 지금까지 레이팅 체크를 몇 번 했는지
-/// - lastUpdatedAt: 마지막으로 Progress가 갱신된 시각
-/// - lastRatingCheckAt: 마지막 레이팅 체크 시각
-/// - currentCycleId: 현재 사이클 ID (예: "cycle_001")
-/// - cycleIndex: 몇 번째 사이클인지 (1, 2, 3…)
-/// - cycleStartAt: 이 사이클이 시작된 시각
+/// [필드 설명]
+/// - totalXp: 지금까지 모은 전체 XP (누적 통계용)
+/// - xpSinceLastCheck: 마지막 레이팅 체크 이후 누적 XP (현재 게이지 표시 대상)
+/// - cycleSize: 게이지 1바퀴 완성에 필요한 XP (기본 1000)
+/// - ratingCheckCount: 지금까지 레벨 테스트/레이팅 체크를 수행한 횟수
+/// - lastUpdatedAt: 마지막 Progress 데이터 갱신 시각
+/// - lastRatingCheckAt: 마지막 레이팅 체크 수행 시각
+/// - currentCycleId: 현재 진행 중인 사이클 고유 ID (예: "cycle_001")
+/// - cycleIndex: 현재 몇 번째 사이클인지 표시 (1부터 시작)
+/// - cycleStartAt: 현재 사이클이 시작된 시각
 class TrainingProgressModel {
   final String userId;
   final DaoTrainingTier tierAtThatTime;
@@ -34,13 +37,13 @@ class TrainingProgressModel {
   /// 마지막 레이팅 체크 시각 (없을 수도 있음)
   final DateTime? lastRatingCheckAt;
 
-  /// 🔹 현재 사이클 ID (예: "cycle_001")
+  /// 현재 사이클 ID (예: "cycle_001")
   final String currentCycleId;
 
-  /// 🔹 몇 번째 사이클인지 (1부터 시작)
+  /// 몇 번째 사이클인지 (1부터 시작)
   final int cycleIndex;
 
-  /// 🔹 이 사이클이 시작된 시각
+  /// 이 사이클이 시작된 시각
   final DateTime cycleStartAt;
 
   const TrainingProgressModel({
@@ -57,7 +60,7 @@ class TrainingProgressModel {
     DateTime? cycleStartAt,
   }) : cycleStartAt = cycleStartAt ?? lastUpdatedAt;
 
-  /// 🔹 게이지 비율 0.0 ~ 1.0
+  /// 게이지 비율 0.0 ~ 1.0 (UI 표시용)
   double get progressRatio {
     if (cycleSize <= 0) return 0.0;
     final ratio = xpSinceLastCheck / cycleSize;
@@ -66,17 +69,17 @@ class TrainingProgressModel {
     return ratio;
   }
 
-  /// 🔹 이번 사이클이 꽉 찼는지 여부 (100% 이상)
+  /// 이번 사이클이 꽉 찼는지 여부 (100% 이상)
   bool get isCycleComplete => xpSinceLastCheck >= cycleSize;
 
-  /// 🔹 다음 레이팅 체크까지 남은 XP
+  /// 다음 레이팅 체크까지 남은 XP
   int get remainingXp {
     final remain = cycleSize - xpSinceLastCheck;
     if (remain < 0) return 0;
     return remain;
   }
 
-  /// 🔹 한 번이라도 레이팅 체크를 한 적이 있는지
+  /// 한 번이라도 레이팅 체크를 한 적이 있는지
   bool get hasEverCheckedRating =>
       ratingCheckCount > 0 || lastRatingCheckAt != null;
 
@@ -108,10 +111,7 @@ class TrainingProgressModel {
     );
   }
 
-  /// 🔹 XP 추가된 새 Progress 반환 (원본은 변경 X)
-  ///
-  /// - totalXp는 무조건 xp만큼 증가
-  /// - xpSinceLastCheck도 xp만큼 증가 (게이지 대상)
+  /// XP 추가된 새 Progress 반환 (원본은 변경 X)
   TrainingProgressModel withAddedXp(int xp, {DaoTrainingTier? tier}) {
     if (xp <= 0) {
       return copyWith(
@@ -130,14 +130,8 @@ class TrainingProgressModel {
     );
   }
 
-  /// 🔹 레이팅/레벨 테스트를 “완료”했을 때 호출하는 헬퍼
-  ///
-  /// - xpSinceLastCheck: 0으로 리셋 (게이지 초기화)
-  /// - ratingCheckCount: +1
-  /// - lastRatingCheckAt / lastUpdatedAt: 지금 시각으로 갱신
-  /// - tierAtThatTime: 새로 평가된 티어로 업데이트
-  /// - newCycleSize가 주어지면, 다음 사이클 목표 XP도 조정
-  /// - 🔹 동시에 새로운 사이클 시작 (cycleIndex + 1, currentCycleId 갱신)
+  /// 레이팅/레벨 테스트를 “완료”했을 때 호출하는 헬퍼
+  /// 게이지를 0으로 리셋하고 다음 사이클을 시작함
   TrainingProgressModel withRatingChecked({
     required DaoTrainingTier newTier,
     int? newCycleSize,
@@ -160,7 +154,7 @@ class TrainingProgressModel {
   }
 
   // -----------------------------
-  // Firestore 변환
+  // Firestore 변환 로직
   // -----------------------------
 
   static DateTime _toDate(dynamic value) {
@@ -190,8 +184,7 @@ class TrainingProgressModel {
     final lastCheckRaw = json['lastRatingCheckAt'];
     final lastCheck = lastCheckRaw != null ? _toDate(lastCheckRaw) : null;
 
-    final cycleIndex =
-        (json['cycleIndex'] as num?)?.toInt() ?? 1;
+    final cycleIndex = (json['cycleIndex'] as num?)?.toInt() ?? 1;
     final currentCycleId = json['currentCycleId'] as String? ??
         'cycle_${cycleIndex.toString().padLeft(3, '0')}';
 
@@ -205,7 +198,7 @@ class TrainingProgressModel {
       tierAtThatTime: _tierFromRaw(json['tierAtThatTime']),
       totalXp: (json['totalXp'] as num?)?.toInt() ?? 0,
       xpSinceLastCheck: (json['xpSinceLastCheck'] as num?)?.toInt() ?? 0,
-      cycleSize: (json['cycleSize'] as num?)?.toInt() ?? 100,
+      cycleSize: (json['cycleSize'] as num?)?.toInt() ?? 1000,
       ratingCheckCount: (json['ratingCheckCount'] as num?)?.toInt() ?? 0,
       lastUpdatedAt: lastUpdated,
       lastRatingCheckAt: lastCheck,
@@ -231,7 +224,7 @@ class TrainingProgressModel {
     };
   }
 
-  /// 🔹 새 유저용 기본 값
+  /// 새 유저를 위한 초기 Progress 생성
   factory TrainingProgressModel.initial({
     required String userId,
     required DaoTrainingTier tier,
@@ -253,7 +246,7 @@ class TrainingProgressModel {
     );
   }
 
-  /// 🔹 tier 모를 때 사용하는 완전 기본값 (Beginner 기준)
+  /// 티어 정보가 없을 때 사용하는 빈 객체 생성 (비기너 기준)
   factory TrainingProgressModel.empty(String userId) {
     return TrainingProgressModel.initial(
       userId: userId,

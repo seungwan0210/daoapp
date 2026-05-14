@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// 그립 연구소 - 게이지 카드
+/// 부모 위젯으로부터 번역된 labelLeft, labelRight 문자열을 주입받아 사용합니다.
 class GripGaugeCard extends StatelessWidget {
   final String title;
   final String valueText; // 예: "12%"
@@ -50,7 +52,7 @@ class GripGaugeCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // 게이지 바 (Custom Slider 느낌)
+          // 게이지 바 (Custom Slider)
           SizedBox(
             height: 8,
             child: Stack(
@@ -63,15 +65,6 @@ class GripGaugeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                // 채워지는 선 (선택 사항, 여기선 점만 표시하는게 더 분석적일 수 있음)
-                /*
-                FractionallySizedBox(
-                  widthFactor: safeProgress,
-                  child: Container(
-                    decoration: BoxDecoration(color: color.withOpacity(0.3), borderRadius: BorderRadius.circular(4)),
-                  ),
-                ),
-                */
                 // 현재 위치 점 (Indicator)
                 Align(
                   alignment: Alignment(safeProgress * 2 - 1, 0), // -1 ~ 1 범위로 변환
@@ -91,12 +84,24 @@ class GripGaugeCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
 
-          // 좌우 라벨
+          // 좌우 라벨 (번역된 텍스트가 표시되는 영역)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(labelLeft, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
-              Text(labelRight, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
+              Expanded(
+                child: Text(
+                  labelLeft,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                  textAlign: TextAlign.left,
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  labelRight,
+                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                  textAlign: TextAlign.right,
+                ),
+              ),
             ],
           ),
         ],

@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/ad_manager.dart';
 
-
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/constants/training_drill_constants.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
@@ -16,7 +15,6 @@ import 'package:daoapp/presentation/widgets/ad_banner.dart';
 import 'widgets/dual_neon_gauge_row.dart';
 import 'widgets/dao_tier_badge_large.dart';
 import 'drills/drill_run_screen.dart';
-import 'package:daoapp/core/constants/training_program_constants.dart' as program_constants;
 
 // 🔹 XP/게이지 Progress Provider
 import 'package:daoapp/presentation/providers/training/training_progress_provider.dart';
@@ -34,6 +32,9 @@ import 'package:daoapp/presentation/screens/training/grip_lab/grip_lab_home_scre
 
 // ✅ 자유 랭킹 탭 뷰 import
 import 'package:daoapp/presentation/screens/training/ranking/ranking_tab_view.dart';
+
+// 🔹 다국어 임포트
+import 'package:daoapp/l10n/app_localizations.dart';
 
 enum TrainingTab { free, practice }
 
@@ -116,16 +117,20 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   Future<void> _resetProfile() async {
     final user = FirebaseAuth.instance.currentUser;
+    final s = AppLocalizations.of(context)!;
     if (user == null) return;
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("트레이닝 데이터 초기화"),
-        content: const Text("DAO 트레이닝 레이팅과 티어를 초기화합니다.\n다시 레이팅 입력 또는 레벨 테스트로 시작할 수 있습니다."),
+        title: Text(s.profile_reset_title),
+        content: Text(s.profile_reset_msg),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("취소")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("초기화", style: TextStyle(color: Colors.redAccent))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(s.common_cancel)),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(s.common_reset, style: const TextStyle(color: Colors.redAccent))
+          ),
         ],
       ),
     );
@@ -188,15 +193,19 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   Future<void> _showRatingCheckDialog() async {
     if (!mounted) return;
+    final s = AppLocalizations.of(context)!;
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (_) => AlertDialog(
-        title: const Text('🔥 성장 게이지 100% 달성!', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('훈련을 통해 성장 게이지가 가득 찼어요.\n지금 레이팅을 다시 측정하여 성장한 실력을 확인해볼까요?'),
+        title: Text(s.rating_check_ready_title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(s.rating_check_ready_msg),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('나중에 하기')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('테스트 하기', style: TextStyle(fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: Text(s.common_later)),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: Text(s.common_test, style: const TextStyle(fontWeight: FontWeight.bold))
+          ),
         ],
       ),
     );
@@ -211,6 +220,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
     final progressAsync = ref.watch(trainingProgressProvider);
 
@@ -235,7 +245,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
               const SizedBox(height: 8),
               Center(
                 child: Text(
-                  "현재 DAO 티어 · ${_profile!.tier.labelKo}",
+                  "${s.drill_current_tier} · ${_getTierLabel(_profile!.tier)}",
                   style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w600),
                 ),
               ),
@@ -276,13 +286,13 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
                                 padding: const EdgeInsets.symmetric(vertical: 10),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                               ),
-                              child: const Text("레이팅 수정", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                              child: Text(s.btn_edit_rating, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                             ),
                           ),
                           const SizedBox(width: 8),
                           TextButton(
                             onPressed: _resetProfile,
-                            child: const Text("초기화", style: TextStyle(color: Colors.redAccent, fontSize: 13)),
+                            child: Text(s.common_reset, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
                           ),
                         ],
                       ),
@@ -297,9 +307,9 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildModeChip("🏆 자유 랭킹", TrainingTab.free),
+                _buildModeChip("🏆 ${s.tab_free_ranking}", TrainingTab.free),
                 const SizedBox(width: 12),
-                _buildModeChip("🎯 맞춤 연습", TrainingTab.practice),
+                _buildModeChip("🎯 ${s.tab_custom_practice}", TrainingTab.practice),
               ],
             ),
             const SizedBox(height: 16),
@@ -313,28 +323,25 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
 
             const SizedBox(height: 32),
 
-            Text("훈련 도구", style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            Text(s.section_training_tools, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             ..._buildPracticeItems(),
 
-            /// ==========================================
-            /// 🔥 [정책 준수] 슬림 배너 광고 영역
-            /// ==========================================
             const SizedBox(height: 12),
-            Column( // 👈 1. 여기 앞에 있던 const를 반드시 지워주세요!
+            Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'AD',
                   style: TextStyle(
                     fontSize: 9,
-                    color: Colors.grey[400], // 이제 여기서 에러가 안 납니다!
+                    color: Colors.grey[400],
                     letterSpacing: 1.0,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 2),
-                const AdBanner(type: AdBannerType.main), // 2. 여기도 const 없이!
+                const AdBanner(type: AdBannerType.main),
               ],
             ),
             const SizedBox(height: 40),
@@ -374,6 +381,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   }
 
   Widget _buildXpGauge(TrainingProgressModel progress) {
+    final s = AppLocalizations.of(context)!;
     final ratio = progress.progressRatio;
     return AppCard(
       child: Padding(
@@ -384,7 +392,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("성장 게이지", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                Text(s.drill_stat_growth_gauge, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                 Text("${(ratio * 100).toInt()}%", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
               ],
             ),
@@ -400,7 +408,7 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              ratio >= 1.0 ? "레이팅 체크 준비 완료" : "재평가까지 남은 XP: ${progress.remainingXp}",
+              ratio >= 1.0 ? s.msg_rating_check_ready : s.drill_remaining_xp(progress.remainingXp.toString()),
               style: TextStyle(fontSize: 11, color: Colors.grey[600]),
             ),
           ],
@@ -410,51 +418,111 @@ class _TrainingHomeScreenState extends ConsumerState<TrainingHomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    final s = AppLocalizations.of(context)!;
     return Column(
       children: [
         Icon(Icons.sports_esports_outlined, size: 60, color: Colors.grey[300]),
         const SizedBox(height: 16),
-        const Text("다트 실력을 입력해주세요!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(s.msg_input_darts_skill, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 20),
         Row(
           children: [
-            Expanded(child: ElevatedButton(onPressed: _openRatingInput, style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan, padding: const EdgeInsets.symmetric(vertical: 14)), child: const Text("레이팅 입력"))),
+            Expanded(
+                child: ElevatedButton(
+                    onPressed: _openRatingInput,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.cyan, padding: const EdgeInsets.symmetric(vertical: 14)),
+                    child: Text(s.btn_input_rating)
+                )
+            ),
             const SizedBox(width: 10),
-            Expanded(child: OutlinedButton(onPressed: _openBoardLevelTest, style: OutlinedButton.styleFrom(foregroundColor: Colors.cyan, side: const BorderSide(color: Colors.cyan), padding: const EdgeInsets.symmetric(vertical: 14)), child: const Text("레벨 테스트"))),
+            Expanded(
+                child: OutlinedButton(
+                    onPressed: _openBoardLevelTest,
+                    style: OutlinedButton.styleFrom(foregroundColor: Colors.cyan, side: const BorderSide(color: Colors.cyan), padding: const EdgeInsets.symmetric(vertical: 14)),
+                    child: Text(s.btn_level_test)
+                )
+            ),
           ],
         ),
       ],
     );
   }
 
+  // 🔹 내 등급 이하의 모든 드릴을 다국어로 표시하도록 전면 수정
   Widget _buildRecommendationCards(DaoTrainingTier? tier) {
-    final drills = program_constants.getRecommendedDrillsForToday(tier ?? DaoTrainingTier.beginner);
-    if (drills.isEmpty) return const Center(child: Text("추천 드릴이 없습니다."));
+    final s = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
+    final currentTier = tier ?? DaoTrainingTier.beginner;
+
+    // 🔹 특정 추천 함수 대신 '전체 드릴 리스트'에서 내 티어 이하를 필터링
+    final allDrills = getAllTrainingDrills();
+    final drills = allDrills.where((d) =>
+    d.tierRange.minTier.index <= currentTier.index &&
+        d.tierRange.maxTier.index >= currentTier.index
+    ).toList();
+
+    if (drills.isEmpty) return Center(child: Text(s.msg_no_recommended_drills));
+
     return Column(
-      children: drills.map((drill) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: AppCard(
-          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => DrillRunScreen(drill: drill, tier: _profile?.tier ?? DaoTrainingTier.beginner))),
-          child: ListTile(
-            dense: true,
-            leading: CircleAvatar(radius: 18, backgroundColor: _categoryColor(drill.category).withOpacity(0.1), child: Icon(_categoryIcon(drill.category), color: _categoryColor(drill.category), size: 18)),
-            title: Text(drill.titleKo, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text(drill.shortDescriptionKo, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+      children: drills.map((drill) {
+        // 🔹 기기 언어 설정에 맞는 텍스트 선택
+        String title = drill.titleKo;
+        String desc = drill.shortDescriptionKo;
+
+        if (locale.languageCode == 'en') {
+          title = drill.titleEn; desc = drill.shortDescriptionEn;
+        } else if (locale.languageCode == 'ja') {
+          title = drill.titleJa; desc = drill.shortDescriptionJa;
+        } else if (locale.languageCode == 'zh') {
+          if (locale.scriptCode == 'Hant') {
+            title = drill.titleZhHant; desc = drill.shortDescriptionZhHant;
+          } else {
+            title = drill.titleZhHans; desc = drill.shortDescriptionZhHans;
+          }
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: AppCard(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => DrillRunScreen(drill: drill, tier: currentTier)
+            )),
+            child: ListTile(
+              dense: true,
+              leading: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: _categoryColor(drill.category).withOpacity(0.1),
+                  child: Icon(_categoryIcon(drill.category), color: _categoryColor(drill.category), size: 18)
+              ),
+              title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(desc, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 12),
+            ),
           ),
-        ),
-      )).toList(),
+        );
+      }).toList(),
     );
   }
 
   List<Widget> _buildPracticeItems() {
+    final s = AppLocalizations.of(context)!;
     return [
-      _toolTile(Icons.timeline, "트레이닝 히스토리", Colors.blueGrey, () => Navigator.pushNamed(context, RouteConstants.trainingHistory)),
-      _toolTile(Icons.fingerprint, "그립 연구소", Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GripLabHomeScreen()))),
-      _toolTile(Icons.accessibility_new_rounded, "자세분석 & 트래킹", const Color(0xFF1565C0), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PoseAnalysisScreen()))),
-      _toolTile(Icons.calculate, "체크아웃 계산기", Colors.deepPurple, () => Navigator.pushNamed(context, RouteConstants.checkoutCalculator)),
-      _toolTile(Icons.menu_book, "나만의 다트 이야기", Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyLogHomeScreen()))),
+      _toolTile(Icons.timeline, s.tool_training_history, Colors.blueGrey, () => Navigator.pushNamed(context, RouteConstants.trainingHistory)),
+      _toolTile(Icons.fingerprint, s.tool_grip_lab, Colors.teal, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GripLabHomeScreen()))),
+      _toolTile(Icons.accessibility_new_rounded, s.tool_pose_analysis, const Color(0xFF1565C0), () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PoseAnalysisScreen()))),
+      _toolTile(Icons.calculate, s.tool_checkout_calculator, Colors.deepPurple, () => Navigator.pushNamed(context, RouteConstants.checkoutCalculator)),
+      _toolTile(Icons.menu_book, s.tool_my_dart_story, Colors.orange, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyLogHomeScreen()))),
     ];
+  }
+
+  String _getTierLabel(DaoTrainingTier tier) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'en') return tier.labelEn;
+    if (locale.languageCode == 'ja') return tier.labelJa;
+    if (locale.languageCode == 'zh') {
+      return locale.scriptCode == 'Hant' ? tier.labelZhHant : tier.labelZhHans;
+    }
+    return tier.labelKo;
   }
 
   Widget _toolTile(IconData icon, String title, Color color, VoidCallback onTap) {

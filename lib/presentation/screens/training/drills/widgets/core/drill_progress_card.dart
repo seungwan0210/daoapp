@@ -1,11 +1,12 @@
 // lib/presentation/screens/training/drills/widgets/core/drill_progress_card.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class DrillProgressCard extends StatelessWidget {
   final double progress;      // 0.0 ~ 1.0
   final int thrownDarts;      // 던진 다트 수
-  final int? totalDarts;      // 전체 예정 다트 수 (없으면 null)
+  final int? totalDarts;      // 전체 예정 다트 수
   final double successRate;   // 0.0 ~ 1.0
   final int? currentRound;    // 현재 라운드
   final int? totalRounds;     // 전체 라운드
@@ -29,11 +30,14 @@ class DrillProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 S 대신 AppLocalizations 사용
+    final s = AppLocalizations.of(context)!;
     final bool hasTotal = totalDarts != null && totalDarts! > 0;
     final int progressPercent = (progress.clamp(0.0, 1.0) * 100).round();
 
+    // 🔹 "다트" 단위 다국어화
     final String dartsText =
-    hasTotal ? "$thrownDarts / $totalDarts 다트" : "$thrownDarts 다트";
+    hasTotal ? "$thrownDarts / $totalDarts ${s.drill_stat_darts}" : "$thrownDarts ${s.drill_stat_darts}";
 
     final String roundText = (currentRound != null && totalRounds != null)
         ? "ROUND $currentRound / $totalRounds"
@@ -64,9 +68,9 @@ class DrillProgressCard extends StatelessWidget {
           // === 상단: 진행률 타이틀 + 퍼센트 ===
           Row(
             children: [
-              const Text(
-                "진행률",
-                style: TextStyle(
+              Text(
+                s.drill_progress_title,
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey,
@@ -104,7 +108,7 @@ class DrillProgressCard extends StatelessWidget {
             children: [
               Expanded(
                 child: _miniStat(
-                  label: "다트 수",
+                  label: s.drill_stat_darts,
                   value: dartsText,
                   alignRight: false,
                 ),
@@ -112,7 +116,7 @@ class DrillProgressCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _miniStat(
-                  label: "라운드",
+                  label: s.drill_stat_rounds,
                   value: roundText,
                   alignRight: false,
                 ),
@@ -120,7 +124,7 @@ class DrillProgressCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: _miniStat(
-                  label: "성공률",
+                  label: s.drill_stat_success,
                   value: successText,
                   color: thrownDarts == 0
                       ? Colors.grey.shade500
@@ -156,16 +160,18 @@ class DrillProgressCard extends StatelessWidget {
           textAlign: textAlign,
         ),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: color ?? Colors.black87,
+        FittedBox( // 🔹 텍스트가 길어질 경우 대비하여 자동 크기 조절 추가
+          fit: BoxFit.scaleDown,
+          alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color ?? Colors.black87,
+            ),
+            textAlign: textAlign,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          textAlign: textAlign,
         ),
       ],
     );

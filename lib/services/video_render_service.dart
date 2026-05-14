@@ -406,11 +406,11 @@ BatchResult _processBatchTask(BatchTaskData batchData) {
         if (pointData.frameIndex <= task.frameIndex) {
           int cx = pointData.point.dx.toInt();
           int cy = pointData.point.dy.toInt();
-          int radius = (12 * scale).toInt();
+          int radius = (6 * scale).toInt();
 
           img.fillCircle(image, x: cx, y: cy, radius: radius + 2, color: img.ColorRgba8(255, 255, 255, 255));
           img.fillCircle(image, x: cx, y: cy, radius: radius, color: img.ColorRgba8(255, 50, 50, 255));
-          img.drawString(image, '${k + 1}', font: img.arial24, x: cx - 6, y: cy - 35, color: img.ColorRgba8(255, 255, 255, 255));
+          img.drawString(image, '${k + 1}', font: img.arial24, x: cx - 6, y: cy - 20, color: img.ColorRgba8(255, 255, 255, 255));
         }
       }
     }

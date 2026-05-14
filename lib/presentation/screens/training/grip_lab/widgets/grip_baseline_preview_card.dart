@@ -1,5 +1,5 @@
-// lib/presentation/screens/training/grip_lab/widgets/grip_baseline_preview_card.dart
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class GripBaselinePreviewCard extends StatelessWidget {
   final String imageUrl;
@@ -15,6 +15,8 @@ class GripBaselinePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -32,18 +34,20 @@ class GripBaselinePreviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ✅ 수정됨: 가로형 박스지만, 내부는 'contain'으로 전체 다 보여주기
             Container(
-              height: 220, // 높이를 고정하거나 AspectRatio 조절
+              height: 220,
               width: double.infinity,
-              color: const Color(0xFF1A1A1A), // 배경을 어둡게 처리 (사진 집중도 UP)
+              color: const Color(0xFF1A1A1A),
               child: Image.network(
                 imageUrl,
-                fit: BoxFit.contain, // ✅ 잘리지 않고 전체가 다 나옴
+                fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Container(
                   color: Colors.grey[200],
-                  child: const Center(
-                    child: Text("이미지를 불러올 수 없어요", style: TextStyle(fontSize: 12)),
+                  child: Center(
+                    child: Text(
+                      s.grip_preview_load_error, // 🔹 다국어화
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ),
                 ),
                 loadingBuilder: (ctx, child, progress) {
@@ -60,14 +64,13 @@ class GripBaselinePreviewCard extends StatelessWidget {
               ),
             ),
 
-            // 하단 정보 영역 (기존 유지)
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
-                      "저장일: $createdLabel",
+                      s.grip_preview_created_at(createdLabel), // 🔹 {date} 파라미터 전달
                       style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                     ),
                   ),
@@ -79,7 +82,7 @@ class GripBaselinePreviewCard extends StatelessWidget {
                       border: Border.all(color: Colors.cyan.withOpacity(0.25)),
                     ),
                     child: Text(
-                      "Frame $frameLabel",
+                      s.grip_preview_frame(frameLabel), // 🔹 {id} 파라미터 전달
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,

@@ -1,32 +1,17 @@
+// lib/presentation/screens/training/drills/widgets/specialized/bull_split_panel.dart
+
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
-/// Bull N발 – SBull / DBull / MISS를 나눠서 기록하는 패널
 class BullSplitPanel extends StatefulWidget {
-  /// 상단 제목 (예: "Bull 컨트롤 90발")
   final String title;
-
-  /// 전체 던질 다트 수 (예: 60, 90)
   final int totalDarts;
-
-  /// 목표 SBull+DBull 개수 (없으면 표시 안 함)
   final int? targetSbPlusDb;
-
-  /// 목표 DBull 개수 (없으면 표시 안 함)
   final int? targetDb;
-
-  /// 저장/네트워크 작업 중 비활성화 용
   final bool isBusy;
 
-  /// 진행 중에 매 다트마다 호출 (상단 진행 카드 갱신용)
-  /// sBullHits, dBullHits, thrownDarts
-  final void Function(int sBullHits, int dBullHits, int thrownDarts)?
-  onProgress;
-
-  /// 사용자가 "드릴 종료하고 결과 저장"을 눌렀을 때 최종 값 전달
-  final void Function(int sBullHits, int dBullHits, int thrownDarts)?
-  onCompleted;
-
-  /// 런 스크린 쪽에서 실제 finish 처리할 때 사용
+  final void Function(int sBullHits, int dBullHits, int thrownDarts)? onProgress;
+  final void Function(int sBullHits, int dBullHits, int thrownDarts)? onCompleted;
   final VoidCallback? onFinishPressed;
 
   const BullSplitPanel({
@@ -52,14 +37,12 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
   int _sBullHits = 0;
   int _dBullHits = 0;
 
-  /// ✅ Undo용 히스토리
   final List<_BullThrowType> _history = <_BullThrowType>[];
 
   double get _hitRate =>
       _thrownDarts == 0 ? 0 : (_sBullHits + _dBullHits) / _thrownDarts;
 
   bool get _isLimitReached => _thrownDarts >= widget.totalDarts;
-
   bool get _canUndo => !widget.isBusy && _history.isNotEmpty;
 
   void _notifyProgress() {
@@ -67,34 +50,32 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
   }
 
   void _showAllUsedSnack() {
+    final s = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('설정된 총 다트 수를 모두 사용했습니다.')),
+      SnackBar(content: Text(s.drill_msg_limit_reached)),
     );
   }
 
   void _showNoUndoSnack() {
+    final s = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('되돌릴 기록이 없습니다.')),
+      SnackBar(content: Text(s.drill_msg_no_undo)),
     );
   }
 
   void _applyThrow(_BullThrowType type) {
     _thrownDarts++;
     _history.add(type);
-
     if (type == _BullThrowType.sbull) _sBullHits++;
     if (type == _BullThrowType.dbull) _dBullHits++;
   }
 
   void _revertLastThrow() {
     if (_history.isEmpty || _thrownDarts == 0) return;
-
     final last = _history.removeLast();
     _thrownDarts--;
-
     if (last == _BullThrowType.sbull && _sBullHits > 0) _sBullHits--;
     if (last == _BullThrowType.dbull && _dBullHits > 0) _dBullHits--;
-    // miss는 카운트 감소 없음
   }
 
   void _handleThrow(_BullThrowType type) {
@@ -103,60 +84,52 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
       _showAllUsedSnack();
       return;
     }
-
     setState(() {
       _applyThrow(type);
     });
-
     _notifyProgress();
-
-    // ✅ 전부 사용했으면 자동 안내(저장은 사용자가 누르게 유지)
-    if (_isLimitReached) {
-      _showAllUsedSnack();
-    }
+    if (_isLimitReached) _showAllUsedSnack();
   }
 
+  // 🔹 누락되었던 탭 메서드들 추가
   void _onTapSBull() => _handleThrow(_BullThrowType.sbull);
   void _onTapDBull() => _handleThrow(_BullThrowType.dbull);
   void _onTapMiss() => _handleThrow(_BullThrowType.miss);
 
-  /// ✅ Undo: 직전 1발 되돌리기
   void _onTapUndo() {
     if (widget.isBusy) return;
-
     if (_history.isEmpty) {
       _showNoUndoSnack();
       return;
     }
-
     setState(() {
       _revertLastThrow();
     });
-
     _notifyProgress();
   }
 
   void _onTapSaveAndFinish() {
     if (widget.isBusy) return;
-
-    // 한 발도 안 던진 상태면 그냥 종료
     if (_thrownDarts == 0) {
       widget.onFinishPressed?.call();
       return;
     }
-
     widget.onCompleted?.call(_sBullHits, _dBullHits, _thrownDarts);
     widget.onFinishPressed?.call();
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 S 대신 AppLocalizations 사용
     final hitRatePercent = (_hitRate * 100).toStringAsFixed(1);
+
+    // 🔹 목표 텍스트 다국어화 (함수형 호출로 수정)
     final totalTargetText = widget.targetSbPlusDb != null
-        ? '목표 Bull 적중: ${widget.targetSbPlusDb} / ${widget.totalDarts}'
+        ? s.drill_target_bull(widget.targetSbPlusDb.toString(), widget.totalDarts.toString())
         : null;
+
     final dbTargetText = widget.targetDb != null
-        ? '목표 DBull: ${widget.targetDb} / ${widget.totalDarts}'
+        ? 'Target DBull: ${widget.targetDb} / ${widget.totalDarts}'
         : null;
 
     return Container(
@@ -176,134 +149,68 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // 🔹 상단 제목 + 총 다트 수
+          // 🔹 상단 제목 (함수형 호출로 수정)
           Text(
             widget.title.isNotEmpty
                 ? widget.title
-                : 'Bull ${widget.totalDarts}발 – SBull / DBull 분리 기록',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
+                : s.drill_bull_title(widget.totalDarts.toString()),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 4),
           Text(
-            '던진 다트: $_thrownDarts / ${widget.totalDarts}',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.cyan.shade700,
-              fontWeight: FontWeight.w600,
-            ),
+            '${s.drill_stat_darts}: $_thrownDarts / ${widget.totalDarts}',
+            style: TextStyle(fontSize: 13, color: Colors.cyan.shade700, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(99),
             child: LinearProgressIndicator(
-              value: widget.totalDarts == 0
-                  ? 0
-                  : (_thrownDarts / widget.totalDarts).clamp(0, 1),
+              value: widget.totalDarts == 0 ? 0 : (_thrownDarts / widget.totalDarts).clamp(0, 1),
               minHeight: 6,
               backgroundColor: Colors.grey.shade200,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.cyan.shade600,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.cyan.shade600),
             ),
           ),
 
           const SizedBox(height: 10),
 
-          // 🔹 목표치 안내 (있을 때만)
+          // 목표치 안내
           if (totalTargetText != null || dbTargetText != null) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (totalTargetText != null)
-                  Flexible(
-                    child: Text(
-                      totalTargetText,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-              ],
-            ),
-            if (dbTargetText != null) ...[
-              const SizedBox(height: 2),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      dbTargetText,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            if (totalTargetText != null)
+              Text(totalTargetText, style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+            if (dbTargetText != null)
+              Text(dbTargetText, style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
             const SizedBox(height: 6),
           ],
 
-          // ✅ 통계 칩 – Row + Expanded
+          // 통계 칩
           Row(
             children: [
-              Expanded(
-                child: _StatChip(
-                  label: 'SBull',
-                  value: _sBullHits.toString(),
-                ),
-              ),
+              Expanded(child: _StatChip(label: 'SBull', value: _sBullHits.toString())),
               const SizedBox(width: 8),
-              Expanded(
-                child: _StatChip(
-                  label: 'DBull',
-                  value: _dBullHits.toString(),
-                ),
-              ),
+              Expanded(child: _StatChip(label: 'DBull', value: _dBullHits.toString())),
               const SizedBox(width: 8),
-              Expanded(
-                child: _StatChip(
-                  label: 'Bull 적중률',
-                  value: '$hitRatePercent%',
-                ),
-              ),
+              Expanded(child: _StatChip(label: s.drill_stat_bull_rate, value: '$hitRatePercent%')),
             ],
           ),
 
           const SizedBox(height: 14),
 
-          // ✅ Undo 버튼 (패널 자체)
+          // ✅ Undo 버튼
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: _canUndo ? _onTapUndo : null,
               icon: const Icon(Icons.undo_rounded, size: 18),
-              label: const Text(
-                '1발 되돌리기',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.redAccent,
-              ),
+              label: Text(s.drill_btn_undo_last, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
             ),
           ),
 
           const SizedBox(height: 6),
 
-          // SBull / DBull / MISS 버튼 – Expanded로 3등분
+          // 입력 버튼
           Row(
             children: [
               Expanded(
@@ -313,17 +220,9 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
                     backgroundColor: Colors.green.shade600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text(
-                    'SBULL',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: const Text('SBULL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -334,17 +233,9 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
                     backgroundColor: Colors.orange.shade700,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text(
-                    'DBULL',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: const Text('DBULL', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -355,17 +246,9 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
                     backgroundColor: Colors.grey.shade300,
                     foregroundColor: Colors.black87,
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text(
-                    'MISS',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+                  child: const Text('MISS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                 ),
               ),
             ],
@@ -375,14 +258,7 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
 
           TextButton(
             onPressed: widget.isBusy ? null : _onTapSaveAndFinish,
-            child: const Text(
-              '드릴 종료하고 결과 저장',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.cyan,
-              ),
-            ),
+            child: Text(s.drill_btn_finish_save, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.cyan)),
           ),
         ],
       ),
@@ -393,11 +269,7 @@ class _BullSplitPanelState extends State<BullSplitPanel> {
 class _StatChip extends StatelessWidget {
   final String label;
   final String value;
-
-  const _StatChip({
-    required this.label,
-    required this.value,
-  });
+  const _StatChip({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -413,21 +285,8 @@ class _StatChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '$label: ',
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+            Text('$label: ', style: TextStyle(fontSize: 11, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+            Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
           ],
         ),
       ),

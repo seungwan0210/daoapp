@@ -10,6 +10,7 @@ import 'package:daoapp/data/models/grip_baseline_model.dart';
 import 'package:daoapp/services/grip_snapshot_service.dart';
 import 'package:daoapp/data/services/native_grip_bridge.dart';
 import 'widgets/ghost_overlay_painter.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class GripCameraScreen extends ConsumerStatefulWidget {
   const GripCameraScreen({super.key});
@@ -18,7 +19,6 @@ class GripCameraScreen extends ConsumerStatefulWidget {
   ConsumerState<GripCameraScreen> createState() => _GripCameraScreenState();
 }
 
-// ✅ WidgetsBindingObserver를 추가하여 앱의 포커스 상태 변화를 감지합니다.
 class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with WidgetsBindingObserver {
   bool _hasCameraPermission = false;
   final GlobalKey _captureKey = GlobalKey();
@@ -29,19 +29,16 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
   @override
   void initState() {
     super.initState();
-    // 💡 옵저버 등록: 사용자가 설정창에 갔다가 돌아오는 것을 감지하기 위함
     WidgetsBinding.instance.addObserver(this);
     _checkPermissionAndStart();
   }
 
   @override
   void dispose() {
-    // 💡 옵저버 해제
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  // ✅ 사용자가 설정 화면에서 권한을 바꾸고 앱으로 돌아오면 자동으로 실행됩니다.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -49,21 +46,17 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
     }
   }
 
-  // ✅ 핵심 수정: 권한 상태를 확인하고 시스템과 동기화합니다.
   Future<void> _checkPermissionAndStart() async {
     var status = await Permission.camera.status;
 
-    // 만약 거부 상태라면 명시적으로 요청 (처음 진입 시)
     if (status.isDenied) {
       status = await Permission.camera.request();
     }
 
     if (!mounted) return;
 
-    // 허용 여부에 따라 UI 상태 업데이트
     final isGranted = status.isGranted;
-    
-    // 상태가 변경되었을 때만 업데이트하여 불필요한 빌드 방지
+
     if (_hasCameraPermission != isGranted) {
       setState(() {
         _hasCameraPermission = isGranted;
@@ -73,12 +66,10 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
     if (isGranted) {
       _startAnalysisWithDelay();
     } else if (status.isPermanentlyDenied) {
-      // 완전히 거부된 경우 설정창 유도
       _showPermissionDialog();
     }
   }
 
-  // 💡 네이티브 뷰가 빌드될 시간을 충분히 준 뒤 분석을 시작합니다.
   void _startAnalysisWithDelay() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 800), () {
@@ -89,25 +80,25 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
     });
   }
 
-  // 🔒 설정 앱 이동 유도 다이얼로그
   void _showPermissionDialog() {
+    final s = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Text("카메라 권한 필요"),
-        content: const Text("설정에서 카메라 권한을 허용해야 그립 분석 기능을 사용할 수 있습니다."),
+        title: Text(s.grip_auth_camera_title),
+        content: Text(s.grip_auth_camera_msg),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("취소"),
+            child: Text(s.common_cancel),
           ),
           TextButton(
             onPressed: () {
               openAppSettings();
               Navigator.pop(context);
             },
-            child: const Text("설정으로 이동"),
+            child: Text(s.grip_auth_go_settings),
           ),
         ],
       ),
@@ -120,6 +111,7 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
 
   Future<void> _saveAsBaseline() async {
     if (_isSaving) return;
+    final s = AppLocalizations.of(context)!;
 
     final gripState = ref.read(gripLabProvider);
     final int imageW = gripState.imageWidth;
@@ -133,7 +125,7 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
 
     if (!canSave) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("손이 인식된 상태에서만 촬영할 수 있어요.")),
+        SnackBar(content: Text(s.grip_cam_msg_detected_only)),
       );
       return;
     }
@@ -152,7 +144,7 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
         pixelRatio: pixelRatio,
       );
 
-      if (file == null) throw Exception("이미지 캡처 실패");
+      if (file == null) throw Exception("Image capture failed");
 
       final baseline = GripBaselineModel(
         createdAt: DateTime.now(),
@@ -172,14 +164,14 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ 기준 그립 저장 완료!")),
+          SnackBar(content: Text(s.grip_cam_msg_save_success)),
         );
       }
 
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("저장 중 오류 발생: $e")),
+          SnackBar(content: Text(s.grip_cam_msg_save_error(e.toString()))),
         );
         ref.read(gripLabProvider.notifier).startAnalysis();
         setState(() => _isSaving = false);
@@ -190,22 +182,16 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
   Widget _buildNativeView() {
     const String viewType = 'dao_grip_camera_view';
     const codec = StandardMessageCodec();
-
     if (Platform.isIOS) {
-      return const UiKitView(
-        viewType: viewType,
-        creationParamsCodec: codec,
-      );
+      return const UiKitView(viewType: viewType, creationParamsCodec: codec);
     } else {
-      return const AndroidView(
-        viewType: viewType,
-        creationParamsCodec: codec,
-      );
+      return const AndroidView(viewType: viewType, creationParamsCodec: codec);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final gripState = ref.watch(gripLabProvider);
 
     final bool isHandReady = _hasCameraPermission &&
@@ -222,19 +208,18 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // 💡 권한이 확실히 허용된 경우에만 네이티브 뷰를 빌드
                 if (_hasCameraPermission)
                   _buildNativeView()
                 else
-                  const Center(
+                  Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        CircularProgressIndicator(color: Colors.white),
-                        SizedBox(height: 20),
+                        const CircularProgressIndicator(color: Colors.white),
+                        const SizedBox(height: 20),
                         Text(
-                          "카메라 권한을 확인하고 있습니다...",
-                          style: TextStyle(color: Colors.white),
+                          s.grip_cam_checking_auth,
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
@@ -244,12 +229,12 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
                   child: CustomPaint(
                     painter: isHandReady
                         ? GhostOverlayPainter(
-                            liveLandmarks: gripState.landmarks,
-                            baselineLandmarks: null,
-                            imageWidth: gripState.imageWidth,
-                            imageHeight: gripState.imageHeight,
-                            fillCenter: true,
-                          )
+                      liveLandmarks: gripState.landmarks,
+                      baselineLandmarks: null,
+                      imageWidth: gripState.imageWidth,
+                      imageHeight: gripState.imageHeight,
+                      fillCenter: true,
+                    )
                         : null,
                     child: const SizedBox.expand(),
                   ),
@@ -278,20 +263,20 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
               ),
               child: RichText(
                 textAlign: TextAlign.center,
-                text: const TextSpan(
-                  style: TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
+                text: TextSpan(
+                  style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.5),
                   children: [
-                    TextSpan(text: "엄지와 검지를 "),
+                    TextSpan(text: s.grip_cam_guide_center),
                     TextSpan(
-                      text: "+ 중심",
-                      style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
+                      text: s.grip_cam_guide_plus,
+                      style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
                     ),
-                    TextSpan(text: "에 맞추고\n"),
+                    TextSpan(text: s.grip_cam_guide_align),
                     TextSpan(
-                      text: "가로선 ― ",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      text: s.grip_cam_guide_horizon,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
-                    TextSpan(text: "을 보며 다트의 각도(수평)를 확인하세요"),
+                    TextSpan(text: s.grip_cam_guide_desc),
                   ],
                 ),
               ),
@@ -374,9 +359,9 @@ class _ShutterButton extends StatelessWidget {
           child: isSaving
               ? const SizedBox(width: 30, height: 30, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
               : Container(
-                  width: 64, height: 64,
-                  decoration: BoxDecoration(shape: BoxShape.circle, color: isEnabled ? Colors.white : Colors.grey.withOpacity(0.5)),
-                ),
+            width: 64, height: 64,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: isEnabled ? Colors.white : Colors.grey.withOpacity(0.5)),
+          ),
         ),
       ),
     );

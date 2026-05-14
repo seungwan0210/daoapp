@@ -14,6 +14,7 @@ enum DaoTrainingTier {
 }
 
 extension DaoTrainingTierX on DaoTrainingTier {
+  /// 한국어 라벨
   String get labelKo => switch (this) {
     DaoTrainingTier.beginner => '비기너',
     DaoTrainingTier.learner => '러너',
@@ -24,6 +25,7 @@ extension DaoTrainingTierX on DaoTrainingTier {
     DaoTrainingTier.master => '마스터',
   };
 
+  /// 영어 라벨
   String get labelEn => switch (this) {
     DaoTrainingTier.beginner => 'Beginner',
     DaoTrainingTier.learner => 'Learner',
@@ -34,16 +36,38 @@ extension DaoTrainingTierX on DaoTrainingTier {
     DaoTrainingTier.master => 'Master',
   };
 
-/// 🔹 미니 뱃지/칩용 짧은 라벨 (필요하면 나중에 더 줄여도 됨)
-String get shortLabelKo => switch (this) {
-  DaoTrainingTier.beginner => '비기너',
-  DaoTrainingTier.learner => '러너',
-  DaoTrainingTier.competitor => '컴페티터',
-  DaoTrainingTier.challenger => '챌린저',
-  DaoTrainingTier.elite => '엘리트',
-  DaoTrainingTier.pro => '프로',
-  DaoTrainingTier.master => '마스터',
-};
+  /// 일본어 라벨 (ja)
+  String get labelJa => switch (this) {
+    DaoTrainingTier.beginner => 'ビギナー',
+    DaoTrainingTier.learner => 'ラーナー',
+    DaoTrainingTier.competitor => 'コンペティター',
+    DaoTrainingTier.challenger => 'チャレンジャー',
+    DaoTrainingTier.elite => 'エリート',
+    DaoTrainingTier.pro => 'プロ',
+    DaoTrainingTier.master => 'マスター',
+  };
+
+  /// 중국어 간체 라벨 (zh_Hans)
+  String get labelZhHans => switch (this) {
+    DaoTrainingTier.beginner => '初学者',
+    DaoTrainingTier.learner => '学习者',
+    DaoTrainingTier.competitor => '选手',
+    DaoTrainingTier.challenger => '挑战者',
+    DaoTrainingTier.elite => '精英',
+    DaoTrainingTier.pro => '职业',
+    DaoTrainingTier.master => '大师',
+  };
+
+  /// 중국어 번체 라벨 (zh_Hant)
+  String get labelZhHant => switch (this) {
+    DaoTrainingTier.beginner => '初學者',
+    DaoTrainingTier.learner => '學習者',
+    DaoTrainingTier.competitor => '選手',
+    DaoTrainingTier.challenger => '挑戰者',
+    DaoTrainingTier.elite => '精英',
+    DaoTrainingTier.pro => '職業',
+    DaoTrainingTier.master => '大師',
+  };
 }
 
 /// =======================================

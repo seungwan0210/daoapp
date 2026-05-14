@@ -1,6 +1,7 @@
 // lib/presentation/screens/training/drills/widgets/specialized/double_clock_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class DoubleClockPanel extends StatefulWidget {
   final int startFrom;
@@ -9,11 +10,7 @@ class DoubleClockPanel extends StatefulWidget {
 
   final VoidCallback? onHitSuccess;
   final VoidCallback? onHitFail;
-
-  /// ✅ Undo(1단계) - 부모(DrillRunScreen) attempts/success 되돌림용
-  /// - wasSuccess=true면 successCount도 1 감소 처리하면 됨
   final void Function(bool wasSuccess)? onUndoResult;
-
   final VoidCallback? onFinishPressed;
   final bool isBusy;
 
@@ -35,11 +32,8 @@ class DoubleClockPanel extends StatefulWidget {
 
 class _DoubleClockPanelState extends State<DoubleClockPanel> {
   late List<String> _targets;
-
-  int _currentIndex = 0; // 현재 타겟 인덱스 (0-based)
+  int _currentIndex = 0;
   bool _finished = false;
-
-  /// ✅ 로컬 Undo용 입력 히스토리 (성공/실패)
   final List<bool> _history = <bool>[];
 
   @override
@@ -50,7 +44,6 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
   void _buildTargetList() {
     final List<String> doubles = [];
-
     if (widget.reverse) {
       for (int i = 20; i >= 1; i--) {
         if (i >= widget.startFrom) doubles.add('D$i');
@@ -60,51 +53,27 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
         doubles.add('D$i');
       }
     }
-
     if (widget.includeBull) {
       doubles.add('DBull');
     }
-
     _targets = doubles;
   }
 
   int get totalTargets => _targets.length;
-
-  String get currentTarget {
-    if (_targets.isEmpty) return '-';
-    final clamped = _currentIndex.clamp(0, totalTargets - 1);
-    return _targets[clamped];
-  }
-
+  String get currentTarget => _targets.isEmpty ? '-' : _targets[_currentIndex.clamp(0, totalTargets - 1)];
   bool get isFinished => _finished;
+  bool get _canUndo => !widget.isBusy && _history.isNotEmpty && totalTargets > 0;
 
-  bool get _canUndo =>
-      !widget.isBusy && _history.isNotEmpty && totalTargets > 0;
+  int get displayStep => totalTargets == 0 ? 0 : (_finished ? totalTargets : (_currentIndex.clamp(0, totalTargets - 1)) + 1);
 
-  /// 1-based 표시용
-  int get displayStep {
-    if (totalTargets == 0) return 0;
-    if (_finished) return totalTargets;
-    return (_currentIndex.clamp(0, totalTargets - 1)) + 1;
-  }
-
-  /// 진행도 (0.0~1.0)
-  double get progress {
-    if (totalTargets == 0) return 0.0;
-
-    final completedCount = _finished ? totalTargets : _currentIndex;
-    return (completedCount / totalTargets).clamp(0.0, 1.0);
-  }
+  double get progress => totalTargets == 0 ? 0.0 : ((_finished ? totalTargets : _currentIndex) / totalTargets).clamp(0.0, 1.0);
 
   void _record(bool success) {
     if (widget.isBusy || _finished || totalTargets == 0) return;
-
-    // ✅ 히스토리 기록 (Undo 가능)
     _history.add(success);
 
     if (success) {
       widget.onHitSuccess?.call();
-
       setState(() {
         if (_currentIndex < totalTargets - 1) {
           _currentIndex++;
@@ -114,41 +83,36 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
       });
     } else {
       widget.onHitFail?.call();
-      // 실패해도 인덱스 변화 없음
-      setState(() {}); // 버튼 비활성/상태 등 갱신 필요할 때 대비
+      setState(() {});
     }
   }
 
   void _undoLast() {
     if (!_canUndo) return;
-
     final bool last = _history.removeLast();
 
     setState(() {
       if (last) {
-        // ✅ 성공을 되돌릴 때
         if (_finished) {
-          // 마지막 성공으로 finished=true가 된 케이스
-          // (현재Index는 이미 마지막 타겟 인덱스 상태)
           _finished = false;
-          // _currentIndex는 그대로(마지막 타겟 다시 도전)
-        } else {
-          // 중간 성공으로 인덱스가 +1 되었던 케이스
-          if (_currentIndex > 0) _currentIndex--;
+        } else if (_currentIndex > 0) {
+          _currentIndex--;
         }
-      } else {
-        // ✅ 실패 Undo는 UI 진행엔 변화 없음 (같은 타겟 유지)
-        // 단, 부모 attempts는 1 감소해야 하므로 콜백은 호출
       }
     });
-
-    // ✅ 부모(DrillRunScreen)에도 되돌렸다고 알려서
-    // attempts/successCount를 같이 되돌리게 함
     widget.onUndoResult?.call(last);
   }
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 S 대신 AppLocalizations 사용
+    final s = AppLocalizations.of(context)!;
+
+    // 🔹 제목 구성 (다국어 키 조합)
+    final String title = widget.startFrom > 1
+        ? "${s.drill_clock_title} (${s.filter_upcoming})" // '뒤 절반' 키가 없을 경우 '예정/다음' 키 등으로 대체 가능
+        : s.drill_clock_title;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -166,7 +130,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
               border: Border.all(color: Colors.grey.shade300),
             ),
             child: Text(
-              "더블 시계${widget.startFrom > 1 ? " (뒤 절반)" : ""} · $displayStep / $totalTargets",
+              "$title · $displayStep / $totalTargets",
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
@@ -188,9 +152,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
                     value: progress,
                     strokeWidth: 9,
                     backgroundColor: Colors.grey.shade300,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.cyan.shade600,
-                    ),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.cyan.shade600),
                   ),
                 ),
                 Container(
@@ -204,11 +166,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
                   alignment: Alignment.center,
                   child: Text(
                     currentTarget,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -218,13 +176,13 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
           const SizedBox(height: 18),
 
-          // ✅ Undo 버튼 (1단계)
+          // ✅ Undo 버튼
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(
               onPressed: _canUndo ? _undoLast : null,
               icon: const Icon(Icons.undo),
-              tooltip: '되돌리기',
+              tooltip: s.calc_undo,
             ),
           ),
 
@@ -235,47 +193,27 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy || isFinished
-                      ? null
-                      : () => _record(true),
+                  onPressed: widget.isBusy || isFinished ? null : () => _record(true),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text(
-                    "성공",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text(s.drill_btn_success, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: widget.isBusy || isFinished
-                      ? null
-                      : () => _record(false),
+                  onPressed: widget.isBusy || isFinished ? null : () => _record(false),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade600,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text(
-                    "실패",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: Text(s.drill_btn_fail, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -283,7 +221,7 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
 
           const SizedBox(height: 20),
 
-          // 종료 버튼
+          // 결과 확인 / 저장 버튼
           if (isFinished)
             ElevatedButton(
               onPressed: widget.onFinishPressed,
@@ -291,29 +229,14 @@ class _DoubleClockPanelState extends State<DoubleClockPanel> {
                 backgroundColor: Colors.cyan.shade600,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               ),
-              child: const Text(
-                "결과 확인하기",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              child: Text(s.drill_check_result, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
             )
           else
             TextButton(
               onPressed: widget.isBusy ? null : widget.onFinishPressed,
-              child: const Text(
-                "드릴 종료하고 결과 저장",
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.cyan,
-                ),
-              ),
+              child: Text(s.drill_btn_finish_save, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.cyan)),
             ),
 
           const SizedBox(height: 12),

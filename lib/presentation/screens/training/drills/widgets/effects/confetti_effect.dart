@@ -2,7 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
-import 'dart:math' as math;  // 이거 추가 필수!
+import 'dart:math' as math;
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
 class ConfettiEffect extends StatefulWidget {
   final bool trigger;
@@ -38,6 +39,7 @@ class _ConfettiEffectState extends State<ConfettiEffect> {
   @override
   void didUpdateWidget(ConfettiEffect oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // 트리거가 false -> true로 변할 때 실행
     if (widget.trigger && !oldWidget.trigger) {
       _controller.play();
     }
@@ -55,7 +57,7 @@ class _ConfettiEffectState extends State<ConfettiEffect> {
       children: [
         widget.child,
 
-        // 상단 중앙에서 터지는 폭죽
+        // 1. 상단 중앙: 폭발형 별 모양 종이조각
         Align(
           alignment: Alignment.topCenter,
           child: ConfettiWidget(
@@ -70,7 +72,7 @@ class _ConfettiEffectState extends State<ConfettiEffect> {
               Colors.purple,
               Colors.orange,
             ],
-            createParticlePath: drawStar, // 별 모양 종이조각!
+            createParticlePath: _drawStar, // 🔹 별 모양 경로 함수 호출
             emissionFrequency: 0.05,
             numberOfParticles: 50,
             gravity: 0.2,
@@ -79,23 +81,25 @@ class _ConfettiEffectState extends State<ConfettiEffect> {
           ),
         ),
 
-        // 좌우에서 날아오는 종이조각
+        // 2. 좌측 중앙: 오른쪽으로 날아가는 효과
         Align(
           alignment: Alignment.centerLeft,
           child: ConfettiWidget(
             confettiController: _controller,
-            blastDirection: 0,
+            blastDirection: 0, // 0도 (오른쪽)
             emissionFrequency: 0.08,
             numberOfParticles: 20,
             gravity: 0.15,
             colors: const [Colors.red, Colors.blue, Colors.green],
           ),
         ),
+
+        // 3. 우측 중앙: 왼쪽으로 날아가는 효과
         Align(
           alignment: Alignment.centerRight,
           child: ConfettiWidget(
             confettiController: _controller,
-            blastDirection: math.pi, // 3.14 대신 math.pi
+            blastDirection: math.pi, // 180도 (왼쪽)
             emissionFrequency: 0.08,
             numberOfParticles: 20,
             gravity: 0.15,
@@ -106,8 +110,8 @@ class _ConfettiEffectState extends State<ConfettiEffect> {
     );
   }
 
-  // final 제거 + math. 사용
-  Path drawStar(Size size) {
+  /// ⭐️ 별 모양을 그리는 경로 생성 함수
+  Path _drawStar(Size size) {
     final path = Path();
     final centerX = size.width / 2;
     final centerY = size.height / 2;

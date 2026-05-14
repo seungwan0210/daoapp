@@ -1,6 +1,7 @@
 // lib/presentation/screens/training/board_level_test_screen.dart
 import 'package:flutter/material.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 추가
 
 class BoardLevelTestScreen extends StatefulWidget {
   const BoardLevelTestScreen({super.key});
@@ -25,6 +26,17 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
   void dispose() {
     _dartsController.dispose();
     super.dispose();
+  }
+
+  // 🔹 티어 라벨 다국어 헬퍼
+  String _getTierLabel(DaoTrainingTier tier) {
+    final locale = Localizations.localeOf(context);
+    if (locale.languageCode == 'en') return tier.labelEn;
+    if (locale.languageCode == 'ja') return tier.labelJa;
+    if (locale.languageCode == 'zh') {
+      return locale.scriptCode == 'Hant' ? tier.labelZhHant : tier.labelZhHans;
+    }
+    return tier.labelKo;
   }
 
   void _updatePreview() {
@@ -55,9 +67,11 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text("보드 마킹 레벨 테스트"),
+        title: Text(s.tier_test_title), // 🔹 다국어화
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.grey[50],
@@ -67,14 +81,13 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "다트 보드 마킹 정확도 테스트",
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            Text(
+              s.tier_test_headline, // 🔹 다국어화
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
-              "1번부터 20번까지 순서대로 명중하며,\n"
-                  "총 몇 발이 들었는지 입력해주세요.",
+              s.tier_test_desc, // 🔹 다국어화
               style: TextStyle(color: Colors.grey[700], height: 1.4),
             ),
             const SizedBox(height: 32),
@@ -92,9 +105,9 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
             const SizedBox(height: 40),
             _buildActionButton(),
             const SizedBox(height: 12),
-            const Center(
-              child: Text("결과는 트레이닝 홈에 바로 반영됩니다",
-                  style: TextStyle(fontSize: 12, color: Colors.grey)),
+            Center(
+              child: Text(s.tier_test_result_notice, // 🔹 다국어화
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
             ),
           ],
         ),
@@ -104,6 +117,10 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
 
   /// DAO 7티어 기준표
   Widget _buildTierGuideCard() {
+    final s = AppLocalizations.of(context)!;
+    // 다트 단위 (발 / darts)
+    final String unit = s.drill_stat_darts;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -118,30 +135,31 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
       ),
       child: Column(
         children: [
-          const Text("DAO 공식 마킹 레벨 기준",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(s.tier_test_guide_title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 16),
-          _buildTierRow("마스터", "≤ 24발", _tierColor(DaoTrainingTier.master)),
-          _buildTierRow("프로", "25~28발", _tierColor(DaoTrainingTier.pro)),
-          _buildTierRow("엘리트", "29~33발", _tierColor(DaoTrainingTier.elite)),
-          _buildTierRow("챌린저", "34~42발", _tierColor(DaoTrainingTier.challenger)),
-          _buildTierRow("컴페티터", "43~55발", _tierColor(DaoTrainingTier.competitor)),
-          _buildTierRow("러너", "56~70발", _tierColor(DaoTrainingTier.learner)),
-          _buildTierRow("비기너", "71발 이상", _tierColor(DaoTrainingTier.beginner)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.master), "≤ 24$unit", _tierColor(DaoTrainingTier.master)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.pro), "25~28$unit", _tierColor(DaoTrainingTier.pro)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.elite), "29~33$unit", _tierColor(DaoTrainingTier.elite)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.challenger), "34~42$unit", _tierColor(DaoTrainingTier.challenger)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.competitor), "43~55$unit", _tierColor(DaoTrainingTier.competitor)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.learner), "56~70$unit", _tierColor(DaoTrainingTier.learner)),
+          _buildTierRow(_getTierLabel(DaoTrainingTier.beginner), "71$unit ~", _tierColor(DaoTrainingTier.beginner)),
         ],
       ),
     );
   }
 
   Widget _buildInputForm() {
+    final s = AppLocalizations.of(context)!;
     return Form(
       key: _formKey,
       child: TextFormField(
         controller: _dartsController,
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
-          labelText: "총 사용한 다트 수",
-          hintText: "예: 28",
+          labelText: s.tier_test_input_label,
+          hintText: s.tier_test_input_hint,
           prefixIcon: const Icon(Icons.sports_handball, color: Colors.cyan),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           focusedBorder: OutlineInputBorder(
@@ -150,10 +168,10 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
           ),
         ),
         validator: (value) {
-          if ((value ?? '').trim().isEmpty) return "다트 수를 입력해주세요";
+          if ((value ?? '').trim().isEmpty) return s.tier_test_err_empty;
           final v = int.tryParse(value!.trim());
-          if (v == null || v <= 0) return "1 이상의 숫자를 입력해주세요";
-          if (v > 300) return "너무 많은 다트 수입니다. 다시 확인해주세요";
+          if (v == null || v <= 0) return s.tier_test_err_invalid;
+          if (v > 300) return s.tier_test_err_too_many;
           return null;
         },
       ),
@@ -162,6 +180,7 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
 
   /// 실시간 미리보기
   Widget _buildPreviewCard() {
+    final s = AppLocalizations.of(context)!;
     final tier = _previewProfile!.tier;
     final color = _tierColor(tier);
 
@@ -175,12 +194,13 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
       ),
       child: Column(
         children: [
-          const Text("예상 DAO 티어", style: TextStyle(fontSize: 16)),
+          Text(s.tier_predict_label, style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 12),
-          Text(tier.labelKo,
+          Text(_getTierLabel(tier),
               style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: color)),
+          // 영어 라벨은 디자인 포인트로 작게 유지
           Text(tier.labelEn,
-              style: TextStyle(fontSize: 18, color: color.withOpacity(0.7))),
+              style: TextStyle(fontSize: 14, color: color.withOpacity(0.7))),
         ],
       ),
     );
@@ -188,14 +208,15 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
 
   /// 확정 버튼
   Widget _buildActionButton() {
+    final s = AppLocalizations.of(context)!;
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton.icon(
         onPressed: _calculate,
         icon: const Icon(Icons.flag, size: 26),
-        label: const Text("DAO 티어 확정하기",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        label: Text(s.tier_test_btn_confirm,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.cyan,
           foregroundColor: Colors.white,
@@ -229,7 +250,7 @@ class _BoardLevelTestScreenState extends State<BoardLevelTestScreen> {
       DaoTrainingTier.challenger => Colors.green,
       DaoTrainingTier.competitor => Colors.teal,
       DaoTrainingTier.learner => Colors.blue,
-      DaoTrainingTier.beginner => Color(0xFFFF8EC7),
+      DaoTrainingTier.beginner => const Color(0xFFFF8EC7),
     };
   }
 }

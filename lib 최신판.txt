@@ -6,6 +6,9 @@
 │   │   └── badge_constants.dart
 │   │   └── training_drill_constants.dart
 │   │   └── training_program_constants.dart
+│   ├── services/
+│   │   ├── google_calendar_service.dart
+│   │   ├── practice_notification_service.dart
 │   ├── theme/
 │   │   └── app_theme.dart
 │   └── utils/
@@ -27,6 +30,7 @@
 │       ├── chat_message_model.dart
 │       ├── chat_message_model.freezed.dart
 │       ├── point_record_model.dart
+│       ├── practice_session_model.dart
 │       ├── practice_session_summary.dart
 │       ├── ranking_game_model.dart
 │       ├── ranking_user.dart
@@ -62,6 +66,8 @@
 │   │   └── grip_repository.dart 
 │   │   └── grip_repository_impl.dar
 │   │   └── ranking_repository.dart
+│   │   └── practice_repository.dart
+│   │   └── practice_repository_impl.dart
 │   └── services/
 │       └──native_grip_bridge.dart
 ├── di/
@@ -77,7 +83,9 @@
 │   │   ├── arena_provider.dart
 │   │   └── my_log_provider.dart
 │   │   └── chat/ 
-│   │   │   └──chat_provider.dart
+│   │   │   └── chat_provider.dart
+│   │   └── practice/ 
+│   │   │   └── practice_provider.dart
 │   │   └── training/ 
 │   │   │   └── training_drill_provider.dart
 │   │   │   └── training_history_provider.dart
@@ -86,11 +94,10 @@
 │   │   │   └── pose_analysis_provider.dart
 │   │   │   └── grip_lab_provider.dart
 │   │   │   └── grip_baseline_provider.dart
-│   │   └── ranking/
-│   │   │   └── ranking_provider.dart
-│   │   │   └── total_ranking_provider.dart
-│   │   └── calculator/
-│   │   │   └── checkout_calculator_provider.dart
+│   │   │   └── ranking/
+│   │   │   │     └── ranking_provider.dart
+│   │   │   └── calculator/
+│   │   │   │     └── checkout_calculator_provider.dart
 │   ├── screens/
 │   │   ├── splash_screen.dart
 │   │   ├── main_screen.dart 
@@ -100,6 +107,7 @@
 │   │   │   ├── admin_dashboard_screen.dart
 │   │   │   ├── admin_member_list_screen.dart
 │   │   │   ├── admin_report_list_screen.dart
+│   │   │   ├── admin_hard_cleanup_screen.dart
 │   │   │   ├── event_create_screen.dart
 │   │   │   ├── event_list_screen.dart
 │   │   │   ├── point_award_screen.dart
@@ -107,12 +115,15 @@
 │   │   │   ├── member_register_screen.dart
 │   │   │   ├── point_edit_screen.dart
 │   │   │   ├── event_edit_screen.dart
+│   │   │   ├── quick_notice_manage_screen.dart 
+│   │   │   ├── official_calendar_create_screen.dart
 │   │   │   └── forms/
 │   │   │       ├── admin_chat_config_screen.dart
 │   │   │       ├── notice_form_screen.dart
 │   │   │       ├── news_form_screen.dart
 │   │   │       ├── sponsor_form_screen.dart
 │   │   │       └── competition_photos_form_screen.dart
+│   │   │       └── magazine_form_screen.dart
 │   │   ├── arena/                           
 │   │   │   ├── arena_home_screen.dart  
 │   │   │   ├── steel_league/                 
@@ -139,6 +150,13 @@
 │   │   │       └── arena_preview.dart
 │   │   ├── community/  
 │   │   │   ├── community_home_screen.dart
+│   │   │   ├── chat/
+│   │   │   │   ├── chat_screen.dart
+│   │   │   │   ├── widgets/
+│   │   │   │   │     ├── chat_input_field.dart
+│   │   │   │   │     ├── live_chat_ticker.dart
+│   │   │   │   │     ├── chat_overlay_sheet.dart
+│   │   │   │   │     ├── chat_message_bubble.dart
 │   │   │   ├── circle/
 │   │   │   │   ├── circle_screen.dart
 │   │   │   │   ├── circle_grid_view.dart
@@ -151,18 +169,18 @@
 │   │   │   │       ├── comment_button.dart
 │   │   │   │       ├── comment_preview.dart
 │   │   │   │       └── comment_bottom_sheet.dart
-│   │   │   ├── chat/
-│   │   │   │   ├── chat_screen.dart
-│   │   │   │   ├──widgets/
-│   │   │   │       ├── live_chat_ticker.dart
-│   │   │   │       ├── chat_input_field.dart
-│   │   │   │       ├── chat_message_bubble.dart
-│   │   │   │       ├── chat_overlay_sheet.dart
 │   │   │   ├── widgets/
 │   │   │   │   ├── community_avatar_slider.dart
 │   │   │   │   ├── community_preview.dart
 │   │   ├── home/                           
 │   │   │   ├── home_screen.dart 
+│   │   │   ├── live_practice_full_list_screen.dart
+│   │   │   ├── official_calendar_screen.dart
+│   │   │   ├──widgets/
+│   │   │   │       └── live_practice_board.dart
+│   │   │   │       └── live_user_grid_item.dart
+│   │   │   │       └── practice_setup_bottom_sheet.dart
+│   │   │   │       └── practice_stop_bottom_sheet.dart
 │   │   ├── login/
 │   │   │   └── login_screen.dart
 │   │   ├── my_page/
@@ -223,8 +241,8 @@
 │   │   │   │   │   ├── sector_cycle_panel.dart
 │   │   │   │   │   ├── t20_focus_panel.dart
 │   │   │   │   │   ├── top_bottom_board_panel.dart
-│   │   │   │   ├── drill_result_screen.dart
-│   │   │   │   ├── drill_run_screen.dart
+│   │   │   │   └── drill_result_screen.dart
+│   │   │   │   └──  drill_run_screen.dart
 │   │   │   ├── grip_lab/
 │   │   │       │     └── grip_lab_home_screen.dart
 │   │   │       │     └── grip_camera_screen.dart

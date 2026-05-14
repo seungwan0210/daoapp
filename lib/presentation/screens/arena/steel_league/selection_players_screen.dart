@@ -1,32 +1,10 @@
-// lib/presentation/screens/arena/steel_league/selection_players_screen.dart
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-
-/// ===============================
-/// Firestore 예상 구조 (admin용 가이드)
-/// ===============================
-/// 컬렉션: steel_league_selection
-/// 문서 예시 필드:
-/// - koreanName   : String   (필수)  ex) '최민석'
-/// - englishName  : String   (선택)  ex) 'CHOI Minsuk'
-/// - gender       : String   ('male' / 'female')
-/// - season       : String   ('season1' / 'season2' / 'season3' / 'total')
-/// - shopName     : String   (선택)  ex) 'PDK Stadium'
-/// - photoUrl     : String   (선택)  ex) 'https://...'
-/// - bio          : String   (선택)  간단 소개 문구
-/// - order        : int      (선택)  정렬용, 기본 0
-///
-/// 총 8명:
-///   season1 male/female
-///   season2 male/female
-///   season3 male/female
-///   total   male/female
-///
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class SelectionPlayersScreen extends ConsumerWidget {
   const SelectionPlayersScreen({super.key});
@@ -34,10 +12,11 @@ class SelectionPlayersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
 
     return Scaffold(
-      appBar: const CommonAppBar(
-        title: '선발 선수',
+      appBar: CommonAppBar(
+        title: s.selection_title,
         showBackButton: true,
       ),
       body: SafeArea(
@@ -52,7 +31,7 @@ class SelectionPlayersScreen extends ConsumerWidget {
             if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  '선발 선수 정보를 불러오는 중 오류가 발생했습니다.\n${snapshot.error}',
+                  '${s.my_tournaments_error}\n${snapshot.error}', // 공통 에러 메시지 활용 가능
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.red),
                 ),
@@ -67,7 +46,6 @@ class SelectionPlayersScreen extends ConsumerWidget {
             final players =
             docs.map((d) => _SelectionPlayer.fromDoc(d)).toList();
 
-            // 시즌별 + 성별로 나누기
             final seasons = ['season1', 'season2', 'season3', 'total'];
 
             return SingleChildScrollView(
@@ -75,8 +53,7 @@ class SelectionPlayersScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 상단 안내 텍스트
-                  _buildHeader(theme),
+                  _buildHeader(theme, s),
                   const SizedBox(height: 20),
                   ...seasons.map((season) {
                     final male = players.firstWhere(
@@ -113,7 +90,7 @@ class SelectionPlayersScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(ThemeData theme) {
+  Widget _buildHeader(ThemeData theme, AppLocalizations s) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -146,15 +123,14 @@ class SelectionPlayersScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'KDF 스틸리그 선발 선수',
+                  s.selection_header_title,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '시즌 1–3, 통합 포인트를 기준으로\n'
-                      '남녀 각 1명씩 총 8명의 선수가 선발됩니다.',
+                  s.selection_header_desc,
                   style: theme.textTheme.bodySmall?.copyWith(
                     height: 1.5,
                     color: Colors.grey[700],
@@ -169,9 +145,6 @@ class SelectionPlayersScreen extends ConsumerWidget {
   }
 }
 
-// ========================
-// 시즌 섹션 (제목 + 큰 카드)
-// ========================
 class _SeasonSection extends StatelessWidget {
   final String season;
   final _SelectionPlayer? male;
@@ -185,64 +158,58 @@ class _SeasonSection extends StatelessWidget {
     required this.hasAny,
   });
 
-  String get _seasonLabel {
-    switch (season) {
-      case 'season1':
-        return '시즌 1 대표';
-      case 'season2':
-        return '시즌 2 대표';
-      case 'season3':
-        return '시즌 3 대표';
-      case 'total':
-        return '통합 대표';
-      default:
-        return season;
-    }
-  }
-
-  String get _seasonSubLabel {
-    switch (season) {
-      case 'season1':
-        return 'Steel League Season 1';
-      case 'season2':
-        return 'Steel League Season 2';
-      case 'season3':
-        return 'Steel League Season 3';
-      case 'total':
-        return '전체 시즌 통합';
-      default:
-        return '';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!;
+
+    String seasonLabel;
+    String seasonSubLabel;
+
+    switch (season) {
+      case 'season1':
+        seasonLabel = s.selection_label_season1;
+        seasonSubLabel = 'Steel League Season 1';
+        break;
+      case 'season2':
+        seasonLabel = s.selection_label_season2;
+        seasonSubLabel = 'Steel League Season 2';
+        break;
+      case 'season3':
+        seasonLabel = s.selection_label_season3;
+        seasonSubLabel = 'Steel League Season 3';
+        break;
+      case 'total':
+        seasonLabel = s.selection_label_total;
+        seasonSubLabel = s.selection_sub_total;
+        break;
+      default:
+        seasonLabel = season;
+        seasonSubLabel = '';
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 섹션 타이틀
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
               Text(
-                _seasonLabel,
+                seasonLabel,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(width: 8),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.primary.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(30),
                 ),
                 child: Text(
-                  _seasonSubLabel,
+                  seasonSubLabel,
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.primary,
                     fontWeight: FontWeight.w600,
@@ -253,7 +220,6 @@ class _SeasonSection extends StatelessWidget {
           ),
         ),
 
-        // 🔹 남/여 정보를 세로로 쌓은 "큰 카드" 한 장
         Card(
           color: Colors.white,
           shape: RoundedRectangleBorder(
@@ -267,8 +233,8 @@ class _SeasonSection extends StatelessWidget {
                 ? Column(
               children: [
                 _PlayerBlock(
-                  title: '남자 대표',
-                  label: '남자',
+                  title: s.selection_label_male,
+                  label: s.ranking_filter_gender_male, // 공통 키 활용
                   color: Colors.blue,
                   player: male,
                 ),
@@ -276,8 +242,8 @@ class _SeasonSection extends StatelessWidget {
                 const Divider(height: 1),
                 const SizedBox(height: 14),
                 _PlayerBlock(
-                  title: '여자 대표',
-                  label: '여자',
+                  title: s.selection_label_female,
+                  label: s.ranking_filter_gender_female, // 공통 키 활용
                   color: Colors.pink,
                   player: female,
                 ),
@@ -287,7 +253,7 @@ class _SeasonSection extends StatelessWidget {
               height: 80,
               child: Center(
                 child: Text(
-                  '아직 선발된 선수가 없습니다.',
+                  s.selection_status_empty,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[600],
                   ),
@@ -301,12 +267,9 @@ class _SeasonSection extends StatelessWidget {
   }
 }
 
-// ========================
-// 한 블록(남자 대표 / 여자 대표)
-// ========================
 class _PlayerBlock extends StatelessWidget {
-  final String title; // '남자 대표' / '여자 대표'
-  final String label; // '남자' / '여자'
+  final String title;
+  final String label;
   final Color color;
   final _SelectionPlayer? player;
 
@@ -320,8 +283,8 @@ class _PlayerBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!;
 
-    // 상단 타이틀 + 칩
     final header = Row(
       children: [
         Text(
@@ -336,7 +299,6 @@ class _PlayerBlock extends StatelessWidget {
     );
 
     if (player == null || !player!.isFilled) {
-      // 아직 선발 안 된 경우
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -352,10 +314,10 @@ class _PlayerBlock extends StatelessWidget {
                 width: 1,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Text(
-                '선발 예정',
-                style: TextStyle(
+                s.selection_status_upcoming,
+                style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   color: Colors.grey,
                 ),
@@ -368,7 +330,6 @@ class _PlayerBlock extends StatelessWidget {
 
     final p = player!;
 
-    // 선발 완료 카드
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -393,7 +354,6 @@ class _PlayerBlock extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // 왼쪽 컬러 바
               Container(
                 width: 4,
                 decoration: BoxDecoration(
@@ -414,7 +374,6 @@ class _PlayerBlock extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1) 한글 이름
                       Text(
                         p.koreanName,
                         maxLines: 1,
@@ -424,7 +383,6 @@ class _PlayerBlock extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      // 2) 영문 이름
                       if (p.englishName.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
@@ -438,7 +396,6 @@ class _PlayerBlock extends StatelessWidget {
                           ),
                         ),
                       ],
-                      // 3) 홈샵
                       if (p.shopName.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Row(
@@ -452,7 +409,7 @@ class _PlayerBlock extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                '소속: ${p.shopName}',
+                                s.selection_shop_prefix(p.shopName),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -478,9 +435,6 @@ class _PlayerBlock extends StatelessWidget {
   }
 }
 
-// ========================
-// 성별 칩
-// ========================
 class _GenderChip extends StatelessWidget {
   final String label;
   final Color color;
@@ -502,7 +456,7 @@ class _GenderChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            label == '남자' ? Icons.male : Icons.female,
+            (label == '남자' || label == 'Male' || label == '男性') ? Icons.male : Icons.female,
             size: 14,
             color: color.withOpacity(0.9),
           ),
@@ -521,9 +475,6 @@ class _GenderChip extends StatelessWidget {
   }
 }
 
-// ========================
-// 프로필 아바타
-// ========================
 class _PlayerAvatar extends StatelessWidget {
   final String photoUrl;
   final Color color;
@@ -567,15 +518,12 @@ class _PlayerAvatar extends StatelessWidget {
   }
 }
 
-// ========================
-// 내부용 모델
-// ========================
 class _SelectionPlayer {
   final String id;
   final String koreanName;
   final String englishName;
-  final String gender; // 'male' / 'female'
-  final String season; // 'season1' / 'season2' / 'season3' / 'total'
+  final String gender;
+  final String season;
   final String shopName;
   final String photoUrl;
   final String bio;

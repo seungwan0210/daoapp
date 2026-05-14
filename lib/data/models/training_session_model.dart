@@ -1,13 +1,17 @@
+// lib/data/models/training_session_model.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/dao_training_rating_utils.dart';
 
-/// 한 번의 연습 세션 기록
+/// 한 번의 연습 세션 기록 모델
 class TrainingSessionModel {
   final String? id;
   final String userId;
 
   /// 어떤 드릴인지 (definition id)
   final String drillId;
+
+  /// 저장 당시의 드릴 제목 (유저의 언어 설정에 따라 저장됨)
   final String drillTitle;
 
   /// 그때의 DAO 티어 (7단계)
@@ -26,24 +30,16 @@ class TrainingSessionModel {
   final int successCount;
   final int failCount;
 
-  /// 🔹 이번 세션으로 획득한 XP
-  ///
-  /// - 드릴 정의의 baseXp + 성과 기반 보너스 XP
-  /// - 과거 기록에는 필드가 없으므로 fromJson에서 기본값 0 처리
+  /// 이번 세션으로 획득한 XP
   final int xpEarned;
 
-  /// 부가 정보 / 통계
-  ///
-  /// - inputMode: 'hitCount' / 'scoreOnly' / 'cricketMarks'
-  /// - totalScore, totalMarks
-  /// - hitRate, ppd, threeDartAvg, mpr 등
-  /// - finishedEarly, plannedRounds, plannedDartsPerRound ...
+  /// 부가 정보 / 통계 (히스토리에서 상세 분석 시 사용)
   final Map<String, dynamic>? extra;
 
-  /// 🔹 이 세션이 속한 사이클 ID (예: "cycle_001")
+  /// 이 세션이 속한 사이클 ID (예: "cycle_001")
   final String? cycleId;
 
-  /// 🔹 이 세션 시점의 레이팅 스냅샷 (옵션)
+  /// 이 세션 시점의 레이팅 스냅샷 (옵션)
   final double? daoRatingAtThatTime;
   final double? phoenixRatingAtThatTime;
   final double? dartsliveRatingAtThatTime;
@@ -61,7 +57,7 @@ class TrainingSessionModel {
     required this.successCount,
     required this.failCount,
     this.extra,
-    this.xpEarned = 0, // 기본 0
+    this.xpEarned = 0,
     this.cycleId,
     this.daoRatingAtThatTime,
     this.phoenixRatingAtThatTime,
@@ -102,16 +98,13 @@ class TrainingSessionModel {
       extra: extra ?? this.extra,
       xpEarned: xpEarned ?? this.xpEarned,
       cycleId: cycleId ?? this.cycleId,
-      daoRatingAtThatTime:
-      daoRatingAtThatTime ?? this.daoRatingAtThatTime,
-      phoenixRatingAtThatTime:
-      phoenixRatingAtThatTime ?? this.phoenixRatingAtThatTime,
-      dartsliveRatingAtThatTime:
-      dartsliveRatingAtThatTime ?? this.dartsliveRatingAtThatTime,
+      daoRatingAtThatTime: daoRatingAtThatTime ?? this.daoRatingAtThatTime,
+      phoenixRatingAtThatTime: phoenixRatingAtThatTime ?? this.phoenixRatingAtThatTime,
+      dartsliveRatingAtThatTime: dartsliveRatingAtThatTime ?? this.dartsliveRatingAtThatTime,
     );
   }
 
-  // --------- 편의 getter (통계 화면용) ---------
+  // --------- 편의 getter (통계 및 히스토리 UI용) ---------
 
   String? get inputModeString => extra?['inputMode'] as String?;
   int? get totalScoreExtra => extra?['totalScore'] as int?;
@@ -130,7 +123,7 @@ class TrainingSessionModel {
   double? get mpr =>
       (extra?['mpr'] is num) ? (extra!['mpr'] as num).toDouble() : null;
 
-  // --------- Firestore 변환 ---------
+  // --------- Firestore 변환 로직 ---------
 
   static DateTime _toDate(dynamic value) {
     if (value is Timestamp) return value.toDate();
@@ -140,8 +133,7 @@ class TrainingSessionModel {
 
   static DaoTrainingTier _tierFromRaw(dynamic raw) {
     if (raw is String) {
-      final index =
-      DaoTrainingTier.values.indexWhere((e) => e.name == raw);
+      final index = DaoTrainingTier.values.indexWhere((e) => e.name == raw);
       if (index >= 0) return DaoTrainingTier.values[index];
     }
     if (raw is int) {
@@ -149,7 +141,6 @@ class TrainingSessionModel {
         return DaoTrainingTier.values[raw];
       }
     }
-    // 기본값: beginner
     return DaoTrainingTier.beginner;
   }
 
@@ -159,8 +150,8 @@ class TrainingSessionModel {
       ) {
     return TrainingSessionModel(
       id: id,
-      userId: json['userId'] as String,
-      drillId: json['drillId'] as String,
+      userId: json['userId'] as String? ?? '',
+      drillId: json['drillId'] as String? ?? '',
       drillTitle: json['drillTitle'] as String? ?? '',
       tierAtThatTime: _tierFromRaw(json['tierAtThatTime']),
       startedAt: _toDate(json['startedAt']),
@@ -170,14 +161,11 @@ class TrainingSessionModel {
       successCount: (json['successCount'] as num?)?.toInt() ?? 0,
       failCount: (json['failCount'] as num?)?.toInt() ?? 0,
       extra: (json['extra'] as Map<String, dynamic>?) ?? const {},
-      xpEarned: (json['xpEarned'] as num?)?.toInt() ?? 0, // 🔹 과거 데이터 대응
+      xpEarned: (json['xpEarned'] as num?)?.toInt() ?? 0,
       cycleId: json['cycleId'] as String?,
-      daoRatingAtThatTime:
-      (json['daoRatingAtThatTime'] as num?)?.toDouble(),
-      phoenixRatingAtThatTime:
-      (json['phoenixRatingAtThatTime'] as num?)?.toDouble(),
-      dartsliveRatingAtThatTime:
-      (json['dartsliveRatingAtThatTime'] as num?)?.toDouble(),
+      daoRatingAtThatTime: (json['daoRatingAtThatTime'] as num?)?.toDouble(),
+      phoenixRatingAtThatTime: (json['phoenixRatingAtThatTime'] as num?)?.toDouble(),
+      dartsliveRatingAtThatTime: (json['dartsliveRatingAtThatTime'] as num?)?.toDouble(),
     );
   }
 
@@ -186,7 +174,6 @@ class TrainingSessionModel {
       'userId': userId,
       'drillId': drillId,
       'drillTitle': drillTitle,
-      // 문자열로 저장 (나중에 name으로 복원)
       'tierAtThatTime': tierAtThatTime.name,
       'startedAt': Timestamp.fromDate(startedAt),
       'endedAt': Timestamp.fromDate(endedAt),
@@ -195,7 +182,7 @@ class TrainingSessionModel {
       'successCount': successCount,
       'failCount': failCount,
       'extra': extra ?? <String, dynamic>{},
-      'xpEarned': xpEarned, // 🔹 새 필드
+      'xpEarned': xpEarned,
       if (cycleId != null) 'cycleId': cycleId,
       if (daoRatingAtThatTime != null)
         'daoRatingAtThatTime': daoRatingAtThatTime,

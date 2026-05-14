@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/practice_session_model.dart';
 import 'package:daoapp/data/repositories/practice_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class PracticeSetupBottomSheet extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -16,10 +18,13 @@ class PracticeSetupBottomSheet extends StatefulWidget {
 class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
   final _shopController = TextEditingController();
   final _ratingController = TextEditingController();
-  String _selectedMachine = '다트라이브';
-  final List<String> _machines = ['다트라이브', '피닉스', '스틸', '홈보드', '그란보드'];
+  String _selectedMachine = 'DARTSLIVE';
 
-  bool get _isShopRequired => _selectedMachine == '다트라이브' || _selectedMachine == '피닉스';
+  // 머신 이름은 고유 명사이므로 리스트는 그대로 유지하되,
+  // UI 노출 시 필요하다면 번역 로직을 넣을 수 있습니다.
+  final List<String> _machines = ['DARTSLIVE', 'PHOENIXDARTS', 'STEEL', 'DARTSLIVE HOME', 'GRAN BOARD'];
+
+  bool get _isShopRequired => _selectedMachine == 'DARTSLIVE' || _selectedMachine == 'PHOENIXDARTS';
 
   @override
   void dispose() {
@@ -28,15 +33,15 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
     super.dispose();
   }
 
-  /// 연습 시작 로직
   Future<void> _start() async {
+    final s = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     if (_isShopRequired && _shopController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('연습 중인 장소(샵 이름)를 입력해주세요.'),
+        SnackBar(
+          content: Text(s.practice_setup_error_location), // 🔹 다국어화
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -45,12 +50,11 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
 
     final newSession = PracticeSessionModel(
       uid: user.uid,
-      nickname: widget.userData['koreanName'] ?? '이름 없음',
+      nickname: widget.userData['koreanName'] ?? 'Guest',
       profileUrl: widget.userData['profileImageUrl'],
       startTime: DateTime.now(),
       machineType: _selectedMachine,
       shopName: _isShopRequired ? _shopController.text.trim() : _selectedMachine,
-      // ✅ 텍스트 형태의 자유 목표 저장
       targetGoal: _ratingController.text.trim(),
       isActive: true,
     );
@@ -62,7 +66,7 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('시작 오류: $e'),
+            content: Text(s.practice_setup_error_start(e.toString())), // 🔹 다국어화
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -72,6 +76,8 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -80,7 +86,7 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom, // 키보드 대응
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -104,9 +110,9 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            '기록 시작',
-                            style: TextStyle(
+                          Text(
+                            s.practice_setup_title, // 🔹 다국어화
+                            style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
                               color: Color(0xFF0F172A),
@@ -121,42 +127,37 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        '오늘의 연습 환경을 설정하고 기록을 시작하세요.',
-                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      Text(
+                        s.practice_setup_sub, // 🔹 다국어화
+                        style: const TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                       const SizedBox(height: 28),
 
-                      // 1. 머신 선택
-                      _buildLabel('사용 머신'),
+                      _buildLabel(s.practice_setup_machine), // 🔹 다국어화
                       const SizedBox(height: 12),
                       _buildMachineChips(),
                       const SizedBox(height: 28),
 
-                      // 2. 장소 입력 (필요시)
                       if (_isShopRequired) ...[
-                        _buildLabel('연습 장소'),
+                        _buildLabel(s.practice_setup_location), // 🔹 다국어화
                         const SizedBox(height: 12),
                         _buildTextField(
                           controller: _shopController,
-                          hint: '예: PDK 스타디움, 다트하이브',
+                          hint: s.practice_setup_location_hint, // 🔹 다국어화
                           icon: Icons.location_on_rounded,
                         ),
                         const SizedBox(height: 28),
                       ],
 
-                      // 3. 연습 목표 (자유 텍스트)
-                      _buildLabel('오늘의 연습 목표 (선택)'),
+                      _buildLabel(s.practice_setup_goal), // 🔹 다국어화
                       const SizedBox(height: 12),
                       _buildTextField(
                         controller: _ratingController,
-                        hint: '예: 불 100발, 레이팅 15, 3시간 연습 등',
+                        hint: s.practice_setup_goal_hint, // 🔹 다국어화
                         icon: Icons.track_changes_rounded,
-                        keyboardType: TextInputType.text, // 텍스트 타입 확인
                       ),
                       const SizedBox(height: 32),
 
-                      // 4. 시작 버튼
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -170,9 +171,9 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            '연습 기록 시작하기',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          child: Text(
+                            s.practice_setup_btn_start, // 🔹 다국어화
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -216,7 +217,7 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
               ),
             ),
             child: Text(
-              m,
+              m, // 🔹 머신 이름은 고유 명사로 취급
               style: TextStyle(
                 color: isSelected ? Colors.white : const Color(0xFF475569),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

@@ -7,10 +7,10 @@ class DaoTierBadgeLarge extends StatelessWidget {
   final bool showGlow;
 
   const DaoTierBadgeLarge({
-    Key? key,
+    super.key, // super.key로 간결하게 수정
     required this.tier,
     this.showGlow = true,
-  }) : super(key: key);
+  });
 
   /// 각 DAO 티어별 대표 색상 지정
   Color get color => switch (tier) {
@@ -22,6 +22,20 @@ class DaoTierBadgeLarge extends StatelessWidget {
     DaoTrainingTier.pro        => Colors.redAccent,
     DaoTrainingTier.master     => Colors.purpleAccent,
   };
+
+  /// 🔹 현재 언어 설정에 맞는 티어 라벨을 가져오는 헬퍼
+  String _getLocalizedLabel(BuildContext context) {
+    final locale = Localizations.localeOf(context);
+    final String langCode = locale.languageCode;
+    final String? scriptCode = locale.scriptCode;
+
+    if (langCode == 'ja') return tier.labelJa;
+    if (langCode == 'en') return tier.labelEn;
+    if (langCode == 'zh') {
+      return (scriptCode == 'Hant') ? tier.labelZhHant : tier.labelZhHans;
+    }
+    return tier.labelKo; // 기본값 한국어
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,9 +63,9 @@ class DaoTierBadgeLarge extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          /// 영문 티어명
+          /// 🔹 영문 티어명 (디자인 아이덴티티를 위해 영문은 항상 노출)
           Text(
-            tier.labelEn,
+            tier.labelEn.toUpperCase(), // 대문자로 강조
             style: TextStyle(
               fontSize: 30,
               fontWeight: FontWeight.w900,
@@ -62,9 +76,9 @@ class DaoTierBadgeLarge extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          /// 한글 티어명
+          /// 🔹 현지화된 티어명 (사용자 언어 설정에 맞게 변경)
           Text(
-            tier.labelKo,
+            _getLocalizedLabel(context),
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,

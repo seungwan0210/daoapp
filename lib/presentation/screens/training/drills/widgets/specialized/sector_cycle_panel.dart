@@ -1,8 +1,9 @@
 // lib/presentation/screens/training/drills/widgets/specialized/sector_cycle_panel.dart
 
 import 'package:flutter/material.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 임포트 경로 수정
 
-/// 여러 타겟을 순서대로 돌면서 던지는 공용 패널
+/// 여러 타겟을 순서대로 돌면서 던지는 공용 패널 (20/19/18 루프 등)
 class SectorCyclePanel extends StatefulWidget {
   final String title;
   final List<String> targets;
@@ -13,10 +14,10 @@ class SectorCyclePanel extends StatefulWidget {
   final VoidCallback? onHitFail;
   final VoidCallback? onFinishPressed;
 
-  /// ✅ RunScreen 기준 단일 소스
+  /// RunScreen 기준 단일 소스
   final ValueNotifier<int> thrownDartsNotifier;
 
-  /// ✅ Undo
+  /// Undo
   final bool canUndo;
   final VoidCallback? onUndo;
 
@@ -42,7 +43,7 @@ class SectorCyclePanel extends StatefulWidget {
 }
 
 class _SectorCyclePanelState extends State<SectorCyclePanel> {
-  /// ✅ 패널 내부 성공/실패 히스토리
+  /// 패널 내부 성공/실패 히스토리
   final List<_SectorHitRecord> _hitHistory = [];
 
   int get _effectiveLoopSize =>
@@ -98,6 +99,9 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
 
   @override
   Widget build(BuildContext context) {
+    // 🔹 S 대신 AppLocalizations 사용
+    final s = AppLocalizations.of(context)!;
+
     return ValueListenableBuilder<int>(
       valueListenable: widget.thrownDartsNotifier,
       builder: (_, thrown, __) {
@@ -133,12 +137,14 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          widget.title,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                        Expanded(
+                          child: Text(
+                            widget.title,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                         if (widget.onUndo != null)
@@ -174,7 +180,7 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
                       child: Column(
                         children: [
                           Text(
-                            '현재 타겟',
+                            s.drill_panel_target, // 🔹 "타겟"
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.white.withOpacity(0.75),
@@ -196,11 +202,11 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
                     const SizedBox(height: 20),
 
                     _buildInfoRow(
-                        '진행 다트', '$thrown / ${widget.totalDarts}'),
+                        s.drill_progress_title, '$thrown / ${widget.totalDarts} ${s.drill_stat_darts}'),
                     _buildInfoRow(
-                        '성공', '${_successCount()} / $thrown'),
+                        s.drill_btn_success, '${_successCount()} / $thrown'),
                     _buildInfoRow(
-                      '성공률',
+                      s.drill_stat_success,
                       thrown == 0
                           ? '--'
                           : '${successRate.toStringAsFixed(1)}%',
@@ -211,7 +217,7 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
 
               const SizedBox(height: 28),
 
-              // ================= 버튼 =================
+              // ================= 성공 / 실패 버튼 =================
               Row(
                 children: [
                   Expanded(
@@ -221,14 +227,15 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
                           : () => _record(true, thrown),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green.shade600,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 22),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: const Text(
-                        '성공',
-                        style: TextStyle(
+                      child: Text(
+                        s.drill_btn_success,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -243,14 +250,15 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
                           : () => _record(false, thrown),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 22),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: const Text(
-                        '실패',
-                        style: TextStyle(
+                      child: Text(
+                        s.drill_btn_fail,
+                        style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -262,19 +270,21 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
 
               const SizedBox(height: 24),
 
+              // ================= 하단 종료 버튼 =================
               if (isFinished)
                 ElevatedButton(
                   onPressed: widget.onFinishPressed,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.cyan.shade600,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
                   ),
-                  child: const Text(
-                    '결과 확인하기',
-                    style: TextStyle(
+                  child: Text(
+                    s.drill_check_result,
+                    style: const TextStyle(
                       fontSize: 19,
                       fontWeight: FontWeight.bold,
                     ),
@@ -285,7 +295,7 @@ class _SectorCyclePanelState extends State<SectorCyclePanel> {
                   onPressed:
                   widget.isBusy ? null : widget.onFinishPressed,
                   child: Text(
-                    '드릴 종료하고 결과 저장',
+                    s.drill_btn_finish_save,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
