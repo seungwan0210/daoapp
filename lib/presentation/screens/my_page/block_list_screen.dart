@@ -2,19 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class BlockListScreen extends StatelessWidget {
   const BlockListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final currentUser = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F), // 앱 공통 다크 배경색
-      appBar: CommonAppBar(title: '차단 관리', showBackButton: true),
+      backgroundColor: const Color(0xFF0F0F0F),
+      appBar: CommonAppBar(title: s.block_title, showBackButton: true), // 🔹 다국어 적용
       body: currentUser == null
-          ? const Center(child: Text('로그인이 필요합니다.', style: TextStyle(color: Colors.white)))
+          ? Center(child: Text(s.common_login_required, style: const TextStyle(color: Colors.white)))
           : StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -23,9 +25,9 @@ class BlockListScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const Center(
-                child: Text('데이터를 불러오지 못했습니다.',
-                    style: TextStyle(color: Colors.white54)));
+            return Center(
+                child: Text(s.block_error_load, // 🔹 다국어 적용
+                    style: const TextStyle(color: Colors.white54)));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -34,15 +36,15 @@ class BlockListScreen extends StatelessWidget {
           final docs = snapshot.data?.docs ?? [];
 
           if (docs.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.person_off_outlined,
+                  const Icon(Icons.person_off_outlined,
                       size: 64, color: Colors.white24),
-                  SizedBox(height: 16),
-                  Text('차단한 유저가 없습니다.',
-                      style: TextStyle(color: Colors.white54, fontSize: 16)),
+                  const SizedBox(height: 16),
+                  Text(s.block_empty, // 🔹 다국어 적용
+                      style: const TextStyle(color: Colors.white54, fontSize: 16)),
                 ],
               ),
             );
@@ -56,7 +58,7 @@ class BlockListScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final blockData = docs[index].data() as Map<String, dynamic>;
               final blockedUid = docs[index].id;
-              final blockedName = blockData['name'] ?? '알 수 없는 유저';
+              final blockedName = blockData['name'] ?? s.common_anonymous;
 
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -69,16 +71,16 @@ class BlockListScreen extends StatelessWidget {
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.w600),
                 ),
-                subtitle: const Text('차단됨',
-                    style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                subtitle: Text(s.block_status, // 🔹 다국어 적용
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
                 trailing: TextButton(
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.white70,
                     backgroundColor: Colors.white.withOpacity(0.05),
                   ),
                   onPressed: () => _showUnblockDialog(
-                      context, currentUser.uid, blockedUid, blockedName),
-                  child: const Text('차단 해제'),
+                      context, currentUser.uid, blockedUid, blockedName, s), // 🔹 s 전달
+                  child: Text(s.block_unblock_btn), // 🔹 다국어 적용
                 ),
               );
             },
@@ -88,28 +90,24 @@ class BlockListScreen extends StatelessWidget {
     );
   }
 
-  // ✅ 차단 해제 확인 다이얼로그 (수정 완료)
   void _showUnblockDialog(
-      BuildContext context, String myUid, String targetUid, String targetName) {
+      BuildContext context, String myUid, String targetUid, String targetName, AppLocalizations s) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('차단 해제', style: TextStyle(color: Colors.white)),
-        content: Text('$targetName님의 차단을 해제하시겠습니까?\n이제 상대방의 게시글과 채팅이 보입니다.',
+        title: Text(s.block_unblock_confirm_title, style: const TextStyle(color: Colors.white)), // 🔹 다국어 적용
+        content: Text(s.block_unblock_confirm_body(targetName), // 🔹 다국어 적용 (파라미터 포함)
             style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소', style: TextStyle(color: Colors.grey)),
+            child: Text(s.common_cancel, style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
             onPressed: () async {
-              // 1. 다이얼로그 창을 즉시 닫습니다.
               Navigator.pop(ctx);
-
               try {
-                // 2. 내 blockedUsers 컬렉션에서 해당 유저 문서 삭제
                 await FirebaseFirestore.instance
                     .collection('users')
                     .doc(myUid)
@@ -117,21 +115,20 @@ class BlockListScreen extends StatelessWidget {
                     .doc(targetUid)
                     .delete();
 
-                // 3. 성공 스낵바 표시
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('$targetName님의 차단이 해제되었습니다.')),
+                    SnackBar(content: Text(s.block_unblock_success(targetName))), // 🔹 다국어 적용
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('해제 중 오류가 발생했습니다.')),
+                    SnackBar(content: Text(s.block_unblock_fail)), // 🔹 다국어 적용
                   );
                 }
               }
             },
-            child: const Text('해제하기', style: TextStyle(color: Colors.blueAccent)),
+            child: Text(s.block_unblock_btn, style: const TextStyle(color: Colors.blueAccent)),
           ),
         ],
       ),

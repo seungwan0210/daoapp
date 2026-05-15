@@ -5,8 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔥 추가
 
 class UserProfileDialog extends ConsumerWidget {
   final String koreanName;
@@ -31,6 +31,7 @@ class UserProfileDialog extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!; // 🔥 110n 객체 가져오기
 
     // 1. 실시간 통합 랭킹 데이터 구독
     final totalRanking = ref.watch(totalRankingProvider);
@@ -77,7 +78,7 @@ class UserProfileDialog extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 1. 상단: 아바타 + 배지 (옆으로 붙임)
+                    // 1. 상단: 아바타 + 배지
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -89,7 +90,6 @@ class UserProfileDialog extends ConsumerWidget {
                             child: photoUrl?.isNotEmpty != true ? const Icon(Icons.person, size: 60) : null,
                           ),
                         ),
-                        // 배지 아이콘들을 사진 좌측 상단에 겹쳐서 표시
                         ...badgeWidgets.asMap().entries.map((entry) {
                           final idx = entry.key;
                           return Positioned(
@@ -116,12 +116,13 @@ class UserProfileDialog extends ConsumerWidget {
                         child: Text('· $shopName', style: TextStyle(fontSize: 14, color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
                       ),
 
-                    // 3. 배럴 정보 섹션 (데이터가 있을 때만 노출)
+                    // 3. 배럴 정보 섹션
                     if (hasBarrelInfo) ...[
                       const SizedBox(height: 16),
                       const Divider(),
                       const SizedBox(height: 8),
-                      Text('PLAYERS_DART', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary)),
+                      // 🔥 다국어 적용
+                      Text(s.profile_players_dart, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: theme.colorScheme.primary)),
                       const SizedBox(height: 12),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,10 +140,11 @@ class UserProfileDialog extends ConsumerWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (bName.isNotEmpty) _infoRow('BARREL', bName),
-                                if (bShaft.isNotEmpty) _infoRow('SHAFT', bShaft),
-                                if (bFlight.isNotEmpty) _infoRow('FLIGHT', bFlight),
-                                if (bTip.isNotEmpty) _infoRow('TIP', bTip),
+                                // 🔥 레이블 다국어 적용
+                                if (bName.isNotEmpty) _infoRow(s.profile_barrel, bName),
+                                if (bShaft.isNotEmpty) _infoRow(s.profile_shaft, bShaft),
+                                if (bFlight.isNotEmpty) _infoRow(s.profile_flight, bFlight),
+                                if (bTip.isNotEmpty) _infoRow(s.profile_tip, bTip),
                               ],
                             ),
                           ),
@@ -157,7 +159,8 @@ class UserProfileDialog extends ConsumerWidget {
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.create, size: 18),
-                        label: Text(isMe ? "내 방명록 가기" : "방명록 쓰러 가기"),
+                        // 🔥 버튼 텍스트 다국어 분기 적용
+                        label: Text(isMe ? s.profile_go_guestbook_me : s.profile_go_guestbook_other),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -169,7 +172,8 @@ class UserProfileDialog extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기")),
+                    // 🔥 다국어 적용
+                    TextButton(onPressed: () => Navigator.pop(context), child: Text(s.common_close)),
                   ],
                 ),
               );

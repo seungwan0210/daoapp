@@ -99,7 +99,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get menu_notice => 'お知らせ';
 
   @override
-  String get menu_report => 'バグ報告';
+  String get menu_report => 'お問い合わせ・報告';
 
   @override
   String get menu_quick_arena => 'アリーナ';
@@ -716,7 +716,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get circle_title_feed => 'フィード';
 
   @override
-  String get circle_no_posts => '投稿がありません';
+  String get circle_no_posts => 'まだ投稿がありません';
 
   @override
   String get circle_label_text_only => 'テキスト';
@@ -728,7 +728,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get circle_btn_see_all => 'すべて見る';
 
   @override
-  String get post_write_title => 'サークルに投稿';
+  String get post_write_title => 'サークルで共有';
 
   @override
   String get post_edit_title => '投稿を編集';
@@ -906,14 +906,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get login_msg_fail_email => 'メールログインに失敗しました。';
 
   @override
-  String get mylog_title => 'マイログ';
+  String get mylog_title => 'マイダート日記';
 
   @override
-  String get mylog_summary_title => '私のダーツストーリー';
+  String get mylog_summary_title => 'コツコツ積み重なる成長';
 
   @override
   String mylog_summary_count(Object count) {
-    return '合計 $count件の記録があります。';
+    return '合計 $count 件の記録が集まりました。';
   }
 
   @override
@@ -1094,7 +1094,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notice_title => 'お知らせ';
 
   @override
-  String get notice_empty => 'お知らせがありません';
+  String get notice_empty => '登録されたお知らせがありません。';
 
   @override
   String get delete_acc_confirm_title => '退会の確認';
@@ -2420,22 +2420,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get calendar_unit_day => '日';
 
   @override
-  String get live_list_title => '今日の練習状況';
+  String get live_list_title => 'リアルタイム練習状況';
 
   @override
-  String get live_list_empty => '今日の練習記録はまだありません。';
+  String get live_list_empty => '現在練習中のユーザーがいません。';
 
   @override
   String get live_status_live => 'LIVE';
 
   @override
-  String get live_status_finished => '終了';
+  String get live_status_finished => 'FINISHED';
 
   @override
-  String get live_no_shop => '場所未指定';
+  String get live_no_shop => '所属ショップなし';
 
   @override
-  String get live_blur_text => '**** · ****';
+  String get live_blur_text => 'ログイン後に確認可能です。';
 
   @override
   String get live_board_title => 'LIVE 練習状況';
@@ -4008,4 +4008,883 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get member_list_no_email => 'メールなし';
+
+  @override
+  String get community_home_tab_title => '練習 · 大会 · 記録';
+
+  @override
+  String get community_home_menu_training => 'トレーニング';
+
+  @override
+  String get community_home_menu_arena => 'アリーナ';
+
+  @override
+  String get community_home_menu_mylog => 'マイログ';
+
+  @override
+  String get community_home_login_prompt => 'コミュニティを利用するには\nログインが必要です';
+
+  @override
+  String get community_home_verify_prompt => 'コミュニティを利用するには\n認証が必要です';
+
+  @override
+  String get community_home_verify_profile => 'プロフィールの登録を完了してください。';
+
+  @override
+  String get community_home_verify_phone => '携帯電話の認証を完了してください。';
+
+  @override
+  String get community_home_ugc_title => 'コミュニティ利用への同意が必要です';
+
+  @override
+  String get community_home_ugc_desc =>
+      'コミュニティにはユーザーが作成した投稿や写真（UGC）が表示されます。\n安全な利用のために以下の内容に同意してください。\n\n• 他人への誹謗中傷、嫌悪、差別、嫌がらせの禁止\n• 不法、わいせつ、暴力、詐欺などの有害コンテンツの禁止\n• 通報・ブロック機能および運営ポリシーによる制裁の可能性\n• 通報されたコンテンツは運営者が確認する場合があります';
+
+  @override
+  String get community_home_ugc_btn_no => '同意しない';
+
+  @override
+  String get community_home_ugc_btn_yes => '同意して開始';
+
+  @override
+  String get community_home_ugc_msg_reject => '同意後にコミュニティの利用が可能です。';
+
+  @override
+  String community_home_ugc_msg_fail(Object error) {
+    return '同意の保存に失敗しました: $error';
+  }
+
+  @override
+  String get community_preview_recent => '最新';
+
+  @override
+  String get community_preview_popular => '人気';
+
+  @override
+  String get community_preview_see_all => 'すべて見る';
+
+  @override
+  String get community_preview_type_text => '投稿';
+
+  @override
+  String get community_preview_today_title => '今日の活動';
+
+  @override
+  String get community_preview_stat_posts => '投稿数';
+
+  @override
+  String get community_preview_stat_comments => 'コメント';
+
+  @override
+  String get community_preview_stat_likes => 'いいね';
+
+  @override
+  String get community_preview_live_title => '新着投稿';
+
+  @override
+  String get community_preview_default_title => '新しい投稿';
+
+  @override
+  String get community_avatar_no_online => 'オンラインユーザーなし';
+
+  @override
+  String get community_avatar_no_name => '名前なし';
+
+  @override
+  String get post_write_edit_title => '投稿を編集';
+
+  @override
+  String get post_write_btn_post => '投稿';
+
+  @override
+  String get post_write_btn_edit => '保存';
+
+  @override
+  String get post_write_hint => '今、何を考えていますか？';
+
+  @override
+  String get post_write_photo_limit => '写真は最大7枚まで登録可能です。';
+
+  @override
+  String get post_write_uploading => '投稿をアップロードしています...';
+
+  @override
+  String post_write_upload_progress(Object current, Object total) {
+    return '写真をアップロード中 ($current / $total)';
+  }
+
+  @override
+  String post_write_photo_count(Object current) {
+    return '写真 ($current/7)';
+  }
+
+  @override
+  String get post_write_photo_add => '追加';
+
+  @override
+  String get post_write_photo_placeholder => '写真を追加 (最大7枚)';
+
+  @override
+  String post_write_error_upload(Object error) {
+    return 'アップロード失敗: $error';
+  }
+
+  @override
+  String get circle_title => 'フィード';
+
+  @override
+  String get circle_no_visible_posts => '表示する投稿がありません';
+
+  @override
+  String get circle_error_feed => 'フィードを読み込めませんでした';
+
+  @override
+  String get circle_error_auth => 'ログイン状態のエラー';
+
+  @override
+  String get circle_profile_required => 'プロフィールの登録後に利用可能です';
+
+  @override
+  String get circle_list_delete_title => '削除の確認';
+
+  @override
+  String get circle_list_delete_body => 'この投稿を削除하시겠습니까?';
+
+  @override
+  String get circle_list_no_visible_posts => '表示する投稿がありません';
+
+  @override
+  String get post_card_more => 'もっと見る';
+
+  @override
+  String get post_card_fold => '折りたたむ ▲';
+
+  @override
+  String get post_card_share => '共有';
+
+  @override
+  String get post_card_report => '通報';
+
+  @override
+  String get post_card_block => 'ブロック';
+
+  @override
+  String get post_card_block_title => 'ユーザーをブロック';
+
+  @override
+  String post_card_block_body(Object name) {
+    return '$nameさんをブロックしますか？\n\nブロックすると、このユーザーの投稿が表示されなくなります。';
+  }
+
+  @override
+  String post_card_block_success(Object name) {
+    return '$nameさん를ブロックしました';
+  }
+
+  @override
+  String get post_card_report_title => '投稿を通報';
+
+  @override
+  String get post_card_report_reason => '通報の理由';
+
+  @override
+  String get post_card_report_detail => '補足説明(任意)';
+
+  @override
+  String get post_card_report_success => '通報を受け付けました。';
+
+  @override
+  String get post_card_report_r1 => 'スパム/乱用';
+
+  @override
+  String get post_card_report_r2 => '悪口/嫌悪';
+
+  @override
+  String get post_card_report_r3 => '嫌がらせ';
+
+  @override
+  String get post_card_report_r4 => '性的なコンテンツ';
+
+  @override
+  String get post_card_report_r5 => '暴力/脅迫';
+
+  @override
+  String get post_card_report_r6 => 'その他';
+
+  @override
+  String post_card_share_msg(Object content, Object link) {
+    return '[DAO コミュニティ] 新しい投稿があります! 🎯\n\n$content\n\n今すぐDAOアプリで確認してください。\n👉 $link';
+  }
+
+  @override
+  String get comment_preview_see_all => 'コメントをすべて見る';
+
+  @override
+  String get common_anonymous => '匿名';
+
+  @override
+  String get comment_title => 'コメント';
+
+  @override
+  String get comment_hint => 'コメントを入力...';
+
+  @override
+  String get comment_empty => 'まだコメントがありません';
+
+  @override
+  String get comment_no_visible => '表示するコメントがありません';
+
+  @override
+  String get comment_report_title => 'コメントを通報';
+
+  @override
+  String get comment_report_select_reason => '理由を選択してください';
+
+  @override
+  String get comment_report_success => '通報を受け付けました';
+
+  @override
+  String comment_report_fail(Object error) {
+    return '通報失敗: $error';
+  }
+
+  @override
+  String get comment_delete_title => '削除の確認';
+
+  @override
+  String get comment_delete_body => 'このコメントを削除しますか？';
+
+  @override
+  String get comment_time_just_now => '今';
+
+  @override
+  String get profile_form_korean_name => '活動名 (現地語)';
+
+  @override
+  String get profile_form_korean_name_hint => '名前を入力してください';
+
+  @override
+  String get profile_form_english_name => '活動名 (英語)';
+
+  @override
+  String get profile_form_english_name_hint => '英語で名前を入力してください';
+
+  @override
+  String get profile_form_shop_name => '所属ショップ';
+
+  @override
+  String get profile_form_shop_name_hint => '主に活動するショップを入力してください';
+
+  @override
+  String get profile_reg_title => 'プロフィール登録/編集';
+
+  @override
+  String get profile_reg_save => '保存完了';
+
+  @override
+  String get profile_reg_success => '正常に保存されました！';
+
+  @override
+  String get profile_reg_fail => '保存に失敗しました。もう一度お試しください。';
+
+  @override
+  String profile_reg_error(Object error) {
+    return '保存中にエラーが発生しました: $error';
+  }
+
+  @override
+  String get profile_reg_input_check => '入力内容を確認してください。';
+
+  @override
+  String get profile_image_save => 'プロフィール写真を保存しました！';
+
+  @override
+  String get profile_image_delete_title => '画像の永久削除';
+
+  @override
+  String get profile_image_delete_body =>
+      '削除された画像はすぐに反映され、元に戻すことはできません。本当に削除しますか？';
+
+  @override
+  String get profile_image_deleted => '画像が削除されました。';
+
+  @override
+  String profile_image_fail(Object error) {
+    return '画像処理に失敗しました: $error';
+  }
+
+  @override
+  String get barrel_image_save => 'バレルの写真を保存しました！';
+
+  @override
+  String get report_screen_title => 'バグ/通報';
+
+  @override
+  String get report_form_title_label => 'タイトル';
+
+  @override
+  String get report_form_content_label => '詳細内容';
+
+  @override
+  String get report_form_content_hint => '発生状況や再現方法などを詳しく記入してください';
+
+  @override
+  String get report_form_photo_add => '写真を追加 (任意)';
+
+  @override
+  String get report_form_photo_change => '写真を変更';
+
+  @override
+  String get report_form_submit => '通報する';
+
+  @override
+  String get report_form_error_empty => 'タイトルと内容を入力してください';
+
+  @override
+  String get report_form_success => '通報が受け付けられました。ありがとうございます！';
+
+  @override
+  String report_form_fail(Object error) {
+    return '送信失敗: $error';
+  }
+
+  @override
+  String get notice_no_title => 'タイトルなし';
+
+  @override
+  String notice_error(Object error) {
+    return 'お知らせの読み込み中にエラーが発生しました: $error';
+  }
+
+  @override
+  String get mypage_login_prompt_title => 'ログインするとプロフィールを確認できます！';
+
+  @override
+  String get mypage_login_prompt_subtitle => 'Googleアカウントで簡単に始めましょう';
+
+  @override
+  String get mypage_login_btn => 'Googleでログイン';
+
+  @override
+  String get mypage_profile_prompt_title => 'プロフィール登録が必要です！';
+
+  @override
+  String get mypage_profile_prompt_subtitle => '名前とショップを登録して\n他のユーザーと交流しましょう';
+
+  @override
+  String get mypage_profile_reg_btn => 'プロフィール登録';
+
+  @override
+  String get mypage_edit_profile => 'プロフィール編集';
+
+  @override
+  String get mypage_my_guestbook => 'マイゲストブック';
+
+  @override
+  String get mypage_account_delete => 'アカウント削除';
+
+  @override
+  String get mypage_logout => 'ログアウト';
+
+  @override
+  String get mypage_logout_confirm => '本当にログアウトしますか？';
+
+  @override
+  String get mypage_delete_confirm_title => 'アカウント削除';
+
+  @override
+  String get mypage_delete_confirm_body =>
+      'DAOアカウントを削除すると、プロフィール情報とアプリ内のデータが削除され、この操作は取り消すことができません。\n\n本当にアカウントを削除しますか？';
+
+  @override
+  String get mypage_delete_error_recent_login =>
+      'セキュリティのため、最近ログインしたユーザーのみアカウントを削除できます。\n再ログインしてからもう一度お試しください。';
+
+  @override
+  String get mypage_delete_error_general => 'アカウント削除中にエラーが発生しました。';
+
+  @override
+  String get mypage_delete_error_server =>
+      'アカウント削除中に問題が発生しました。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get mypage_no_email => 'メールアドレスなし';
+
+  @override
+  String get mypage_menu_mylog => 'マイログ';
+
+  @override
+  String get guestbook_title_me => 'マイゲストブック';
+
+  @override
+  String get guestbook_title_other => 'ゲストブックに書き込む';
+
+  @override
+  String get guestbook_hint => '応援メッセージを残す...';
+
+  @override
+  String get guestbook_empty => 'まだメッセージがありません';
+
+  @override
+  String get guestbook_success => 'メッセージを投稿しました';
+
+  @override
+  String guestbook_fail(Object error) {
+    return '送信に失敗しました: $error';
+  }
+
+  @override
+  String get block_title => 'ブロック管理';
+
+  @override
+  String get block_empty => 'ブロックしたユーザーはいません。';
+
+  @override
+  String get block_status => 'ブロック中';
+
+  @override
+  String get block_unblock_btn => 'ブロック解除';
+
+  @override
+  String get block_unblock_confirm_title => 'ブロック解除';
+
+  @override
+  String block_unblock_confirm_body(Object name) {
+    return '$nameさんのブロックを解除しますか？\n解除すると、相手の投稿やチャットが表示されるようになります。';
+  }
+
+  @override
+  String block_unblock_success(Object name) {
+    return '$nameさんのブロックを解除しました。';
+  }
+
+  @override
+  String get block_unblock_fail => '解除中にエラーが発生しました。';
+
+  @override
+  String get block_error_load => 'データを読み込めませんでした。';
+
+  @override
+  String get guestbook_header_no_name => '名前なし';
+
+  @override
+  String get guestbook_header_barrel_title => 'プレイヤーのセッティング';
+
+  @override
+  String get guestbook_menu_edit => '編集';
+
+  @override
+  String get guestbook_menu_delete => '削除';
+
+  @override
+  String get guestbook_edit_title => 'ゲストブックの編集';
+
+  @override
+  String get guestbook_edit_complete => '編集完了';
+
+  @override
+  String get guestbook_delete_confirm_title => '削除の確認';
+
+  @override
+  String get guestbook_delete_confirm_body => 'このメッセージを削除しますか？';
+
+  @override
+  String get guestbook_unknown_user => '不明なユーザー';
+
+  @override
+  String get barrel_section_title => 'バレルのセッティング (任意)';
+
+  @override
+  String get barrel_label_name => 'バレルの名前';
+
+  @override
+  String get barrel_label_shaft => 'シャフト';
+
+  @override
+  String get barrel_label_flight => 'フライト';
+
+  @override
+  String get barrel_label_tip => 'チップ';
+
+  @override
+  String get image_picker_error => '写真を選択できませんでした。';
+
+  @override
+  String get image_upload_error => '画像のアップロード中にエラーが発生しました。';
+
+  @override
+  String get image_delete_error => '画像の削除中にエラーが発生しました。';
+
+  @override
+  String get mylog_login_required_title => 'ログインが必要です';
+
+  @override
+  String get mylog_login_required_subtitle =>
+      '自分だけのダート日記を記録・管理するには\nログインが必要です。';
+
+  @override
+  String get mylog_login_btn => 'ログインする';
+
+  @override
+  String mylog_summary_streak(Object days) {
+    return '🔥 $days 日連続記録中';
+  }
+
+  @override
+  String get mylog_recent_title => '最近のダートストーリー';
+
+  @override
+  String get mylog_no_content => '内容なし';
+
+  @override
+  String get mylog_error_load => '記録の読み込み中にエラーが発生しました。';
+
+  @override
+  String mylog_confirm_sheet_title(Object day, Object month, Object year) {
+    return '$year年 $month月 $day일';
+  }
+
+  @override
+  String get mylog_confirm_sheet_body => 'この日に新しいダート日記を書きますか？';
+
+  @override
+  String get mylog_confirm_sheet_btn_later => '後で';
+
+  @override
+  String get mylog_confirm_sheet_btn_write => '書く';
+
+  @override
+  String get mylog_calendar_month_label => '月';
+
+  @override
+  String get mylog_write_title_new => '日記を書く';
+
+  @override
+  String get mylog_write_title_edit => '日記を修正';
+
+  @override
+  String get mylog_write_subtitle_new => '今日の成長を記録しましょう';
+
+  @override
+  String get mylog_write_subtitle_edit => '記憶を整理しています';
+
+  @override
+  String get mylog_write_image_add => '写真を追加 (任意)';
+
+  @override
+  String get mylog_write_guide_title => '作成ガイド (タップで追加/削除)';
+
+  @override
+  String get mylog_write_guide_good => '💪 良かった点';
+
+  @override
+  String get mylog_write_guide_bad => '🧐 反省点';
+
+  @override
+  String get mylog_write_guide_next => '✏️ 次の計画';
+
+  @override
+  String get mylog_write_guide_review => '📝 一言メモ';
+
+  @override
+  String get mylog_write_template_good => '💪 今日良かった点\n- ';
+
+  @override
+  String get mylog_write_template_bad => '🧐 反省点・課題\n- ';
+
+  @override
+  String get mylog_write_template_next => '✏️ 次回の練習計画\n- ';
+
+  @override
+  String get mylog_write_template_review => '📝 今日の一言\n- ';
+
+  @override
+  String get mylog_write_hint => '今日のダーツはどうでしたか？\n印象に残ったショットや改善点を書いてみましょう。';
+
+  @override
+  String get mylog_write_share_title => 'サークル(コミュニティ)に共有';
+
+  @override
+  String get mylog_write_share_subtitle_new => '保存と同時にフィードに投稿します。';
+
+  @override
+  String get mylog_write_share_subtitle_edit => '既に共有済みの記録です。';
+
+  @override
+  String get mylog_write_save_btn => '日記を保存する';
+
+  @override
+  String get mylog_write_empty_error => '内容を入力してください。';
+
+  @override
+  String mylog_write_save_fail(Object error) {
+    return '保存失敗: $error';
+  }
+
+  @override
+  String get mylog_detail_error_not_found => '記録が見つかりません。';
+
+  @override
+  String mylog_detail_written_at(Object time) {
+    return '$time に作成';
+  }
+
+  @override
+  String get mylog_detail_shared_circle => 'サークルに共有済み';
+
+  @override
+  String get mylog_detail_content_title => '今日のダーツストーリー';
+
+  @override
+  String get mylog_detail_no_content => '内容がありません。';
+
+  @override
+  String get mylog_detail_footer => 'DAOはあなたの成長を応援しています。';
+
+  @override
+  String get mylog_detail_delete_title => '記録の削除';
+
+  @override
+  String get mylog_detail_delete_body => 'この日の大切な記録を本当に削除しますか？';
+
+  @override
+  String get mylog_detail_delete_btn => '削除する';
+
+  @override
+  String get mylog_detail_delete_success => '記録を削除しました。';
+
+  @override
+  String get mylog_card_subtitle => '今日のダーツストーリー';
+
+  @override
+  String get mylog_card_image_error => '写真を読み込めません';
+
+  @override
+  String get mylog_card_image_tag => '今日のショット';
+
+  @override
+  String get mylog_card_no_content => 'まだ内容がありません。次は今日のダーツストーリーを詳しく残してみませんか？';
+
+  @override
+  String get mylog_card_shared_badge => 'サークルに共有済み';
+
+  @override
+  String get chat_login_required => 'ログインが必要です。';
+
+  @override
+  String get chat_empty_title => 'DAO ライブトークへようこそ！';
+
+  @override
+  String get chat_empty_subtitle => '最初のメッセージを残してみましょう。';
+
+  @override
+  String get chat_error_load => 'データの読み込み中にエラーが発生しました。';
+
+  @override
+  String get chat_ticker_default_notice => 'DAO ライブトークへようこそ！';
+
+  @override
+  String get chat_ticker_prefix_ranking => '[ランク]';
+
+  @override
+  String get chat_ticker_prefix_tournament => '[大会]';
+
+  @override
+  String get chat_ticker_prefix_welcome => '[歓迎]';
+
+  @override
+  String get chat_ticker_prefix_notice => '[お知らせ]';
+
+  @override
+  String get chat_overlay_title => 'DAO ライブトーク';
+
+  @override
+  String get chat_overlay_block_guide => 'メッセージを長押しすると、ユーザーをブロックできます。';
+
+  @override
+  String get chat_bubble_menu_report_title => '通報する';
+
+  @override
+  String get chat_bubble_menu_report_subtitle => '不適切なメッセージとして通報します。';
+
+  @override
+  String chat_bubble_menu_block_title(Object name) {
+    return '$name さんをブロック';
+  }
+
+  @override
+  String get chat_bubble_menu_block_subtitle => 'このユーザーのメッセージを今後表示しません。';
+
+  @override
+  String get chat_bubble_block_dialog_title => 'ユーザーをブロック';
+
+  @override
+  String chat_bubble_block_dialog_body(Object name) {
+    return '$name さんをブロックしますか？\nブロック後は、このユーザーのメッセージが表示されなくなります。';
+  }
+
+  @override
+  String chat_bubble_block_success(Object name) {
+    return '$name さんをブロックしました。';
+  }
+
+  @override
+  String get chat_bubble_block_fail => 'ブロック中にエラーが発生しました。';
+
+  @override
+  String get chat_bubble_unknown_user => '不明なユーザー';
+
+  @override
+  String get chat_input_hint => 'メッセージを入力...';
+
+  @override
+  String get chat_input_cooldown => '待機中...';
+
+  @override
+  String chat_input_send_fail(Object error) {
+    return '送信失敗: $error';
+  }
+
+  @override
+  String get profile_reg_fail_duplicate_name =>
+      'このニックネームは既に使用されています。別の名前を入力してください。';
+
+  @override
+  String get common_login_required => 'ログインが必要です';
+
+  @override
+  String get common_error_msg => 'エラーが発生しました。しばらくしてからもう一度お試しください。';
+
+  @override
+  String get live_btn_move => '移動する';
+
+  @override
+  String get common_msg_processing => '処理中です...';
+
+  @override
+  String get circle_translate_btn => '翻訳';
+
+  @override
+  String get circle_translate_show_original => '原文を表示';
+
+  @override
+  String get circle_translate_fail => '翻訳に失敗しました。もう一度お試しください。';
+
+  @override
+  String get tab_home => 'ホーム';
+
+  @override
+  String get tab_training => 'トレーニング';
+
+  @override
+  String get tab_arena => 'アリーナ';
+
+  @override
+  String get tab_community => 'コミュニティ';
+
+  @override
+  String get tab_mypage => 'マイページ';
+
+  @override
+  String get ban_msg_restricted => '運営ポリシーにより利用が制限されたアカウントです。';
+
+  @override
+  String get menu_tooltip_settings => '設定';
+
+  @override
+  String get menu_block_manage => 'ブロック管理';
+
+  @override
+  String get menu_admin_block_manage => '全体ブロック管理';
+
+  @override
+  String get menu_admin_mode => '管理者モード';
+
+  @override
+  String get profile_players_dart => 'プレイヤーのセ팅';
+
+  @override
+  String get profile_barrel => 'バレル';
+
+  @override
+  String get profile_shaft => 'シャフト';
+
+  @override
+  String get profile_flight => 'フライト';
+
+  @override
+  String get profile_tip => 'チップ';
+
+  @override
+  String get profile_go_guestbook_me => '自分のゲストブックへ';
+
+  @override
+  String get profile_go_guestbook_other => 'ゲストブックを書く';
+
+  @override
+  String get login_google => 'Googleでログイン';
+
+  @override
+  String get login_apple => 'Appleでサインイン';
+
+  @override
+  String get login_admin_info => '管理者および審査用アカウント専用のログイン方式です。';
+
+  @override
+  String get login_email => 'メールアドレス';
+
+  @override
+  String get login_password => 'パスワード';
+
+  @override
+  String get login_email_btn => 'メールでログイン';
+
+  @override
+  String get login_skip => 'スキップ';
+
+  @override
+  String get login_fail_google => 'Googleログイン中にエラーが発生しました。';
+
+  @override
+  String get login_fail_apple => 'Appleログイン中にエラーが発生しました。';
+
+  @override
+  String get login_error_email_empty => 'メールアドレスを入力してください。';
+
+  @override
+  String get login_error_email_format => 'メールアドレスの形式が正しくありません。';
+
+  @override
+  String get login_error_password_empty => 'パスワードを入力してください。';
+
+  @override
+  String get login_error_password_length => 'パスワードは6文字以上で入力してください。';
+
+  @override
+  String get post_write_delay_msg => 'しばらくしてからもう一度お試しください。投稿は1分ごとに可能です。';
+
+  @override
+  String notice_detail_photo_count(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get notice_lang_ko => '韓国語';
+
+  @override
+  String get notice_lang_en => '英語';
+
+  @override
+  String get notice_lang_ja => '日本語';
+
+  @override
+  String get notice_lang_zh_hant => '繁体字';
+
+  @override
+  String get notice_lang_zh_hans => '簡体字';
+
+  @override
+  String notice_photo_indicator(Object current, Object total) {
+    return '$current / $total';
+  }
 }

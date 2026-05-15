@@ -99,7 +99,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get menu_notice => '공지사항';
 
   @override
-  String get menu_report => '버그 신고';
+  String get menu_report => '문의 및 신고';
 
   @override
   String get menu_quick_arena => '아레나';
@@ -717,7 +717,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get circle_title_feed => '피드';
 
   @override
-  String get circle_no_posts => '표시할 게시물이 없습니다';
+  String get circle_no_posts => '아직 게시물이 없습니다';
 
   @override
   String get circle_label_text_only => '글';
@@ -907,14 +907,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get login_msg_fail_email => '이메일 로그인에 실패했습니다.';
 
   @override
-  String get mylog_title => '마이로그';
+  String get mylog_title => '나의 다트 일기';
 
   @override
-  String get mylog_summary_title => '나의 다트 이야기';
+  String get mylog_summary_title => '차곡차곡 쌓이는 성장';
 
   @override
   String mylog_summary_count(Object count) {
-    return '총 $count개의 기록이 쌓였어요.';
+    return '총 $count번의 기록이 모였어요.';
   }
 
   @override
@@ -1096,7 +1096,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get notice_title => '공지사항';
 
   @override
-  String get notice_empty => '공지가 없습니다';
+  String get notice_empty => '등록된 공지사항이 없습니다.';
 
   @override
   String get delete_acc_confirm_title => '계정 삭제';
@@ -2436,22 +2436,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get calendar_unit_day => '일';
 
   @override
-  String get live_list_title => '오늘의 연습 현황';
+  String get live_list_title => '실시간 연습 현황';
 
   @override
-  String get live_list_empty => '오늘 연습 기록이 아직 없습니다.';
+  String get live_list_empty => '현재 연습 중인 유저가 없습니다.';
 
   @override
   String get live_status_live => 'LIVE';
 
   @override
-  String get live_status_finished => '종료됨';
+  String get live_status_finished => 'FINISHED';
 
   @override
-  String get live_no_shop => '장소 미지정';
+  String get live_no_shop => '소속 샵 없음';
 
   @override
-  String get live_blur_text => '**** · ****';
+  String get live_blur_text => '로그인 후 확인 가능합니다.';
 
   @override
   String get live_board_title => 'LIVE 연습 현황';
@@ -4029,4 +4029,884 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get member_list_no_email => '이메일 없음';
+
+  @override
+  String get community_home_tab_title => '연습 · 대회 · 기록';
+
+  @override
+  String get community_home_menu_training => '트레이닝';
+
+  @override
+  String get community_home_menu_arena => '아레나';
+
+  @override
+  String get community_home_menu_mylog => '마이로그';
+
+  @override
+  String get community_home_login_prompt => '커뮤니티를 이용하려면\n로그인이 필요해요';
+
+  @override
+  String get community_home_verify_prompt => '커뮤니티 이용을 위해\n인증이 필요해요';
+
+  @override
+  String get community_home_verify_profile => '프로필 등록을 완료해 주세요.';
+
+  @override
+  String get community_home_verify_phone => '휴대폰 인증을 완료해 주세요.';
+
+  @override
+  String get community_home_ugc_title => '커뮤니티 이용 동의가 필요해요';
+
+  @override
+  String get community_home_ugc_desc =>
+      '커뮤니티에는 사용자가 작성한 글/사진(UGC)이 노출됩니다.\n안전한 이용을 위해 아래 내용에 동의해 주세요.\n\n• 타인을 비방/혐오/차별/괴롭힘하는 콘텐츠 금지\n• 불법/음란/폭력/사기 등 유해 콘텐츠 금지\n• 신고/차단 기능 및 운영 정책에 따라 제재될 수 있음\n• 신고된 콘텐츠는 운영자가 검토할 수 있음';
+
+  @override
+  String get community_home_ugc_btn_no => '동의 안함';
+
+  @override
+  String get community_home_ugc_btn_yes => '동의하고 시작';
+
+  @override
+  String get community_home_ugc_msg_reject => '동의 후 커뮤니티 이용이 가능합니다.';
+
+  @override
+  String community_home_ugc_msg_fail(Object error) {
+    return '동의 처리 실패: $error';
+  }
+
+  @override
+  String get community_preview_recent => '최근';
+
+  @override
+  String get community_preview_popular => '인기';
+
+  @override
+  String get community_preview_see_all => '전체 보기';
+
+  @override
+  String get community_preview_type_text => '글';
+
+  @override
+  String get community_preview_today_title => '오늘 커뮤니티';
+
+  @override
+  String get community_preview_stat_posts => '게시글';
+
+  @override
+  String get community_preview_stat_comments => '댓글';
+
+  @override
+  String get community_preview_stat_likes => '좋아요';
+
+  @override
+  String get community_preview_live_title => '지금 올라온 글';
+
+  @override
+  String get community_preview_default_title => '새 게시글';
+
+  @override
+  String get community_avatar_no_online => '온라인 유저 없음';
+
+  @override
+  String get community_avatar_no_name => '이름 없음';
+
+  @override
+  String get post_write_edit_title => '게시물 수정';
+
+  @override
+  String get post_write_btn_post => '게시';
+
+  @override
+  String get post_write_btn_edit => '수정';
+
+  @override
+  String get post_write_hint => '무슨 생각을 하고 계신가요?';
+
+  @override
+  String get post_write_photo_limit => '사진은 최대 7장까지 등록 가능합니다.';
+
+  @override
+  String get post_write_uploading => '게시글을 올리는 중입니다...';
+
+  @override
+  String post_write_upload_progress(Object current, Object total) {
+    return '사진 업로드 중 ($current / $total)';
+  }
+
+  @override
+  String post_write_photo_count(Object current) {
+    return '사진 ($current/7)';
+  }
+
+  @override
+  String get post_write_photo_add => '추가';
+
+  @override
+  String get post_write_photo_placeholder => '사진 추가 (최대 7장)';
+
+  @override
+  String post_write_error_upload(Object error) {
+    return '업로드 실패: $error';
+  }
+
+  @override
+  String get circle_title => '피드';
+
+  @override
+  String get circle_no_visible_posts => '표시할 게시물이 없습니다';
+
+  @override
+  String get circle_error_feed => '피드를 불러오지 못했습니다';
+
+  @override
+  String get circle_error_auth => '로그인 상태 오류';
+
+  @override
+  String get circle_profile_required => '프로필 등록 후 이용 가능합니다';
+
+  @override
+  String get circle_list_delete_title => '삭제 확인';
+
+  @override
+  String get circle_list_delete_body => '이 게시물을 삭제하시겠습니까?';
+
+  @override
+  String get circle_list_no_visible_posts => '표시할 게시물이 없습니다';
+
+  @override
+  String get post_card_more => '더 보기';
+
+  @override
+  String get post_card_fold => '간단히 접기 ▲';
+
+  @override
+  String get post_card_share => '공유';
+
+  @override
+  String get post_card_report => '신고';
+
+  @override
+  String get post_card_block => '차단';
+
+  @override
+  String get post_card_block_title => '사용자 차단';
+
+  @override
+  String post_card_block_body(Object name) {
+    return '$name 님을 차단할까요?\n\n차단하면 이 사용자의 게시글이 보이지 않습니다.';
+  }
+
+  @override
+  String post_card_block_success(Object name) {
+    return '$name 님을 차단했어요';
+  }
+
+  @override
+  String get post_card_report_title => '게시물 신고';
+
+  @override
+  String get post_card_report_reason => '신고 사유';
+
+  @override
+  String get post_card_report_detail => '추가 설명(선택)';
+
+  @override
+  String get post_card_report_success => '신고가 접수되었어요.';
+
+  @override
+  String get post_card_report_r1 => '스팸/도배';
+
+  @override
+  String get post_card_report_r2 => '욕설/혐오';
+
+  @override
+  String get post_card_report_r3 => '괴롭힘/따돌림';
+
+  @override
+  String get post_card_report_r4 => '성적인 콘텐츠';
+
+  @override
+  String get post_card_report_r5 => '폭력/위협';
+
+  @override
+  String get post_card_report_r6 => '기타';
+
+  @override
+  String post_card_share_msg(Object content, Object link) {
+    return '[DAO 커뮤니티] 새로운 게시물이 올라왔습니다! 🎯\n\n$content\n\n지금 DAO 앱에서 확인해보세요.\n👉 $link';
+  }
+
+  @override
+  String get comment_preview_see_all => '댓글 모두 보기';
+
+  @override
+  String get common_anonymous => '익명';
+
+  @override
+  String get comment_title => '댓글';
+
+  @override
+  String get comment_hint => '댓글을 입력하세요...';
+
+  @override
+  String get comment_empty => '아직 댓글이 없습니다';
+
+  @override
+  String get comment_no_visible => '표시할 댓글이 없습니다';
+
+  @override
+  String get comment_report_title => '댓글 신고';
+
+  @override
+  String get comment_report_select_reason => '사유를 선택해 주세요';
+
+  @override
+  String get comment_report_success => '신고가 접수되었습니다';
+
+  @override
+  String comment_report_fail(Object error) {
+    return '신고 실패: $error';
+  }
+
+  @override
+  String get comment_delete_title => '삭제 확인';
+
+  @override
+  String get comment_delete_body => '이 댓글을 삭제하시겠습니까?';
+
+  @override
+  String get comment_time_just_now => '방금 전';
+
+  @override
+  String get profile_form_korean_name => '활동 이름 (국문)';
+
+  @override
+  String get profile_form_korean_name_hint => '이름을 입력하세요';
+
+  @override
+  String get profile_form_english_name => '활동 이름 (영문)';
+
+  @override
+  String get profile_form_english_name_hint => '이름을 영문으로 입력하세요';
+
+  @override
+  String get profile_form_shop_name => '소속 샵';
+
+  @override
+  String get profile_form_shop_name_hint => '주로 활동하는 샵을 입력하세요';
+
+  @override
+  String get profile_reg_title => '프로필 등록/수정';
+
+  @override
+  String get profile_reg_save => '저장 완료';
+
+  @override
+  String get profile_reg_success => '성공적으로 저장되었습니다!';
+
+  @override
+  String get profile_reg_fail => '저장에 실패했어요. 다시 시도해주세요.';
+
+  @override
+  String profile_reg_error(Object error) {
+    return '저장 중 오류가 발생했습니다: $error';
+  }
+
+  @override
+  String get profile_reg_input_check => '입력값을 확인해주세요.';
+
+  @override
+  String get profile_image_save => '프로필 사진 저장 완료!';
+
+  @override
+  String get profile_image_delete_title => '이미지 영구 삭제';
+
+  @override
+  String get profile_image_delete_body =>
+      '삭제된 이미지는 즉시 반영되며 되돌릴 수 없습니다.\n정말 삭제하시겠습니까?';
+
+  @override
+  String get profile_image_deleted => '이미지가 삭제되었습니다.';
+
+  @override
+  String profile_image_fail(Object error) {
+    return '이미지 처리 실패: $error';
+  }
+
+  @override
+  String get barrel_image_save => '배럴 사진 저장 완료!';
+
+  @override
+  String get report_screen_title => '버그/신고';
+
+  @override
+  String get report_form_title_label => '제목';
+
+  @override
+  String get report_form_content_label => '상세 내용';
+
+  @override
+  String get report_form_content_hint => '발생 상황, 재현 방법 등을 자세히 적어주세요';
+
+  @override
+  String get report_form_photo_add => '사진 추가 (선택)';
+
+  @override
+  String get report_form_photo_change => '사진 변경';
+
+  @override
+  String get report_form_submit => '신고하기';
+
+  @override
+  String get report_form_error_empty => '제목과 내용을 입력하세요';
+
+  @override
+  String get report_form_success => '신고가 접수되었습니다. 감사합니다!';
+
+  @override
+  String report_form_fail(Object error) {
+    return '전송 실패: $error';
+  }
+
+  @override
+  String get notice_no_title => '제목 없음';
+
+  @override
+  String notice_error(Object error) {
+    return '공지사항을 불러오는 중 오류가 발생했습니다: $error';
+  }
+
+  @override
+  String get mypage_login_prompt_title => '로그인하면 내 정보를 확인할 수 있어요!';
+
+  @override
+  String get mypage_login_prompt_subtitle => 'Google 계정으로 간편하게 시작하세요';
+
+  @override
+  String get mypage_login_btn => 'Google로 로그인';
+
+  @override
+  String get mypage_profile_prompt_title => '프로필 등록이 필요해요!';
+
+  @override
+  String get mypage_profile_prompt_subtitle => '이름과 소속 샵을 등록하고\n다른 유저와 소통해보세요';
+
+  @override
+  String get mypage_profile_reg_btn => '프로필 등록하기';
+
+  @override
+  String get mypage_edit_profile => '프로필 수정';
+
+  @override
+  String get mypage_my_guestbook => '내 방명록';
+
+  @override
+  String get mypage_account_delete => '계정 삭제';
+
+  @override
+  String get mypage_logout => '로그아웃';
+
+  @override
+  String get mypage_logout_confirm => '정말 로그아웃하시겠습니까?';
+
+  @override
+  String get mypage_delete_confirm_title => '계정 삭제';
+
+  @override
+  String get mypage_delete_confirm_body =>
+      'DAO 계정을 삭제하면 프로필 정보와 앱 내 데이터가 삭제되며,\n이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?';
+
+  @override
+  String get mypage_delete_error_recent_login =>
+      '보안을 위해 최근 로그인한 사용자만 계정을 삭제할 수 있어요.\n다시 로그인한 후 시도해주세요.';
+
+  @override
+  String get mypage_delete_error_general => '계정 삭제 중 오류가 발생했습니다.';
+
+  @override
+  String get mypage_delete_error_server =>
+      '계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+
+  @override
+  String get mypage_no_email => '이메일 없음';
+
+  @override
+  String get mypage_menu_mylog => '마이로그';
+
+  @override
+  String get guestbook_title_me => '내 방명록';
+
+  @override
+  String get guestbook_title_other => '방명록 쓰기';
+
+  @override
+  String get guestbook_hint => '응원 메시지 남기기...';
+
+  @override
+  String get guestbook_empty => '아직 방명록이 없습니다';
+
+  @override
+  String get guestbook_success => '방명록이 작성되었습니다';
+
+  @override
+  String guestbook_fail(Object error) {
+    return '전송 실패: $error';
+  }
+
+  @override
+  String get block_title => '차단 관리';
+
+  @override
+  String get block_empty => '차단한 유저가 없습니다.';
+
+  @override
+  String get block_status => '차단됨';
+
+  @override
+  String get block_unblock_btn => '차단 해제';
+
+  @override
+  String get block_unblock_confirm_title => '차단 해제';
+
+  @override
+  String block_unblock_confirm_body(Object name) {
+    return '$name님의 차단을 해제하시겠습니까?\n이제 상대방의 게시글과 채팅이 보입니다.';
+  }
+
+  @override
+  String block_unblock_success(Object name) {
+    return '$name님의 차단이 해제되었습니다.';
+  }
+
+  @override
+  String get block_unblock_fail => '해제 중 오류가 발생했습니다.';
+
+  @override
+  String get block_error_load => '데이터를 불러오지 못했습니다.';
+
+  @override
+  String get guestbook_header_no_name => '이름 없음';
+
+  @override
+  String get guestbook_header_barrel_title => 'PLAYERS_DART';
+
+  @override
+  String get guestbook_menu_edit => '수정';
+
+  @override
+  String get guestbook_menu_delete => '삭제';
+
+  @override
+  String get guestbook_edit_title => '방명록 수정';
+
+  @override
+  String get guestbook_edit_complete => '수정 완료';
+
+  @override
+  String get guestbook_delete_confirm_title => '삭제 확인';
+
+  @override
+  String get guestbook_delete_confirm_body => '이 방명록을 삭제하시겠습니까?';
+
+  @override
+  String get guestbook_unknown_user => '알 수 없는 사용자';
+
+  @override
+  String get barrel_section_title => '배럴 세팅 (선택)';
+
+  @override
+  String get barrel_label_name => '배럴 이름';
+
+  @override
+  String get barrel_label_shaft => '샤프트';
+
+  @override
+  String get barrel_label_flight => '플라이트';
+
+  @override
+  String get barrel_label_tip => '팁';
+
+  @override
+  String get image_picker_error => '사진을 선택하지 못했습니다.';
+
+  @override
+  String get image_upload_error => '이미지 업로드 중 오류가 발생했습니다.';
+
+  @override
+  String get image_delete_error => '이미지 삭제 중 오류가 발생했습니다.';
+
+  @override
+  String get mylog_login_required_title => '로그인이 필요해요';
+
+  @override
+  String get mylog_login_required_subtitle =>
+      '나만의 다트 일기를 기록하고 관리하려면\n로그인이 필요합니다.';
+
+  @override
+  String get mylog_login_btn => '로그인 하러 가기';
+
+  @override
+  String mylog_summary_streak(Object days) {
+    return '🔥 $days일 연속 기록 중';
+  }
+
+  @override
+  String get mylog_recent_title => '최근 작성한 다트 이야기';
+
+  @override
+  String get mylog_no_content => '내용 없음';
+
+  @override
+  String get mylog_error_load => '기록을 불러오는 중 오류가 발생했습니다.';
+
+  @override
+  String mylog_confirm_sheet_title(Object day, Object month, Object year) {
+    return '$year년 $month월 $day일';
+  }
+
+  @override
+  String get mylog_confirm_sheet_body => '이 날짜에 새로운 다트 일기를 작성할까요?';
+
+  @override
+  String get mylog_confirm_sheet_btn_later => '나중에';
+
+  @override
+  String get mylog_confirm_sheet_btn_write => '작성하기';
+
+  @override
+  String get mylog_calendar_month_label => '월';
+
+  @override
+  String get mylog_write_title_new => '일기 작성';
+
+  @override
+  String get mylog_write_title_edit => '일기 수정';
+
+  @override
+  String get mylog_write_subtitle_new => '오늘의 성장을 기록하세요';
+
+  @override
+  String get mylog_write_subtitle_edit => '기억을 다듬고 있어요';
+
+  @override
+  String get mylog_write_image_add => '사진 추가 (선택)';
+
+  @override
+  String get mylog_write_guide_title => '작성 가이드 (탭해서 추가/삭제)';
+
+  @override
+  String get mylog_write_guide_good => '💪 잘 된 점';
+
+  @override
+  String get mylog_write_guide_bad => '🧐 아쉬운 점';
+
+  @override
+  String get mylog_write_guide_next => '✏️ 다음 계획';
+
+  @override
+  String get mylog_write_guide_review => '📝 한 줄 평';
+
+  @override
+  String get mylog_write_template_good => '💪 오늘 잘 된 점\n- ';
+
+  @override
+  String get mylog_write_template_bad => '🧐 아쉬웠던 점\n- ';
+
+  @override
+  String get mylog_write_template_next => '✏️ 다음 연습 계획\n- ';
+
+  @override
+  String get mylog_write_template_review => '📝 오늘의 한 줄\n- ';
+
+  @override
+  String get mylog_write_hint => '오늘 다트 어땠나요?\n기억에 남는 샷이나 보완할 점을 적어보세요.';
+
+  @override
+  String get mylog_write_share_title => '서클(커뮤니티)에 공유';
+
+  @override
+  String get mylog_write_share_subtitle_new => '저장과 동시에 피드에 게시합니다.';
+
+  @override
+  String get mylog_write_share_subtitle_edit => '이미 공유된 기록입니다.';
+
+  @override
+  String get mylog_write_save_btn => '기록 저장하기';
+
+  @override
+  String get mylog_write_empty_error => '기록할 내용을 입력해주세요.';
+
+  @override
+  String mylog_write_save_fail(Object error) {
+    return '저장 실패: $error';
+  }
+
+  @override
+  String get mylog_detail_error_not_found => '기록을 찾을 수 없습니다.';
+
+  @override
+  String mylog_detail_written_at(Object time) {
+    return '$time 작성됨';
+  }
+
+  @override
+  String get mylog_detail_shared_circle => '서클 공유됨';
+
+  @override
+  String get mylog_detail_content_title => '오늘의 다트 이야기';
+
+  @override
+  String get mylog_detail_no_content => '작성된 내용이 없습니다.';
+
+  @override
+  String get mylog_detail_footer => 'DAO와 함께한 당신의 성장을 응원합니다.';
+
+  @override
+  String get mylog_detail_delete_title => '기록 삭제';
+
+  @override
+  String get mylog_detail_delete_body => '이 날의 소중한 기록을 정말 삭제하시겠습니까?';
+
+  @override
+  String get mylog_detail_delete_btn => '삭제하기';
+
+  @override
+  String get mylog_detail_delete_success => '기록이 삭제되었습니다.';
+
+  @override
+  String get mylog_card_subtitle => '오늘의 다트 이야기';
+
+  @override
+  String get mylog_card_image_error => '사진을 불러올 수 없어요';
+
+  @override
+  String get mylog_card_image_tag => '오늘의 샷';
+
+  @override
+  String get mylog_card_no_content =>
+      '아직 내용이 없어요. 다음엔 오늘의 다트 이야기를 더 자세히 남겨볼까요?';
+
+  @override
+  String get mylog_card_shared_badge => '서클에 공유됨';
+
+  @override
+  String get chat_login_required => '로그인이 필요합니다.';
+
+  @override
+  String get chat_empty_title => 'DAO 라이브 톡에 오신 것을 환영합니다!';
+
+  @override
+  String get chat_empty_subtitle => '첫 번째 메시지를 남겨보세요.';
+
+  @override
+  String get chat_error_load => '데이터를 불러오는 중 에러가 발생했습니다.';
+
+  @override
+  String get chat_ticker_default_notice => 'DAO 라이브 톡에 오신 것을 환영합니다!';
+
+  @override
+  String get chat_ticker_prefix_ranking => '[랭킹]';
+
+  @override
+  String get chat_ticker_prefix_tournament => '[대회]';
+
+  @override
+  String get chat_ticker_prefix_welcome => '[환영]';
+
+  @override
+  String get chat_ticker_prefix_notice => '[공지]';
+
+  @override
+  String get chat_overlay_title => 'DAO 라이브 톡';
+
+  @override
+  String get chat_overlay_block_guide => '상대방의 메시지를 꾹 누르면 차단을 할 수 있습니다.';
+
+  @override
+  String get chat_bubble_menu_report_title => '신고하기';
+
+  @override
+  String get chat_bubble_menu_report_subtitle => '부적절한 메시지로 신고합니다.';
+
+  @override
+  String chat_bubble_menu_block_title(Object name) {
+    return '$name 님 차단하기';
+  }
+
+  @override
+  String get chat_bubble_menu_block_subtitle => '이 사용자의 메시지를 더 이상 보지 않습니다.';
+
+  @override
+  String get chat_bubble_block_dialog_title => '사용자 차단';
+
+  @override
+  String chat_bubble_block_dialog_body(Object name) {
+    return '$name 님을 차단하시겠습니까?\n차단 후에는 이 사용자의 대화가 보이지 않습니다.';
+  }
+
+  @override
+  String chat_bubble_block_success(Object name) {
+    return '$name 님이 차단되었습니다.';
+  }
+
+  @override
+  String get chat_bubble_block_fail => '차단 중 오류가 발생했습니다.';
+
+  @override
+  String get chat_bubble_unknown_user => '알 수 없는 사용자';
+
+  @override
+  String get chat_input_hint => '메시지를 입력하세요...';
+
+  @override
+  String get chat_input_cooldown => '잠시 대기 중...';
+
+  @override
+  String chat_input_send_fail(Object error) {
+    return '전송 실패: $error';
+  }
+
+  @override
+  String get profile_reg_fail_duplicate_name =>
+      '이미 사용 중인 닉네임입니다. 다른 이름을 입력해주세요.';
+
+  @override
+  String get common_login_required => '로그인이 필요합니다';
+
+  @override
+  String get common_error_msg => '오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+
+  @override
+  String get live_btn_move => '이동하기';
+
+  @override
+  String get common_msg_processing => '처리 중입니다...';
+
+  @override
+  String get circle_translate_btn => '번역하기';
+
+  @override
+  String get circle_translate_show_original => '원문 보기';
+
+  @override
+  String get circle_translate_fail => '번역에 실패했습니다. 다시 시도해주세요.';
+
+  @override
+  String get tab_home => '홈';
+
+  @override
+  String get tab_training => '트레이닝';
+
+  @override
+  String get tab_arena => '아레나';
+
+  @override
+  String get tab_community => '커뮤니티';
+
+  @override
+  String get tab_mypage => '내정보';
+
+  @override
+  String get ban_msg_restricted => '운영 정책에 의해 이용이 제한된 계정입니다.';
+
+  @override
+  String get menu_tooltip_settings => '설정';
+
+  @override
+  String get menu_block_manage => '차단 유저 관리';
+
+  @override
+  String get menu_admin_block_manage => '전체 차단 관리';
+
+  @override
+  String get menu_admin_mode => '관리자 모드';
+
+  @override
+  String get profile_players_dart => '플레이어 다트 장비';
+
+  @override
+  String get profile_barrel => '배럴';
+
+  @override
+  String get profile_shaft => '샤프트';
+
+  @override
+  String get profile_flight => '플라이트';
+
+  @override
+  String get profile_tip => '팁';
+
+  @override
+  String get profile_go_guestbook_me => '내 방명록 가기';
+
+  @override
+  String get profile_go_guestbook_other => '방명록 쓰러 가기';
+
+  @override
+  String get login_google => 'Google로 로그인';
+
+  @override
+  String get login_apple => 'Apple로 로그인';
+
+  @override
+  String get login_admin_info => '운영자 · 심사용 계정에만 사용하는 로그인 방식입니다.';
+
+  @override
+  String get login_email => '이메일';
+
+  @override
+  String get login_password => '비밀번호';
+
+  @override
+  String get login_email_btn => '이메일로 로그인';
+
+  @override
+  String get login_skip => '건너뛰기';
+
+  @override
+  String get login_fail_google => 'Google 로그인 중 오류가 발생했습니다.';
+
+  @override
+  String get login_fail_apple => 'Apple 로그인 중 오류가 발생했습니다.';
+
+  @override
+  String get login_error_email_empty => '이메일을 입력해주세요.';
+
+  @override
+  String get login_error_email_format => '이메일 형식이 올바르지 않습니다.';
+
+  @override
+  String get login_error_password_empty => '비밀번호를 입력해주세요.';
+
+  @override
+  String get login_error_password_length => '비밀번호는 6자 이상이어야 합니다.';
+
+  @override
+  String get post_write_delay_msg => '잠시 후 다시 시도해주세요. 게시글은 1분마다 작성할 수 있습니다.';
+
+  @override
+  String notice_detail_photo_count(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get notice_lang_ko => '한국어';
+
+  @override
+  String get notice_lang_en => 'English';
+
+  @override
+  String get notice_lang_ja => '日本語';
+
+  @override
+  String get notice_lang_zh_hant => '繁體';
+
+  @override
+  String get notice_lang_zh_hans => '简体';
+
+  @override
+  String notice_photo_indicator(Object current, Object total) {
+    return '$current / $total';
+  }
 }

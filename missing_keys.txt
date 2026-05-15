@@ -6,16 +6,25 @@
 
   "zh": [
     "common_hour",
-    "common_minute"
+    "common_minute",
+    "mypage_delete_error_recent_login",
+    "mypage_delete_error_general",
+    "mypage_delete_error_server"
   ],
 
   "zh_Hans": [
     "common_hour",
-    "common_minute"
+    "common_minute",
+    "mypage_delete_error_recent_login",
+    "mypage_delete_error_general",
+    "mypage_delete_error_server"
   ],
 
   "zh_Hant": [
     "common_hour",
-    "common_minute"
+    "common_minute",
+    "mypage_delete_error_recent_login",
+    "mypage_delete_error_general",
+    "mypage_delete_error_server"
   ]
 }

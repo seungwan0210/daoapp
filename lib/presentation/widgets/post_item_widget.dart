@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/presentation/widgets/admin_delete_button.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔥 추가
 
 class PostItemWidget extends ConsumerWidget {
   final String title;
@@ -34,6 +35,7 @@ class PostItemWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!; // 🔥 110n 객체 가져오기
     final currentUser = ref.watch(authStateProvider).value;
     final isAuthor = authorId == currentUser?.uid;
 
@@ -95,11 +97,11 @@ class PostItemWidget extends ConsumerWidget {
                 },
                 itemBuilder: (context) => [
                   if (canEdit)
-                    const PopupMenuItem(value: 'edit', child: Text('수정')),
+                    PopupMenuItem(value: 'edit', child: Text(s.common_edit)), // 🔥 다국어 적용
                   if (canDelete)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
-                      child: Text('삭제', style: TextStyle(color: Colors.red)),
+                      child: Text(s.common_delete, style: const TextStyle(color: Colors.red)), // 🔥 다국어 적용
                     ),
                 ],
               ),

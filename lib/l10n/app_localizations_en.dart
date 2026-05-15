@@ -99,7 +99,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get menu_notice => 'Notices';
 
   @override
-  String get menu_report => 'Report Bug';
+  String get menu_report => 'Inquiry & Report';
 
   @override
   String get menu_quick_arena => 'Arena';
@@ -719,7 +719,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get circle_title_feed => 'Feed';
 
   @override
-  String get circle_no_posts => 'No posts to show';
+  String get circle_no_posts => 'No posts yet';
 
   @override
   String get circle_label_text_only => 'Text';
@@ -911,14 +911,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get login_msg_fail_email => 'Email login failed.';
 
   @override
-  String get mylog_title => 'My Log';
+  String get mylog_title => 'My Dart Log';
 
   @override
-  String get mylog_summary_title => 'My Dart Story';
+  String get mylog_summary_title => 'Growing Step by Step';
 
   @override
   String mylog_summary_count(Object count) {
-    return '$count records saved.';
+    return 'Total $count logs collected.';
   }
 
   @override
@@ -1102,7 +1102,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notice_title => 'Notices';
 
   @override
-  String get notice_empty => 'No notices.';
+  String get notice_empty => 'No notices found.';
 
   @override
   String get delete_acc_confirm_title => 'Delete Account';
@@ -2463,10 +2463,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get calendar_unit_day => '';
 
   @override
-  String get live_list_title => 'Today\'s Practice Status';
+  String get live_list_title => 'Live Practice Status';
 
   @override
-  String get live_list_empty => 'No practice records for today.';
+  String get live_list_empty => 'No users practicing right now.';
 
   @override
   String get live_status_live => 'LIVE';
@@ -2475,10 +2475,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get live_status_finished => 'FINISHED';
 
   @override
-  String get live_no_shop => 'Unknown Location';
+  String get live_no_shop => 'No Shop Info';
 
   @override
-  String get live_blur_text => '**** · ****';
+  String get live_blur_text => 'Login to view details';
 
   @override
   String get live_board_title => 'LIVE Practice';
@@ -4124,4 +4124,905 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get member_list_no_email => 'No Email';
+
+  @override
+  String get community_home_tab_title => 'Train · Arena · Log';
+
+  @override
+  String get community_home_menu_training => 'Training';
+
+  @override
+  String get community_home_menu_arena => 'Arena';
+
+  @override
+  String get community_home_menu_mylog => 'My Log';
+
+  @override
+  String get community_home_login_prompt =>
+      'Login required to\nuse the community';
+
+  @override
+  String get community_home_verify_prompt =>
+      'Verification required to\nuse the community';
+
+  @override
+  String get community_home_verify_profile => 'Please complete your profile.';
+
+  @override
+  String get community_home_verify_phone => 'Please verify your phone number.';
+
+  @override
+  String get community_home_ugc_title => 'Community Consent Required';
+
+  @override
+  String get community_home_ugc_desc =>
+      'The community displays user-generated content (UGC).\nPlease agree to the following for a safe environment.\n\n• No defamation, hate speech, or harassment\n• No illegal, obscene, violent, or fraudulent content\n• Violations may lead to sanctions per policies\n• Reported content may be reviewed by admins';
+
+  @override
+  String get community_home_ugc_btn_no => 'Decline';
+
+  @override
+  String get community_home_ugc_btn_yes => 'Agree & Start';
+
+  @override
+  String get community_home_ugc_msg_reject =>
+      'You must agree to use the community.';
+
+  @override
+  String community_home_ugc_msg_fail(Object error) {
+    return 'Failed to save consent: $error';
+  }
+
+  @override
+  String get community_preview_recent => 'Recent';
+
+  @override
+  String get community_preview_popular => 'Popular';
+
+  @override
+  String get community_preview_see_all => 'See All';
+
+  @override
+  String get community_preview_type_text => 'Post';
+
+  @override
+  String get community_preview_today_title => 'Today\'s Activity';
+
+  @override
+  String get community_preview_stat_posts => 'Posts';
+
+  @override
+  String get community_preview_stat_comments => 'Comments';
+
+  @override
+  String get community_preview_stat_likes => 'Likes';
+
+  @override
+  String get community_preview_live_title => 'New Arrivals';
+
+  @override
+  String get community_preview_default_title => 'New Post';
+
+  @override
+  String get community_avatar_no_online => 'No users online';
+
+  @override
+  String get community_avatar_no_name => 'No Name';
+
+  @override
+  String get post_write_edit_title => 'Edit Post';
+
+  @override
+  String get post_write_btn_post => 'Post';
+
+  @override
+  String get post_write_btn_edit => 'Save';
+
+  @override
+  String get post_write_hint => 'What\'s on your mind?';
+
+  @override
+  String get post_write_photo_limit => 'You can upload up to 7 photos.';
+
+  @override
+  String get post_write_uploading => 'Posting your thoughts...';
+
+  @override
+  String post_write_upload_progress(Object current, Object total) {
+    return 'Uploading photos ($current / $total)';
+  }
+
+  @override
+  String post_write_photo_count(Object current) {
+    return 'Photos ($current/7)';
+  }
+
+  @override
+  String get post_write_photo_add => 'Add';
+
+  @override
+  String get post_write_photo_placeholder => 'Add Photos (Max 7)';
+
+  @override
+  String post_write_error_upload(Object error) {
+    return 'Upload failed: $error';
+  }
+
+  @override
+  String get circle_title => 'Feed';
+
+  @override
+  String get circle_no_visible_posts => 'No posts to display';
+
+  @override
+  String get circle_error_feed => 'Failed to load feed';
+
+  @override
+  String get circle_error_auth => 'Authentication error';
+
+  @override
+  String get circle_profile_required => 'Please register your profile first';
+
+  @override
+  String get circle_list_delete_title => 'Confirm Delete';
+
+  @override
+  String get circle_list_delete_body =>
+      'Are you sure you want to delete this post?';
+
+  @override
+  String get circle_list_no_visible_posts => 'No posts to display';
+
+  @override
+  String get post_card_more => 'More';
+
+  @override
+  String get post_card_fold => 'Collapse ▲';
+
+  @override
+  String get post_card_share => 'Share';
+
+  @override
+  String get post_card_report => 'Report';
+
+  @override
+  String get post_card_block => 'Block';
+
+  @override
+  String get post_card_block_title => 'Block User';
+
+  @override
+  String post_card_block_body(Object name) {
+    return 'Block $name?\n\nTheir posts will no longer be visible to you.';
+  }
+
+  @override
+  String post_card_block_success(Object name) {
+    return 'Blocked $name';
+  }
+
+  @override
+  String get post_card_report_title => 'Report Post';
+
+  @override
+  String get post_card_report_reason => 'Reason';
+
+  @override
+  String get post_card_report_detail => 'Details (Optional)';
+
+  @override
+  String get post_card_report_success => 'Report submitted.';
+
+  @override
+  String get post_card_report_r1 => 'Spam';
+
+  @override
+  String get post_card_report_r2 => 'Hate speech';
+
+  @override
+  String get post_card_report_r3 => 'Harassment';
+
+  @override
+  String get post_card_report_r4 => 'Sexual content';
+
+  @override
+  String get post_card_report_r5 => 'Violence';
+
+  @override
+  String get post_card_report_r6 => 'Other';
+
+  @override
+  String post_card_share_msg(Object content, Object link) {
+    return '[DAO Community] New post arrived! 🎯\n\n$content\n\nCheck it out now on DAO app.\n👉 $link';
+  }
+
+  @override
+  String get comment_preview_see_all => 'View all comments';
+
+  @override
+  String get common_anonymous => 'Anonymous';
+
+  @override
+  String get comment_title => 'Comments';
+
+  @override
+  String get comment_hint => 'Write a comment...';
+
+  @override
+  String get comment_empty => 'No comments yet';
+
+  @override
+  String get comment_no_visible => 'No comments to display';
+
+  @override
+  String get comment_report_title => 'Report Comment';
+
+  @override
+  String get comment_report_select_reason => 'Please select a reason';
+
+  @override
+  String get comment_report_success => 'Report submitted';
+
+  @override
+  String comment_report_fail(Object error) {
+    return 'Report failed: $error';
+  }
+
+  @override
+  String get comment_delete_title => 'Confirm Delete';
+
+  @override
+  String get comment_delete_body =>
+      'Are you sure you want to delete this comment?';
+
+  @override
+  String get comment_time_just_now => 'Just now';
+
+  @override
+  String get profile_form_korean_name => 'Activity Name (Local)';
+
+  @override
+  String get profile_form_korean_name_hint => 'Please enter your name';
+
+  @override
+  String get profile_form_english_name => 'Activity Name (English)';
+
+  @override
+  String get profile_form_english_name_hint =>
+      'Please enter your name in English';
+
+  @override
+  String get profile_form_shop_name => 'Home Shop';
+
+  @override
+  String get profile_form_shop_name_hint => 'Enter your primary home shop';
+
+  @override
+  String get profile_reg_title => 'Register/Edit Profile';
+
+  @override
+  String get profile_reg_save => 'Save Changes';
+
+  @override
+  String get profile_reg_success => 'Profile saved successfully!';
+
+  @override
+  String get profile_reg_fail => 'Failed to save. Please try again.';
+
+  @override
+  String profile_reg_error(Object error) {
+    return 'An error occurred while saving: $error';
+  }
+
+  @override
+  String get profile_reg_input_check => 'Please check your input.';
+
+  @override
+  String get profile_image_save => 'Profile photo saved!';
+
+  @override
+  String get profile_image_delete_title => 'Delete Image';
+
+  @override
+  String get profile_image_delete_body =>
+      'Deleted images are updated immediately and cannot be undone. Are you sure you want to delete?';
+
+  @override
+  String get profile_image_deleted => 'Image has been deleted.';
+
+  @override
+  String profile_image_fail(Object error) {
+    return 'Image processing failed: $error';
+  }
+
+  @override
+  String get barrel_image_save => 'Barrel photo saved!';
+
+  @override
+  String get report_screen_title => 'Bug/Report';
+
+  @override
+  String get report_form_title_label => 'Title';
+
+  @override
+  String get report_form_content_label => 'Details';
+
+  @override
+  String get report_form_content_hint =>
+      'Please describe the situation or how to reproduce the bug';
+
+  @override
+  String get report_form_photo_add => 'Add Photo (Optional)';
+
+  @override
+  String get report_form_photo_change => 'Change Photo';
+
+  @override
+  String get report_form_submit => 'Submit Report';
+
+  @override
+  String get report_form_error_empty => 'Please enter both title and details';
+
+  @override
+  String get report_form_success => 'Report submitted. Thank you!';
+
+  @override
+  String report_form_fail(Object error) {
+    return 'Failed to send: $error';
+  }
+
+  @override
+  String get notice_no_title => 'No Title';
+
+  @override
+  String notice_error(Object error) {
+    return 'An error occurred while loading notices: $error';
+  }
+
+  @override
+  String get mypage_login_prompt_title => 'Login to see your profile!';
+
+  @override
+  String get mypage_login_prompt_subtitle =>
+      'Start easily with your Google account';
+
+  @override
+  String get mypage_login_btn => 'Sign in with Google';
+
+  @override
+  String get mypage_profile_prompt_title => 'Profile registration required!';
+
+  @override
+  String get mypage_profile_prompt_subtitle =>
+      'Register your name and shop\nto communicate with other users';
+
+  @override
+  String get mypage_profile_reg_btn => 'Register Profile';
+
+  @override
+  String get mypage_edit_profile => 'Edit Profile';
+
+  @override
+  String get mypage_my_guestbook => 'Guestbook';
+
+  @override
+  String get mypage_account_delete => 'Delete Account';
+
+  @override
+  String get mypage_logout => 'Logout';
+
+  @override
+  String get mypage_logout_confirm => 'Are you sure you want to log out?';
+
+  @override
+  String get mypage_delete_confirm_title => 'Delete Account';
+
+  @override
+  String get mypage_delete_confirm_body =>
+      'Deleting your DAO account will remove all profile info and app data.\nThis action cannot be undone.\n\nAre you sure you want to delete?';
+
+  @override
+  String get mypage_delete_error_recent_login =>
+      'For security, only recently logged-in users can delete their account.\nPlease log in again and try.';
+
+  @override
+  String get mypage_delete_error_general =>
+      'An error occurred while deleting the account.';
+
+  @override
+  String get mypage_delete_error_server =>
+      'There was a problem with account deletion. Please try again later.';
+
+  @override
+  String get mypage_no_email => 'No Email';
+
+  @override
+  String get mypage_menu_mylog => 'My Log';
+
+  @override
+  String get guestbook_title_me => 'My Guestbook';
+
+  @override
+  String get guestbook_title_other => 'Guestbook';
+
+  @override
+  String get guestbook_hint => 'Leave a message...';
+
+  @override
+  String get guestbook_empty => 'No messages yet';
+
+  @override
+  String get guestbook_success => 'Message posted successfully';
+
+  @override
+  String guestbook_fail(Object error) {
+    return 'Failed to post: $error';
+  }
+
+  @override
+  String get block_title => 'Block Management';
+
+  @override
+  String get block_empty => 'No blocked users.';
+
+  @override
+  String get block_status => 'Blocked';
+
+  @override
+  String get block_unblock_btn => 'Unblock';
+
+  @override
+  String get block_unblock_confirm_title => 'Unblock User';
+
+  @override
+  String block_unblock_confirm_body(Object name) {
+    return 'Do you want to unblock $name?\nYou will now see their posts and messages.';
+  }
+
+  @override
+  String block_unblock_success(Object name) {
+    return '$name has been unblocked.';
+  }
+
+  @override
+  String get block_unblock_fail => 'An error occurred while unblocking.';
+
+  @override
+  String get block_error_load => 'Failed to load data.';
+
+  @override
+  String get guestbook_header_no_name => 'No Name';
+
+  @override
+  String get guestbook_header_barrel_title => 'PLAYER\'S GEAR';
+
+  @override
+  String get guestbook_menu_edit => 'Edit';
+
+  @override
+  String get guestbook_menu_delete => 'Delete';
+
+  @override
+  String get guestbook_edit_title => 'Edit Message';
+
+  @override
+  String get guestbook_edit_complete => 'Update';
+
+  @override
+  String get guestbook_delete_confirm_title => 'Confirm Delete';
+
+  @override
+  String get guestbook_delete_confirm_body =>
+      'Are you sure you want to delete this message?';
+
+  @override
+  String get guestbook_unknown_user => 'Unknown User';
+
+  @override
+  String get barrel_section_title => 'Dart Setup (Optional)';
+
+  @override
+  String get barrel_label_name => 'Barrel Name';
+
+  @override
+  String get barrel_label_shaft => 'Shaft';
+
+  @override
+  String get barrel_label_flight => 'Flight';
+
+  @override
+  String get barrel_label_tip => 'Tip';
+
+  @override
+  String get image_picker_error => 'Failed to select images.';
+
+  @override
+  String get image_upload_error => 'An error occurred while uploading images.';
+
+  @override
+  String get image_delete_error => 'An error occurred while deleting images.';
+
+  @override
+  String get mylog_login_required_title => 'Login Required';
+
+  @override
+  String get mylog_login_required_subtitle =>
+      'Login to record and manage\nyour own dart diary.';
+
+  @override
+  String get mylog_login_btn => 'Go to Login';
+
+  @override
+  String mylog_summary_streak(Object days) {
+    return '🔥 $days Day Streak';
+  }
+
+  @override
+  String get mylog_recent_title => 'Recent Dart Stories';
+
+  @override
+  String get mylog_no_content => 'No content';
+
+  @override
+  String get mylog_error_load => 'An error occurred while loading logs.';
+
+  @override
+  String mylog_confirm_sheet_title(Object day, Object month, Object year) {
+    return '$month/$day/$year';
+  }
+
+  @override
+  String get mylog_confirm_sheet_body =>
+      'Would you like to write a new dart log for this date?';
+
+  @override
+  String get mylog_confirm_sheet_btn_later => 'Later';
+
+  @override
+  String get mylog_confirm_sheet_btn_write => 'Write Now';
+
+  @override
+  String get mylog_calendar_month_label => 'M';
+
+  @override
+  String get mylog_write_title_new => 'Write Log';
+
+  @override
+  String get mylog_write_title_edit => 'Edit Log';
+
+  @override
+  String get mylog_write_subtitle_new => 'Record your growth today';
+
+  @override
+  String get mylog_write_subtitle_edit => 'Refining your memories';
+
+  @override
+  String get mylog_write_image_add => 'Add Photo (Optional)';
+
+  @override
+  String get mylog_write_guide_title => 'Writing Guide (Tap to Add/Remove)';
+
+  @override
+  String get mylog_write_guide_good => '💪 Successes';
+
+  @override
+  String get mylog_write_guide_bad => '🧐 Improvements';
+
+  @override
+  String get mylog_write_guide_next => '✏️ Next Plan';
+
+  @override
+  String get mylog_write_guide_review => '📝 One-liner';
+
+  @override
+  String get mylog_write_template_good => '💪 Successes today\n- ';
+
+  @override
+  String get mylog_write_template_bad => '🧐 Areas to improve\n- ';
+
+  @override
+  String get mylog_write_template_next => '✏️ Plan for next time\n- ';
+
+  @override
+  String get mylog_write_template_review => '📝 Today\'s one-liner\n- ';
+
+  @override
+  String get mylog_write_hint =>
+      'How was your darts session?\nRecord memorable shots or areas to improve.';
+
+  @override
+  String get mylog_write_share_title => 'Share to Circle';
+
+  @override
+  String get mylog_write_share_subtitle_new => 'Post to feed upon saving.';
+
+  @override
+  String get mylog_write_share_subtitle_edit => 'Already shared to circle.';
+
+  @override
+  String get mylog_write_save_btn => 'Save Log';
+
+  @override
+  String get mylog_write_empty_error => 'Please enter content to record.';
+
+  @override
+  String mylog_write_save_fail(Object error) {
+    return 'Failed to save: $error';
+  }
+
+  @override
+  String get mylog_detail_error_not_found => 'Log not found.';
+
+  @override
+  String mylog_detail_written_at(Object time) {
+    return 'Written at $time';
+  }
+
+  @override
+  String get mylog_detail_shared_circle => 'Shared to Circle';
+
+  @override
+  String get mylog_detail_content_title => 'Today\'s Dart Story';
+
+  @override
+  String get mylog_detail_no_content => 'No content written.';
+
+  @override
+  String get mylog_detail_footer => 'Supporting your growth with DAO.';
+
+  @override
+  String get mylog_detail_delete_title => 'Delete Log';
+
+  @override
+  String get mylog_detail_delete_body =>
+      'Are you sure you want to delete this precious record?';
+
+  @override
+  String get mylog_detail_delete_btn => 'Delete';
+
+  @override
+  String get mylog_detail_delete_success => 'Log has been deleted.';
+
+  @override
+  String get mylog_card_subtitle => 'Today\'s Dart Story';
+
+  @override
+  String get mylog_card_image_error => 'Failed to load image';
+
+  @override
+  String get mylog_card_image_tag => 'Today\'s Shot';
+
+  @override
+  String get mylog_card_no_content =>
+      'No content yet. Why not share your dart story next time?';
+
+  @override
+  String get mylog_card_shared_badge => 'Shared to Circle';
+
+  @override
+  String get chat_login_required => 'Login required.';
+
+  @override
+  String get chat_empty_title => 'Welcome to DAO Live Talk!';
+
+  @override
+  String get chat_empty_subtitle => 'Be the first to send a message.';
+
+  @override
+  String get chat_error_load => 'An error occurred while loading chat.';
+
+  @override
+  String get chat_ticker_default_notice => 'Welcome to DAO Live Talk!';
+
+  @override
+  String get chat_ticker_prefix_ranking => '[Rank]';
+
+  @override
+  String get chat_ticker_prefix_tournament => '[Event]';
+
+  @override
+  String get chat_ticker_prefix_welcome => '[Join]';
+
+  @override
+  String get chat_ticker_prefix_notice => '[Notice]';
+
+  @override
+  String get chat_overlay_title => 'DAO Live Talk';
+
+  @override
+  String get chat_overlay_block_guide =>
+      'Long press a message to block a user.';
+
+  @override
+  String get chat_bubble_menu_report_title => 'Report';
+
+  @override
+  String get chat_bubble_menu_report_subtitle =>
+      'Report as inappropriate content.';
+
+  @override
+  String chat_bubble_menu_block_title(Object name) {
+    return 'Block $name';
+  }
+
+  @override
+  String get chat_bubble_menu_block_subtitle =>
+      'You will no longer see messages from this user.';
+
+  @override
+  String get chat_bubble_block_dialog_title => 'Block User';
+
+  @override
+  String chat_bubble_block_dialog_body(Object name) {
+    return 'Are you sure you want to block $name?\nYou will not be able to see their messages after blocking.';
+  }
+
+  @override
+  String chat_bubble_block_success(Object name) {
+    return '$name has been blocked.';
+  }
+
+  @override
+  String get chat_bubble_block_fail => 'An error occurred while blocking.';
+
+  @override
+  String get chat_bubble_unknown_user => 'Unknown User';
+
+  @override
+  String get chat_input_hint => 'Type a message...';
+
+  @override
+  String get chat_input_cooldown => 'Waiting...';
+
+  @override
+  String chat_input_send_fail(Object error) {
+    return 'Failed to send: $error';
+  }
+
+  @override
+  String get profile_reg_fail_duplicate_name =>
+      'This nickname is already taken. Please enter a different name.';
+
+  @override
+  String get common_login_required => 'Login required';
+
+  @override
+  String get common_error_msg => 'An error occurred. Please try again later.';
+
+  @override
+  String get live_btn_move => 'Go';
+
+  @override
+  String get common_msg_processing => 'Processing...';
+
+  @override
+  String get circle_translate_btn => 'Translate';
+
+  @override
+  String get circle_translate_show_original => 'Show Original';
+
+  @override
+  String get circle_translate_fail => 'Translation failed. Please try again.';
+
+  @override
+  String get tab_home => 'Home';
+
+  @override
+  String get tab_training => 'Training';
+
+  @override
+  String get tab_arena => 'Arena';
+
+  @override
+  String get tab_community => 'Community';
+
+  @override
+  String get tab_mypage => 'My Page';
+
+  @override
+  String get ban_msg_restricted =>
+      'This account has been restricted due to terms of service.';
+
+  @override
+  String get menu_tooltip_settings => 'Settings';
+
+  @override
+  String get menu_block_manage => 'Blocked Users';
+
+  @override
+  String get menu_admin_block_manage => 'Admin Block Management';
+
+  @override
+  String get menu_admin_mode => 'Admin Mode';
+
+  @override
+  String get profile_players_dart => 'PLAYER\'S DARTS';
+
+  @override
+  String get profile_barrel => 'BARREL';
+
+  @override
+  String get profile_shaft => 'SHAFT';
+
+  @override
+  String get profile_flight => 'FLIGHT';
+
+  @override
+  String get profile_tip => 'TIP';
+
+  @override
+  String get profile_go_guestbook_me => 'Go to My Guestbook';
+
+  @override
+  String get profile_go_guestbook_other => 'Write a Guestbook';
+
+  @override
+  String get login_google => 'Sign in with Google';
+
+  @override
+  String get login_apple => 'Sign in with Apple';
+
+  @override
+  String get login_admin_info =>
+      'This method is for admin and review accounts only.';
+
+  @override
+  String get login_email => 'Email';
+
+  @override
+  String get login_password => 'Password';
+
+  @override
+  String get login_email_btn => 'Sign in with Email';
+
+  @override
+  String get login_skip => 'Skip';
+
+  @override
+  String get login_fail_google => 'An error occurred during Google sign-in.';
+
+  @override
+  String get login_fail_apple => 'An error occurred during Apple sign-in.';
+
+  @override
+  String get login_error_email_empty => 'Please enter your email.';
+
+  @override
+  String get login_error_email_format => 'Invalid email format.';
+
+  @override
+  String get login_error_password_empty => 'Please enter your password.';
+
+  @override
+  String get login_error_password_length =>
+      'Password must be at least 6 characters.';
+
+  @override
+  String get post_write_delay_msg =>
+      'Please try again in a moment. You can post once every minute.';
+
+  @override
+  String notice_detail_photo_count(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get notice_lang_ko => 'Korean';
+
+  @override
+  String get notice_lang_en => 'English';
+
+  @override
+  String get notice_lang_ja => 'Japanese';
+
+  @override
+  String get notice_lang_zh_hant => 'Traditional Chinese';
+
+  @override
+  String get notice_lang_zh_hans => 'Simplified Chinese';
+
+  @override
+  String notice_photo_indicator(Object current, Object total) {
+    return '$current / $total';
+  }
 }

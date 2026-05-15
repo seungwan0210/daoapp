@@ -8,8 +8,8 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'widgets/guestbook_header.dart';
 import 'widgets/guestbook_comment_item.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class GuestbookScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -31,11 +31,12 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     super.dispose();
   }
 
-  Future<void> _sendComment() async {
+  Future<void> _sendComment(AppLocalizations s) async {
     final text = _commentController.text.trim();
     if (text.isEmpty || _isLoading) return;
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return;
+
     setState(() => _isLoading = true);
     try {
       await FirebaseFirestore.instance
@@ -53,9 +54,9 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
       }
-      _showSnackBar('방명록이 작성되었습니다', Colors.green);
+      _showSnackBar(s.guestbook_success, Colors.green); // 🔹 다국어 적용
     } catch (e) {
-      _showSnackBar('전송 실패: $e', Colors.red);
+      _showSnackBar(s.guestbook_fail(e.toString()), Colors.red); // 🔹 다국어 적용
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -68,7 +69,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     );
   }
 
-  Widget _buildInputBar(ThemeData theme) {
+  Widget _buildInputBar(ThemeData theme, AppLocalizations s) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -81,13 +82,13 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
             child: TextField(
               controller: _commentController,
               decoration: InputDecoration(
-                hintText: '응원 메시지 남기기...',
+                hintText: s.guestbook_hint, // 🔹 다국어 적용
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 isDense: true,
               ),
               textInputAction: TextInputAction.send,
-              onSubmitted: (_) => _sendComment(),
+              onSubmitted: (_) => _sendComment(s),
             ),
           ),
           const SizedBox(width: 8),
@@ -96,7 +97,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
               : FloatingActionButton(
             mini: true,
             backgroundColor: theme.colorScheme.primary,
-            onPressed: _sendComment,
+            onPressed: () => _sendComment(s),
             child: const Icon(Icons.send, size: 18, color: Colors.white),
           ),
         ],
@@ -106,11 +107,11 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final theme = Theme.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
     final isMe = currentUser?.uid == widget.userId;
 
-    // 🆕 실시간 통합 랭킹 데이터 구독
     final totalRanking = ref.watch(totalRankingProvider);
 
     final stream = FirebaseFirestore.instance
@@ -123,14 +124,14 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: CommonAppBar(
-        title: isMe ? '내 방명록' : '방명록 쓰기',
+        title: isMe ? s.guestbook_title_me : s.guestbook_title_other, // 🔹 다국어 적용
         showBackButton: true,
       ),
       bottomNavigationBar: AnimatedPadding(
         duration: const Duration(milliseconds: 150),
         curve: Curves.easeOut,
         padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: SafeArea(top: false, child: _buildInputBar(theme)),
+        child: SafeArea(top: false, child: _buildInputBar(theme, s)),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: stream,
@@ -151,7 +152,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                 ),
               ),
               if (comments.isEmpty)
-                const SliverFillRemaining(hasScrollBody: false, child: Center(child: Text('아직 방명록이 없습니다')))
+                SliverFillRemaining(hasScrollBody: false, child: Center(child: Text(s.guestbook_empty))) // 🔹 다국어 적용
               else
                 SliverList(
                   delegate: SliverChildBuilderDelegate(
@@ -161,11 +162,9 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                       final writerId = data['writerId'] as String?;
                       if (writerId == null) return const SizedBox.shrink();
 
-                      // 🔥 [핵심] 작성자의 실시간 순위 확인
                       final rankIndex = totalRanking.indexWhere((item) => item['userId'] == writerId);
                       final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
-                      // 작성자 상세 정보를 위한 StreamBuilder (또는 FutureBuilder 유지 가능)
                       return StreamBuilder<DocumentSnapshot>(
                         stream: FirebaseFirestore.instance.collection('users').doc(writerId).snapshots(),
                         builder: (context, userSnapshot) {
@@ -189,7 +188,7 @@ class _GuestbookScreenState extends ConsumerState<GuestbookScreen> {
                                 guestbookOwnerId: widget.userId,
                                 monthlyBadge: monthlyBadge,
                                 adminBadge: adminBadge,
-                                currentRank: currentRank, // 🆕 실시간 순위 전달
+                                currentRank: currentRank,
                               ),
                               const Divider(height: 1, indent: 56),
                             ],

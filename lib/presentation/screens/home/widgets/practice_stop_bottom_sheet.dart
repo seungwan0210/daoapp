@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:daoapp/data/models/practice_session_model.dart';
 import 'package:daoapp/data/repositories/practice_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
-import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
+import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class PracticeStopBottomSheet extends StatefulWidget {
   final PracticeSessionModel session;
@@ -29,6 +31,19 @@ class _PracticeStopBottomSheetState extends State<PracticeStopBottomSheet> {
 
   Future<void> _complete(bool saveLog) async {
     final s = AppLocalizations.of(context)!;
+    final user = FirebaseAuth.instance.currentUser;
+
+    // ✅ 종료 시점 유저 체크 (소프트 게이트)
+    if (user == null) {
+      _showPromptDialog(
+          context,
+          s.community_home_login_prompt,
+          Icons.people_alt_outlined,
+          RouteConstants.login
+      );
+      return;
+    }
+
     try {
       await sl<PracticeRepository>().stopPractice(
         widget.session.uid,
@@ -39,15 +54,54 @@ class _PracticeStopBottomSheetState extends State<PracticeStopBottomSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(s.practice_stop_error(e.toString()))), // 🔹 다국어화
+          SnackBar(content: Text(s.practice_stop_error(e.toString()))),
         );
       }
     }
   }
 
+  // ✅ 유도 팝업 다이얼로그 (바텀시트와 다이얼로그 동시 제어)
+  void _showPromptDialog(BuildContext context, String title, IconData icon, String route) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Icon(icon, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.pop(context); // 다이얼로그 닫기
+                  Navigator.pop(context); // 바텀시트 닫기
+                  Navigator.pushNamed(context, route);
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text("이동하기"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+    final s = AppLocalizations.of(context)!;
 
     return Container(
       decoration: const BoxDecoration(
@@ -79,7 +133,7 @@ class _PracticeStopBottomSheetState extends State<PracticeStopBottomSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        s.practice_stop_title, // 🔹 다국어화
+                        s.practice_stop_title,
                         style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A)),
                       ),
                       const SizedBox(height: 8),
@@ -87,7 +141,7 @@ class _PracticeStopBottomSheetState extends State<PracticeStopBottomSheet> {
                       const SizedBox(height: 24),
 
                       _buildInfoBox(
-                        s.practice_stop_total_time, // 🔹 다국어화
+                        s.practice_stop_total_time,
                         _formatDuration(widget.finalDuration),
                         const Color(0xFF1565C0),
                         icon: Icons.timer_outlined,
@@ -96,14 +150,14 @@ class _PracticeStopBottomSheetState extends State<PracticeStopBottomSheet> {
 
                       if (widget.session.targetGoal != null && widget.session.targetGoal!.isNotEmpty) ...[
                         _buildInfoBox(
-                          s.practice_stop_my_goal, // 🔹 다국어화
+                          s.practice_stop_my_goal,
                           widget.session.targetGoal!,
                           Colors.blue,
                           icon: Icons.track_changes_rounded,
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          s.practice_stop_feedback_label, // 🔹 다국어화
+                          s.practice_stop_feedback_label,
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
                         ),
                         const SizedBox(height: 12),
@@ -112,7 +166,7 @@ class _PracticeStopBottomSheetState extends State<PracticeStopBottomSheet> {
                           maxLines: 3,
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                           decoration: InputDecoration(
-                            hintText: s.practice_stop_feedback_hint, // 🔹 다국어화
+                            hintText: s.practice_stop_feedback_hint,
                             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
                             filled: true,
                             fillColor: const Color(0xFFF1F5F9),

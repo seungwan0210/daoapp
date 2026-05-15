@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/di/service_locator.dart';
 import 'package:daoapp/core/services/google_calendar_service.dart';
-import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class OfficialCalendarScreen extends StatefulWidget {
   const OfficialCalendarScreen({super.key});
@@ -74,15 +74,17 @@ class _OfficialCalendarScreenState extends State<OfficialCalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ 유저 로그인 정보는 삭제 권한 확인용으로만 사용
     final user = FirebaseAuth.instance.currentUser;
     final s = AppLocalizations.of(context)!;
-    final locale = Localizations.localeOf(context).toString(); // 🔹 로케일 확인
+    final locale = Localizations.localeOf(context).toString();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: CommonAppBar(title: s.calendar_title, showBackButton: true), // 🔹 다국어화
+      appBar: CommonAppBar(title: s.calendar_title, showBackButton: true),
       body: SafeArea(
         child: StreamBuilder<QuerySnapshot>(
+          // ✅ 로그인 여부와 관계없이 일정을 실시간으로 가져옴
           stream: FirebaseFirestore.instance.collection('official_calendar').snapshots(),
           builder: (context, firestoreSnapshot) {
             final fDocs = firestoreSnapshot.data?.docs ?? [];
@@ -100,7 +102,7 @@ class _OfficialCalendarScreenState extends State<OfficialCalendarScreen> {
                     firstDay: DateTime.utc(2025, 1, 1),
                     lastDay: DateTime.utc(2030, 12, 31),
                     focusedDay: _focusedDay,
-                    locale: locale, // 🔹 로케일 동적 설정
+                    locale: locale,
                     headerStyle: const HeaderStyle(formatButtonVisible: false, titleCentered: true),
                     calendarStyle: const CalendarStyle(outsideDaysVisible: false),
                     selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
@@ -149,7 +151,7 @@ class _OfficialCalendarScreenState extends State<OfficialCalendarScreen> {
                 ),
                 Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-                    child: Text(s.calendar_selected_day(_selectedDay!.month.toString(), _selectedDay!.day.toString()), // 🔹 다국어화
+                    child: Text(s.calendar_selected_day(_selectedDay!.month.toString(), _selectedDay!.day.toString()),
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))
                 ),
                 Expanded(
@@ -195,7 +197,7 @@ class _OfficialCalendarScreenState extends State<OfficialCalendarScreen> {
       return 1;
     });
 
-    if (combined.isEmpty) return Center(child: Text(s.calendar_no_event, style: const TextStyle(color: Colors.grey))); // 🔹 다국어화
+    if (combined.isEmpty) return Center(child: Text(s.calendar_no_event, style: const TextStyle(color: Colors.grey)));
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -254,8 +256,8 @@ class _OfficialCalendarScreenState extends State<OfficialCalendarScreen> {
     final bool? confirm = await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-            title: Text(s.calendar_delete_title), // 🔹 다국어화
-            content: Text(s.calendar_delete_msg), // 🔹 다국어화
+            title: Text(s.calendar_delete_title),
+            content: Text(s.calendar_delete_msg),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)),
               TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.common_delete, style: const TextStyle(color: Colors.red)))

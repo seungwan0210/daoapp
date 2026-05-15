@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-// ✅ 수정된 chat_provider와 중앙 차단 목록을 쓰기 위해 임포트 확인
 import 'package:daoapp/presentation/providers/chat/chat_provider.dart';
 import 'package:daoapp/presentation/screens/community/chat/widgets/chat_message_bubble.dart';
 import 'package:daoapp/presentation/screens/community/chat/widgets/chat_input_field.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -38,33 +38,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
-    // 🔥 [핵심 수정] 이제 StreamBuilder를 쓰지 않고
-    // 이미 필터링이 완료된 filteredChatProvider를 바로 구독합니다.
+    // 필터링이 완료된 채팅 프로바이더 구독
     final chatAsync = ref.watch(filteredChatProvider);
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: Colors.transparent,
-      // ❌ [수정] OverlaySheet에서 헤더를 담당하므로 AppBar는 삭제합니다.
-      appBar: null,
+      appBar: null, // OverlaySheet에서 헤더 담당
       body: currentUserId == null
-          ? const Center(child: Text('로그인이 필요합니다.', style: TextStyle(color: Colors.white)))
+          ? Center(child: Text(s.chat_login_required, style: const TextStyle(color: Colors.white))) // 🔹 다국어 적용
           : Column(
         children: [
-          // ❌ [수정] OverlaySheet와 중복되는 상단 핸들러(회색 바) 제거
           Expanded(
             child: chatAsync.when(
               data: (visibleMessages) {
                 if (visibleMessages.isEmpty) {
-                  return _buildEmptyState();
+                  return _buildEmptyState(s); // 🔹 s 전달
                 }
 
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true, // 하단부터 정렬
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), // 상단 패딩 조절
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   itemCount: visibleMessages.length,
                   itemBuilder: (context, index) {
                     return ChatMessageBubble(
@@ -76,9 +74,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
               loading: () => const Center(
                   child: CircularProgressIndicator(color: Colors.teal)),
-              error: (e, __) => const Center(
-                  child: Text('에러 발생',
-                      style: TextStyle(color: Colors.white24))),
+              error: (e, __) => Center(
+                  child: Text(s.chat_error_load, // 🔹 다국어 적용
+                      style: const TextStyle(color: Colors.white24))),
             ),
           ),
           SafeArea(
@@ -90,7 +88,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations s) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -99,7 +97,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               size: 48, color: Colors.white.withOpacity(0.1)),
           const SizedBox(height: 12),
           Text(
-            'DAO 라이브 톡에 오신 것을 환영합니다!\n첫 번째 메시지를 남겨보세요.',
+            '${s.chat_empty_title}\n${s.chat_empty_subtitle}', // 🔹 다국어 적용
             textAlign: TextAlign.center,
             style: TextStyle(
                 color: Colors.white.withOpacity(0.4), fontSize: 13, height: 1.5),

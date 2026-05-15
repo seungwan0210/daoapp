@@ -10,12 +10,15 @@ import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/data/models/my_log_model.dart';
 import 'package:daoapp/presentation/screens/my_page/my_log/my_log_detail_screen.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class MyLogHomeScreen extends StatelessWidget {
   const MyLogHomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -30,8 +33,8 @@ class MyLogHomeScreen extends StatelessWidget {
 
         if (user == null) {
           return Scaffold(
-            appBar: const CommonAppBar(title: '마이로그'),
-            body: _buildLoginPrompt(context),
+            appBar: CommonAppBar(title: s.mylog_title), // 🔹 다국어 적용
+            body: _buildLoginPrompt(context, s), // 🔹 s 전달
           );
         }
 
@@ -40,7 +43,7 @@ class MyLogHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildLoginPrompt(BuildContext context) {
+  Widget _buildLoginPrompt(BuildContext context, AppLocalizations s) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -49,13 +52,13 @@ class MyLogHomeScreen extends StatelessWidget {
           children: [
             Icon(Icons.lock_outline_rounded, size: 64, color: Colors.grey[300]),
             const SizedBox(height: 24),
-            const Text(
-              "로그인이 필요해요",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              s.mylog_login_required_title, // 🔹 다국어 적용
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Text(
-              "나만의 다트 일기를 기록하고 관리하려면\n로그인이 필요합니다.",
+              s.mylog_login_required_subtitle, // 🔹 다국어 적용
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey[600], height: 1.5),
             ),
@@ -70,8 +73,8 @@ class MyLogHomeScreen extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 0,
                 ),
-                child: const Text("로그인 하러 가기",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                child: Text(s.mylog_login_btn, // 🔹 다국어 적용
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ],
@@ -86,12 +89,12 @@ class _MyLogAuthedBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!;
     final myLogsAsync = ref.watch(myLogProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const CommonAppBar(title: '나의 다트 일기'),
-      // ✅ 개선: 접근성 좋은 플로팅 액션 버튼 추가
+      appBar: CommonAppBar(title: s.mylog_title), // 🔹 다국어 적용
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF0F172A),
         child: const Icon(Icons.edit_note_rounded, color: Colors.cyanAccent, size: 30),
@@ -107,38 +110,32 @@ class _MyLogAuthedBody extends ConsumerWidget {
           final streakDays = _calculateCurrentStreak(loggedDates);
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), // FAB 공간 확보
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             children: [
-              // 1. 세련된 요약 카드
-              _buildModernSummaryCard(logs.length, streakDays),
+              _buildModernSummaryCard(logs.length, streakDays, s), // 🔹 s 전달
               const SizedBox(height: 20),
-
-              // 2. 다크 다트보드 컨셉 캘린더
-              _buildModernCalendar(context, loggedDates, logs),
+              _buildModernCalendar(context, loggedDates, logs, s), // 🔹 s 전달
               const SizedBox(height: 28),
-
-              // 3. 최근 기록 리스트
               if (sortedLogs.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.only(left: 4, bottom: 12),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 12),
                   child: Text(
-                    '최근 작성한 다트 이야기',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+                    s.mylog_recent_title, // 🔹 다국어 적용
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
                   ),
                 ),
-                ...sortedLogs.take(5).map((log) => _buildRecentLogTile(context, log)),
+                ...sortedLogs.take(5).map((log) => _buildRecentLogTile(context, log, s)), // 🔹 s 전달
               ],
             ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator(color: Colors.cyan)),
-        error: (_, __) => const Center(child: Text('기록을 불러오는 중 오류가 발생했습니다.')),
+        error: (_, __) => Center(child: Text(s.mylog_error_load)), // 🔹 다국어 적용
       ),
     );
   }
 
-  // 💎 1. 현대적인 요약 카드 (그라데이션 + 프로그레스)
-  Widget _buildModernSummaryCard(int total, int streak) {
+  Widget _buildModernSummaryCard(int total, int streak, AppLocalizations s) {
     return AppCard(
       padding: EdgeInsets.zero,
       child: Container(
@@ -159,7 +156,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
                 SizedBox(
                   width: 65, height: 65,
                   child: CircularProgressIndicator(
-                    value: (total % 30) / 30, // 30일 기준 달성도 예시
+                    value: (total % 30) / 30,
                     strokeWidth: 5,
                     color: Colors.cyanAccent,
                     backgroundColor: Colors.white.withOpacity(0.1),
@@ -173,9 +170,9 @@ class _MyLogAuthedBody extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('차곡차곡 쌓이는 성장', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                  Text(s.mylog_summary_title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  Text('총 $total번의 기록이 모였어요.', style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
+                  Text(s.mylog_summary_count(total), style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)), // 🔹 파라미터 적용
                   const SizedBox(height: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -184,7 +181,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '🔥 $streak일 연속 기록 중',
+                      s.mylog_summary_streak(streak), // 🔹 파라미터 적용
                       style: const TextStyle(color: Colors.cyanAccent, fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -197,8 +194,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
     );
   }
 
-  // 🗓️ 2. 네온 링 캘린더
-  Widget _buildModernCalendar(BuildContext context, Set<DateTime> loggedDates, List<MyLogModel> logs) {
+  Widget _buildModernCalendar(BuildContext context, Set<DateTime> loggedDates, List<MyLogModel> logs, AppLocalizations s) {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF020617),
@@ -212,7 +208,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
           lastDay: DateTime.now().add(const Duration(days: 365)),
           focusedDay: DateTime.now(),
           calendarFormat: CalendarFormat.month,
-          availableCalendarFormats: const {CalendarFormat.month: '월'},
+          availableCalendarFormats: {CalendarFormat.month: s.mylog_calendar_month_label}, // 🔹 다국어 적용
           headerStyle: const HeaderStyle(
             titleCentered: true,
             formatButtonVisible: false,
@@ -249,14 +245,13 @@ class _MyLogAuthedBody extends ConsumerWidget {
               return null;
             },
           ),
-          onDaySelected: (selectedDay, _) => _handleDateSelection(context, selectedDay, logs),
+          onDaySelected: (selectedDay, _) => _handleDateSelection(context, selectedDay, logs, s), // 🔹 s 전달
         ),
       ),
     );
   }
 
-  // 📝 3. 최근 기록 타일 (썸네일 포함)
-  Widget _buildRecentLogTile(BuildContext context, MyLogModel log) {
+  Widget _buildRecentLogTile(BuildContext context, MyLogModel log, AppLocalizations s) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: AppCard(
@@ -284,7 +279,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
                     Text(_formatFullDate(log.date), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                     const SizedBox(height: 4),
                     Text(
-                      log.content ?? '내용 없음',
+                      log.content ?? s.mylog_no_content, // 🔹 다국어 적용
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(color: Colors.grey[600], fontSize: 12.5),
@@ -300,8 +295,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
     );
   }
 
-  // 🛠️ 로직: 날짜 선택 처리
-  Future<void> _handleDateSelection(BuildContext context, DateTime selectedDay, List<MyLogModel> logs) async {
+  Future<void> _handleDateSelection(BuildContext context, DateTime selectedDay, List<MyLogModel> logs, AppLocalizations s) async {
     final selected = DateTime(selectedDay.year, selectedDay.month, selectedDay.day);
     final existingLog = logs.cast<MyLogModel?>().firstWhere(
           (l) => l != null && DateTime(l.date.year, l.date.month, l.date.day) == selected,
@@ -311,15 +305,14 @@ class _MyLogAuthedBody extends ConsumerWidget {
     if (existingLog != null) {
       Navigator.push(context, MaterialPageRoute(builder: (_) => MyLogDetailScreen(logId: existingLog.id!)));
     } else {
-      final confirm = await _showWriteConfirmSheet(context, selected);
+      final confirm = await _showWriteConfirmSheet(context, selected, s); // 🔹 s 전달
       if (confirm == true) {
         Navigator.push(context, MaterialPageRoute(builder: (_) => MyLogWriteScreen(initialDate: selected)));
       }
     }
   }
 
-  // 🛠️ UI: 작성 확인 바텀시트
-  Future<bool?> _showWriteConfirmSheet(BuildContext context, DateTime date) {
+  Future<bool?> _showWriteConfirmSheet(BuildContext context, DateTime date, AppLocalizations s) {
     return showModalBottomSheet<bool>(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
@@ -330,9 +323,9 @@ class _MyLogAuthedBody extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${date.year}년 ${date.month}월 ${date.day}일', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(s.mylog_confirm_sheet_title(date.year, date.month, date.day), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // 🔹 파라미터 적용
               const SizedBox(height: 8),
-              const Text('이 날짜에 새로운 다트 일기를 작성할까요?', style: TextStyle(fontSize: 14, color: Colors.black87)),
+              Text(s.mylog_confirm_sheet_body, style: const TextStyle(fontSize: 14, color: Colors.black87)), // 🔹 다국어 적용
               const SizedBox(height: 24),
               Row(
                 children: [
@@ -340,7 +333,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(ctx, false),
                       style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Text('나중에'),
+                      child: Text(s.mylog_confirm_sheet_btn_later), // 🔹 다국어 적용
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -352,7 +345,7 @@ class _MyLogAuthedBody extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('작성하기', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: Text(s.mylog_confirm_sheet_btn_write, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), // 🔹 다국어 적용
                     ),
                   ),
                 ],
@@ -364,7 +357,6 @@ class _MyLogAuthedBody extends ConsumerWidget {
     );
   }
 
-  // 헬퍼 함수들
   int _calculateCurrentStreak(Set<DateTime> loggedDates) {
     if (loggedDates.isEmpty) return 0;
     final sorted = loggedDates.toList()..sort((a, b) => b.compareTo(a));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔥 추가
 
 class MoreMenuButton extends ConsumerWidget {
   const MoreMenuButton({super.key});
@@ -10,6 +11,7 @@ class MoreMenuButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdminAsync = ref.watch(isAdminProvider);
     final unreadCountAsync = ref.watch(unreadNoticesCountProvider);
+    final s = AppLocalizations.of(context)!; // 🔥 110n 객체 가져오기
 
     return isAdminAsync.when(
       data: (isAdmin) {
@@ -19,19 +21,19 @@ class MoreMenuButton extends ConsumerWidget {
           error: (_, __) => 0,
         );
 
-        return _buildMenuButton(isAdmin, context, count);
+        return _buildMenuButton(isAdmin, context, count, s);
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
     );
   }
 
-  Widget _buildMenuButton(bool isAdmin, BuildContext context, int count) {
+  Widget _buildMenuButton(bool isAdmin, BuildContext context, int count, AppLocalizations s) {
     return Stack(
       children: [
         PopupMenuButton<String>(
           icon: const Icon(Icons.settings),
-          tooltip: '설정',
+          tooltip: s.menu_tooltip_settings, // 🔥 다국어 적용
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           itemBuilder: (_) => [
             PopupMenuItem(
@@ -40,7 +42,7 @@ class MoreMenuButton extends ConsumerWidget {
                 children: [
                   const Icon(Icons.notifications, size: 20),
                   const SizedBox(width: 12),
-                  const Text('공지사항'),
+                  Text(s.menu_notice), // 🔥 다국어 적용
                   if (count > 0) ...[
                     const Spacer(),
                     Container(
@@ -62,50 +64,47 @@ class MoreMenuButton extends ConsumerWidget {
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'report',
               child: Row(
                 children: [
-                  Icon(Icons.bug_report, size: 20),
-                  SizedBox(width: 12),
-                  Text('문의 및 신고'),
+                  const Icon(Icons.bug_report, size: 20),
+                  const SizedBox(width: 12),
+                  Text(s.menu_report), // 🔥 다국어 적용
                 ],
               ),
             ),
-            // ✅ 수정: 일반인은 block_list, 관리자는 admin_block으로 구분
             PopupMenuItem(
               value: isAdmin ? 'admin_block' : 'block_manage',
               child: Row(
                 children: [
                   Icon(isAdmin ? Icons.admin_panel_settings : Icons.person_off, size: 20),
                   const SizedBox(width: 12),
-                  Text(isAdmin ? '전체 차단 관리' : '차단 유저 관리'),
+                  // ✅ 관리자 여부에 따라 다국어 라벨 분기
+                  Text(isAdmin ? s.menu_admin_block_manage : s.menu_block_manage),
                 ],
               ),
             ),
             if (isAdmin)
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'admin',
                 child: Row(
                   children: [
-                    Icon(Icons.dashboard_customize, size: 20),
-                    SizedBox(width: 12),
-                    Text('관리자 모드'),
+                    const Icon(Icons.dashboard_customize, size: 20),
+                    const SizedBox(width: 12),
+                    Text(s.menu_admin_mode), // 🔥 다국어 적용
                   ],
                 ),
               ),
           ],
           onSelected: (value) {
-            // ✅ 모든 이동 로직에 RouteConstants를 적용하여 오타 방지
             if (value == 'notice') {
               Navigator.pushNamed(context, RouteConstants.noticeList);
             } else if (value == 'report') {
               Navigator.pushNamed(context, RouteConstants.report);
             } else if (value == 'block_manage') {
-              // 일반 유저용 차단 목록
               Navigator.pushNamed(context, RouteConstants.blockList);
             } else if (value == 'admin_block') {
-              // 어드민용 블랙리스트 통합 관리
               Navigator.pushNamed(context, RouteConstants.adminBlockManage);
             } else if (value == 'admin') {
               Navigator.pushNamed(context, RouteConstants.adminDashboard);

@@ -5,12 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart'; // ✅ 중앙 차단 프로바이더 사용
+import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/providers/circle_feed_provider.dart';
 import 'package:daoapp/presentation/screens/community/circle/circle_grid_view.dart';
 import 'package:daoapp/presentation/screens/community/circle/circle_list_view.dart';
 import 'package:daoapp/presentation/screens/community/widgets/community_avatar_slider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 enum FeedMode { grid, list }
 
@@ -59,6 +60,7 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
   }
 
   Future<void> _acceptUgcTerms(String uid) async {
+    final s = AppLocalizations.of(context)!;
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).set(
         {
@@ -70,12 +72,14 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('동의 처리 실패: $e'), behavior: SnackBarBehavior.floating),
+        SnackBar(
+          content: Text(s.community_home_ugc_msg_fail(e.toString())),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
 
-  // ✅ [수정] Grid/List 공통 렌더링 로직
   Widget _buildFeed({
     required List<QueryDocumentSnapshot> docs,
     required String? currentUserId,
@@ -115,15 +119,14 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩
     final authState = ref.watch(authStateProvider);
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-
-    // ✅ [핵심] 중앙 차단 목록 프로바이더를 지켜봅니다.
     final blockedIds = ref.watch(blockedUserIdsProvider).value ?? {};
 
     return Scaffold(
       appBar: CommonAppBar(
-        title: '피드',
+        title: s.circle_title,
         showBackButton: _mode == FeedMode.list,
         onBackPressed: _switchToGridMode,
         actions: [
@@ -136,7 +139,7 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
       body: SafeArea(
         child: authState.when(
           data: (user) {
-            if (user == null) return const Center(child: Text('로그인 후 이용 가능합니다'));
+            if (user == null) return Center(child: Text(s.login_required));
 
             return StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
@@ -145,38 +148,34 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
 
                 final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final hasProfile = data['hasProfile'] == true;
-                if (!hasProfile) return const Center(child: Text('프로필 등록 후 이용 가능합니다'));
+                if (!hasProfile) return Center(child: Text(s.circle_profile_required));
 
                 final ugcAccepted = data['ugcTermsAccepted'] == true;
-                if (!ugcAccepted) return _buildUgcTermsGate(context: context, theme: Theme.of(context), uid: user.uid);
+                if (!ugcAccepted) return _buildUgcTermsGate(context: context, theme: Theme.of(context), s: s, uid: user.uid);
 
                 return Column(
                   children: [
                     const SizedBox(height: 12),
-                    const CommunityAvatarSlider(), // 👈 여기도 내부적으로 blockedUserIdsProvider 쓰게 고치면 완벽!
+                    const CommunityAvatarSlider(),
                     const SizedBox(height: 12),
 
-                    /// ==========================
-                    /// 피드 영역
-                    /// ==========================
                     Expanded(
                       child: ref.watch(circleFeedProvider).when(
                         data: (querySnapshot) {
                           final allDocs = querySnapshot.docs;
-                          if (allDocs.isEmpty) return const Center(child: Text('아직 게시물이 없습니다'));
+                          if (allDocs.isEmpty) return Center(child: Text(s.circle_no_posts));
 
-                          // ✅ [수정] 중앙 blockedIds를 사용하여 한 번에 필터링
                           final visibleDocs = allDocs.where((d) {
                             final postUserId = (d.data() as Map<String, dynamic>)['userId'] as String?;
                             return postUserId == null || !blockedIds.contains(postUserId);
                           }).toList();
 
-                          if (visibleDocs.isEmpty) return const Center(child: Text('표시할 게시물이 없습니다'));
+                          if (visibleDocs.isEmpty) return Center(child: Text(s.circle_no_visible_posts));
 
                           return _buildFeed(docs: visibleDocs, currentUserId: currentUserId);
                         },
                         loading: () => const Center(child: CircularProgressIndicator()),
-                        error: (_, __) => const Center(child: Text('피드를 불러오지 못했습니다')),
+                        error: (_, __) => Center(child: Text(s.circle_error_feed)),
                       ),
                     ),
                   ],
@@ -185,13 +184,18 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Center(child: Text('로그인 상태 오류')),
+          error: (_, __) => Center(child: Text(s.circle_error_auth)),
         ),
       ),
     );
   }
 
-  Widget _buildUgcTermsGate({required BuildContext context, required ThemeData theme, required String uid}) {
+  Widget _buildUgcTermsGate({
+    required BuildContext context,
+    required ThemeData theme,
+    required AppLocalizations s, // 🔹 추가
+    required String uid
+  }) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -203,16 +207,16 @@ class _CircleScreenState extends ConsumerState<CircleScreen> {
               children: [
                 Icon(Icons.policy_outlined, size: 64, color: Colors.grey[500]),
                 const SizedBox(height: 18),
-                Text('커뮤니티 이용 동의가 필요해요', textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                Text(s.community_home_ugc_title, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 10),
-                Text('커뮤니티에는 사용자가 작성한 글/사진(UGC)이 노출됩니다.\n안전한 이용을 위해 아래 내용에 동의해 주세요.\n\n• 타인을 비방/혐오/차별/괴롭힘하는 콘텐츠 금지\n• 불법/음란/폭력/사기 등 유해 콘텐츠 금지\n• 신고/차단 기능 및 운영 정책에 따라 제재될 수 있음\n• 신고된 콘텐츠는 운영자가 검토할 수 있음',
+                Text(s.community_home_ugc_desc,
                     style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[800], height: 1.45)),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('동의 후 커뮤니티 이용이 가능합니다.'), behavior: SnackBarBehavior.floating)), child: const Text('동의 안함'))),
+                    Expanded(child: OutlinedButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.community_home_ugc_msg_reject), behavior: SnackBarBehavior.floating)), child: Text(s.community_home_ugc_btn_no))),
                     const SizedBox(width: 10),
-                    Expanded(child: FilledButton(onPressed: () => _acceptUgcTerms(uid), child: const Text('동의하고 시작'))),
+                    Expanded(child: FilledButton(onPressed: () => _acceptUgcTerms(uid), child: Text(s.community_home_ugc_btn_yes))),
                   ],
                 ),
               ],

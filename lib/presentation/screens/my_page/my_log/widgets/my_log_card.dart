@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:daoapp/data/models/my_log_model.dart';
 import 'package:intl/intl.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class MyLogCard extends StatelessWidget {
   final MyLogModel log;
@@ -15,9 +16,12 @@ class MyLogCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+    final locale = Localizations.localeOf(context).toString(); // 🔹 현재 로케일
     final theme = Theme.of(context);
-    final dateStr =
-    DateFormat('yyyy년 M월 d일 (E)', 'ko_KR').format(log.date);
+
+    // 🔹 로케일에 맞춘 날짜 포맷 적용
+    final dateStr = DateFormat.yMMMEd(locale).format(log.date);
 
     final hasPhoto = log.photoUrls.isNotEmpty;
     final photoUrl = hasPhoto ? log.photoUrls.first : null;
@@ -30,7 +34,6 @@ class MyLogCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          // 상단에 살짝 네온 느낌 나는 다트 포인트 라인
           gradient: const LinearGradient(
             colors: [
               Color(0xFF0F172A),
@@ -50,7 +53,6 @@ class MyLogCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 🎯 다트 아이콘 배지
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
@@ -71,13 +73,9 @@ class MyLogCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Text(
-                        '🎯',
-                        style: TextStyle(fontSize: 20),
-                      ),
+                      child: const Text('🎯', style: TextStyle(fontSize: 20)),
                     ),
                     const SizedBox(width: 12),
-                    // 날짜 + 서브 타이틀
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +90,7 @@ class MyLogCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '오늘의 다트 이야기',
+                            s.mylog_card_subtitle, // 🔹 다국어 적용
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.blueGrey[100],
@@ -102,11 +100,10 @@ class MyLogCard extends StatelessWidget {
                       ),
                     ),
                     if (log.isSharedToCircle == true)
-                      _buildSharedBadge(theme),
+                      _buildSharedBadge(theme, s), // 🔹 s 전달
                   ],
                 ),
                 const SizedBox(height: 16),
-                // 헤더와 본문 사이 구분선 (살짝 네온 느낌)
                 Container(
                   height: 2,
                   decoration: BoxDecoration(
@@ -123,11 +120,10 @@ class MyLogCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
               ] else ...[
-                // 상세 화면에서 showDate=false일 때는 살짝 여백만
                 if (log.isSharedToCircle == true) ...[
                   Align(
                     alignment: Alignment.centerRight,
-                    child: _buildSharedBadge(theme),
+                    child: _buildSharedBadge(theme, s), // 🔹 s 전달
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -174,7 +170,7 @@ class MyLogCard extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
-                                  '사진을 불러올 수 없어요',
+                                  s.mylog_card_image_error, // 🔹 다국어 적용
                                   style: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 14,
@@ -185,7 +181,6 @@ class MyLogCard extends StatelessWidget {
                           );
                         },
                       ),
-                      // 사진 위 오른쪽 아래에 작은 태그
                       Positioned(
                         right: 10,
                         bottom: 10,
@@ -198,18 +193,18 @@ class MyLogCard extends StatelessWidget {
                             color: Colors.black.withOpacity(0.6),
                             borderRadius: BorderRadius.circular(999),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.camera_alt_outlined,
                                 size: 14,
                                 color: Colors.white,
                               ),
-                              SizedBox(width: 4),
+                              const SizedBox(width: 4),
                               Text(
-                                '오늘의 샷',
-                                style: TextStyle(
+                                s.mylog_card_image_tag, // 🔹 다국어 적용
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -238,7 +233,7 @@ class MyLogCard extends StatelessWidget {
                 )
               else
                 Text(
-                  '아직 내용이 없어요. 다음엔 오늘의 다트 이야기를 더 자세히 남겨볼까요?',
+                  s.mylog_card_no_content, // 🔹 다국어 적용
                   style: TextStyle(
                     fontSize: 14,
                     height: 1.6,
@@ -252,8 +247,7 @@ class MyLogCard extends StatelessWidget {
     );
   }
 
-  /// 공유됨 뱃지 위젯 (다트 스타일)
-  Widget _buildSharedBadge(ThemeData theme) {
+  Widget _buildSharedBadge(ThemeData theme, AppLocalizations s) {
     final primary = theme.colorScheme.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -275,7 +269,7 @@ class MyLogCard extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(
-            '서클에 공유됨',
+            s.mylog_card_shared_badge, // 🔹 다국어 적용
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,

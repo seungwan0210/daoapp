@@ -5,6 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/core/utils/date_utils.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
+import 'package:daoapp/presentation/providers/locale_provider.dart'; // 로케일 프로바이더
+import 'package:daoapp/presentation/screens/my_page/notice_detail_screen.dart'; // 상세화면 임포트
 
 class NoticeListScreen extends ConsumerStatefulWidget {
   const NoticeListScreen({super.key});
@@ -19,8 +22,15 @@ class _NoticeListScreenState extends ConsumerState<NoticeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+    // 현재 앱의 언어 설정 가져오기 (ko, en, ja 등)
+    final currentLocale = ref.watch(localeProvider);
+    final langCode = currentLocale.languageCode;
+
     return Scaffold(
-      appBar: CommonAppBar(title: '공지사항', showBackButton: true),
+      backgroundColor: const Color(0xFFF8FAFC),
+      // 🔥 키값 적용: notice_title
+      appBar: CommonAppBar(title: s.notice_title, showBackButton: true),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('notices')
@@ -29,17 +39,17 @@ class _NoticeListScreenState extends ConsumerState<NoticeListScreen> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('오류: ${snapshot.error}'));
+            // 🔥 키값 적용: notice_error (변수 포함)
+            return Center(child: Text(s.notice_error(snapshot.error.toString())));
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
           final docs = snapshot.data!.docs;
-          print('공지사항 문서 수: ${docs.length}');
-
           if (docs.isEmpty) {
-            return const Center(child: Text('공지가 없습니다'));
+            // 🔥 키값 적용: notice_empty
+            return Center(child: Text(s.notice_empty));
           }
 
           return ListView.builder(
@@ -50,49 +60,80 @@ class _NoticeListScreenState extends ConsumerState<NoticeListScreen> {
               final data = doc.data() as Map<String, dynamic>;
               final docId = doc.id;
 
-              final title = data['title'] ?? '제목 없음';
-              final content = data['content'] ?? '';
-              final timestamp = (data['timestamp'] as Timestamp?)?.toDate() ??
-                  (data['createdAt'] as Timestamp?)?.toDate();
+              // 💡 다국어 제목 추출 로직
+              final Map<String, dynamic> langs = data['langs'] ?? {};
+              // 현재 언어 데이터가 없으면 한국어(ko)를 기본값으로 사용
+              // 🔥 키값 적용: notice_no_title (백업용)
+              final String title = langs[langCode]?['title'] ??
+                  langs['ko']?['title'] ??
+                  s.notice_no_title;
 
-              // 읽음 여부 확인 (캐시 사용)
+              final timestamp = (data['createdAt'] as Timestamp?)?.toDate();
               final isUnread = _isUnread(docId);
+              final hasImages = (data['imageUrls'] as List?)?.isNotEmpty ?? false;
 
-              return Card(
+              return Container(
                 margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ListTile(
-                  // 안 읽은 공지는 파란 점
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   leading: isUnread
                       ? Container(
-                    width: 10,
-                    height: 10,
+                    width: 8,
+                    height: 8,
                     decoration: const BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
                     ),
                   )
                       : null,
-                  title: Text(
-                    title,
-                    style: TextStyle(
-                      fontWeight: isUnread ? FontWeight.bold : FontWeight.normal,
-                      color: isUnread ? Colors.black : Colors.grey[600],
-                    ),
+                  title: Row(
+                    children: [
+                      if (hasImages)
+                        const Padding(
+                          padding: EdgeInsets.only(right: 6),
+                          child: Icon(Icons.image, size: 16, color: Colors.grey),
+                        ),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: isUnread ? FontWeight.bold : FontWeight.w500,
+                            color: isUnread ? Colors.black : Colors.grey[600],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   subtitle: timestamp != null
-                      ? Text(
-                    AppDateUtils.formatRelativeTime(timestamp),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isUnread ? Colors.grey[700] : Colors.grey[500],
+                      ? Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      AppDateUtils.formatRelativeTime(timestamp),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isUnread ? Colors.grey[700] : Colors.grey[500],
+                      ),
                     ),
                   )
                       : null,
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
                   onTap: () async {
                     final user = FirebaseAuth.instance.currentUser;
 
-                    // 로그인된 사용자만 읽음 기록 저장
                     if (user != null) {
                       await FirebaseFirestore.instance
                           .collection('users')
@@ -101,22 +142,21 @@ class _NoticeListScreenState extends ConsumerState<NoticeListScreen> {
                           .doc(docId)
                           .set({'timestamp': FieldValue.serverTimestamp()});
 
-                      // 캐시 갱신 + 배지 리프레시
-                      setState(() => _readStatusCache[docId] = false);
-                      ref.invalidate(unreadNoticesCountProvider);
+                      if (mounted) {
+                        setState(() => _readStatusCache[docId] = false);
+                        ref.invalidate(unreadNoticesCountProvider);
+                      }
                     }
 
-                    // 누구나 다이얼로그
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: Text(title),
-                        content: SingleChildScrollView(child: Text(content)),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('닫기')),
-                        ],
-                      ),
-                    );
+                    // ✅ 상세 화면으로 이동
+                    if (context.mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NoticeDetailScreen(noticeData: data),
+                        ),
+                      );
+                    }
                   },
                 ),
               );

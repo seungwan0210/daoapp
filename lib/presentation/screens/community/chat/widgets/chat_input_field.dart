@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/providers/chat/chat_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ChatInputField extends ConsumerStatefulWidget {
   final String currentUserId;
@@ -22,34 +23,29 @@ class _ChatInputFieldState extends ConsumerState<ChatInputField> {
     super.dispose();
   }
 
-  void _onSend() async {
+  void _onSend(AppLocalizations s) async { // 🔹 s 전달
     final text = _controller.text.trim();
 
-    // 빈 메시지거나 이미 보내는 중이거나 쿨타임 중이면 무시
     if (text.isEmpty || _isSending || _isCoolingDown) return;
 
-    // 🔥 [UX 개선] 전송 로직 시작과 동시에 입력창부터 비웁니다. (속도감 체감)
     final messageToSend = text;
     _controller.clear();
     setState(() => _isSending = true);
 
     try {
-      // 1. 유저 정보 가져오기 (승완님 기존 필드명 유지)
       final userSnap = await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.currentUserId)
           .get();
       final userData = userSnap.data() ?? {};
 
-      // 2. 메시지 전송
       await ref.read(chatProvider.notifier).sendMessage(
         uid: widget.currentUserId,
-        userName: userData['koreanName'] ?? '익명',
+        userName: userData['koreanName'] ?? s.common_anonymous, // 🔹 공통 키 활용
         userProfile: userData['profileImageUrl'],
         message: messageToSend,
       );
 
-      // 3. 전송 완료 후 쿨타임 상태로 전환 (1초)
       if (mounted) {
         setState(() {
           _isSending = false;
@@ -57,16 +53,14 @@ class _ChatInputFieldState extends ConsumerState<ChatInputField> {
         });
       }
     } catch (e) {
-      // 에러 시 텍스트 복구 (선택 사항)
       _controller.text = messageToSend;
       setState(() => _isSending = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('전송 실패: $e')),
+          SnackBar(content: Text(s.chat_input_send_fail(e.toString()))), // 🔹 다국어 적용
         );
       }
     } finally {
-      // ✅ 1초 후 쿨타임 해제
       Future.delayed(const Duration(seconds: 1), () {
         if (mounted) setState(() => _isCoolingDown = false);
       });
@@ -75,35 +69,35 @@ class _ChatInputFieldState extends ConsumerState<ChatInputField> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     return Container(
       padding: EdgeInsets.only(
         left: 16,
         right: 8,
-        top: 4, // 상단 여백을 살짝 줄여서 더 타이트하게 배치
+        top: 4,
         bottom: MediaQuery.of(context).padding.bottom + 10,
       ),
-      // 배경색을 조금 더 어둡게 해서 블러 배경 위에서 가독성 확보
       color: Colors.black.withOpacity(0.2),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end, // 메시지가 길어질 때 아래쪽 정렬
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
             child: TextField(
               controller: _controller,
               style: const TextStyle(color: Colors.white, fontSize: 15),
-              maxLines: 5, // 최대 5줄까지 늘어남
+              maxLines: 5,
               minLines: 1,
               decoration: InputDecoration(
-                hintText: _isCoolingDown ? '잠시 대기 중...' : '메시지를 입력하세요...',
+                hintText: _isCoolingDown ? s.chat_input_cooldown : s.chat_input_hint, // 🔹 다국어 적용
                 hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
-              onSubmitted: (_) => _onSend(),
+              onSubmitted: (_) => _onSend(s), // 🔹 s 전달
             ),
           ),
-          // 전송 버튼 영역 고정 높이 확보 (버튼 전환 시 튕김 방지)
           SizedBox(
             width: 48,
             height: 48,
@@ -120,7 +114,7 @@ class _ChatInputFieldState extends ConsumerState<ChatInputField> {
             )
                 : IconButton(
               icon: const Icon(Icons.send_rounded, color: Colors.tealAccent),
-              onPressed: _onSend,
+              onPressed: () => _onSend(s), // 🔹 s 전달
             ),
           ),
         ],

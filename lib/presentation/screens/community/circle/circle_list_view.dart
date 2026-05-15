@@ -9,6 +9,7 @@ import 'package:daoapp/presentation/screens/community/circle/widgets/post_card.d
 import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class CircleListView extends ConsumerStatefulWidget {
   final List<QueryDocumentSnapshot> docs;
@@ -49,7 +50,6 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
     }
   }
 
-  /// ✅ [수정] 카드 높이가 480으로 커짐에 따라 alignment를 0.05로 미세 조정
   void _tryScrollToInitial(List<QueryDocumentSnapshot> visibleDocs) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -66,7 +66,7 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
           index: index,
           duration: const Duration(milliseconds: 420),
           curve: Curves.easeOutCubic,
-          alignment: 0.03, // 👈 0.08에서 0.03로 변경 (상단 여유 최적화)
+          alignment: 0.03,
         );
       }
     });
@@ -77,14 +77,18 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
   }
 
   Future<void> _deletePost(String postId) async {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('삭제 확인'),
-        content: const Text('이 게시물을 삭제하시겠습니까?'),
+        title: Text(s.circle_list_delete_title), // 🔹 다국어
+        content: Text(s.circle_list_delete_body), // 🔹 다국어
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(s.common_delete, style: const TextStyle(color: Colors.red))
+          ),
         ],
       ),
     );
@@ -95,10 +99,11 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final visibleDocs = widget.docs;
 
     if (visibleDocs.isEmpty) {
-      return const Center(child: Text('표시할 게시물이 없습니다'));
+      return Center(child: Text(s.circle_list_no_visible_posts)); // 🔹 다국어
     }
 
     _tryScrollToInitial(visibleDocs);
@@ -124,7 +129,7 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOut,
           builder: (context, value, child) => Opacity(opacity: value, child: child),
-          child: Column( // 👈 Column을 추가해서 게시물과 구분 띠를 묶습니다.
+          child: Column(
             children: [
               _PostCardWrapper(
                 postId: postId,
@@ -136,11 +141,10 @@ class _CircleListViewState extends ConsumerState<CircleListView> {
                 userDocStreamOf: _userDocStream,
                 currentRank: currentRank,
               ),
-              // ✅ 게시물 사이를 구분하는 연한 회색 면 분할
               Container(
-                height: 10, // 띠의 두께 (8~12 사이가 제일 적당해요)
+                height: 10,
                 width: double.infinity,
-                color: Colors.grey[50], // 아주 연한 회색 (배경이 흰색일 때 찰떡입니다)
+                color: Colors.grey[50],
               ),
             ],
           ),

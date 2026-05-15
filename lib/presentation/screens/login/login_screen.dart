@@ -1,4 +1,3 @@
-// lib/presentation/screens/login/login_screen.dart
 import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:convert';
@@ -11,6 +10,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔥 추가
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,14 +25,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final List<Offset> _starPositions = [];
   final List<double> _starSizes = [];
 
-  // ✅ 이메일 로그인용 컨트롤러 & 상태
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   bool _isEmailLoading = false;
 
-  // ✅ 운영자 전용 로그인 섹션 토글
   bool _showAdminLogin = false;
 
   @override
@@ -61,9 +59,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     super.dispose();
   }
 
-  // =========================
-  // 🔐 Apple 로그인용 nonce 유틸
-  // =========================
   String _generateNonce([int length = 32]) {
     const charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
@@ -81,12 +76,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   }
 
   Future<void> _signInWithApple() async {
+    final s = AppLocalizations.of(context)!;
     try {
-      // 0) Firebase용 nonce 생성
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
 
-      // 1) 애플 계정 선택 / Face ID 인증 (nonce 포함)
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -95,14 +89,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         nonce: nonce,
       );
 
-      // 2) Firebase Auth용 credential 생성 (rawNonce 넣기 중요!)
       final oauthCredential = OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
         accessToken: appleCredential.authorizationCode,
         rawNonce: rawNonce,
       );
 
-      // 3) Firebase 로그인
       final userCredential =
       await FirebaseAuth.instance.signInWithCredential(oauthCredential);
       final user = userCredential.user;
@@ -111,16 +103,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         Navigator.pushReplacementNamed(context, RouteConstants.splash);
       }
     } on SignInWithAppleAuthorizationException catch (e) {
-      // 유저가 취소했으면 조용히 무시
       if (e.code == AuthorizationErrorCode.canceled) {
         return;
       }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Apple 로그인 실패: ${e.message ?? e.code.toString()}',
-            ),
+            content: Text('${s.login_fail_apple}: ${e.message ?? e.code.toString()}'),
           ),
         );
       }
@@ -128,17 +117,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Apple 로그인 중 오류가 발생했습니다. (${e.toString()})'),
+            content: Text('${s.login_fail_apple} (${e.toString()})'),
           ),
         );
       }
     }
   }
 
-  // =========================
-  // 🔐 이메일 로그인 (운영자/테스트용)
-  // =========================
   Future<void> _signInWithEmail() async {
+    final s = AppLocalizations.of(context)!;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isEmailLoading = true);
@@ -155,27 +142,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, RouteConstants.splash);
     } on FirebaseAuthException catch (e) {
-      String message = '이메일 로그인에 실패했습니다. 잠시 후 다시 시도해주세요.';
-
-      if (e.code == 'user-not-found') {
-        message = '해당 이메일의 계정을 찾을 수 없습니다.';
-      } else if (e.code == 'wrong-password') {
-        message = '비밀번호가 올바르지 않습니다.';
-      } else if (e.code == 'invalid-email') {
-        message = '이메일 형식이 올바르지 않습니다.';
-      }
-
+      // 💡 상세 에러 메시지는 프로젝트 정책에 따라 추가 키값을 정의하거나 e.message를 활용할 수 있습니다.
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+          SnackBar(content: Text(e.message ?? 'Login Failed')),
         );
       }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'),
-          ),
+          const SnackBar(content: Text('Error')),
         );
       }
     } finally {
@@ -187,12 +163,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔥 l10n 객체
+
     return Scaffold(
-      // ✅ 이미지 로딩 순간 흰 화면 번쩍임 방지
       backgroundColor: const Color(0xFF06142A),
       body: Stack(
         children: [
-          // 배경 이미지
           Image.asset(
             'assets/images/login_background.png',
             fit: BoxFit.cover,
@@ -202,7 +178,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             filterQuality: FilterQuality.high,
           ),
 
-          // 반짝이는 별들
           ..._starPositions.asMap().entries.map((entry) {
             final index = entry.key;
             final pos = entry.value;
@@ -225,7 +200,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             );
           }),
 
-          // 중앙: 로고 + 슬로건 + 로그인 버튼들
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -234,9 +208,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 children: [
                   _buildGlowingLogo(),
                   const SizedBox(height: 24),
-                  const Text(
-                    'Every Point Is Your Story',
-                    style: TextStyle(
+                  Text(
+                    s.login_slogan, // 🔥 다국어 적용
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.white70,
                       fontWeight: FontWeight.w500,
@@ -247,9 +221,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                   const SizedBox(height: 48),
 
-                  // ========================
-                  // 🔹 Google 로그인
-                  // ========================
                   SizedBox(
                     width: 280,
                     child: ElevatedButton(
@@ -289,9 +260,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Text(
-                            'Google로 로그인',
-                            style: TextStyle(
+                          Text(
+                            s.login_google, // 🔥 다국어 적용
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
@@ -302,9 +273,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
 
-                  // ========================
-                  // 🍎 iOS일 때만 Apple 로그인
-                  // ========================
                   if (Platform.isIOS) ...[
                     const SizedBox(height: 16),
                     SizedBox(
@@ -312,28 +280,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       child: SignInWithAppleButton(
                         onPressed: _signInWithApple,
                         style: SignInWithAppleButtonStyle.white,
+                        // 💡 버튼 텍스트는 라이브러리가 시스템 언어에 맞춰 자동 생성하거나 
+                        // 아래처럼 커스텀 텍스트를 사용할 수 있습니다.
+                        text: s.login_apple,
                       ),
                     ),
                   ],
 
                   const SizedBox(height: 24),
 
-                  // ========================
-                  // ⚙️ 운영자 전용 로그인 토글
-                  // ========================
                   TextButton.icon(
                     onPressed: () {
                       setState(() {
                         _showAdminLogin = !_showAdminLogin;
                       });
                     },
-                    icon: Icon(
+                    icon: const Icon(
                       Icons.admin_panel_settings,
                       color: Colors.white70,
                       size: 18,
                     ),
                     label: Text(
-                      '운영자 전용 로그인',
+                      s.login_admin_toggle, // 🔥 다국어 적용
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.85),
                         fontSize: 14,
@@ -342,9 +310,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                   ),
 
-                  // ========================
-                  // ✉️ 운영자 전용 이메일 로그인 카드
-                  // ========================
                   AnimatedSwitcher(
                     duration: const Duration(milliseconds: 250),
                     switchInCurve: Curves.easeOut,
@@ -378,7 +343,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      '운영자 · 심사용 계정에만 사용하는 로그인 방식입니다.',
+                                      s.login_admin_info, // 🔥 다국어 적용
                                       style: TextStyle(
                                         color: Colors.white
                                             .withOpacity(0.75),
@@ -395,7 +360,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 style:
                                 const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
-                                  labelText: '이메일',
+                                  labelText: s.login_email, // 🔥 다국어 적용
                                   labelStyle: TextStyle(
                                     color:
                                     Colors.white.withOpacity(0.8),
@@ -428,10 +393,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 validator: (value) {
                                   if (value == null ||
                                       value.trim().isEmpty) {
-                                    return '이메일을 입력해주세요.';
+                                    return s.login_error_email_empty; // 🔥 다국어 적용
                                   }
                                   if (!value.contains('@')) {
-                                    return '이메일 형식이 올바르지 않습니다.';
+                                    return s.login_error_email_format; // 🔥 다국어 적용
                                   }
                                   return null;
                                 },
@@ -443,7 +408,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 style:
                                 const TextStyle(color: Colors.white),
                                 decoration: InputDecoration(
-                                  labelText: '비밀번호',
+                                  labelText: s.login_password, // 🔥 다국어 적용
                                   labelStyle: TextStyle(
                                     color:
                                     Colors.white.withOpacity(0.8),
@@ -484,10 +449,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return '비밀번호를 입력해주세요.';
+                                    return s.login_error_password_empty; // 🔥 다국어 적용
                                   }
                                   if (value.length < 6) {
-                                    return '비밀번호는 6자 이상이어야 합니다.';
+                                    return s.login_error_password_length; // 🔥 다국어 적용
                                   }
                                   return null;
                                 },
@@ -524,9 +489,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       ),
                                     ),
                                   )
-                                      : const Text(
-                                    '이메일로 로그인',
-                                    style: TextStyle(
+                                      : Text(
+                                    s.login_email_btn, // 🔥 다국어 적용
+                                    style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -544,7 +509,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           ),
 
-          // 오른쪽 상단: 건너뛰기 → main
           Positioned(
             top: 60,
             right: 24,
@@ -552,9 +516,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
               onPressed: () {
                 Navigator.pushReplacementNamed(context, RouteConstants.main);
               },
-              child: const Text(
-                '건너뛰기',
-                style: TextStyle(
+              child: Text(
+                s.login_skip, // 🔥 다국어 적용
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -572,17 +536,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     return AnimatedBuilder(
       animation: _starController,
       builder: (context, _) {
-        final t = _starController.value; // 0..1 반복
-        final pulse = 0.96 + 0.04 * (sin(t * 2 * pi) + 1) / 2; // 0.96~1.00
-        final glowA = 0.22 + 0.14 * (sin(t * 2 * pi) + 1) / 2; // 민트
-        final glowB = 0.16 + 0.12 * (sin(t * 2 * pi + 1.3) + 1) / 2; // 블루
+        final t = _starController.value;
+        final pulse = 0.96 + 0.04 * (sin(t * 2 * pi) + 1) / 2;
+        final glowA = 0.22 + 0.14 * (sin(t * 2 * pi) + 1) / 2;
+        final glowB = 0.16 + 0.12 * (sin(t * 2 * pi + 1.3) + 1) / 2;
 
         return Transform.scale(
           scale: pulse,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // 바깥 네온 헤일로(민트→블루)
               Container(
                 width: 190,
                 height: 190,
@@ -598,8 +561,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                 ),
               ),
-
-              // 부드러운 글로우/깊이감
               Container(
                 width: 150,
                 height: 150,
@@ -625,8 +586,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ],
                 ),
               ),
-
-              // 유리 느낌 카드
               Container(
                 width: 140,
                 height: 140,
@@ -639,8 +598,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   ),
                 ),
               ),
-
-              // 투명 로고
               Image.asset(
                 'assets/images/ic_launcher_foreground.png',
                 width: 132,
@@ -648,8 +605,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
               ),
-
-              // 작은 하이라이트 반짝임
               Positioned(
                 top: 26,
                 right: 32,

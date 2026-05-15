@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/screens/community/circle/widgets/post_grid_item.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class CircleGridView extends StatelessWidget {
   final List<QueryDocumentSnapshot> docs;
@@ -37,13 +38,15 @@ class CircleGridView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩
+
     if (docs.isEmpty) {
-      return const Center(child: Text('표시할 게시물이 없습니다'));
+      return Center(child: Text(s.circle_no_visible_posts));
     }
-    return _buildGrid(context, docs);
+    return _buildGrid(context, docs, s);
   }
 
-  Widget _buildGrid(BuildContext context, List<QueryDocumentSnapshot> gridDocs) {
+  Widget _buildGrid(BuildContext context, List<QueryDocumentSnapshot> gridDocs, AppLocalizations s) {
     return GridView.builder(
       key: const ValueKey('grid'),
       controller: scrollController,
@@ -67,12 +70,12 @@ class CircleGridView extends StatelessWidget {
           return _DefaultGridTile(
             assetPath: _defaultThumbAsset,
             onTap: () => onItemTap(postId),
+            label: s.community_preview_type_text, // 🔹 다국어 라벨 전달
           );
         }
 
         return PostGridItem(
           photoUrl: photoUrl!,
-          // heroTag: 'post_$postId', // 필요하면 켜기
           onTap: () => onItemTap(postId),
         );
       },
@@ -84,10 +87,12 @@ class CircleGridView extends StatelessWidget {
 class _DefaultGridTile extends StatelessWidget {
   final String assetPath;
   final VoidCallback onTap;
+  final String label; // 🔹 추가
 
   const _DefaultGridTile({
     required this.assetPath,
     required this.onTap,
+    required this.label, // 🔹 추가
   });
 
   @override
@@ -112,14 +117,14 @@ class _DefaultGridTile extends StatelessWidget {
                   color: Colors.black45,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.notes_rounded, color: Colors.white, size: 12),
-                    SizedBox(width: 4),
+                    const Icon(Icons.notes_rounded, color: Colors.white, size: 12),
+                    const SizedBox(width: 4),
                     Text(
-                      '글',
-                      style: TextStyle(
+                      label, // 🔹 다국어 적용
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 10,
                         fontWeight: FontWeight.w700,

@@ -9,14 +9,14 @@ import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/data/models/practice_session_model.dart';
-import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class LivePracticeBoard extends ConsumerWidget {
   const LivePracticeBoard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+    final s = AppLocalizations.of(context)!;
     final authState = ref.watch(authStateProvider);
     final mySessionAsync = ref.watch(myPracticeSessionProvider);
     final totalCount = ref.watch(totalPracticingCountProvider).value ?? 0;
@@ -31,13 +31,14 @@ class LivePracticeBoard extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(s.live_board_title, // 🔹 다국어화
+              Text(s.live_board_title,
                   style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               GestureDetector(
                 onTap: () => Navigator.pushNamed(context, RouteConstants.livePracticeFullList),
                 child: Row(
                   children: [
-                    Text(s.live_board_view_all, style: TextStyle(fontSize: 13, color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
+                    Text(s.live_board_view_all,
+                        style: TextStyle(fontSize: 13, color: theme.colorScheme.primary, fontWeight: FontWeight.w600)),
                     Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.primary),
                   ],
                 ),
@@ -46,29 +47,32 @@ class LivePracticeBoard extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // 2. 나의 연습 상태 영역 (로그인/상태 분기)
+          // 2. 나의 연습 상태 영역 (소프트 게이트 적용)
           authState.when(
             data: (user) {
-              if (user == null) return _buildLoginInvite(context);
+              // ✅ 로그인 안 된 유저도 '연습 시작' 유도 카드를 보여주되, 클릭 시 팝업 발생
+              if (user == null) {
+                return _buildStartInviteAction(context, s, null);
+              }
 
               return mySessionAsync.when(
                 data: (session) {
                   if (session != null && session.isActive) {
                     return _buildMyActiveTimer(context, ref, session);
                   }
-                  return _buildStartAction(context, user.uid);
+                  return _buildStartInviteAction(context, s, user.uid);
                 },
                 loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-                error: (_, __) => _buildStartAction(context, user.uid),
+                error: (_, __) => _buildStartInviteAction(context, s, user.uid),
               );
             },
-            loading: () => const SizedBox.shrink(),
+            loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
             error: (_, __) => const SizedBox.shrink(),
           ),
 
           const SizedBox(height: 16),
 
-          // 3. 하단 요약 바: 현재 총 연습 인원 표시
+          // 3. 하단 요약 바
           GestureDetector(
             onTap: () => Navigator.pushNamed(context, RouteConstants.livePracticeFullList),
             child: Container(
@@ -92,8 +96,8 @@ class LivePracticeBoard extends ConsumerWidget {
                   Expanded(
                     child: Text(
                       totalCount > 0
-                          ? s.live_board_total_count(totalCount.toString()) // 🔹 인자 전달형 다국어
-                          : s.live_board_no_user, // 🔹 다국어화
+                          ? s.live_board_total_count(totalCount.toString())
+                          : s.live_board_no_user,
                       style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w500),
                     ),
                   ),
@@ -107,22 +111,29 @@ class LivePracticeBoard extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoginInvite(BuildContext context) {
-    final s = AppLocalizations.of(context)!;
-    return _buildActionCard(
-      context,
-      title: s.live_board_login_invite,
-      buttonText: s.login_title, // 기존에 설정한 login_title 재사용
-      onTap: () => Navigator.pushNamed(context, RouteConstants.login),
-    );
-  }
+  // ✅ 통합된 시작 유도 액션 (비로그인/로그인/프로필미등록 대응)
+  Widget _buildStartInviteAction(BuildContext context, AppLocalizations s, String? uid) {
+    if (uid == null) {
+      // 1. 비로그인 상태
+      return _buildActionCard(
+        context,
+        title: s.live_board_start_invite, // "연습을 시작하고 기록을 남겨보세요!"
+        buttonText: s.live_board_btn_start,
+        onTap: () => _showPromptDialog(
+            context,
+            s.community_home_login_prompt,
+            Icons.people_alt_outlined,
+            RouteConstants.login
+        ),
+        isHighlight: true,
+      );
+    }
 
-  Widget _buildStartAction(BuildContext context, String uid) {
-    final s = AppLocalizations.of(context)!;
     return FutureBuilder<DocumentSnapshot>(
       future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
       builder: (context, snapshot) {
         final hasProfile = snapshot.data?.get('hasProfile') ?? false;
+
         return _buildActionCard(
           context,
           title: hasProfile ? s.live_board_start_invite : s.live_board_profile_invite,
@@ -131,7 +142,13 @@ class LivePracticeBoard extends ConsumerWidget {
             if (hasProfile) {
               _showSetupSheet(context, snapshot.data?.data() as Map<String, dynamic>);
             } else {
-              Navigator.pushNamed(context, RouteConstants.profileRegister);
+              // 2. 프로필 미등록 상태 유도 팝업
+              _showPromptDialog(
+                  context,
+                  s.community_home_verify_prompt,
+                  Icons.verified_user_outlined,
+                  RouteConstants.profileRegister
+              );
             }
           },
           isHighlight: hasProfile,
@@ -182,7 +199,7 @@ class LivePracticeBoard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  s.live_board_total_today(_formatDurationSimple(context, totalDurationBefore)), // 🔹 시간 포맷 다국어 대응
+                  s.live_board_total_today(_formatDurationSimple(context, totalDurationBefore)),
                   style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 11),
                 ),
               ],
@@ -236,6 +253,44 @@ class LivePracticeBoard extends ConsumerWidget {
     );
   }
 
+  // ✅ 커뮤니티 홈에서 사용한 것과 동일한 다이얼로그 유도 로직
+  void _showPromptDialog(BuildContext context, String title, IconData icon, String route) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Icon(icon, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, route);
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text("이동하기"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showSetupSheet(BuildContext context, Map<String, dynamic> userData) {
     showModalBottomSheet(
       context: context,
@@ -258,14 +313,11 @@ class LivePracticeBoard extends ConsumerWidget {
     );
   }
 
-  // --- 시간 포맷 헬퍼 함수들 ---
-
   String _formatDuration(Duration d) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     return "${twoDigits(d.inHours)}:${twoDigits(d.inMinutes.remainder(60))}:${twoDigits(d.inSeconds.remainder(60))}";
   }
 
-  // 🔹 BuildContext를 추가하여 언어팩을 내부에서 호출하도록 수정
   String _formatDurationSimple(BuildContext context, Duration d) {
     final s = AppLocalizations.of(context)!;
     final hours = d.inHours;

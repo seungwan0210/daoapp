@@ -1,12 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:daoapp/presentation/screens/community/chat/chat_screen.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ChatOverlaySheet extends StatelessWidget {
   const ChatOverlaySheet({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     return DraggableScrollableSheet(
       initialChildSize: 0.92,
       minChildSize: 0.5,
@@ -22,7 +25,7 @@ class ChatOverlaySheet extends StatelessWidget {
                 color: Colors.black.withOpacity(0.75),
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              child: Stack( // ✅ Stack을 써서 X 버튼을 자유롭게 배치
+              child: Stack(
                 children: [
                   Column(
                     children: [
@@ -37,9 +40,9 @@ class ChatOverlaySheet extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 10),
-                      const Text(
-                        'DAO 라이브 톡',
-                        style: TextStyle(
+                      Text(
+                        s.chat_overlay_title, // 🔹 다국어 적용
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -47,7 +50,7 @@ class ChatOverlaySheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
 
-                      // 2. 빨간색 안내 문구
+                      // 2. 차단 안내 문구
                       Container(
                         margin: const EdgeInsets.symmetric(horizontal: 20),
                         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -62,7 +65,7 @@ class ChatOverlaySheet extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '상대방의 메시지를 꾹 누르면 차단을 할 수 있습니다.',
+                                s.chat_overlay_block_guide, // 🔹 다국어 적용
                                 style: TextStyle(
                                   color: Colors.redAccent.withOpacity(0.9),
                                   fontSize: 11,
@@ -84,7 +87,7 @@ class ChatOverlaySheet extends StatelessWidget {
                     ],
                   ),
 
-                  // 🎯 X 버튼 위치: 우측 상단에 완전 고정
+                  // 우측 상단 닫기 버튼
                   Positioned(
                     top: 10,
                     right: 10,

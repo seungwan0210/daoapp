@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/practice_session_model.dart';
 import 'package:daoapp/data/repositories/practice_repository.dart';
 import 'package:daoapp/di/service_locator.dart';
+import 'package:daoapp/core/constants/route_constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class PracticeSetupBottomSheet extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -20,8 +21,6 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
   final _ratingController = TextEditingController();
   String _selectedMachine = 'DARTSLIVE';
 
-  // 머신 이름은 고유 명사이므로 리스트는 그대로 유지하되,
-  // UI 노출 시 필요하다면 번역 로직을 넣을 수 있습니다.
   final List<String> _machines = ['DARTSLIVE', 'PHOENIXDARTS', 'STEEL', 'DARTSLIVE HOME', 'GRAN BOARD'];
 
   bool get _isShopRequired => _selectedMachine == 'DARTSLIVE' || _selectedMachine == 'PHOENIXDARTS';
@@ -36,12 +35,22 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
   Future<void> _start() async {
     final s = AppLocalizations.of(context)!;
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+
+    // ✅ 시작 버튼 클릭 시 최종 유저 체크 (소프트 게이트)
+    if (user == null) {
+      _showPromptDialog(
+          context,
+          s.community_home_login_prompt,
+          Icons.people_alt_outlined,
+          RouteConstants.login
+      );
+      return;
+    }
 
     if (_isShopRequired && _shopController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(s.practice_setup_error_location), // 🔹 다국어화
+          content: Text(s.practice_setup_error_location),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -66,12 +75,51 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(s.practice_setup_error_start(e.toString())), // 🔹 다국어화
+            content: Text(s.practice_setup_error_start(e.toString())),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     }
+  }
+
+  // ✅ 유도 팝업 다이얼로그 (중복 호출 방지용)
+  void _showPromptDialog(BuildContext context, String title, IconData icon, String route) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            Icon(icon, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () {
+                  Navigator.pop(context); // 다이얼로그 닫기
+                  Navigator.pop(context); // 바텀시트 닫기
+                  Navigator.pushNamed(context, route);
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text("이동하기"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -111,7 +159,7 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            s.practice_setup_title, // 🔹 다국어화
+                            s.practice_setup_title,
                             style: const TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w900,
@@ -128,32 +176,32 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        s.practice_setup_sub, // 🔹 다국어화
+                        s.practice_setup_sub,
                         style: const TextStyle(color: Colors.grey, fontSize: 14),
                       ),
                       const SizedBox(height: 28),
 
-                      _buildLabel(s.practice_setup_machine), // 🔹 다국어화
+                      _buildLabel(s.practice_setup_machine),
                       const SizedBox(height: 12),
                       _buildMachineChips(),
                       const SizedBox(height: 28),
 
                       if (_isShopRequired) ...[
-                        _buildLabel(s.practice_setup_location), // 🔹 다국어화
+                        _buildLabel(s.practice_setup_location),
                         const SizedBox(height: 12),
                         _buildTextField(
                           controller: _shopController,
-                          hint: s.practice_setup_location_hint, // 🔹 다국어화
+                          hint: s.practice_setup_location_hint,
                           icon: Icons.location_on_rounded,
                         ),
                         const SizedBox(height: 28),
                       ],
 
-                      _buildLabel(s.practice_setup_goal), // 🔹 다국어화
+                      _buildLabel(s.practice_setup_goal),
                       const SizedBox(height: 12),
                       _buildTextField(
                         controller: _ratingController,
-                        hint: s.practice_setup_goal_hint, // 🔹 다국어화
+                        hint: s.practice_setup_goal_hint,
                         icon: Icons.track_changes_rounded,
                       ),
                       const SizedBox(height: 32),
@@ -172,7 +220,7 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
                             elevation: 0,
                           ),
                           child: Text(
-                            s.practice_setup_btn_start, // 🔹 다국어화
+                            s.practice_setup_btn_start,
                             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
@@ -217,7 +265,7 @@ class _PracticeSetupBottomSheetState extends State<PracticeSetupBottomSheet> {
               ),
             ),
             child: Text(
-              m, // 🔹 머신 이름은 고유 명사로 취급
+              m,
               style: TextStyle(
                 color: isSelected ? Colors.white : const Color(0xFF475569),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

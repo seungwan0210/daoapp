@@ -84,15 +84,15 @@ void main() async {
   // 알림 서비스 초기화
   await PracticeNotificationService.init();
 
-  // ✅ [수정] App Check 활성화 로직 주석 처리 (보안 장벽 일시 해제)
-  /*
+  // ✅ [수정] App Check 활성화 복구 (기존 유저 토큰 갱신을 위해 필수)
   await FirebaseAppCheck.instance.activate(
     androidProvider: kReleaseMode ? AndroidProvider.playIntegrity : AndroidProvider.debug,
     appleProvider: kReleaseMode ? AppleProvider.deviceCheck : AppleProvider.debug,
   );
-  */
 
-  await initializeDateFormatting();
+  // ✅ [수정] 인자를 null로 전달하여 모든 로케일 날짜 포맷 로드 (iOS 요일 에러 방지)
+  await initializeDateFormatting(null, null);
+
   setupDependencies();
 
   if (!kAdMobSuspended) {

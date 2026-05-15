@@ -8,6 +8,7 @@ import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class GuestbookCommentItem extends ConsumerStatefulWidget {
   final String writerId;
@@ -17,7 +18,7 @@ class GuestbookCommentItem extends ConsumerStatefulWidget {
   final String guestbookOwnerId;
   final String? monthlyBadge;
   final String? adminBadge;
-  final int? currentRank; // 🆕 실시간 순위 파라미터 추가
+  final int? currentRank;
 
   const GuestbookCommentItem({
     super.key,
@@ -28,7 +29,7 @@ class GuestbookCommentItem extends ConsumerStatefulWidget {
     required this.guestbookOwnerId,
     this.monthlyBadge,
     this.adminBadge,
-    this.currentRank, // 🆕 생성자 추가
+    this.currentRank,
   });
 
   @override
@@ -38,6 +39,7 @@ class GuestbookCommentItem extends ConsumerStatefulWidget {
 class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     final isAdminAsync = ref.watch(isAdminProvider);
     final isAdmin = isAdminAsync.when(data: (v) => v, loading: () => false, error: (_, __) => false);
@@ -52,49 +54,37 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // === 작성자 아바타 ===
           GestureDetector(
-            onTap: () => _showWriterProfile(context, widget.writerId),
+            onTap: () => _showWriterProfile(context, widget.writerId, s),
             child: _buildAvatar(widget.writerId),
           ),
           const SizedBox(width: 12),
-
-          // === 내용 + 시간 ===
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 이름 + 배지 영역
                 StreamBuilder<DocumentSnapshot>(
                   stream: FirebaseFirestore.instance.collection('users').doc(widget.writerId).snapshots(),
                   builder: (context, snapshot) {
-                    String name = 'Unknown';
+                    String name = s.guestbook_unknown_user; // 🔹 다국어 적용
                     if (snapshot.hasData && snapshot.data!.exists) {
                       final userData = snapshot.data!.data() as Map<String, dynamic>;
-                      name = userData['koreanName']?.toString().trim() ?? 'Unknown';
+                      name = userData['koreanName']?.toString().trim() ?? s.guestbook_unknown_user;
                     }
 
                     return Row(
                       children: [
                         Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(width: 6),
-
-                        // 🔥 1. 실시간 랭킹 배지 (최우선)
                         if (widget.currentRank != null)
                           BadgeWidget(rank: widget.currentRank, size: 18),
-
                         const SizedBox(width: 4),
-
-                        // 2. 월간 배지
                         if (widget.monthlyBadge != null)
                           Tooltip(
                             message: BadgeUtils.getBadgeTooltip(widget.monthlyBadge!),
                             child: BadgeWidget(badgeKey: widget.monthlyBadge, size: 18),
                           ),
-
                         const SizedBox(width: 2),
-
-                        // 3. 관리자 배지
                         if (widget.adminBadge != null)
                           Tooltip(
                             message: BadgeUtils.getBadgeTooltip(widget.adminBadge!),
@@ -117,21 +107,19 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
               ],
             ),
           ),
-
-          // === 수정/삭제 메뉴 ===
           if (canEdit || canDelete)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_horiz, size: 18, color: Colors.grey),
               onSelected: (value) async {
                 if (value == 'edit' && canEdit) {
-                  _showEditBottomSheet(context, widget.message);
+                  _showEditBottomSheet(context, widget.message, s);
                 } else if (value == 'delete' && canDelete) {
-                  await _deleteComment(context);
+                  await _deleteComment(context, s);
                 }
               },
               itemBuilder: (_) => [
-                if (canEdit) const PopupMenuItem(value: 'edit', child: Text('수정')),
-                if (canDelete) const PopupMenuItem(value: 'delete', child: Text('삭제', style: TextStyle(color: Colors.red))),
+                if (canEdit) PopupMenuItem(value: 'edit', child: Text(s.guestbook_menu_edit)), // 🔹 다국어 적용
+                if (canDelete) PopupMenuItem(value: 'delete', child: Text(s.guestbook_menu_delete, style: const TextStyle(color: Colors.red))), // 🔹 다국어 적용
               ],
             ),
         ],
@@ -158,7 +146,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     );
   }
 
-  void _showWriterProfile(BuildContext context, String writerId) {
+  void _showWriterProfile(BuildContext context, String writerId, AppLocalizations s) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final isMe = currentUid == writerId;
 
@@ -171,21 +159,19 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
           final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
 
           return UserProfileDialog(
-            koreanName: data['koreanName'] ?? '이름 없음',
+            koreanName: data['koreanName'] ?? s.guestbook_unknown_user,
             englishName: data['englishName'],
             photoUrl: data['profileImageUrl'],
             shopName: data['shopName'],
             isMe: isMe,
             userId: writerId,
-            // 배럴 정보 등은 UserProfileDialog 내부에서 처리하도록 구성됨
           );
         },
       ),
     );
   }
 
-  // --- 수정 및 삭제 로직 (기존 유지) ---
-  void _showEditBottomSheet(BuildContext context, String currentContent) {
+  void _showEditBottomSheet(BuildContext context, String currentContent, AppLocalizations s) {
     final controller = TextEditingController(text: currentContent);
     final focusNode = FocusNode();
     showModalBottomSheet(
@@ -198,7 +184,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('방명록 수정', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text(s.guestbook_edit_title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // 🔹 다국어 적용
             const SizedBox(height: 16),
             TextField(
               controller: controller,
@@ -214,7 +200,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('취소'))),
+                Expanded(child: TextButton(onPressed: () => Navigator.pop(ctx), child: Text(s.common_cancel))),
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
@@ -228,7 +214,7 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
                           .update({'message': controller.text.trim()});
                       if (mounted) Navigator.pop(ctx);
                     },
-                    child: const Text('수정 완료'),
+                    child: Text(s.guestbook_edit_complete), // 🔹 다국어 적용
                   ),
                 ),
               ],
@@ -239,15 +225,15 @@ class _GuestbookCommentItemState extends ConsumerState<GuestbookCommentItem> {
     );
   }
 
-  Future<void> _deleteComment(BuildContext context) async {
+  Future<void> _deleteComment(BuildContext context, AppLocalizations s) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('삭제 확인'),
-        content: const Text('이 방명록을 삭제하시겠습니까?'),
+        title: Text(s.guestbook_delete_confirm_title), // 🔹 다국어 적용
+        content: Text(s.guestbook_delete_confirm_body), // 🔹 다국어 적용
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('취소')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('삭제', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(s.common_cancel)),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(s.guestbook_menu_delete, style: const TextStyle(color: Colors.red))),
         ],
       ),
     );

@@ -1,10 +1,11 @@
 // lib/presentation/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // 🔥 추가 필요
-import 'package:cloud_firestore/cloud_firestore.dart'; // 🔥 추가 필요
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔥 추가
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -27,20 +28,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   void _checkAuthState() async {
-    final authState = ref.read(authStateProvider); // watch 대신 read 권장 (initState 시점)
+    final authState = ref.read(authStateProvider);
+    final s = AppLocalizations.of(context)!; // 🔥 110n 객체 가져오기
 
     authState.when(
       data: (user) async {
         if (user == null) {
           Navigator.pushReplacementNamed(context, RouteConstants.login);
         } else {
-          // 🔥 [추가] 정지 여부 확인
+          // 🔥 정지 여부 확인
           final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
           if (userDoc.exists && userDoc.data()?['isBanned'] == true) {
             await FirebaseAuth.instance.signOut(); // 강제 로그아웃
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('운영 정책에 의해 이용이 제한된 계정입니다.'))
+                  SnackBar(content: Text(s.ban_msg_restricted)) // 🔥 다국어 적용
               );
               Navigator.pushReplacementNamed(context, RouteConstants.login);
             }

@@ -10,6 +10,7 @@ import 'package:daoapp/services/storage_service.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/providers/my_log_provider.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class MyLogWriteScreen extends ConsumerStatefulWidget {
   final MyLogModel? existingLog;
@@ -68,33 +69,29 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
     }
   }
 
-  // ✅ 토글형 템플릿 삽입 로직: 있으면 지우고, 없으면 넣는다!
   void _toggleTemplate(String template) {
     String current = _contentController.text;
 
     if (current.contains(template)) {
-      // 이미 있으면 삭제 (줄바꿈 포함해서 깔끔하게)
       setState(() {
         _contentController.text = current.replaceAll(template, "").replaceAll("\n\n\n", "\n\n").trim();
       });
     } else {
-      // 없으면 추가
       final separator = current.trim().isEmpty ? '' : '\n\n';
       setState(() {
         _contentController.text = '$current$separator$template';
       });
     }
 
-    // 커서를 맨 끝으로 이동
     _contentController.selection = TextSelection.fromPosition(
         TextPosition(offset: _contentController.text.length)
     );
   }
 
-  Future<void> _save() async {
+  Future<void> _save(AppLocalizations s) async {
     final content = _contentController.text.trim();
     if (content.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('기록할 내용을 입력해주세요.')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.mylog_write_empty_error)));
       return;
     }
 
@@ -129,13 +126,12 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
       if (!mounted) return;
       Navigator.pop(context, true);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('저장 실패: $e')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(s.mylog_write_save_fail(e.toString()))));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
   }
 
-  // 헬퍼 위젯: 섹션 타이틀
   Widget _sectionTitle(String text, IconData icon) => Row(
     children: [
       Icon(icon, size: 16, color: Colors.cyan[800]),
@@ -144,7 +140,6 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
     ],
   );
 
-  // 헬퍼 위젯: 템플릿 칩 (선택 상태에 따라 색상 변경)
   Widget _templateChip(String label, String template, MaterialColor color) {
     final bool isSelected = _contentController.text.contains(template);
 
@@ -168,12 +163,14 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('yyyy년 M월 d일 (E)', 'ko_KR').format(_selectedDateForSave);
+    final s = AppLocalizations.of(context)!;
+    // 🔹 국가별 언어 설정에 따른 날짜 포맷 적용
+    final dateStr = DateFormat.yMMMEd(Localizations.localeOf(context).toString()).format(_selectedDateForSave);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: CommonAppBar(
-        title: _isEditMode ? '일기 수정' : '일기 작성',
+        title: _isEditMode ? s.mylog_write_title_edit : s.mylog_write_title_new,
         showBackButton: true,
       ),
       body: GestureDetector(
@@ -182,12 +179,10 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                // ✅ 중요: 키보드가 올라올 때 스크롤이 자연스럽게 올라가도록 설정
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. 헤더 카드
                     Row(
                       children: [
                         Container(
@@ -200,7 +195,7 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(dateStr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF0F172A))),
-                            Text(_isEditMode ? '기억을 다듬고 있어요' : '오늘의 성장을 기록하세요',
+                            Text(_isEditMode ? s.mylog_write_subtitle_edit : s.mylog_write_subtitle_new,
                                 style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w500)),
                           ],
                         ),
@@ -208,36 +203,33 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // 2. 사진 업로드 영역
-                    _buildImagePicker(),
+                    _buildImagePicker(s),
                     const SizedBox(height: 32),
 
-                    // 3. 토글형 작성 가이드
-                    _sectionTitle('작성 가이드 (탭해서 추가/삭제)', Icons.auto_awesome_outlined),
+                    _sectionTitle(s.mylog_write_guide_title, Icons.auto_awesome_outlined),
                     const SizedBox(height: 12),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
-                          _templateChip('💪 잘 된 점', '💪 오늘 잘 된 점\n- ', Colors.blue),
-                          _templateChip('🧐 아쉬운 점', '🧐 아쉬웠던 점\n- ', Colors.orange),
-                          _templateChip('✏️ 다음 계획', '✏️ 다음 연습 계획\n- ', Colors.green),
-                          _templateChip('📝 한 줄 평', '📝 오늘의 한 줄\n- ', Colors.purple),
+                          _templateChip(s.mylog_write_guide_good, s.mylog_write_template_good, Colors.blue),
+                          _templateChip(s.mylog_write_guide_bad, s.mylog_write_template_bad, Colors.orange),
+                          _templateChip(s.mylog_write_guide_next, s.mylog_write_template_next, Colors.green),
+                          _templateChip(s.mylog_write_guide_review, s.mylog_write_template_review, Colors.purple),
                         ],
                       ),
                     ),
                     const SizedBox(height: 20),
 
-                    // 4. 본문 입력창 (스크롤 중복 방지)
                     AppCard(
                       padding: const EdgeInsets.all(16),
                       child: TextField(
                         controller: _contentController,
-                        maxLines: null, // ✅ 텍스트 길이에 따라 자동으로 늘어남 (중복 스크롤 방지)
+                        maxLines: null,
                         keyboardType: TextInputType.multiline,
                         style: const TextStyle(fontSize: 15, height: 1.6),
                         decoration: InputDecoration(
-                          hintText: '오늘 다트 어땠나요?\n기억에 남는 샷이나 보완할 점을 적어보세요.',
+                          hintText: s.mylog_write_hint,
                           hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
                           border: InputBorder.none,
                         ),
@@ -246,12 +238,11 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // 5. 공유 설정
                     AppCard(
                       padding: EdgeInsets.zero,
                       child: SwitchListTile(
-                        title: const Text('서클(커뮤니티)에 공유', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                        subtitle: Text(_isEditMode ? '이미 공유된 기록입니다.' : '저장과 동시에 피드에 게시합니다.', style: const TextStyle(fontSize: 11)),
+                        title: Text(s.mylog_write_share_title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        subtitle: Text(_isEditMode ? s.mylog_write_share_subtitle_edit : s.mylog_write_share_subtitle_new, style: const TextStyle(fontSize: 11)),
                         value: _shareToCircle,
                         activeColor: Colors.cyan[700],
                         onChanged: (v) => setState(() => _shareToCircle = v),
@@ -261,17 +252,14 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
                 ),
               ),
             ),
-
-            // 6. 하단 고정 버튼 (배경색 추가하여 명확히 구분)
-            _buildBottomAction(),
+            _buildBottomAction(s),
           ],
         ),
       ),
     );
   }
 
-  // 사진 업로드 위젯 빌더
-  Widget _buildImagePicker() {
+  Widget _buildImagePicker(AppLocalizations s) {
     return GestureDetector(
       onTap: _pickImage,
       child: Container(
@@ -294,7 +282,7 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
                 children: [
                   Icon(Icons.add_photo_alternate_outlined, size: 40, color: Colors.grey[300]),
                   const SizedBox(height: 8),
-                  Text('사진 추가 (선택)', style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(s.mylog_write_image_add, style: TextStyle(color: Colors.grey[400], fontSize: 13, fontWeight: FontWeight.w600)),
                 ],
               )),
             ),
@@ -316,8 +304,7 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
     );
   }
 
-  // 하단 버튼 빌더
-  Widget _buildBottomAction() {
+  Widget _buildBottomAction(AppLocalizations s) {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
       decoration: BoxDecoration(
@@ -325,7 +312,7 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
       ),
       child: ElevatedButton(
-        onPressed: (_contentController.text.isNotEmpty && !_isUploading) ? _save : null,
+        onPressed: (_contentController.text.isNotEmpty && !_isUploading) ? () => _save(s) : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF0F172A),
           minimumSize: const Size.fromHeight(56),
@@ -334,7 +321,7 @@ class _MyLogWriteScreenState extends ConsumerState<MyLogWriteScreen> {
         ),
         child: _isUploading
             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.cyanAccent))
-            : const Text('기록 저장하기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+            : Text(s.mylog_write_save_btn, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
       ),
     );
   }

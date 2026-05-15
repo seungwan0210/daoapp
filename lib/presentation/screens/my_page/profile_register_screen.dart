@@ -1,15 +1,15 @@
-// lib/user/profile_register_screen.dart
+// lib/presentation/screens/my_page/profile_register_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/profile_form_fields.dart';
-import 'widgets/phone_verification_section.dart';
 import 'widgets/barrel_setting_section.dart';
 import 'widgets/profile_image_widget.dart';
 import 'services/profile_service.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-// 🎯 ChatUtils 경로 확인 후 임포트하세요
 import 'package:daoapp/core/utils/chat_utils.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class ProfileRegisterScreen extends ConsumerStatefulWidget {
   const ProfileRegisterScreen({super.key});
@@ -21,14 +21,11 @@ class ProfileRegisterScreen extends ConsumerStatefulWidget {
 class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   late final ProfileService service;
-
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    // ProfileService가 ChangeNotifier이므로
-    // initState에서 context와 ref를 넘겨 초기화하는 방식 유지
     service = ProfileService(context, ref);
   }
 
@@ -39,40 +36,37 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
         content: Text(message),
         behavior: SnackBarBehavior.floating,
         backgroundColor: isError ? Colors.red : Colors.green,
-        duration: const Duration(milliseconds: 1500),
+        duration: const Duration(milliseconds: 2000), // 메시지를 읽을 시간을 위해 조금 늘림
       ),
     );
   }
 
   Future<void> _onSave() async {
+    final s = AppLocalizations.of(context)!;
     final form = _formKey.currentState;
     if (form == null) return;
 
     if (!form.validate()) {
-      _showSnackBar('입력값을 확인해주세요.', isError: true);
+      _showSnackBar(s.profile_reg_input_check, isError: true);
       return;
     }
 
     if (_isSaving) return;
-
     setState(() => _isSaving = true);
 
     try {
-      // 🎯 [수정] ProfileService에 정의된 변수명 'isFirstRegistration' 사용
       final bool isFirstTime = service.isFirstRegistration;
 
-      // 서비스 저장 실행
+      // ✅ 서비스 레벨에서 중복 체크 및 저장을 수행하고 결과 객체를 받음
       final result = await service.saveAndReturnResult(_formKey);
 
       if (!mounted) return;
 
       if (result.success) {
-        _showSnackBar('성공적으로 저장되었습니다!');
+        _showSnackBar(s.profile_reg_success);
 
-        // 🎯 [수정] 신규 가입 시에만 ChatUtils의 'sendWelcomeNotice' 호출
         if (isFirstTime) {
           try {
-            // 🎯 [수정] ProfileService의 'koreanNameCtrl'에서 텍스트 추출
             final nickName = service.koreanNameCtrl.text.trim();
             await ChatUtils.sendWelcomeNotice(nickName);
           } catch (chatError) {
@@ -81,19 +75,16 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
         }
 
         await Future.delayed(const Duration(milliseconds: 800));
-
-        if (mounted) {
-          Navigator.of(context).pop(true);
-        }
+        if (mounted) Navigator.of(context).pop(true);
       } else {
-        final msg = (result.message.trim().isNotEmpty == true)
-            ? result.message.trim()
-            : '저장에 실패했어요. 다시 시도해주세요.';
-        _showSnackBar('저장 실패: $msg', isError: true);
+        // ✅ [수정] 서비스에서 반환된 구체적인 메시지(예: 닉네임 중복)가 있으면 표시하고, 없으면 기본 실패 메시지 표시
+        final errorMessage = result.message ?? s.profile_reg_fail;
+        _showSnackBar(errorMessage, isError: true);
       }
     } catch (e) {
       if (!mounted) return;
-      _showSnackBar('저장 중 오류가 발생했습니다: $e', isError: true);
+      // 예외 발생 시 상세 내용을 사용자에게 알림
+      _showSnackBar(s.profile_reg_error(e.toString()), isError: true);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -101,9 +92,11 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: CommonAppBar(
-        title: '프로필 등록/수정',
+        title: s.profile_reg_title,
         showBackButton: !_isSaving,
       ),
       body: SingleChildScrollView(
@@ -118,7 +111,6 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                 child: Column(
                   children: [
                     ProfileFormFields(service: service),
-                    PhoneVerificationSection(service: service),
                     const SizedBox(height: 24),
                     BarrelSettingSection(service: service),
                     const SizedBox(height: 24),
@@ -128,9 +120,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                         onPressed: _isSaving ? null : _onSave,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: _isSaving
                             ? const SizedBox(
@@ -141,13 +131,7 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
                             color: Colors.white,
                           ),
                         )
-                            : const Text(
-                          '저장 완료',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                            : Text(s.profile_reg_save, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],
@@ -159,10 +143,5 @@ class _ProfileRegisterScreenState extends ConsumerState<ProfileRegisterScreen> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }

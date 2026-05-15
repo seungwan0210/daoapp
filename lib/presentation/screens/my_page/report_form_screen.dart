@@ -1,4 +1,3 @@
-// lib/presentation/screens/user/report_form_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
 import 'package:daoapp/presentation/widgets/common_appbar.dart';
 import 'dart:io';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ReportFormScreen extends StatefulWidget {
   const ReportFormScreen({super.key});
@@ -24,13 +24,13 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      appBar: const CommonAppBar(
-        title: '버그/신고',
+      appBar: CommonAppBar(
+        title: s.report_screen_title, // 🔹 다국어 적용
         showBackButton: true,
       ),
       body: Padding(
@@ -43,9 +43,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
               children: [
                 TextField(
                   controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: '제목',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    labelText: s.report_form_title_label, // 🔹 다국어 적용
+                    border: const OutlineInputBorder(),
                   ),
                   maxLines: 1,
                 ),
@@ -53,10 +53,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 Expanded(
                   child: TextField(
                     controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: '상세 내용',
-                      hintText: '발생 상황, 재현 방법 등을 자세히 적어주세요',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: s.report_form_content_label, // 🔹 다국어 적용
+                      hintText: s.report_form_content_hint, // 🔹 다국어 적용
+                      border: const OutlineInputBorder(),
                       alignLabelWithHint: true,
                     ),
                     maxLines: null,
@@ -68,7 +68,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 사진 미리보기
                 if (_image != null)
                   Container(
                     height: 200,
@@ -83,10 +82,9 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                   ),
                 const SizedBox(height: 8),
 
-                // 사진 추가 버튼
                 OutlinedButton.icon(
                   icon: const Icon(Icons.add_a_photo),
-                  label: Text(_image == null ? '사진 추가 (선택)' : '사진 변경'),
+                  label: Text(_image == null ? s.report_form_photo_add : s.report_form_photo_change), // 🔹 다국어 적용
                   onPressed: _pickImage,
                 ),
                 const SizedBox(height: 16),
@@ -94,8 +92,8 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
                 _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton(
-                  onPressed: () => _submitReport(user),
-                  child: const Text('신고하기'),
+                  onPressed: () => _submitReport(user, s), // 🔹 s 전달
+                  child: Text(s.report_form_submit), // 🔹 다국어 적용
                 ),
               ],
             ),
@@ -112,10 +110,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     }
   }
 
-  Future<void> _submitReport(User? user) async {
+  Future<void> _submitReport(User? user, AppLocalizations s) async {
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('로그인이 필요합니다')),
+        SnackBar(content: Text(s.common_login_required)), // 🔹 공통 키 활용
       );
       return;
     }
@@ -124,7 +122,7 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
     final content = _contentController.text.trim();
     if (title.isEmpty || content.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('제목과 내용을 입력하세요')),
+        SnackBar(content: Text(s.report_form_error_empty)), // 🔹 다국어 적용
       );
       return;
     }
@@ -141,7 +139,6 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
         imageUrl = await ref.getDownloadURL();
       }
 
-      // 🔹 Firestore users/{uid}에서 이름 가져오기
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -153,20 +150,16 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
           userData?['nickname'] ??
           user.displayName ??
           user.email ??
-          '익명')
+          s.common_anonymous) // 🔹 공통 키 활용
           .toString();
 
-      // 🔹 Firestore에 저장 (Admin 화면에서 기대하는 필드 이름에 맞춤)
       await FirebaseFirestore.instance.collection('reports').add({
-        // 예전 필드(호환용)
         'userId': user.uid,
         'email': user.email,
         'createdAt': FieldValue.serverTimestamp(),
         'isResolved': false,
-
-        // Admin 화면용 필드들
         'reporterId': user.uid,
-        'reporterName': reporterName,          // ← 여기! 바뀐 이름 들어감
+        'reporterName': reporterName,
         'reporterEmail': user.email,
         'title': title,
         'content': content,
@@ -178,19 +171,18 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('신고가 접수되었습니다. 감사합니다!')),
+          SnackBar(content: Text(s.report_form_success)), // 🔹 다국어 적용
         );
         Navigator.pop(context);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('전송 실패: $e')),
+        SnackBar(content: Text(s.report_form_fail(e.toString()))), // 🔹 다국어 적용
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   @override
   void dispose() {

@@ -99,7 +99,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get menu_notice => '公告事項';
 
   @override
-  String get menu_report => '回饋報告';
+  String get menu_report => '諮詢與檢舉';
 
   @override
   String get menu_quick_arena => '競技場';
@@ -716,7 +716,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get circle_title_feed => '動態牆';
 
   @override
-  String get circle_no_posts => '暫無貼文顯示';
+  String get circle_no_posts => '尚無貼文';
 
   @override
   String get circle_label_text_only => '文字';
@@ -728,7 +728,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get circle_btn_see_all => '查看全部';
 
   @override
-  String get post_write_title => '分享至社群';
+  String get post_write_title => '分享到圈子';
 
   @override
   String get post_edit_title => '編輯貼文';
@@ -906,14 +906,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get login_msg_fail_email => '電子郵件登入失敗。';
 
   @override
-  String get mylog_title => '個人日誌';
+  String get mylog_title => '我的飛鏢日記';
 
   @override
-  String get mylog_summary_title => '我的飛鏢故事';
+  String get mylog_summary_title => '一步步累積的成長';
 
   @override
   String mylog_summary_count(Object count) {
-    return '已累積 $count 則紀錄';
+    return '已累積 $count 筆記錄。';
   }
 
   @override
@@ -1094,7 +1094,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notice_title => '公告事項';
 
   @override
-  String get notice_empty => '暫無公告';
+  String get notice_empty => '目前沒有公告事項。';
 
   @override
   String get delete_acc_confirm_title => '註銷帳號';
@@ -2403,22 +2403,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get calendar_unit_day => '日';
 
   @override
-  String get live_list_title => '今日練習現狀';
+  String get live_list_title => '即時練習動態';
 
   @override
-  String get live_list_empty => '今日暫無練習記錄。';
+  String get live_list_empty => '目前沒有正在練習的用戶。';
 
   @override
-  String get live_status_live => '直播中';
+  String get live_status_live => 'LIVE';
 
   @override
-  String get live_status_finished => '已結束';
+  String get live_status_finished => 'FINISHED';
 
   @override
-  String get live_no_shop => '未指定地點';
+  String get live_no_shop => '無所屬店舖';
 
   @override
-  String get live_blur_text => '**** · ****';
+  String get live_blur_text => '請先登入後查看。';
 
   @override
   String get live_board_title => 'LIVE 練習現狀';
@@ -3980,6 +3980,882 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get member_list_no_email => '未提供電子郵件';
+
+  @override
+  String get community_home_tab_title => '練習 · 比賽 · 紀錄';
+
+  @override
+  String get community_home_menu_training => '訓練';
+
+  @override
+  String get community_home_menu_arena => '競技場';
+
+  @override
+  String get community_home_menu_mylog => '我的日誌';
+
+  @override
+  String get community_home_login_prompt => '如需使用社區功能\n請先登入';
+
+  @override
+  String get community_home_verify_prompt => '如需使用社區功能\n請完成認證';
+
+  @override
+  String get community_home_verify_profile => '請先完成個人資料註冊。';
+
+  @override
+  String get community_home_verify_phone => '請先完成手機認證。';
+
+  @override
+  String get community_home_ugc_title => '需要同意社區使用條款';
+
+  @override
+  String get community_home_ugc_desc =>
+      '社區會顯示使用者生成的內容(UGC)。\n為了確保安全的使用環境，請同意以下內容：\n\n• 禁止誹謗、仇恨、歧視或騷擾他人的內容\n• 禁止非法、淫穢、暴力或欺詐等有害內容\n• 違反政策可能會受到舉報、封鎖或懲處\n• 管理員可能會審查被舉報的內容';
+
+  @override
+  String get community_home_ugc_btn_no => '不同意';
+
+  @override
+  String get community_home_ugc_btn_yes => '同意並開始';
+
+  @override
+  String get community_home_ugc_msg_reject => '同意後方可使用社區功能。';
+
+  @override
+  String community_home_ugc_msg_fail(Object error) {
+    return '儲存同意狀態失敗: $error';
+  }
+
+  @override
+  String get community_preview_recent => '最新';
+
+  @override
+  String get community_preview_popular => '熱門';
+
+  @override
+  String get community_preview_see_all => '查看全部';
+
+  @override
+  String get community_preview_type_text => '貼文';
+
+  @override
+  String get community_preview_today_title => '今日社區';
+
+  @override
+  String get community_preview_stat_posts => '貼文';
+
+  @override
+  String get community_preview_stat_comments => '評論';
+
+  @override
+  String get community_preview_stat_likes => '點讚';
+
+  @override
+  String get community_preview_live_title => '最新動態';
+
+  @override
+  String get community_preview_default_title => '新貼文';
+
+  @override
+  String get community_avatar_no_online => '目前無人在線';
+
+  @override
+  String get community_avatar_no_name => '未提供姓名';
+
+  @override
+  String get post_write_edit_title => '編輯貼文';
+
+  @override
+  String get post_write_btn_post => '發佈';
+
+  @override
+  String get post_write_btn_edit => '儲存';
+
+  @override
+  String get post_write_hint => '在想些什麼呢？';
+
+  @override
+  String get post_write_photo_limit => '最多只能上傳 7 張照片。';
+
+  @override
+  String get post_write_uploading => '正在發佈貼文...';
+
+  @override
+  String post_write_upload_progress(Object current, Object total) {
+    return '正在上傳照片 ($current / $total)';
+  }
+
+  @override
+  String post_write_photo_count(Object current) {
+    return '照片 ($current/7)';
+  }
+
+  @override
+  String get post_write_photo_add => '添加';
+
+  @override
+  String get post_write_photo_placeholder => '添加照片 (最多 7 張)';
+
+  @override
+  String post_write_error_upload(Object error) {
+    return '上傳失敗: $error';
+  }
+
+  @override
+  String get circle_title => '動態';
+
+  @override
+  String get circle_no_visible_posts => '沒有可顯示的貼文';
+
+  @override
+  String get circle_error_feed => '無法載入動態';
+
+  @override
+  String get circle_error_auth => '登入狀態錯誤';
+
+  @override
+  String get circle_profile_required => '請先完成個人資料註冊';
+
+  @override
+  String get circle_list_delete_title => '刪除確認';
+
+  @override
+  String get circle_list_delete_body => '確定要刪除此貼文嗎？';
+
+  @override
+  String get circle_list_no_visible_posts => '沒有可顯示的貼文';
+
+  @override
+  String get post_card_more => '閱讀更多';
+
+  @override
+  String get post_card_fold => '收起 ▲';
+
+  @override
+  String get post_card_share => '分享';
+
+  @override
+  String get post_card_report => '舉報';
+
+  @override
+  String get post_card_block => '封鎖';
+
+  @override
+  String get post_card_block_title => '封鎖用戶';
+
+  @override
+  String post_card_block_body(Object name) {
+    return '確定要封鎖 $name 嗎？\n\n封鎖後將不再顯示該用戶的貼文。';
+  }
+
+  @override
+  String post_card_block_success(Object name) {
+    return '已封鎖 $name';
+  }
+
+  @override
+  String get post_card_report_title => '舉報貼文';
+
+  @override
+  String get post_card_report_reason => '舉報原因';
+
+  @override
+  String get post_card_report_detail => '補充說明(選填)';
+
+  @override
+  String get post_card_report_success => '舉報已提交。';
+
+  @override
+  String get post_card_report_r1 => '垃圾訊息/騷擾';
+
+  @override
+  String get post_card_report_r2 => '辱罵/仇恨';
+
+  @override
+  String get post_card_report_r3 => '霸凌/騷擾';
+
+  @override
+  String get post_card_report_r4 => '性內容';
+
+  @override
+  String get post_card_report_r5 => '暴力/威脅';
+
+  @override
+  String get post_card_report_r6 => '其他';
+
+  @override
+  String post_card_share_msg(Object content, Object link) {
+    return '[DAO 社區] 有新的動態！🎯\n\n$content\n\n立即在 DAO App 查看。\n👉 $link';
+  }
+
+  @override
+  String get comment_preview_see_all => '查看所有評論';
+
+  @override
+  String get common_anonymous => '匿名';
+
+  @override
+  String get comment_title => '評論';
+
+  @override
+  String get comment_hint => '輸入評論...';
+
+  @override
+  String get comment_empty => '尚無評論';
+
+  @override
+  String get comment_no_visible => '沒有可顯示的評論';
+
+  @override
+  String get comment_report_title => '舉報評論';
+
+  @override
+  String get comment_report_select_reason => '請選擇原因';
+
+  @override
+  String get comment_report_success => '舉報已提交';
+
+  @override
+  String comment_report_fail(Object error) {
+    return '舉報失敗: $error';
+  }
+
+  @override
+  String get comment_delete_title => '刪除確認';
+
+  @override
+  String get comment_delete_body => '確定要刪除此評論嗎？';
+
+  @override
+  String get comment_time_just_now => '剛剛';
+
+  @override
+  String get profile_form_korean_name => '活動名稱 (本地)';
+
+  @override
+  String get profile_form_korean_name_hint => '請輸入您的姓名';
+
+  @override
+  String get profile_form_english_name => '活動名稱 (英文)';
+
+  @override
+  String get profile_form_english_name_hint => '請輸入英文姓名';
+
+  @override
+  String get profile_form_shop_name => '所屬店舖';
+
+  @override
+  String get profile_form_shop_name_hint => '請輸入主要活動的店舖';
+
+  @override
+  String get profile_reg_title => '註冊/修改個人資料';
+
+  @override
+  String get profile_reg_save => '儲存完成';
+
+  @override
+  String get profile_reg_success => '成功儲存個人資料！';
+
+  @override
+  String get profile_reg_fail => '儲存失敗，請稍後再試。';
+
+  @override
+  String profile_reg_error(Object error) {
+    return '儲存時出現錯誤: $error';
+  }
+
+  @override
+  String get profile_reg_input_check => '請檢查輸入內容。';
+
+  @override
+  String get profile_image_save => '頭像儲存完成！';
+
+  @override
+  String get profile_image_delete_title => '永久刪除圖片';
+
+  @override
+  String get profile_image_delete_body => '刪除的圖片將立即生效且無法恢復。確定要刪除嗎？';
+
+  @override
+  String get profile_image_deleted => '圖片已刪除。';
+
+  @override
+  String profile_image_fail(Object error) {
+    return '圖片處理失敗: $error';
+  }
+
+  @override
+  String get barrel_image_save => '鏢身圖片儲存完成！';
+
+  @override
+  String get report_screen_title => '錯誤/舉報';
+
+  @override
+  String get report_form_title_label => '標題';
+
+  @override
+  String get report_form_content_label => '詳細內容';
+
+  @override
+  String get report_form_content_hint => '請詳細描述發生的情況或重現步驟';
+
+  @override
+  String get report_form_photo_add => '添加照片 (選填)';
+
+  @override
+  String get report_form_photo_change => '更換照片';
+
+  @override
+  String get report_form_submit => '提交舉報';
+
+  @override
+  String get report_form_error_empty => '請輸入標題和內容';
+
+  @override
+  String get report_form_success => '舉報已提交，謝謝！';
+
+  @override
+  String report_form_fail(Object error) {
+    return '發送失敗: $error';
+  }
+
+  @override
+  String get notice_no_title => '無標題';
+
+  @override
+  String notice_error(Object error) {
+    return '加載公告時出錯: $error';
+  }
+
+  @override
+  String get mypage_login_prompt_title => 'ログインするとプロフィールを確認できます！';
+
+  @override
+  String get mypage_login_prompt_subtitle => 'Googleアカウントで簡単に始めましょう';
+
+  @override
+  String get mypage_login_btn => 'Googleでログイン';
+
+  @override
+  String get mypage_profile_prompt_title => 'プロフィール登録が必要です！';
+
+  @override
+  String get mypage_profile_prompt_subtitle => '名前とショップを登録して\n他のユーザーと交流しましょう';
+
+  @override
+  String get mypage_profile_reg_btn => 'プロフィール登録';
+
+  @override
+  String get mypage_edit_profile => 'プロフィール編集';
+
+  @override
+  String get mypage_my_guestbook => 'ゲストブック';
+
+  @override
+  String get mypage_account_delete => 'アカウント削除';
+
+  @override
+  String get mypage_logout => 'ログアウト';
+
+  @override
+  String get mypage_logout_confirm => '本当にログアウトしますか？';
+
+  @override
+  String get mypage_delete_confirm_title => 'アカウント削除';
+
+  @override
+  String get mypage_delete_confirm_body =>
+      'DAOアカウントを削除すると、すべてのデータが削除されます。\nこの操作は取り消せません。\n\n本当に削除しますか？';
+
+  @override
+  String get mypage_delete_error_recent_login =>
+      '보안을 위해 최근 로그인한 사용자만 계정을 삭제할 수 있어요.\n다시 로그인한 후 시도해주세요.';
+
+  @override
+  String get mypage_delete_error_general => '계정 삭제 중 오류가 발생했습니다.';
+
+  @override
+  String get mypage_delete_error_server =>
+      '계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.';
+
+  @override
+  String get mypage_no_email => 'メールなし';
+
+  @override
+  String get mypage_menu_mylog => 'マイログ';
+
+  @override
+  String get guestbook_title_me => '我的留言板';
+
+  @override
+  String get guestbook_title_other => '撰寫留言';
+
+  @override
+  String get guestbook_hint => '留下應援訊息...';
+
+  @override
+  String get guestbook_empty => '尚無留言';
+
+  @override
+  String get guestbook_success => '留言已發佈';
+
+  @override
+  String guestbook_fail(Object error) {
+    return '發送失敗: $error';
+  }
+
+  @override
+  String get block_title => '封鎖管理';
+
+  @override
+  String get block_empty => '目前沒有封鎖的使用者。';
+
+  @override
+  String get block_status => '已封鎖';
+
+  @override
+  String get block_unblock_btn => '解除封鎖';
+
+  @override
+  String get block_unblock_confirm_title => '解除封鎖';
+
+  @override
+  String block_unblock_confirm_body(Object name) {
+    return '確定要解除對 $name 的封鎖嗎？\n解除後將可以看見對方的貼文與聊天訊息。';
+  }
+
+  @override
+  String block_unblock_success(Object name) {
+    return '已解除對 $name 的封鎖。';
+  }
+
+  @override
+  String get block_unblock_fail => '解除封鎖時發生錯誤。';
+
+  @override
+  String get block_error_load => '無法讀取資料。';
+
+  @override
+  String get guestbook_header_no_name => '無姓名';
+
+  @override
+  String get guestbook_header_barrel_title => '選手裝備';
+
+  @override
+  String get guestbook_menu_edit => '編輯';
+
+  @override
+  String get guestbook_menu_delete => '刪除';
+
+  @override
+  String get guestbook_edit_title => '編輯留言';
+
+  @override
+  String get guestbook_edit_complete => '編輯完成';
+
+  @override
+  String get guestbook_delete_confirm_title => '刪除確認';
+
+  @override
+  String get guestbook_delete_confirm_body => '確定要刪除這條留言嗎？';
+
+  @override
+  String get guestbook_unknown_user => '未知用戶';
+
+  @override
+  String get barrel_section_title => '鏢身設定 (選填)';
+
+  @override
+  String get barrel_label_name => '鏢身名稱';
+
+  @override
+  String get barrel_label_shaft => '鏢桿';
+
+  @override
+  String get barrel_label_flight => '鏢翼';
+
+  @override
+  String get barrel_label_tip => '鏢尖';
+
+  @override
+  String get image_picker_error => '無法選擇照片。';
+
+  @override
+  String get image_upload_error => '上傳圖片時發生錯誤。';
+
+  @override
+  String get image_delete_error => '刪除圖片時發生錯誤。';
+
+  @override
+  String get mylog_login_required_title => '需要登入';
+
+  @override
+  String get mylog_login_required_subtitle => '若要記錄與管理個人的飛鏢日記，\n請先登入帳號。';
+
+  @override
+  String get mylog_login_btn => '前往登入';
+
+  @override
+  String mylog_summary_streak(Object days) {
+    return '🔥 連續記錄 $days 天';
+  }
+
+  @override
+  String get mylog_recent_title => '最近的飛鏢故事';
+
+  @override
+  String get mylog_no_content => '無內容';
+
+  @override
+  String get mylog_error_load => '讀取記錄時發生錯誤。';
+
+  @override
+  String mylog_confirm_sheet_title(Object day, Object month, Object year) {
+    return '$year年 $month月 $day日';
+  }
+
+  @override
+  String get mylog_confirm_sheet_body => '要在這個日期撰寫新的飛鏢日記嗎？';
+
+  @override
+  String get mylog_confirm_sheet_btn_later => '稍後';
+
+  @override
+  String get mylog_confirm_sheet_btn_write => '現在撰寫';
+
+  @override
+  String get mylog_calendar_month_label => '月';
+
+  @override
+  String get mylog_write_title_new => '撰寫日記';
+
+  @override
+  String get mylog_write_title_edit => '修改日記';
+
+  @override
+  String get mylog_write_subtitle_new => '記錄今天的成長';
+
+  @override
+  String get mylog_write_subtitle_edit => '正在整理記憶';
+
+  @override
+  String get mylog_write_image_add => '添加照片 (選填)';
+
+  @override
+  String get mylog_write_guide_title => '撰寫指南 (點擊添加/刪除)';
+
+  @override
+  String get mylog_write_guide_good => '💪 優點';
+
+  @override
+  String get mylog_write_guide_bad => '🧐 不足之處';
+
+  @override
+  String get mylog_write_guide_next => '✏️ 下次計劃';
+
+  @override
+  String get mylog_write_guide_review => '📝 今日心得';
+
+  @override
+  String get mylog_write_template_good => '💪 今天做得很棒的地方\n- ';
+
+  @override
+  String get mylog_write_template_bad => '🧐 覺得可惜或待改進的地方\n- ';
+
+  @override
+  String get mylog_write_template_next => '✏️ 下次的練習計劃\n- ';
+
+  @override
+  String get mylog_write_template_review => '📝 今日一句話總結\n- ';
+
+  @override
+  String get mylog_write_hint => '今天練鏢感覺如何？\n記下令人印象深刻的投擲或需要改進的地方。';
+
+  @override
+  String get mylog_write_share_title => '分享至圈子';
+
+  @override
+  String get mylog_write_share_subtitle_new => '儲存時同步發佈至動態。';
+
+  @override
+  String get mylog_write_share_subtitle_edit => '此記錄已分享至圈子。';
+
+  @override
+  String get mylog_write_save_btn => '儲存日記';
+
+  @override
+  String get mylog_write_empty_error => '請輸入記錄內容。';
+
+  @override
+  String mylog_write_save_fail(Object error) {
+    return '儲存失敗: $error';
+  }
+
+  @override
+  String get mylog_detail_error_not_found => '找不到記錄。';
+
+  @override
+  String mylog_detail_written_at(Object time) {
+    return '撰寫於 $time';
+  }
+
+  @override
+  String get mylog_detail_shared_circle => '已分享至圈子';
+
+  @override
+  String get mylog_detail_content_title => '今日的飛鏢故事';
+
+  @override
+  String get mylog_detail_no_content => '尚無內容。';
+
+  @override
+  String get mylog_detail_footer => 'DAO 伴隨您的成長，為您加油。';
+
+  @override
+  String get mylog_detail_delete_title => '刪除記錄';
+
+  @override
+  String get mylog_detail_delete_body => '確定要刪除這天珍貴的記錄嗎？';
+
+  @override
+  String get mylog_detail_delete_btn => '刪除';
+
+  @override
+  String get mylog_detail_delete_success => '記錄已刪除。';
+
+  @override
+  String get mylog_card_subtitle => '今日的飛鏢故事';
+
+  @override
+  String get mylog_card_image_error => '無法載入圖片';
+
+  @override
+  String get mylog_card_image_tag => '今日一抽';
+
+  @override
+  String get mylog_card_no_content => '目前尚無內容。下次要不要更詳細地記錄您的飛鏢故事呢？';
+
+  @override
+  String get mylog_card_shared_badge => '已分享至圈子';
+
+  @override
+  String get chat_login_required => '請先登入。';
+
+  @override
+  String get chat_empty_title => '歡迎來到 DAO 即時聊天！';
+
+  @override
+  String get chat_empty_subtitle => '留下您的第一條訊息吧。';
+
+  @override
+  String get chat_error_load => '讀取資料時發生錯誤。';
+
+  @override
+  String get chat_ticker_default_notice => '歡迎來到 DAO 即時聊天！';
+
+  @override
+  String get chat_ticker_prefix_ranking => '[排行]';
+
+  @override
+  String get chat_ticker_prefix_tournament => '[賽事]';
+
+  @override
+  String get chat_ticker_prefix_welcome => '[歡迎]';
+
+  @override
+  String get chat_ticker_prefix_notice => '[公告]';
+
+  @override
+  String get chat_overlay_title => 'DAO 即時聊天';
+
+  @override
+  String get chat_overlay_block_guide => '長按訊息即可封鎖該用戶。';
+
+  @override
+  String get chat_bubble_menu_report_title => '檢舉';
+
+  @override
+  String get chat_bubble_menu_report_subtitle => '檢舉此不當訊息。';
+
+  @override
+  String chat_bubble_menu_block_title(Object name) {
+    return '封鎖 $name';
+  }
+
+  @override
+  String get chat_bubble_menu_block_subtitle => '將不再顯示此用戶的訊息。';
+
+  @override
+  String get chat_bubble_block_dialog_title => '封鎖用戶';
+
+  @override
+  String chat_bubble_block_dialog_body(Object name) {
+    return '確定要封鎖 $name 嗎？\n封鎖後將無法看見此用戶的對話。';
+  }
+
+  @override
+  String chat_bubble_block_success(Object name) {
+    return '已封鎖 $name。';
+  }
+
+  @override
+  String get chat_bubble_block_fail => '封鎖時發生錯誤。';
+
+  @override
+  String get chat_bubble_unknown_user => '未知用戶';
+
+  @override
+  String get chat_input_hint => '輸入訊息...';
+
+  @override
+  String get chat_input_cooldown => '請稍候...';
+
+  @override
+  String chat_input_send_fail(Object error) {
+    return '發送失敗: $error';
+  }
+
+  @override
+  String get profile_reg_fail_duplicate_name => '該暱稱已被使用，請輸入其他名稱。';
+
+  @override
+  String get common_login_required => '請先登入';
+
+  @override
+  String get common_error_msg => '發生錯誤，請稍後再試。';
+
+  @override
+  String get live_btn_move => '前往';
+
+  @override
+  String get common_msg_processing => '處理中...';
+
+  @override
+  String get circle_translate_btn => '翻譯';
+
+  @override
+  String get circle_translate_show_original => '查看原文';
+
+  @override
+  String get circle_translate_fail => '翻譯失敗，請稍後再試。';
+
+  @override
+  String get tab_home => '首頁';
+
+  @override
+  String get tab_training => '訓練';
+
+  @override
+  String get tab_arena => '競技場';
+
+  @override
+  String get tab_community => '社群';
+
+  @override
+  String get tab_mypage => '我的';
+
+  @override
+  String get ban_msg_restricted => '由於違反營運政策，此帳號已被限制使用。';
+
+  @override
+  String get menu_tooltip_settings => '設定';
+
+  @override
+  String get menu_block_manage => '封鎖名單管理';
+
+  @override
+  String get menu_admin_block_manage => '全體封鎖管理';
+
+  @override
+  String get menu_admin_mode => '管理員模式';
+
+  @override
+  String get profile_players_dart => '選手飛鏢裝備';
+
+  @override
+  String get profile_barrel => '鏢身';
+
+  @override
+  String get profile_shaft => '鏢桿';
+
+  @override
+  String get profile_flight => '鏢翼';
+
+  @override
+  String get profile_tip => '鏢針';
+
+  @override
+  String get profile_go_guestbook_me => '前往我的留言板';
+
+  @override
+  String get profile_go_guestbook_other => '去寫留言板';
+
+  @override
+  String get login_google => '使用 Google 帳戶登入';
+
+  @override
+  String get login_apple => '使用 Apple 登入';
+
+  @override
+  String get login_admin_info => '此登入方式僅限管理員及審核帳戶使用。';
+
+  @override
+  String get login_email => '電子郵件';
+
+  @override
+  String get login_password => '密碼';
+
+  @override
+  String get login_email_btn => '使用電子郵件登入';
+
+  @override
+  String get login_skip => '跳過';
+
+  @override
+  String get login_fail_google => 'Google 登入時發生錯誤。';
+
+  @override
+  String get login_fail_apple => 'Apple 登入時發生錯誤。';
+
+  @override
+  String get login_error_email_empty => '請輸入電子郵件。';
+
+  @override
+  String get login_error_email_format => '電子郵件格式不正確。';
+
+  @override
+  String get login_error_password_empty => '請輸入密碼。';
+
+  @override
+  String get login_error_password_length => '密碼長度至少需 6 個字元。';
+
+  @override
+  String get post_write_delay_msg => '請稍後再試。每分鐘只能發佈一則貼文。';
+
+  @override
+  String notice_detail_photo_count(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get notice_lang_ko => '韓語';
+
+  @override
+  String get notice_lang_en => '英語';
+
+  @override
+  String get notice_lang_ja => '日語';
+
+  @override
+  String get notice_lang_zh_hant => '繁體中文';
+
+  @override
+  String get notice_lang_zh_hans => '簡體中文';
+
+  @override
+  String notice_photo_indicator(Object current, Object total) {
+    return '$current / $total';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -4077,7 +4953,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get menu_notice => '公告事项';
 
   @override
-  String get menu_report => '反馈报告';
+  String get menu_report => '咨询与检举';
 
   @override
   String get menu_quick_arena => '竞技场';
@@ -4694,7 +5570,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get circle_title_feed => '动态墙';
 
   @override
-  String get circle_no_posts => '暂无贴文显示';
+  String get circle_no_posts => '尚无帖子';
 
   @override
   String get circle_label_text_only => '文字';
@@ -4706,7 +5582,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get circle_btn_see_all => '查看全部';
 
   @override
-  String get post_write_title => '分享至社区';
+  String get post_write_title => '分享到圈子';
 
   @override
   String get post_edit_title => '编辑贴文';
@@ -4884,14 +5760,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get login_msg_fail_email => '电子邮件登录失败。';
 
   @override
-  String get mylog_title => '个人日志';
+  String get mylog_title => '我的飞镖日志';
 
   @override
-  String get mylog_summary_title => '我的飞镖故事';
+  String get mylog_summary_title => '一步步积累的成长';
 
   @override
   String mylog_summary_count(Object count) {
-    return '已累计 $count 则纪录';
+    return '已积累 $count 笔记录。';
   }
 
   @override
@@ -5072,7 +5948,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get notice_title => '公告事项';
 
   @override
-  String get notice_empty => '暂无公告';
+  String get notice_empty => '目前没有公告事项。';
 
   @override
   String get delete_acc_confirm_title => '注销账号';
@@ -6380,22 +7256,22 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get calendar_unit_day => '日';
 
   @override
-  String get live_list_title => '今日练习现状';
+  String get live_list_title => '实时练习动态';
 
   @override
-  String get live_list_empty => '今日暂无练习记录。';
+  String get live_list_empty => '目前没有正在练习的用户。';
 
   @override
-  String get live_status_live => '直播中';
+  String get live_status_live => 'LIVE';
 
   @override
-  String get live_status_finished => '已结束';
+  String get live_status_finished => 'FINISHED';
 
   @override
-  String get live_no_shop => '未指定地点';
+  String get live_no_shop => '无所属店铺';
 
   @override
-  String get live_blur_text => '**** · ****';
+  String get live_blur_text => '请先登录后查看。';
 
   @override
   String get live_board_title => 'LIVE 练习现状';
@@ -7947,6 +8823,871 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get member_list_no_email => '未提供电子邮件';
+
+  @override
+  String get community_home_tab_title => '练习 · 比赛 · 记录';
+
+  @override
+  String get community_home_menu_training => '训练';
+
+  @override
+  String get community_home_menu_arena => '竞技场';
+
+  @override
+  String get community_home_menu_mylog => '我的日志';
+
+  @override
+  String get community_home_login_prompt => '如需使用社区功能\n请先登录';
+
+  @override
+  String get community_home_verify_prompt => '如需使用社区功能\n请完成认证';
+
+  @override
+  String get community_home_verify_profile => '请先完成个人资料注册。';
+
+  @override
+  String get community_home_verify_phone => '请先完成手机认证。';
+
+  @override
+  String get community_home_ugc_title => '需要同意社区使用条款';
+
+  @override
+  String get community_home_ugc_desc =>
+      '社区会显示用户生成的内容(UGC)。\n为了确保安全的使用环境，请同意以下内容：\n\n• 禁止诽谤、仇恨、歧视或骚扰他人的内容\n• 禁止非法、淫秽、暴力或欺诈等有害内容\n• 违反政策可能会受到举报、封锁或惩处\n• 管理员可能会审查被举报的内容';
+
+  @override
+  String get community_home_ugc_btn_no => '不同意';
+
+  @override
+  String get community_home_ugc_btn_yes => '同意并开始';
+
+  @override
+  String get community_home_ugc_msg_reject => '同意后方可使用社区功能。';
+
+  @override
+  String community_home_ugc_msg_fail(Object error) {
+    return '保存同意状态失败: $error';
+  }
+
+  @override
+  String get community_preview_recent => '最新';
+
+  @override
+  String get community_preview_popular => '热门';
+
+  @override
+  String get community_preview_see_all => '查看全部';
+
+  @override
+  String get community_preview_type_text => '帖子';
+
+  @override
+  String get community_preview_today_title => '今日社区';
+
+  @override
+  String get community_preview_stat_posts => '帖子';
+
+  @override
+  String get community_preview_stat_comments => '评论';
+
+  @override
+  String get community_preview_stat_likes => '点赞';
+
+  @override
+  String get community_preview_live_title => '最新动态';
+
+  @override
+  String get community_preview_default_title => '新帖子';
+
+  @override
+  String get community_avatar_no_online => '目前无人在线';
+
+  @override
+  String get community_avatar_no_name => '未提供姓名';
+
+  @override
+  String get post_write_edit_title => '编辑帖子';
+
+  @override
+  String get post_write_btn_post => '发布';
+
+  @override
+  String get post_write_btn_edit => '保存';
+
+  @override
+  String get post_write_hint => '在想些什么呢？';
+
+  @override
+  String get post_write_photo_limit => '最多只能上传 7 张照片。';
+
+  @override
+  String get post_write_uploading => '正在发布帖子...';
+
+  @override
+  String post_write_upload_progress(Object current, Object total) {
+    return '正在上传照片 ($current / $total)';
+  }
+
+  @override
+  String post_write_photo_count(Object current) {
+    return '照片 ($current/7)';
+  }
+
+  @override
+  String get post_write_photo_add => '添加';
+
+  @override
+  String get post_write_photo_placeholder => '添加照片 (最多 7 张)';
+
+  @override
+  String post_write_error_upload(Object error) {
+    return '上传失败: $error';
+  }
+
+  @override
+  String get circle_title => '动态';
+
+  @override
+  String get circle_no_visible_posts => '没有可显示的帖子';
+
+  @override
+  String get circle_error_feed => '无法加载动态';
+
+  @override
+  String get circle_error_auth => '登录状态错误';
+
+  @override
+  String get circle_profile_required => '请先完成个人资料注册';
+
+  @override
+  String get circle_list_delete_title => '删除确认';
+
+  @override
+  String get circle_list_delete_body => '确定要删除此帖子吗？';
+
+  @override
+  String get circle_list_no_visible_posts => '没有可显示的帖子';
+
+  @override
+  String get post_card_more => '阅读更多';
+
+  @override
+  String get post_card_fold => '收起 ▲';
+
+  @override
+  String get post_card_share => '分享';
+
+  @override
+  String get post_card_report => '举报';
+
+  @override
+  String get post_card_block => '拉黑';
+
+  @override
+  String get post_card_block_title => '拉黑用户';
+
+  @override
+  String post_card_block_body(Object name) {
+    return '确定要拉黑 $name 吗？\n\n拉黑后将不再显示该用户的帖子。';
+  }
+
+  @override
+  String post_card_block_success(Object name) {
+    return '已拉黑 $name';
+  }
+
+  @override
+  String get post_card_report_title => '举报帖子';
+
+  @override
+  String get post_card_report_reason => '举报原因';
+
+  @override
+  String get post_card_report_detail => '补充说明(选填)';
+
+  @override
+  String get post_card_report_success => '举报已提交。';
+
+  @override
+  String get post_card_report_r1 => '垃圾信息/骚扰';
+
+  @override
+  String get post_card_report_r2 => '辱骂/仇恨';
+
+  @override
+  String get post_card_report_r3 => '霸凌/骚扰';
+
+  @override
+  String get post_card_report_r4 => '性内容';
+
+  @override
+  String get post_card_report_r5 => '暴力/威胁';
+
+  @override
+  String get post_card_report_r6 => '其他';
+
+  @override
+  String post_card_share_msg(Object content, Object link) {
+    return '[DAO 社区] 有新的动态！🎯\n\n$content\n\n立即在 DAO App 查看。\n👉 $link';
+  }
+
+  @override
+  String get comment_preview_see_all => '查看所有评论';
+
+  @override
+  String get common_anonymous => '匿名';
+
+  @override
+  String get comment_title => '评论';
+
+  @override
+  String get comment_hint => '输入评论...';
+
+  @override
+  String get comment_empty => '尚无评论';
+
+  @override
+  String get comment_no_visible => '没有可显示的评论';
+
+  @override
+  String get comment_report_title => '举报评论';
+
+  @override
+  String get comment_report_select_reason => '请选择原因';
+
+  @override
+  String get comment_report_success => '举报已提交';
+
+  @override
+  String comment_report_fail(Object error) {
+    return '举报失败: $error';
+  }
+
+  @override
+  String get comment_delete_title => '删除确认';
+
+  @override
+  String get comment_delete_body => '确定要删除此评论吗？';
+
+  @override
+  String get comment_time_just_now => '刚刚';
+
+  @override
+  String get profile_form_korean_name => '活动名称 (本地)';
+
+  @override
+  String get profile_form_korean_name_hint => '请输入您的姓名';
+
+  @override
+  String get profile_form_english_name => '活动名称 (英文)';
+
+  @override
+  String get profile_form_english_name_hint => '请输入英文姓名';
+
+  @override
+  String get profile_form_shop_name => '所属店铺';
+
+  @override
+  String get profile_form_shop_name_hint => '请输入主要活动的店铺';
+
+  @override
+  String get profile_reg_title => '注册/修改个人资料';
+
+  @override
+  String get profile_reg_save => '保存完成';
+
+  @override
+  String get profile_reg_success => '成功保存个人资料！';
+
+  @override
+  String get profile_reg_fail => '保存失败，请稍后再试。';
+
+  @override
+  String profile_reg_error(Object error) {
+    return '保存时出现错误: $error';
+  }
+
+  @override
+  String get profile_reg_input_check => '请检查输入内容。';
+
+  @override
+  String get profile_image_save => '头像保存完成！';
+
+  @override
+  String get profile_image_delete_title => '永久删除图片';
+
+  @override
+  String get profile_image_delete_body => '删除的图片将立即生效且无法恢复。确定要删除吗？';
+
+  @override
+  String get profile_image_deleted => '图片已删除。';
+
+  @override
+  String profile_image_fail(Object error) {
+    return '图片处理失败: $error';
+  }
+
+  @override
+  String get barrel_image_save => '镖身图片保存完成！';
+
+  @override
+  String get report_screen_title => '错误/举报';
+
+  @override
+  String get report_form_title_label => '标题';
+
+  @override
+  String get report_form_content_label => '详细内容';
+
+  @override
+  String get report_form_content_hint => '请详细描述发生的情况或重现步骤';
+
+  @override
+  String get report_form_photo_add => '添加照片 (选填)';
+
+  @override
+  String get report_form_photo_change => '更换照片';
+
+  @override
+  String get report_form_submit => '提交举报';
+
+  @override
+  String get report_form_error_empty => '请输入标题和内容';
+
+  @override
+  String get report_form_success => '举报已提交, 谢谢！';
+
+  @override
+  String report_form_fail(Object error) {
+    return '发送失败: $error';
+  }
+
+  @override
+  String get notice_no_title => '无标题';
+
+  @override
+  String notice_error(Object error) {
+    return '加载公告时出错: $error';
+  }
+
+  @override
+  String get mypage_login_prompt_title => '登录以查看您的个人资料！';
+
+  @override
+  String get mypage_login_prompt_subtitle => '使用 Google 帐号轻松开始';
+
+  @override
+  String get mypage_login_btn => '使用 Google 登录';
+
+  @override
+  String get mypage_profile_prompt_title => '需要注册个人资料！';
+
+  @override
+  String get mypage_profile_prompt_subtitle => '注册姓名和店铺\n与其他用户交流';
+
+  @override
+  String get mypage_profile_reg_btn => '注册个人资料';
+
+  @override
+  String get mypage_edit_profile => '编辑个人资料';
+
+  @override
+  String get mypage_my_guestbook => '留言板';
+
+  @override
+  String get mypage_account_delete => '删除账号';
+
+  @override
+  String get mypage_logout => '登出';
+
+  @override
+  String get mypage_logout_confirm => '确定要登出吗？';
+
+  @override
+  String get mypage_delete_confirm_title => '删除账号';
+
+  @override
+  String get mypage_delete_confirm_body =>
+      '删除 DAO 账号将移除所有资料。\n此操作无法撤销。\n\n确定要删除吗？';
+
+  @override
+  String get mypage_no_email => '无电子邮件';
+
+  @override
+  String get mypage_menu_mylog => '个人日志';
+
+  @override
+  String get guestbook_title_me => '我的留言板';
+
+  @override
+  String get guestbook_title_other => '撰写留言';
+
+  @override
+  String get guestbook_hint => '留下应援信息...';
+
+  @override
+  String get guestbook_empty => '尚无留言';
+
+  @override
+  String get guestbook_success => '留言已发布';
+
+  @override
+  String guestbook_fail(Object error) {
+    return '发送失败: $error';
+  }
+
+  @override
+  String get block_title => '黑名单管理';
+
+  @override
+  String get block_empty => '目前没有屏蔽的用户。';
+
+  @override
+  String get block_status => '已屏蔽';
+
+  @override
+  String get block_unblock_btn => '解除屏蔽';
+
+  @override
+  String get block_unblock_confirm_title => '解除屏蔽';
+
+  @override
+  String block_unblock_confirm_body(Object name) {
+    return '确定要解除对 $name 的屏蔽吗？\n解除后将可以看见对方的帖子与聊天消息。';
+  }
+
+  @override
+  String block_unblock_success(Object name) {
+    return '已解除对 $name 的屏蔽。';
+  }
+
+  @override
+  String get block_unblock_fail => '解除屏蔽时发生错误。';
+
+  @override
+  String get block_error_load => '无法读取数据。';
+
+  @override
+  String get guestbook_header_no_name => '无姓名';
+
+  @override
+  String get guestbook_header_barrel_title => '选手装备';
+
+  @override
+  String get guestbook_menu_edit => '编辑';
+
+  @override
+  String get guestbook_menu_delete => '删除';
+
+  @override
+  String get guestbook_edit_title => '编辑留言';
+
+  @override
+  String get guestbook_edit_complete => '编辑完成';
+
+  @override
+  String get guestbook_delete_confirm_title => '删除确认';
+
+  @override
+  String get guestbook_delete_confirm_body => '确定要删除这条留言吗？';
+
+  @override
+  String get guestbook_unknown_user => '未知用户';
+
+  @override
+  String get barrel_section_title => '镖身设置 (选填)';
+
+  @override
+  String get barrel_label_name => '镖身名称';
+
+  @override
+  String get barrel_label_shaft => '镖杆';
+
+  @override
+  String get barrel_label_flight => '镖翼';
+
+  @override
+  String get barrel_label_tip => '镖尖';
+
+  @override
+  String get image_picker_error => '无法选择照片。';
+
+  @override
+  String get image_upload_error => '上传图片时发生错误。';
+
+  @override
+  String get image_delete_error => '删除图片时发生错误。';
+
+  @override
+  String get mylog_login_required_title => '需要登录';
+
+  @override
+  String get mylog_login_required_subtitle => '若要记录与管理个人的飞镖日志，\n请先登录账号。';
+
+  @override
+  String get mylog_login_btn => '前往登录';
+
+  @override
+  String mylog_summary_streak(Object days) {
+    return '🔥 连续记录 $days 天';
+  }
+
+  @override
+  String get mylog_recent_title => '最近的飞镖故事';
+
+  @override
+  String get mylog_no_content => '无内容';
+
+  @override
+  String get mylog_error_load => '读取记录时发生错误。';
+
+  @override
+  String mylog_confirm_sheet_title(Object day, Object month, Object year) {
+    return '$year年 $month月 $day日';
+  }
+
+  @override
+  String get mylog_confirm_sheet_body => '要在这个日期撰写新的飞镖日志吗？';
+
+  @override
+  String get mylog_confirm_sheet_btn_later => '稍后';
+
+  @override
+  String get mylog_confirm_sheet_btn_write => '现在撰写';
+
+  @override
+  String get mylog_calendar_month_label => '月';
+
+  @override
+  String get mylog_write_title_new => '撰写日记';
+
+  @override
+  String get mylog_write_title_edit => '修改日记';
+
+  @override
+  String get mylog_write_subtitle_new => '记录今天的成长';
+
+  @override
+  String get mylog_write_subtitle_edit => '正在整理记忆';
+
+  @override
+  String get mylog_write_image_add => '添加照片 (选填)';
+
+  @override
+  String get mylog_write_guide_title => '撰写指南 (点击添加/删除)';
+
+  @override
+  String get mylog_write_guide_good => '💪 优点';
+
+  @override
+  String get mylog_write_guide_bad => '🧐 不足之处';
+
+  @override
+  String get mylog_write_guide_next => '✏️ 下次计划';
+
+  @override
+  String get mylog_write_guide_review => '📝 今日心得';
+
+  @override
+  String get mylog_write_template_good => '💪 今天做得棒的地方\n- ';
+
+  @override
+  String get mylog_write_template_bad => '🧐 觉得可惜或待改进的地方\n- ';
+
+  @override
+  String get mylog_write_template_next => '✏️ 下次的练习计划\n- ';
+
+  @override
+  String get mylog_write_template_review => '📝 今日一句话总结\n- ';
+
+  @override
+  String get mylog_write_hint => '今天练镖感觉如何？\n记下令人印象深刻的投掷或需要改进的地方。';
+
+  @override
+  String get mylog_write_share_title => '分享至圈子';
+
+  @override
+  String get mylog_write_share_subtitle_new => '保存时同步发布至动态。';
+
+  @override
+  String get mylog_write_share_subtitle_edit => '此记录已分享至圈子。';
+
+  @override
+  String get mylog_write_save_btn => '保存日记';
+
+  @override
+  String get mylog_write_empty_error => '请输入记录内容。';
+
+  @override
+  String mylog_write_save_fail(Object error) {
+    return '保存失败: $error';
+  }
+
+  @override
+  String get mylog_detail_error_not_found => '找不到记录。';
+
+  @override
+  String mylog_detail_written_at(Object time) {
+    return '撰写于 $time';
+  }
+
+  @override
+  String get mylog_detail_shared_circle => '已分享至圈子';
+
+  @override
+  String get mylog_detail_content_title => '今日的飞镖故事';
+
+  @override
+  String get mylog_detail_no_content => '尚无内容。';
+
+  @override
+  String get mylog_detail_footer => 'DAO 伴随您的成长，为您加油。';
+
+  @override
+  String get mylog_detail_delete_title => '删除记录';
+
+  @override
+  String get mylog_detail_delete_body => '确定要删除这天珍贵的记录吗？';
+
+  @override
+  String get mylog_detail_delete_btn => '删除';
+
+  @override
+  String get mylog_detail_delete_success => '记录已删除。';
+
+  @override
+  String get mylog_card_subtitle => '今日的飞镖故事';
+
+  @override
+  String get mylog_card_image_error => '无法加载图片';
+
+  @override
+  String get mylog_card_image_tag => '今日一抽';
+
+  @override
+  String get mylog_card_no_content => '目前尚无内容。下次要不要更详细地记录您的飞镖故事呢？';
+
+  @override
+  String get mylog_card_shared_badge => '已分享至圈子';
+
+  @override
+  String get chat_login_required => '请先登录。';
+
+  @override
+  String get chat_empty_title => '欢迎来到 DAO 实时聊天！';
+
+  @override
+  String get chat_empty_subtitle => '留下您的第一条消息吧。';
+
+  @override
+  String get chat_error_load => '读取数据时发生错误。';
+
+  @override
+  String get chat_ticker_default_notice => '欢迎来到 DAO 实时聊天！';
+
+  @override
+  String get chat_ticker_prefix_ranking => '[排行]';
+
+  @override
+  String get chat_ticker_prefix_tournament => '[赛事]';
+
+  @override
+  String get chat_ticker_prefix_welcome => '[欢迎]';
+
+  @override
+  String get chat_ticker_prefix_notice => '[公告]';
+
+  @override
+  String get chat_overlay_title => 'DAO 实时聊天';
+
+  @override
+  String get chat_overlay_block_guide => '长按消息即可屏蔽该用户。';
+
+  @override
+  String get chat_bubble_menu_report_title => '举报';
+
+  @override
+  String get chat_bubble_menu_report_subtitle => '举报此不当消息。';
+
+  @override
+  String chat_bubble_menu_block_title(Object name) {
+    return '屏蔽 $name';
+  }
+
+  @override
+  String get chat_bubble_menu_block_subtitle => '将不再显示此用户的消息。';
+
+  @override
+  String get chat_bubble_block_dialog_title => '屏蔽用户';
+
+  @override
+  String chat_bubble_block_dialog_body(Object name) {
+    return '确定要屏蔽 $name 吗？\n屏蔽后将无法看见此用户的对话。';
+  }
+
+  @override
+  String chat_bubble_block_success(Object name) {
+    return '已屏蔽 $name。';
+  }
+
+  @override
+  String get chat_bubble_block_fail => '屏蔽时发生错误。';
+
+  @override
+  String get chat_bubble_unknown_user => '未知用户';
+
+  @override
+  String get chat_input_hint => '输入消息...';
+
+  @override
+  String get chat_input_cooldown => '请稍候...';
+
+  @override
+  String chat_input_send_fail(Object error) {
+    return '发送失败: $error';
+  }
+
+  @override
+  String get profile_reg_fail_duplicate_name => '该昵称已被使用，请输入其他名称。';
+
+  @override
+  String get common_login_required => '请先登录';
+
+  @override
+  String get common_error_msg => '发生错误，请稍后再试。';
+
+  @override
+  String get live_btn_move => '前往';
+
+  @override
+  String get common_msg_processing => '处理中...';
+
+  @override
+  String get circle_translate_btn => '翻译';
+
+  @override
+  String get circle_translate_show_original => '查看原文';
+
+  @override
+  String get circle_translate_fail => '翻译失败，请稍后再试。';
+
+  @override
+  String get tab_home => '首页';
+
+  @override
+  String get tab_training => '训练';
+
+  @override
+  String get tab_arena => '竞技场';
+
+  @override
+  String get tab_community => '社区';
+
+  @override
+  String get tab_mypage => '我的';
+
+  @override
+  String get ban_msg_restricted => '由于违反运营政策，此账号已被限制使用。';
+
+  @override
+  String get menu_tooltip_settings => '设置';
+
+  @override
+  String get menu_block_manage => '黑名单管理';
+
+  @override
+  String get menu_admin_block_manage => '全体封锁管理';
+
+  @override
+  String get menu_admin_mode => '管理员模式';
+
+  @override
+  String get profile_players_dart => '选手飞镖装备';
+
+  @override
+  String get profile_barrel => '镖身';
+
+  @override
+  String get profile_shaft => '镖杆';
+
+  @override
+  String get profile_flight => '镖翼';
+
+  @override
+  String get profile_tip => '镖针';
+
+  @override
+  String get profile_go_guestbook_me => '前往我的留言板';
+
+  @override
+  String get profile_go_guestbook_other => '去写留言板';
+
+  @override
+  String get login_google => '通过 Google 登录';
+
+  @override
+  String get login_apple => '通过 Apple 登录';
+
+  @override
+  String get login_admin_info => '此登录方式仅限管理员及审核账户使用。';
+
+  @override
+  String get login_email => '电子邮件';
+
+  @override
+  String get login_password => '密码';
+
+  @override
+  String get login_email_btn => '通过电子邮件登录';
+
+  @override
+  String get login_skip => '跳过';
+
+  @override
+  String get login_fail_google => 'Google 登录时发生错误。';
+
+  @override
+  String get login_fail_apple => 'Apple 登录时发生错误。';
+
+  @override
+  String get login_error_email_empty => '请输入电子邮件。';
+
+  @override
+  String get login_error_email_format => '电子邮件格式不正确。';
+
+  @override
+  String get login_error_password_empty => '请输入密码。';
+
+  @override
+  String get login_error_password_length => '密码长度至少需 6 个字符。';
+
+  @override
+  String get post_write_delay_msg => '请稍后再试。每分钟只能发布一条帖子。';
+
+  @override
+  String notice_detail_photo_count(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get notice_lang_ko => '韩语';
+
+  @override
+  String get notice_lang_en => '英语';
+
+  @override
+  String get notice_lang_ja => '日语';
+
+  @override
+  String get notice_lang_zh_hant => '繁体中文';
+
+  @override
+  String get notice_lang_zh_hans => '简体中文';
+
+  @override
+  String notice_photo_indicator(Object current, Object total) {
+    return '$current / $total';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -8044,7 +9785,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get menu_notice => '公告事項';
 
   @override
-  String get menu_report => '回饋報告';
+  String get menu_report => '諮詢與檢舉';
 
   @override
   String get menu_quick_arena => '競技場';
@@ -8661,7 +10402,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get circle_title_feed => '動態牆';
 
   @override
-  String get circle_no_posts => '暫無貼文顯示';
+  String get circle_no_posts => '尚無貼文';
 
   @override
   String get circle_label_text_only => '文字';
@@ -8673,7 +10414,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get circle_btn_see_all => '查看全部';
 
   @override
-  String get post_write_title => '分享至社群';
+  String get post_write_title => '分享到圈子';
 
   @override
   String get post_edit_title => '編輯貼文';
@@ -8851,14 +10592,14 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get login_msg_fail_email => '電子郵件登入失敗。';
 
   @override
-  String get mylog_title => '個人日誌';
+  String get mylog_title => '我的飛鏢日記';
 
   @override
-  String get mylog_summary_title => '我的飛鏢故事';
+  String get mylog_summary_title => '一步步累積的成長';
 
   @override
   String mylog_summary_count(Object count) {
-    return '已累積 $count 則紀錄';
+    return '已累積 $count 筆記錄。';
   }
 
   @override
@@ -9039,7 +10780,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get notice_title => '公告事項';
 
   @override
-  String get notice_empty => '暫無公告';
+  String get notice_empty => '目前沒有公告事項。';
 
   @override
   String get delete_acc_confirm_title => '註銷帳號';
@@ -10347,22 +12088,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get calendar_unit_day => '日';
 
   @override
-  String get live_list_title => '今日練習現狀';
+  String get live_list_title => '即時練習動態';
 
   @override
-  String get live_list_empty => '今日暫無練習記錄。';
+  String get live_list_empty => '目前沒有正在練習的用戶。';
 
   @override
-  String get live_status_live => '直播中';
+  String get live_status_live => 'LIVE';
 
   @override
-  String get live_status_finished => '已結束';
+  String get live_status_finished => 'FINISHED';
 
   @override
-  String get live_no_shop => '未指定地點';
+  String get live_no_shop => '無所屬店舖';
 
   @override
-  String get live_blur_text => '**** · ****';
+  String get live_blur_text => '請先登入後查看。';
 
   @override
   String get live_board_title => 'LIVE 練習現狀';
@@ -11914,4 +13655,869 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get member_list_no_email => '未提供電子郵件';
+
+  @override
+  String get community_home_tab_title => '練習 · 比賽 · 紀錄';
+
+  @override
+  String get community_home_menu_training => '訓練';
+
+  @override
+  String get community_home_menu_arena => '競技場';
+
+  @override
+  String get community_home_menu_mylog => '我的日誌';
+
+  @override
+  String get community_home_login_prompt => '如需使用社區功能\n請先登入';
+
+  @override
+  String get community_home_verify_prompt => '如需使用社區功能\n請完成認證';
+
+  @override
+  String get community_home_verify_profile => '請先完成個人資料註冊。';
+
+  @override
+  String get community_home_verify_phone => '請先完成手機認證。';
+
+  @override
+  String get community_home_ugc_title => '需要同意社區使用條款';
+
+  @override
+  String get community_home_ugc_desc =>
+      '社區會顯示使用者生成的內容(UGC)。\n為了確保安全的使用環境，請同意以下內容：\n\n• 禁止誹謗、仇恨、歧視或騷擾他人的內容\n• 禁止非法、淫穢、暴力或欺詐等有害內容\n• 違反政策可能會受到舉報、封鎖或懲處\n• 管理員可能會審查被舉報的內容';
+
+  @override
+  String get community_home_ugc_btn_no => '不同意';
+
+  @override
+  String get community_home_ugc_btn_yes => '同意並開始';
+
+  @override
+  String get community_home_ugc_msg_reject => '同意後方可使用社區功能。';
+
+  @override
+  String community_home_ugc_msg_fail(Object error) {
+    return '儲存同意狀態失敗: $error';
+  }
+
+  @override
+  String get community_preview_recent => '最新';
+
+  @override
+  String get community_preview_popular => '熱門';
+
+  @override
+  String get community_preview_see_all => '查看全部';
+
+  @override
+  String get community_preview_type_text => '貼文';
+
+  @override
+  String get community_preview_today_title => '今日社區';
+
+  @override
+  String get community_preview_stat_posts => '貼文';
+
+  @override
+  String get community_preview_stat_comments => '評論';
+
+  @override
+  String get community_preview_stat_likes => '點讚';
+
+  @override
+  String get community_preview_live_title => '最新動態';
+
+  @override
+  String get community_preview_default_title => '新貼文';
+
+  @override
+  String get community_avatar_no_online => '目前無人在線';
+
+  @override
+  String get community_avatar_no_name => '未提供姓名';
+
+  @override
+  String get post_write_edit_title => '編輯貼文';
+
+  @override
+  String get post_write_btn_post => '發佈';
+
+  @override
+  String get post_write_btn_edit => '儲存';
+
+  @override
+  String get post_write_hint => '在想些什麼呢？';
+
+  @override
+  String get post_write_photo_limit => '最多只能上傳 7 張照片。';
+
+  @override
+  String get post_write_uploading => '正在發佈貼文...';
+
+  @override
+  String post_write_upload_progress(Object current, Object total) {
+    return '正在上傳照片 ($current / $total)';
+  }
+
+  @override
+  String post_write_photo_count(Object current) {
+    return '照片 ($current/7)';
+  }
+
+  @override
+  String get post_write_photo_add => '添加';
+
+  @override
+  String get post_write_photo_placeholder => '添加照片 (最多 7 張)';
+
+  @override
+  String post_write_error_upload(Object error) {
+    return '上傳失敗: $error';
+  }
+
+  @override
+  String get circle_title => '動態';
+
+  @override
+  String get circle_no_visible_posts => '沒有可顯示的貼文';
+
+  @override
+  String get circle_error_feed => '無法載入動態';
+
+  @override
+  String get circle_error_auth => '登入狀態錯誤';
+
+  @override
+  String get circle_profile_required => '請先完成個人資料註冊';
+
+  @override
+  String get circle_list_delete_title => '刪除確認';
+
+  @override
+  String get circle_list_delete_body => '確定要刪除此貼文嗎？';
+
+  @override
+  String get circle_list_no_visible_posts => '沒有可顯示的貼文';
+
+  @override
+  String get post_card_more => '閱讀更多';
+
+  @override
+  String get post_card_fold => '收起 ▲';
+
+  @override
+  String get post_card_share => '分享';
+
+  @override
+  String get post_card_report => '舉報';
+
+  @override
+  String get post_card_block => '封鎖';
+
+  @override
+  String get post_card_block_title => '封鎖用戶';
+
+  @override
+  String post_card_block_body(Object name) {
+    return '確定要封鎖 $name 嗎？\n\n封鎖後將不再顯示該用戶的貼文。';
+  }
+
+  @override
+  String post_card_block_success(Object name) {
+    return '已封鎖 $name';
+  }
+
+  @override
+  String get post_card_report_title => '舉報貼文';
+
+  @override
+  String get post_card_report_reason => '舉報原因';
+
+  @override
+  String get post_card_report_detail => '補充說明(選填)';
+
+  @override
+  String get post_card_report_success => '舉報已提交。';
+
+  @override
+  String get post_card_report_r1 => '垃圾訊息/騷擾';
+
+  @override
+  String get post_card_report_r2 => '辱罵/仇恨';
+
+  @override
+  String get post_card_report_r3 => '霸凌/騷擾';
+
+  @override
+  String get post_card_report_r4 => '性內容';
+
+  @override
+  String get post_card_report_r5 => '暴力/威脅';
+
+  @override
+  String get post_card_report_r6 => '其他';
+
+  @override
+  String post_card_share_msg(Object content, Object link) {
+    return '[DAO 社區] 有新的動態！🎯\n\n$content\n\n立即在 DAO App 查看。\n👉 $link';
+  }
+
+  @override
+  String get comment_preview_see_all => '查看所有評論';
+
+  @override
+  String get common_anonymous => '匿名';
+
+  @override
+  String get comment_title => '評論';
+
+  @override
+  String get comment_hint => '輸入評論...';
+
+  @override
+  String get comment_empty => '尚無評論';
+
+  @override
+  String get comment_no_visible => '沒有可顯示的評論';
+
+  @override
+  String get comment_report_title => '舉報評論';
+
+  @override
+  String get comment_report_select_reason => '請選擇原因';
+
+  @override
+  String get comment_report_success => '舉報已提交';
+
+  @override
+  String comment_report_fail(Object error) {
+    return '舉報失敗: $error';
+  }
+
+  @override
+  String get comment_delete_title => '刪除確認';
+
+  @override
+  String get comment_delete_body => '確定要刪除此評論嗎？';
+
+  @override
+  String get comment_time_just_now => '剛剛';
+
+  @override
+  String get profile_form_korean_name => '活動名稱 (本地)';
+
+  @override
+  String get profile_form_korean_name_hint => '請輸入您的姓名';
+
+  @override
+  String get profile_form_english_name => '活動名稱 (英文)';
+
+  @override
+  String get profile_form_english_name_hint => '請輸入英文姓名';
+
+  @override
+  String get profile_form_shop_name => '所屬店舖';
+
+  @override
+  String get profile_form_shop_name_hint => '請輸入主要活動的店舖';
+
+  @override
+  String get profile_reg_title => '註冊/修改個人資料';
+
+  @override
+  String get profile_reg_save => '儲存完成';
+
+  @override
+  String get profile_reg_success => '成功儲存個人資料！';
+
+  @override
+  String get profile_reg_fail => '儲存失敗，請稍後再試。';
+
+  @override
+  String profile_reg_error(Object error) {
+    return '儲存時出現錯誤: $error';
+  }
+
+  @override
+  String get profile_reg_input_check => '請檢查輸入內容。';
+
+  @override
+  String get profile_image_save => '頭像儲存完成！';
+
+  @override
+  String get profile_image_delete_title => '永久刪除圖片';
+
+  @override
+  String get profile_image_delete_body => '刪除的圖片將立即生效且無法恢復。確定要刪除嗎？';
+
+  @override
+  String get profile_image_deleted => '圖片已刪除。';
+
+  @override
+  String profile_image_fail(Object error) {
+    return '圖片處理失敗: $error';
+  }
+
+  @override
+  String get barrel_image_save => '鏢身圖片儲存完成！';
+
+  @override
+  String get report_screen_title => '錯誤/舉報';
+
+  @override
+  String get report_form_title_label => '標題';
+
+  @override
+  String get report_form_content_label => '詳細內容';
+
+  @override
+  String get report_form_content_hint => '請詳細描述發生的情況或重現步驟';
+
+  @override
+  String get report_form_photo_add => '添加照片 (選填)';
+
+  @override
+  String get report_form_photo_change => '更換照片';
+
+  @override
+  String get report_form_submit => '提交舉報';
+
+  @override
+  String get report_form_error_empty => '請輸入標題和內容';
+
+  @override
+  String get report_form_success => '舉報已提交，謝謝！';
+
+  @override
+  String report_form_fail(Object error) {
+    return '發送失敗: $error';
+  }
+
+  @override
+  String get notice_no_title => '無標題';
+
+  @override
+  String notice_error(Object error) {
+    return '加載公告時出錯: $error';
+  }
+
+  @override
+  String get mypage_login_prompt_title => '登入以查看您的個人資料！';
+
+  @override
+  String get mypage_login_prompt_subtitle => '使用 Google 帳號輕鬆開始';
+
+  @override
+  String get mypage_login_btn => '使用 Google 登入';
+
+  @override
+  String get mypage_profile_prompt_title => '需要註冊個人資料！';
+
+  @override
+  String get mypage_profile_prompt_subtitle => '註冊姓名和店舖\n與其他用戶交流';
+
+  @override
+  String get mypage_profile_reg_btn => '註冊個人資料';
+
+  @override
+  String get mypage_edit_profile => '編輯個人資料';
+
+  @override
+  String get mypage_my_guestbook => '留言板';
+
+  @override
+  String get mypage_account_delete => '刪除帳號';
+
+  @override
+  String get mypage_logout => '登出';
+
+  @override
+  String get mypage_logout_confirm => '確定要登出嗎？';
+
+  @override
+  String get mypage_delete_confirm_title => '刪除帳號';
+
+  @override
+  String get mypage_delete_confirm_body =>
+      '刪除 DAO 帳號將移除所有資料。\n此操作無法撤銷。\n\n確定要刪除嗎？';
+
+  @override
+  String get mypage_no_email => '無電子郵件';
+
+  @override
+  String get mypage_menu_mylog => '個人日誌';
+
+  @override
+  String get guestbook_title_me => '我的留言板';
+
+  @override
+  String get guestbook_title_other => '撰寫留言';
+
+  @override
+  String get guestbook_hint => '留下應援訊息...';
+
+  @override
+  String get guestbook_empty => '尚無留言';
+
+  @override
+  String get guestbook_success => '留言已發佈';
+
+  @override
+  String guestbook_fail(Object error) {
+    return '發送失敗: $error';
+  }
+
+  @override
+  String get block_title => '封鎖管理';
+
+  @override
+  String get block_empty => '目前沒有封鎖的使用者。';
+
+  @override
+  String get block_status => '已封鎖';
+
+  @override
+  String get block_unblock_btn => '解除封鎖';
+
+  @override
+  String get block_unblock_confirm_title => '解除封鎖';
+
+  @override
+  String block_unblock_confirm_body(Object name) {
+    return '確定要解除對 $name 的封鎖嗎？\n解除後將可以看見對方的貼文與聊天訊息。';
+  }
+
+  @override
+  String block_unblock_success(Object name) {
+    return '已解除對 $name 的封鎖。';
+  }
+
+  @override
+  String get block_unblock_fail => '解除封鎖時發生錯誤。';
+
+  @override
+  String get block_error_load => '無法讀取資料。';
+
+  @override
+  String get guestbook_header_no_name => '無姓名';
+
+  @override
+  String get guestbook_header_barrel_title => '選手裝備';
+
+  @override
+  String get guestbook_menu_edit => '編輯';
+
+  @override
+  String get guestbook_menu_delete => '刪除';
+
+  @override
+  String get guestbook_edit_title => '編輯留言';
+
+  @override
+  String get guestbook_edit_complete => '編輯完成';
+
+  @override
+  String get guestbook_delete_confirm_title => '刪除確認';
+
+  @override
+  String get guestbook_delete_confirm_body => '確定要刪除這條留言嗎？';
+
+  @override
+  String get guestbook_unknown_user => '未知用戶';
+
+  @override
+  String get barrel_section_title => '鏢身設定 (選填)';
+
+  @override
+  String get barrel_label_name => '鏢身名稱';
+
+  @override
+  String get barrel_label_shaft => '鏢桿';
+
+  @override
+  String get barrel_label_flight => '鏢翼';
+
+  @override
+  String get barrel_label_tip => '鏢尖';
+
+  @override
+  String get image_picker_error => '無法選擇照片。';
+
+  @override
+  String get image_upload_error => '上傳圖片時發生錯誤。';
+
+  @override
+  String get image_delete_error => '刪除圖片時發生錯誤。';
+
+  @override
+  String get mylog_login_required_title => '需要登入';
+
+  @override
+  String get mylog_login_required_subtitle => '若要記錄與管理個人的飛鏢日記，\n請先登入帳號。';
+
+  @override
+  String get mylog_login_btn => '前往登入';
+
+  @override
+  String mylog_summary_streak(Object days) {
+    return '🔥 連續記錄 $days 天';
+  }
+
+  @override
+  String get mylog_recent_title => '最近的飛鏢故事';
+
+  @override
+  String get mylog_no_content => '無內容';
+
+  @override
+  String get mylog_error_load => '讀取記錄時發生錯誤。';
+
+  @override
+  String mylog_confirm_sheet_title(Object day, Object month, Object year) {
+    return '$year年 $month月 $day日';
+  }
+
+  @override
+  String get mylog_confirm_sheet_body => '要在這個日期撰寫新的飛鏢日記嗎？';
+
+  @override
+  String get mylog_confirm_sheet_btn_later => '稍後';
+
+  @override
+  String get mylog_confirm_sheet_btn_write => '現在撰寫';
+
+  @override
+  String get mylog_calendar_month_label => '月';
+
+  @override
+  String get mylog_write_title_new => '撰寫日記';
+
+  @override
+  String get mylog_write_title_edit => '修改日記';
+
+  @override
+  String get mylog_write_subtitle_new => '記錄今天的成長';
+
+  @override
+  String get mylog_write_subtitle_edit => '正在整理記憶';
+
+  @override
+  String get mylog_write_image_add => '添加照片 (選填)';
+
+  @override
+  String get mylog_write_guide_title => '撰寫指南 (點擊添加/刪除)';
+
+  @override
+  String get mylog_write_guide_good => '💪 優點';
+
+  @override
+  String get mylog_write_guide_bad => '🧐 不足之處';
+
+  @override
+  String get mylog_write_guide_next => '✏️ 下次計劃';
+
+  @override
+  String get mylog_write_guide_review => '📝 今日心得';
+
+  @override
+  String get mylog_write_template_good => '💪 今天做得很棒的地方\n- ';
+
+  @override
+  String get mylog_write_template_bad => '🧐 覺得可惜或待改進的地方\n- ';
+
+  @override
+  String get mylog_write_template_next => '✏️ 下次的練習計劃\n- ';
+
+  @override
+  String get mylog_write_template_review => '📝 今日一句話總結\n- ';
+
+  @override
+  String get mylog_write_hint => '今天練鏢感覺如何？\n記下令人印象深刻的投擲或需要改進的地方。';
+
+  @override
+  String get mylog_write_share_title => '分享至圈子';
+
+  @override
+  String get mylog_write_share_subtitle_new => '儲存時同步發佈至動態。';
+
+  @override
+  String get mylog_write_share_subtitle_edit => '此記錄已分享至圈子。';
+
+  @override
+  String get mylog_write_save_btn => '儲存日記';
+
+  @override
+  String get mylog_write_empty_error => '請輸入記錄內容。';
+
+  @override
+  String mylog_write_save_fail(Object error) {
+    return '儲存失敗: $error';
+  }
+
+  @override
+  String get mylog_detail_error_not_found => '找不到記錄。';
+
+  @override
+  String mylog_detail_written_at(Object time) {
+    return '撰寫於 $time';
+  }
+
+  @override
+  String get mylog_detail_shared_circle => '已分享至圈子';
+
+  @override
+  String get mylog_detail_content_title => '今日的飛鏢故事';
+
+  @override
+  String get mylog_detail_no_content => '尚無內容。';
+
+  @override
+  String get mylog_detail_footer => 'DAO 伴隨您的成長，為您加油。';
+
+  @override
+  String get mylog_detail_delete_title => '刪除記錄';
+
+  @override
+  String get mylog_detail_delete_body => '確定要刪除這天珍貴的記錄嗎？';
+
+  @override
+  String get mylog_detail_delete_btn => '刪除';
+
+  @override
+  String get mylog_detail_delete_success => '記錄已刪除。';
+
+  @override
+  String get mylog_card_subtitle => '今日的飛鏢故事';
+
+  @override
+  String get mylog_card_image_error => '無法載入圖片';
+
+  @override
+  String get mylog_card_image_tag => '今日一抽';
+
+  @override
+  String get mylog_card_no_content => '目前尚無內容。下次要不要更詳細地記錄您的飛鏢故事呢？';
+
+  @override
+  String get mylog_card_shared_badge => '已分享至圈子';
+
+  @override
+  String get chat_login_required => '請先登入。';
+
+  @override
+  String get chat_empty_title => '歡迎來到 DAO 即時聊天！';
+
+  @override
+  String get chat_empty_subtitle => '留下您的第一條訊息吧。';
+
+  @override
+  String get chat_error_load => '讀取資料時發生錯誤。';
+
+  @override
+  String get chat_ticker_default_notice => '歡迎來到 DAO 即時聊天！';
+
+  @override
+  String get chat_ticker_prefix_ranking => '[排行]';
+
+  @override
+  String get chat_ticker_prefix_tournament => '[賽事]';
+
+  @override
+  String get chat_ticker_prefix_welcome => '[歡迎]';
+
+  @override
+  String get chat_ticker_prefix_notice => '[公告]';
+
+  @override
+  String get chat_overlay_title => 'DAO 即時聊天';
+
+  @override
+  String get chat_overlay_block_guide => '長按訊息即可封鎖該用戶。';
+
+  @override
+  String get chat_bubble_menu_report_title => '檢舉';
+
+  @override
+  String get chat_bubble_menu_report_subtitle => '檢舉此不當訊息。';
+
+  @override
+  String chat_bubble_menu_block_title(Object name) {
+    return '封鎖 $name';
+  }
+
+  @override
+  String get chat_bubble_menu_block_subtitle => '將不再顯示此用戶的訊息。';
+
+  @override
+  String get chat_bubble_block_dialog_title => '封鎖用戶';
+
+  @override
+  String chat_bubble_block_dialog_body(Object name) {
+    return '確定要封鎖 $name 嗎？\n封鎖後將無法看見此用戶的對話。';
+  }
+
+  @override
+  String chat_bubble_block_success(Object name) {
+    return '已封鎖 $name。';
+  }
+
+  @override
+  String get chat_bubble_block_fail => '封鎖時發生錯誤。';
+
+  @override
+  String get chat_bubble_unknown_user => '未知用戶';
+
+  @override
+  String get chat_input_hint => '輸入訊息...';
+
+  @override
+  String get chat_input_cooldown => '請稍候...';
+
+  @override
+  String chat_input_send_fail(Object error) {
+    return '發送失敗: $error';
+  }
+
+  @override
+  String get profile_reg_fail_duplicate_name => '該暱稱已被使用，請輸入其他名稱。';
+
+  @override
+  String get common_login_required => '請先登入';
+
+  @override
+  String get common_error_msg => '發生錯誤，請稍後再試。';
+
+  @override
+  String get live_btn_move => '前往';
+
+  @override
+  String get common_msg_processing => '處理中...';
+
+  @override
+  String get circle_translate_btn => '翻譯';
+
+  @override
+  String get circle_translate_show_original => '查看原文';
+
+  @override
+  String get circle_translate_fail => '翻譯失敗，請稍後再試。';
+
+  @override
+  String get tab_home => '首頁';
+
+  @override
+  String get tab_training => '訓練';
+
+  @override
+  String get tab_arena => '競技場';
+
+  @override
+  String get tab_community => '社群';
+
+  @override
+  String get tab_mypage => '我的';
+
+  @override
+  String get ban_msg_restricted => '由於違反營運政策，此帳號已被限制使用。';
+
+  @override
+  String get menu_tooltip_settings => '設定';
+
+  @override
+  String get menu_block_manage => '封鎖名單管理';
+
+  @override
+  String get menu_admin_block_manage => '全體封鎖管理';
+
+  @override
+  String get menu_admin_mode => '管理員模式';
+
+  @override
+  String get profile_players_dart => '選手飛鏢裝備';
+
+  @override
+  String get profile_barrel => '鏢身';
+
+  @override
+  String get profile_shaft => '鏢桿';
+
+  @override
+  String get profile_flight => '鏢翼';
+
+  @override
+  String get profile_tip => '鏢針';
+
+  @override
+  String get profile_go_guestbook_me => '前往我的留言板';
+
+  @override
+  String get profile_go_guestbook_other => '去寫留言板';
+
+  @override
+  String get login_google => '使用 Google 帳戶登入';
+
+  @override
+  String get login_apple => '使用 Apple 登入';
+
+  @override
+  String get login_admin_info => '此登入方式僅限管理員及審核帳戶使用。';
+
+  @override
+  String get login_email => '電子郵件';
+
+  @override
+  String get login_password => '密碼';
+
+  @override
+  String get login_email_btn => '使用電子郵件登入';
+
+  @override
+  String get login_skip => '跳過';
+
+  @override
+  String get login_fail_google => 'Google 登入時發生錯誤。';
+
+  @override
+  String get login_fail_apple => 'Apple 登入時發生錯誤。';
+
+  @override
+  String get login_error_email_empty => '請輸入電子郵件。';
+
+  @override
+  String get login_error_email_format => '電子郵件格式不正確。';
+
+  @override
+  String get login_error_password_empty => '請輸入密碼。';
+
+  @override
+  String get login_error_password_length => '密碼長度至少需 6 個字元。';
+
+  @override
+  String get post_write_delay_msg => '請稍後再試。每分鐘只能發佈一則貼文。';
+
+  @override
+  String notice_detail_photo_count(Object current, Object total) {
+    return '$current / $total';
+  }
+
+  @override
+  String get notice_lang_ko => '韓語';
+
+  @override
+  String get notice_lang_en => '英語';
+
+  @override
+  String get notice_lang_ja => '日語';
+
+  @override
+  String get notice_lang_zh_hant => '繁體中文';
+
+  @override
+  String get notice_lang_zh_hans => '簡體中文';
+
+  @override
+  String notice_photo_indicator(Object current, Object total) {
+    return '$current / $total';
+  }
 }

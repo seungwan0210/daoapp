@@ -668,6 +668,12 @@
       "languageVersion": "3.2"
     },
     {
+      "name": "html_unescape",
+      "rootUri": "file:///C:/Users/A/AppData/Local/Pub/Cache/hosted/pub.dev/html_unescape-2.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "http",
       "rootUri": "file:///C:/Users/A/AppData/Local/Pub/Cache/hosted/pub.dev/http-1.6.0",
       "packageUri": "lib/",

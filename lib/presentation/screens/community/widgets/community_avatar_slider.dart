@@ -6,9 +6,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 import 'package:daoapp/core/utils/badge_utils.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart'; // ✅ 중앙 차단 프로바이더 임포트
+import 'package:daoapp/presentation/providers/app_providers.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class CommunityAvatarSlider extends ConsumerWidget {
   const CommunityAvatarSlider({super.key});
@@ -16,9 +16,10 @@ class CommunityAvatarSlider extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     if (currentUid == null) return const SizedBox(height: 90);
 
-    // ✅ [핵심] 중앙 집중식 실시간 차단 목록 구독
     final blockedIds = ref.watch(blockedUserIdsProvider).value ?? {};
 
     return StreamBuilder<QuerySnapshot>(
@@ -43,7 +44,6 @@ class CommunityAvatarSlider extends ConsumerWidget {
           final uid = data?['uid']?.toString().trim();
           if (uid == null || uid.isEmpty) continue;
 
-          // 🔥 [필터링] 내가 차단한 유저라면 목록에 추가하지 않고 건너뜁니다.
           if (blockedIds.contains(uid)) continue;
 
           if (uid == currentUid) {
@@ -58,9 +58,9 @@ class CommunityAvatarSlider extends ConsumerWidget {
         sortedDocs.addAll(otherDocs);
 
         if (sortedDocs.isEmpty) {
-          return const SizedBox(
+          return SizedBox(
             height: 90,
-            child: Center(child: Text('온라인 유저 없음')),
+            child: Center(child: Text(s.community_avatar_no_online)), // 🔹 다국어 적용
           );
         }
 
@@ -83,7 +83,7 @@ class CommunityAvatarSlider extends ConsumerWidget {
               return _OnlineUserTile(
                 uid: uid,
                 isMe: isMe,
-                onTap: () => _showUserProfileDialog(context, uid, isMe),
+                onTap: () => _showUserProfileDialog(context, uid, isMe, s),
               );
             },
           ),
@@ -92,7 +92,7 @@ class CommunityAvatarSlider extends ConsumerWidget {
     );
   }
 
-  void _showUserProfileDialog(BuildContext context, String userId, bool isMe) {
+  void _showUserProfileDialog(BuildContext context, String userId, bool isMe, AppLocalizations s) {
     showDialog(
       context: context,
       builder: (_) => FutureBuilder<DocumentSnapshot>(
@@ -100,7 +100,7 @@ class CommunityAvatarSlider extends ConsumerWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
-          final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
+          final koreanName = data['koreanName']?.toString().trim() ?? s.community_avatar_no_name; // 🔹 다국어 적용
           final photoUrl = (data['profileImageUrl'] as String?)?.trim();
 
           return UserProfileDialog(
@@ -128,6 +128,7 @@ class _OnlineUserTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!;
     final totalRanking = ref.watch(totalRankingProvider);
     final rankIndex = totalRanking.indexWhere((item) => item['userId'] == uid);
     final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
@@ -143,18 +144,15 @@ class _OnlineUserTile extends ConsumerWidget {
                 ? (snapshot.data!.data() ?? {})
                 : <String, dynamic>{};
 
-            final name = (userData['koreanName']?.toString().trim() ?? '이름 없음');
+            final name = (userData['koreanName']?.toString().trim() ?? s.community_avatar_no_name); // 🔹 다국어 적용
             final photoUrl = (userData['profileImageUrl'] as String?)?.trim();
 
-            // 배지 위젯 리스트 생성
             final badgeWidgets = <Widget>[];
 
-            // 1. 실시간 순위 배지 (rank 전달)
             if (currentRank != null) {
               badgeWidgets.add(BadgeWidget(rank: currentRank, size: 20));
             }
 
-            // 2. 관리자 배지 (badgeKey 전달)
             final badgesMap = BadgeUtils.extractBadges(userData);
             final adminBadge = BadgeUtils.getLatestAdminBadge(badgesMap);
             if (adminBadge != null && badgeWidgets.length < 2) {
@@ -210,7 +208,6 @@ class _AvatarWithBadges extends StatelessWidget {
           child: !hasPhoto ? const Icon(Icons.person, size: 32, color: Colors.grey) : null,
         ),
 
-        // 배지 표시
         ...badgeWidgets.asMap().entries.map((entry) {
           final index = entry.key;
           final widget = entry.value;
@@ -225,7 +222,7 @@ class _AvatarWithBadges extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 2, offset: Offset(0, 1))],
               ),
-              child: widget, // 이미 BadgeWidget이므로 그대로 사용
+              child: widget,
             ),
           );
         }).toList(),

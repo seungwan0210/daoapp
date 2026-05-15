@@ -1,6 +1,8 @@
-// lib/user/widgets/profile_form_fields.dart
+// lib/presentation/screens/my_page/widgets/profile_form_fields.dart
+
 import 'package:flutter/material.dart';
 import '../services/profile_service.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ProfileFormFields extends StatelessWidget {
   final ProfileService service;
@@ -8,24 +10,43 @@ class ProfileFormFields extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Column(
       children: [
+        // 🔹 로컬 이름 입력 (한국어/해당 국가 언어)
         TextFormField(
           controller: service.koreanNameCtrl,
-          decoration: const InputDecoration(labelText: '한국 이름', prefixIcon: Icon(Icons.person)),
-          validator: (v) => v!.trim().isEmpty ? '한국 이름을 입력하세요' : null,
+          decoration: InputDecoration(
+            labelText: s.profile_form_korean_name,
+            hintText: s.profile_form_korean_name_hint,
+            prefixIcon: const Icon(Icons.person),
+          ),
+          validator: (v) => v!.trim().isEmpty ? s.profile_form_korean_name_hint : null,
         ),
         const SizedBox(height: 12),
+
+        // 🔹 글로벌 통용 이름 입력 (영문)
         TextFormField(
           controller: service.englishNameCtrl,
-          decoration: const InputDecoration(labelText: '영어 이름', prefixIcon: Icon(Icons.translate)),
-          validator: (v) => v!.trim().isEmpty ? '영어 이름을 입력하세요' : null,
+          decoration: InputDecoration(
+            labelText: s.profile_form_english_name,
+            hintText: s.profile_form_english_name_hint,
+            prefixIcon: const Icon(Icons.translate),
+          ),
+          validator: (v) => v!.trim().isEmpty ? s.profile_form_english_name_hint : null,
         ),
         const SizedBox(height: 12),
+
+        // 🔹 소속 샵 입력
         TextFormField(
           controller: service.shopNameCtrl,
-          decoration: const InputDecoration(labelText: '샵 이름', prefixIcon: Icon(Icons.store)),
-          validator: (v) => v!.trim().isEmpty ? '샵 이름을 입력하세요' : null,
+          decoration: InputDecoration(
+            labelText: s.profile_form_shop_name,
+            hintText: s.profile_form_shop_name_hint,
+            prefixIcon: const Icon(Icons.store),
+          ),
+          validator: (v) => v!.trim().isEmpty ? s.profile_form_shop_name_hint : null,
         ),
         const SizedBox(height: 12),
       ],

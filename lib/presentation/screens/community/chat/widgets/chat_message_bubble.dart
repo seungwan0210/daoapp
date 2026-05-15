@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:daoapp/data/models/chat_message_model.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
 import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/core/constants/route_constants.dart';
-import 'package:daoapp/core/constants/badge_constants.dart'; // ✅ 배지 경로 참조용 추가
+import 'package:daoapp/core/constants/badge_constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-// ✅ 대회 상세 페이지 임포트
 import 'package:daoapp/presentation/screens/arena/tournament/tournament_detail_screen.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class ChatMessageBubble extends ConsumerWidget {
   final ChatMessage message;
@@ -21,12 +19,12 @@ class ChatMessageBubble extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // ✅ 1. 시스템 메시지 처리 (공지사항 등)
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     if (message.type == 'SYSTEM') {
       return _buildSystemMessage(context);
     }
 
-    // 실시간 순위 데이터 구독 (유저 프로필 옆 배지 표시용)
     final totalRanking = ref.watch(totalRankingProvider);
     final rankIndex = totalRanking.indexWhere((item) => item['userId'] == message.uid);
     final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
@@ -38,7 +36,7 @@ class ChatMessageBubble extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isMe) ...[
-            _buildAvatar(context, currentRank),
+            _buildAvatar(context, currentRank, s), // 🔹 s 전달
             const SizedBox(width: 10),
           ],
 
@@ -50,7 +48,7 @@ class ChatMessageBubble extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.only(left: 4, bottom: 4),
                     child: Text(
-                      message.userName,
+                      message.userName.isEmpty ? s.chat_bubble_unknown_user : message.userName,
                       style: const TextStyle(
                         color: Colors.white60,
                         fontSize: 11,
@@ -68,7 +66,7 @@ class ChatMessageBubble extends ConsumerWidget {
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onLongPress: () {
-                        if (!isMe) _showChatActionMenu(context);
+                        if (!isMe) _showChatActionMenu(context, s); // 🔹 s 전달
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -123,13 +121,11 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  // ✅ 시스템 메시지 빌더 (최종 수정본)
   Widget _buildSystemMessage(BuildContext context) {
     IconData iconData = Icons.notifications_none;
     Color themeColor = Colors.amberAccent;
-    String? badgePath; // ✅ 배지 에셋 경로 변수
+    String? badgePath;
 
-    // 카테고리에 따른 아이콘 및 테마 설정
     switch (message.category) {
       case 'TOURNAMENT':
         iconData = Icons.emoji_events_outlined;
@@ -138,7 +134,6 @@ class ChatMessageBubble extends ConsumerWidget {
       case 'RANKING':
         iconData = Icons.trending_up_rounded;
         themeColor = Colors.orangeAccent;
-        // 🔥 [핵심] targetId에 담긴 배지 키를 이용해 에셋 경로를 찾습니다.
         if (message.targetId.isNotEmpty) {
           badgePath = BadgeConstants.getImagePath(message.targetId);
         }
@@ -151,7 +146,6 @@ class ChatMessageBubble extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        // ✅ 🚀 TOURNAMENT 공지 클릭 시 상세 페이지로 이동
         if (message.category == 'TOURNAMENT' && message.targetId.isNotEmpty) {
           Navigator.push(
             context,
@@ -176,7 +170,6 @@ class ChatMessageBubble extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 🔥 [추가] 배지 에셋이 있으면 이미지를, 없으면 기본 아이콘을 보여줌
               if (badgePath != null)
                 Padding(
                   padding: const EdgeInsets.only(right: 4),
@@ -205,9 +198,9 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  Widget _buildAvatar(BuildContext context, int? rank) {
+  Widget _buildAvatar(BuildContext context, int? rank, AppLocalizations s) {
     return GestureDetector(
-      onTap: () => _showProfile(context),
+      onTap: () => _showProfile(context, s),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -232,11 +225,11 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  void _showProfile(BuildContext context) {
+  void _showProfile(BuildContext context, AppLocalizations s) {
     showDialog(
       context: context,
       builder: (_) => UserProfileDialog(
-        koreanName: message.userName,
+        koreanName: message.userName.isEmpty ? s.chat_bubble_unknown_user : message.userName,
         photoUrl: message.userProfile,
         isMe: isMe,
         userId: message.uid,
@@ -244,8 +237,7 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  // ... (신고/차단 관련 _showChatActionMenu 및 _confirmBlock 코드는 이전과 동일)
-  void _showChatActionMenu(BuildContext context) {
+  void _showChatActionMenu(BuildContext context, AppLocalizations s) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A1A1A),
@@ -269,8 +261,8 @@ class ChatMessageBubble extends ConsumerWidget {
             const Divider(color: Colors.white10),
             ListTile(
               leading: const Icon(Icons.report_gmailerrorred_rounded, color: Colors.orangeAccent),
-              title: const Text('신고하기', style: TextStyle(color: Colors.white)),
-              subtitle: const Text('부적절한 메시지로 신고합니다.', style: TextStyle(color: Colors.white38, fontSize: 11)),
+              title: Text(s.chat_bubble_menu_report_title, style: const TextStyle(color: Colors.white)), // 🔹 다국어 적용
+              subtitle: Text(s.chat_bubble_menu_report_subtitle, style: const TextStyle(color: Colors.white38, fontSize: 11)), // 🔹 다국어 적용
               onTap: () {
                 Navigator.pop(ctx);
                 Navigator.pushNamed(context, RouteConstants.report, arguments: {
@@ -282,11 +274,11 @@ class ChatMessageBubble extends ConsumerWidget {
             ),
             ListTile(
               leading: const Icon(Icons.block_rounded, color: Colors.redAccent),
-              title: Text('${message.userName} 님 차단하기', style: const TextStyle(color: Colors.white)),
-              subtitle: const Text('이 사용자의 메시지를 더 이상 보지 않습니다.', style: TextStyle(color: Colors.white38, fontSize: 11)),
+              title: Text(s.chat_bubble_menu_block_title(message.userName), style: const TextStyle(color: Colors.white)), // 🔹 다국어 적용 (파라미터)
+              subtitle: Text(s.chat_bubble_menu_block_subtitle, style: const TextStyle(color: Colors.white38, fontSize: 11)), // 🔹 다국어 적용
               onTap: () {
                 Navigator.pop(ctx);
-                _confirmBlock(context);
+                _confirmBlock(context, s); // 🔹 s 전달
               },
             ),
             const SizedBox(height: 16),
@@ -296,18 +288,18 @@ class ChatMessageBubble extends ConsumerWidget {
     );
   }
 
-  void _confirmBlock(BuildContext context) {
+  void _confirmBlock(BuildContext context, AppLocalizations s) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.grey[900],
-        title: const Text('사용자 차단', style: TextStyle(color: Colors.white)),
-        content: Text('${message.userName} 님을 차단하시겠습니까?\n차단 후에는 이 사용자의 대화가 보이지 않습니다.',
+        title: Text(s.chat_bubble_block_dialog_title, style: const TextStyle(color: Colors.white)), // 🔹 다국어 적용
+        content: Text(s.chat_bubble_block_dialog_body(message.userName), // 🔹 다국어 적용 (파라미터)
             style: const TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('취소', style: TextStyle(color: Colors.white38)),
+            child: Text(s.common_cancel, style: const TextStyle(color: Colors.white38)),
           ),
           TextButton(
             onPressed: () async {
@@ -329,18 +321,18 @@ class ChatMessageBubble extends ConsumerWidget {
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('${message.userName} 님이 차단되었습니다.')),
+                    SnackBar(content: Text(s.chat_bubble_block_success(message.userName))), // 🔹 다국어 적용
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('차단 중 오류가 발생했습니다.')),
+                    SnackBar(content: Text(s.chat_bubble_block_fail)), // 🔹 다국어 적용
                   );
                 }
               }
             },
-            child: const Text('차단', style: TextStyle(color: Colors.redAccent)),
+            child: Text(s.block_unblock_btn.replaceAll('차단 해제', '차단'), style: const TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),

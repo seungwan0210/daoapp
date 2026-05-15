@@ -287,7 +287,7 @@ abstract class AppLocalizations {
   /// No description provided for @menu_report.
   ///
   /// In ko, this message translates to:
-  /// **'버그 신고'**
+  /// **'문의 및 신고'**
   String get menu_report;
 
   /// No description provided for @menu_quick_arena.
@@ -1481,7 +1481,7 @@ abstract class AppLocalizations {
   /// No description provided for @circle_no_posts.
   ///
   /// In ko, this message translates to:
-  /// **'표시할 게시물이 없습니다'**
+  /// **'아직 게시물이 없습니다'**
   String get circle_no_posts;
 
   /// No description provided for @circle_label_text_only.
@@ -1853,19 +1853,19 @@ abstract class AppLocalizations {
   /// No description provided for @mylog_title.
   ///
   /// In ko, this message translates to:
-  /// **'마이로그'**
+  /// **'나의 다트 일기'**
   String get mylog_title;
 
   /// No description provided for @mylog_summary_title.
   ///
   /// In ko, this message translates to:
-  /// **'나의 다트 이야기'**
+  /// **'차곡차곡 쌓이는 성장'**
   String get mylog_summary_title;
 
   /// No description provided for @mylog_summary_count.
   ///
   /// In ko, this message translates to:
-  /// **'총 {count}개의 기록이 쌓였어요.'**
+  /// **'총 {count}번의 기록이 모였어요.'**
   String mylog_summary_count(Object count);
 
   /// No description provided for @mylog_stat_streak.
@@ -2225,7 +2225,7 @@ abstract class AppLocalizations {
   /// No description provided for @notice_empty.
   ///
   /// In ko, this message translates to:
-  /// **'공지가 없습니다'**
+  /// **'등록된 공지사항이 없습니다.'**
   String get notice_empty;
 
   /// No description provided for @delete_acc_confirm_title.
@@ -4685,13 +4685,13 @@ abstract class AppLocalizations {
   /// No description provided for @live_list_title.
   ///
   /// In ko, this message translates to:
-  /// **'오늘의 연습 현황'**
+  /// **'실시간 연습 현황'**
   String get live_list_title;
 
   /// No description provided for @live_list_empty.
   ///
   /// In ko, this message translates to:
-  /// **'오늘 연습 기록이 아직 없습니다.'**
+  /// **'현재 연습 중인 유저가 없습니다.'**
   String get live_list_empty;
 
   /// No description provided for @live_status_live.
@@ -4703,19 +4703,19 @@ abstract class AppLocalizations {
   /// No description provided for @live_status_finished.
   ///
   /// In ko, this message translates to:
-  /// **'종료됨'**
+  /// **'FINISHED'**
   String get live_status_finished;
 
   /// No description provided for @live_no_shop.
   ///
   /// In ko, this message translates to:
-  /// **'장소 미지정'**
+  /// **'소속 샵 없음'**
   String get live_no_shop;
 
   /// No description provided for @live_blur_text.
   ///
   /// In ko, this message translates to:
-  /// **'**** · ****'**
+  /// **'로그인 후 확인 가능합니다.'**
   String get live_blur_text;
 
   /// No description provided for @live_board_title.
@@ -7652,6 +7652,1650 @@ abstract class AppLocalizations {
   /// In ko, this message translates to:
   /// **'이메일 없음'**
   String get member_list_no_email;
+
+  /// No description provided for @community_home_tab_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'연습 · 대회 · 기록'**
+  String get community_home_tab_title;
+
+  /// No description provided for @community_home_menu_training.
+  ///
+  /// In ko, this message translates to:
+  /// **'트레이닝'**
+  String get community_home_menu_training;
+
+  /// No description provided for @community_home_menu_arena.
+  ///
+  /// In ko, this message translates to:
+  /// **'아레나'**
+  String get community_home_menu_arena;
+
+  /// No description provided for @community_home_menu_mylog.
+  ///
+  /// In ko, this message translates to:
+  /// **'마이로그'**
+  String get community_home_menu_mylog;
+
+  /// No description provided for @community_home_login_prompt.
+  ///
+  /// In ko, this message translates to:
+  /// **'커뮤니티를 이용하려면\n로그인이 필요해요'**
+  String get community_home_login_prompt;
+
+  /// No description provided for @community_home_verify_prompt.
+  ///
+  /// In ko, this message translates to:
+  /// **'커뮤니티 이용을 위해\n인증이 필요해요'**
+  String get community_home_verify_prompt;
+
+  /// No description provided for @community_home_verify_profile.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 등록을 완료해 주세요.'**
+  String get community_home_verify_profile;
+
+  /// No description provided for @community_home_verify_phone.
+  ///
+  /// In ko, this message translates to:
+  /// **'휴대폰 인증을 완료해 주세요.'**
+  String get community_home_verify_phone;
+
+  /// No description provided for @community_home_ugc_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'커뮤니티 이용 동의가 필요해요'**
+  String get community_home_ugc_title;
+
+  /// No description provided for @community_home_ugc_desc.
+  ///
+  /// In ko, this message translates to:
+  /// **'커뮤니티에는 사용자가 작성한 글/사진(UGC)이 노출됩니다.\n안전한 이용을 위해 아래 내용에 동의해 주세요.\n\n• 타인을 비방/혐오/차별/괴롭힘하는 콘텐츠 금지\n• 불법/음란/폭력/사기 등 유해 콘텐츠 금지\n• 신고/차단 기능 및 운영 정책에 따라 제재될 수 있음\n• 신고된 콘텐츠는 운영자가 검토할 수 있음'**
+  String get community_home_ugc_desc;
+
+  /// No description provided for @community_home_ugc_btn_no.
+  ///
+  /// In ko, this message translates to:
+  /// **'동의 안함'**
+  String get community_home_ugc_btn_no;
+
+  /// No description provided for @community_home_ugc_btn_yes.
+  ///
+  /// In ko, this message translates to:
+  /// **'동의하고 시작'**
+  String get community_home_ugc_btn_yes;
+
+  /// No description provided for @community_home_ugc_msg_reject.
+  ///
+  /// In ko, this message translates to:
+  /// **'동의 후 커뮤니티 이용이 가능합니다.'**
+  String get community_home_ugc_msg_reject;
+
+  /// No description provided for @community_home_ugc_msg_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'동의 처리 실패: {error}'**
+  String community_home_ugc_msg_fail(Object error);
+
+  /// No description provided for @community_preview_recent.
+  ///
+  /// In ko, this message translates to:
+  /// **'최근'**
+  String get community_preview_recent;
+
+  /// No description provided for @community_preview_popular.
+  ///
+  /// In ko, this message translates to:
+  /// **'인기'**
+  String get community_preview_popular;
+
+  /// No description provided for @community_preview_see_all.
+  ///
+  /// In ko, this message translates to:
+  /// **'전체 보기'**
+  String get community_preview_see_all;
+
+  /// No description provided for @community_preview_type_text.
+  ///
+  /// In ko, this message translates to:
+  /// **'글'**
+  String get community_preview_type_text;
+
+  /// No description provided for @community_preview_today_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 커뮤니티'**
+  String get community_preview_today_title;
+
+  /// No description provided for @community_preview_stat_posts.
+  ///
+  /// In ko, this message translates to:
+  /// **'게시글'**
+  String get community_preview_stat_posts;
+
+  /// No description provided for @community_preview_stat_comments.
+  ///
+  /// In ko, this message translates to:
+  /// **'댓글'**
+  String get community_preview_stat_comments;
+
+  /// No description provided for @community_preview_stat_likes.
+  ///
+  /// In ko, this message translates to:
+  /// **'좋아요'**
+  String get community_preview_stat_likes;
+
+  /// No description provided for @community_preview_live_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'지금 올라온 글'**
+  String get community_preview_live_title;
+
+  /// No description provided for @community_preview_default_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'새 게시글'**
+  String get community_preview_default_title;
+
+  /// No description provided for @community_avatar_no_online.
+  ///
+  /// In ko, this message translates to:
+  /// **'온라인 유저 없음'**
+  String get community_avatar_no_online;
+
+  /// No description provided for @community_avatar_no_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'이름 없음'**
+  String get community_avatar_no_name;
+
+  /// No description provided for @post_write_edit_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'게시물 수정'**
+  String get post_write_edit_title;
+
+  /// No description provided for @post_write_btn_post.
+  ///
+  /// In ko, this message translates to:
+  /// **'게시'**
+  String get post_write_btn_post;
+
+  /// No description provided for @post_write_btn_edit.
+  ///
+  /// In ko, this message translates to:
+  /// **'수정'**
+  String get post_write_btn_edit;
+
+  /// No description provided for @post_write_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'무슨 생각을 하고 계신가요?'**
+  String get post_write_hint;
+
+  /// No description provided for @post_write_photo_limit.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진은 최대 7장까지 등록 가능합니다.'**
+  String get post_write_photo_limit;
+
+  /// No description provided for @post_write_uploading.
+  ///
+  /// In ko, this message translates to:
+  /// **'게시글을 올리는 중입니다...'**
+  String get post_write_uploading;
+
+  /// No description provided for @post_write_upload_progress.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진 업로드 중 ({current} / {total})'**
+  String post_write_upload_progress(Object current, Object total);
+
+  /// No description provided for @post_write_photo_count.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진 ({current}/7)'**
+  String post_write_photo_count(Object current);
+
+  /// No description provided for @post_write_photo_add.
+  ///
+  /// In ko, this message translates to:
+  /// **'추가'**
+  String get post_write_photo_add;
+
+  /// No description provided for @post_write_photo_placeholder.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진 추가 (최대 7장)'**
+  String get post_write_photo_placeholder;
+
+  /// No description provided for @post_write_error_upload.
+  ///
+  /// In ko, this message translates to:
+  /// **'업로드 실패: {error}'**
+  String post_write_error_upload(Object error);
+
+  /// No description provided for @circle_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'피드'**
+  String get circle_title;
+
+  /// No description provided for @circle_no_visible_posts.
+  ///
+  /// In ko, this message translates to:
+  /// **'표시할 게시물이 없습니다'**
+  String get circle_no_visible_posts;
+
+  /// No description provided for @circle_error_feed.
+  ///
+  /// In ko, this message translates to:
+  /// **'피드를 불러오지 못했습니다'**
+  String get circle_error_feed;
+
+  /// No description provided for @circle_error_auth.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인 상태 오류'**
+  String get circle_error_auth;
+
+  /// No description provided for @circle_profile_required.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 등록 후 이용 가능합니다'**
+  String get circle_profile_required;
+
+  /// No description provided for @circle_list_delete_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제 확인'**
+  String get circle_list_delete_title;
+
+  /// No description provided for @circle_list_delete_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 게시물을 삭제하시겠습니까?'**
+  String get circle_list_delete_body;
+
+  /// No description provided for @circle_list_no_visible_posts.
+  ///
+  /// In ko, this message translates to:
+  /// **'표시할 게시물이 없습니다'**
+  String get circle_list_no_visible_posts;
+
+  /// No description provided for @post_card_more.
+  ///
+  /// In ko, this message translates to:
+  /// **'더 보기'**
+  String get post_card_more;
+
+  /// No description provided for @post_card_fold.
+  ///
+  /// In ko, this message translates to:
+  /// **'간단히 접기 ▲'**
+  String get post_card_fold;
+
+  /// No description provided for @post_card_share.
+  ///
+  /// In ko, this message translates to:
+  /// **'공유'**
+  String get post_card_share;
+
+  /// No description provided for @post_card_report.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고'**
+  String get post_card_report;
+
+  /// No description provided for @post_card_block.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단'**
+  String get post_card_block;
+
+  /// No description provided for @post_card_block_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'사용자 차단'**
+  String get post_card_block_title;
+
+  /// No description provided for @post_card_block_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 님을 차단할까요?\n\n차단하면 이 사용자의 게시글이 보이지 않습니다.'**
+  String post_card_block_body(Object name);
+
+  /// No description provided for @post_card_block_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 님을 차단했어요'**
+  String post_card_block_success(Object name);
+
+  /// No description provided for @post_card_report_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'게시물 신고'**
+  String get post_card_report_title;
+
+  /// No description provided for @post_card_report_reason.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고 사유'**
+  String get post_card_report_reason;
+
+  /// No description provided for @post_card_report_detail.
+  ///
+  /// In ko, this message translates to:
+  /// **'추가 설명(선택)'**
+  String get post_card_report_detail;
+
+  /// No description provided for @post_card_report_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고가 접수되었어요.'**
+  String get post_card_report_success;
+
+  /// No description provided for @post_card_report_r1.
+  ///
+  /// In ko, this message translates to:
+  /// **'스팸/도배'**
+  String get post_card_report_r1;
+
+  /// No description provided for @post_card_report_r2.
+  ///
+  /// In ko, this message translates to:
+  /// **'욕설/혐오'**
+  String get post_card_report_r2;
+
+  /// No description provided for @post_card_report_r3.
+  ///
+  /// In ko, this message translates to:
+  /// **'괴롭힘/따돌림'**
+  String get post_card_report_r3;
+
+  /// No description provided for @post_card_report_r4.
+  ///
+  /// In ko, this message translates to:
+  /// **'성적인 콘텐츠'**
+  String get post_card_report_r4;
+
+  /// No description provided for @post_card_report_r5.
+  ///
+  /// In ko, this message translates to:
+  /// **'폭력/위협'**
+  String get post_card_report_r5;
+
+  /// No description provided for @post_card_report_r6.
+  ///
+  /// In ko, this message translates to:
+  /// **'기타'**
+  String get post_card_report_r6;
+
+  /// No description provided for @post_card_share_msg.
+  ///
+  /// In ko, this message translates to:
+  /// **'[DAO 커뮤니티] 새로운 게시물이 올라왔습니다! 🎯\n\n{content}\n\n지금 DAO 앱에서 확인해보세요.\n👉 {link}'**
+  String post_card_share_msg(Object content, Object link);
+
+  /// No description provided for @comment_preview_see_all.
+  ///
+  /// In ko, this message translates to:
+  /// **'댓글 모두 보기'**
+  String get comment_preview_see_all;
+
+  /// No description provided for @common_anonymous.
+  ///
+  /// In ko, this message translates to:
+  /// **'익명'**
+  String get common_anonymous;
+
+  /// No description provided for @comment_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'댓글'**
+  String get comment_title;
+
+  /// No description provided for @comment_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'댓글을 입력하세요...'**
+  String get comment_hint;
+
+  /// No description provided for @comment_empty.
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 댓글이 없습니다'**
+  String get comment_empty;
+
+  /// No description provided for @comment_no_visible.
+  ///
+  /// In ko, this message translates to:
+  /// **'표시할 댓글이 없습니다'**
+  String get comment_no_visible;
+
+  /// No description provided for @comment_report_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'댓글 신고'**
+  String get comment_report_title;
+
+  /// No description provided for @comment_report_select_reason.
+  ///
+  /// In ko, this message translates to:
+  /// **'사유를 선택해 주세요'**
+  String get comment_report_select_reason;
+
+  /// No description provided for @comment_report_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고가 접수되었습니다'**
+  String get comment_report_success;
+
+  /// No description provided for @comment_report_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고 실패: {error}'**
+  String comment_report_fail(Object error);
+
+  /// No description provided for @comment_delete_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제 확인'**
+  String get comment_delete_title;
+
+  /// No description provided for @comment_delete_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 댓글을 삭제하시겠습니까?'**
+  String get comment_delete_body;
+
+  /// No description provided for @comment_time_just_now.
+  ///
+  /// In ko, this message translates to:
+  /// **'방금 전'**
+  String get comment_time_just_now;
+
+  /// No description provided for @profile_form_korean_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'활동 이름 (국문)'**
+  String get profile_form_korean_name;
+
+  /// No description provided for @profile_form_korean_name_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'이름을 입력하세요'**
+  String get profile_form_korean_name_hint;
+
+  /// No description provided for @profile_form_english_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'활동 이름 (영문)'**
+  String get profile_form_english_name;
+
+  /// No description provided for @profile_form_english_name_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'이름을 영문으로 입력하세요'**
+  String get profile_form_english_name_hint;
+
+  /// No description provided for @profile_form_shop_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'소속 샵'**
+  String get profile_form_shop_name;
+
+  /// No description provided for @profile_form_shop_name_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'주로 활동하는 샵을 입력하세요'**
+  String get profile_form_shop_name_hint;
+
+  /// No description provided for @profile_reg_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 등록/수정'**
+  String get profile_reg_title;
+
+  /// No description provided for @profile_reg_save.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장 완료'**
+  String get profile_reg_save;
+
+  /// No description provided for @profile_reg_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'성공적으로 저장되었습니다!'**
+  String get profile_reg_success;
+
+  /// No description provided for @profile_reg_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장에 실패했어요. 다시 시도해주세요.'**
+  String get profile_reg_fail;
+
+  /// No description provided for @profile_reg_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장 중 오류가 발생했습니다: {error}'**
+  String profile_reg_error(Object error);
+
+  /// No description provided for @profile_reg_input_check.
+  ///
+  /// In ko, this message translates to:
+  /// **'입력값을 확인해주세요.'**
+  String get profile_reg_input_check;
+
+  /// No description provided for @profile_image_save.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 사진 저장 완료!'**
+  String get profile_image_save;
+
+  /// No description provided for @profile_image_delete_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지 영구 삭제'**
+  String get profile_image_delete_title;
+
+  /// No description provided for @profile_image_delete_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제된 이미지는 즉시 반영되며 되돌릴 수 없습니다.\n정말 삭제하시겠습니까?'**
+  String get profile_image_delete_body;
+
+  /// No description provided for @profile_image_deleted.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지가 삭제되었습니다.'**
+  String get profile_image_deleted;
+
+  /// No description provided for @profile_image_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지 처리 실패: {error}'**
+  String profile_image_fail(Object error);
+
+  /// No description provided for @barrel_image_save.
+  ///
+  /// In ko, this message translates to:
+  /// **'배럴 사진 저장 완료!'**
+  String get barrel_image_save;
+
+  /// No description provided for @report_screen_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'버그/신고'**
+  String get report_screen_title;
+
+  /// No description provided for @report_form_title_label.
+  ///
+  /// In ko, this message translates to:
+  /// **'제목'**
+  String get report_form_title_label;
+
+  /// No description provided for @report_form_content_label.
+  ///
+  /// In ko, this message translates to:
+  /// **'상세 내용'**
+  String get report_form_content_label;
+
+  /// No description provided for @report_form_content_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'발생 상황, 재현 방법 등을 자세히 적어주세요'**
+  String get report_form_content_hint;
+
+  /// No description provided for @report_form_photo_add.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진 추가 (선택)'**
+  String get report_form_photo_add;
+
+  /// No description provided for @report_form_photo_change.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진 변경'**
+  String get report_form_photo_change;
+
+  /// No description provided for @report_form_submit.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고하기'**
+  String get report_form_submit;
+
+  /// No description provided for @report_form_error_empty.
+  ///
+  /// In ko, this message translates to:
+  /// **'제목과 내용을 입력하세요'**
+  String get report_form_error_empty;
+
+  /// No description provided for @report_form_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고가 접수되었습니다. 감사합니다!'**
+  String get report_form_success;
+
+  /// No description provided for @report_form_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'전송 실패: {error}'**
+  String report_form_fail(Object error);
+
+  /// No description provided for @notice_no_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'제목 없음'**
+  String get notice_no_title;
+
+  /// No description provided for @notice_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'공지사항을 불러오는 중 오류가 발생했습니다: {error}'**
+  String notice_error(Object error);
+
+  /// No description provided for @mypage_login_prompt_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인하면 내 정보를 확인할 수 있어요!'**
+  String get mypage_login_prompt_title;
+
+  /// No description provided for @mypage_login_prompt_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'Google 계정으로 간편하게 시작하세요'**
+  String get mypage_login_prompt_subtitle;
+
+  /// No description provided for @mypage_login_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'Google로 로그인'**
+  String get mypage_login_btn;
+
+  /// No description provided for @mypage_profile_prompt_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 등록이 필요해요!'**
+  String get mypage_profile_prompt_title;
+
+  /// No description provided for @mypage_profile_prompt_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'이름과 소속 샵을 등록하고\n다른 유저와 소통해보세요'**
+  String get mypage_profile_prompt_subtitle;
+
+  /// No description provided for @mypage_profile_reg_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 등록하기'**
+  String get mypage_profile_reg_btn;
+
+  /// No description provided for @mypage_edit_profile.
+  ///
+  /// In ko, this message translates to:
+  /// **'프로필 수정'**
+  String get mypage_edit_profile;
+
+  /// No description provided for @mypage_my_guestbook.
+  ///
+  /// In ko, this message translates to:
+  /// **'내 방명록'**
+  String get mypage_my_guestbook;
+
+  /// No description provided for @mypage_account_delete.
+  ///
+  /// In ko, this message translates to:
+  /// **'계정 삭제'**
+  String get mypage_account_delete;
+
+  /// No description provided for @mypage_logout.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그아웃'**
+  String get mypage_logout;
+
+  /// No description provided for @mypage_logout_confirm.
+  ///
+  /// In ko, this message translates to:
+  /// **'정말 로그아웃하시겠습니까?'**
+  String get mypage_logout_confirm;
+
+  /// No description provided for @mypage_delete_confirm_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'계정 삭제'**
+  String get mypage_delete_confirm_title;
+
+  /// No description provided for @mypage_delete_confirm_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'DAO 계정을 삭제하면 프로필 정보와 앱 내 데이터가 삭제되며,\n이 작업은 되돌릴 수 없습니다.\n\n정말 계정을 삭제하시겠습니까?'**
+  String get mypage_delete_confirm_body;
+
+  /// No description provided for @mypage_delete_error_recent_login.
+  ///
+  /// In ko, this message translates to:
+  /// **'보안을 위해 최근 로그인한 사용자만 계정을 삭제할 수 있어요.\n다시 로그인한 후 시도해주세요.'**
+  String get mypage_delete_error_recent_login;
+
+  /// No description provided for @mypage_delete_error_general.
+  ///
+  /// In ko, this message translates to:
+  /// **'계정 삭제 중 오류가 발생했습니다.'**
+  String get mypage_delete_error_general;
+
+  /// No description provided for @mypage_delete_error_server.
+  ///
+  /// In ko, this message translates to:
+  /// **'계정 삭제 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'**
+  String get mypage_delete_error_server;
+
+  /// No description provided for @mypage_no_email.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일 없음'**
+  String get mypage_no_email;
+
+  /// No description provided for @mypage_menu_mylog.
+  ///
+  /// In ko, this message translates to:
+  /// **'마이로그'**
+  String get mypage_menu_mylog;
+
+  /// No description provided for @guestbook_title_me.
+  ///
+  /// In ko, this message translates to:
+  /// **'내 방명록'**
+  String get guestbook_title_me;
+
+  /// No description provided for @guestbook_title_other.
+  ///
+  /// In ko, this message translates to:
+  /// **'방명록 쓰기'**
+  String get guestbook_title_other;
+
+  /// No description provided for @guestbook_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'응원 메시지 남기기...'**
+  String get guestbook_hint;
+
+  /// No description provided for @guestbook_empty.
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 방명록이 없습니다'**
+  String get guestbook_empty;
+
+  /// No description provided for @guestbook_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'방명록이 작성되었습니다'**
+  String get guestbook_success;
+
+  /// No description provided for @guestbook_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'전송 실패: {error}'**
+  String guestbook_fail(Object error);
+
+  /// No description provided for @block_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 관리'**
+  String get block_title;
+
+  /// No description provided for @block_empty.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단한 유저가 없습니다.'**
+  String get block_empty;
+
+  /// No description provided for @block_status.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단됨'**
+  String get block_status;
+
+  /// No description provided for @block_unblock_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 해제'**
+  String get block_unblock_btn;
+
+  /// No description provided for @block_unblock_confirm_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 해제'**
+  String get block_unblock_confirm_title;
+
+  /// No description provided for @block_unblock_confirm_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name}님의 차단을 해제하시겠습니까?\n이제 상대방의 게시글과 채팅이 보입니다.'**
+  String block_unblock_confirm_body(Object name);
+
+  /// No description provided for @block_unblock_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name}님의 차단이 해제되었습니다.'**
+  String block_unblock_success(Object name);
+
+  /// No description provided for @block_unblock_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'해제 중 오류가 발생했습니다.'**
+  String get block_unblock_fail;
+
+  /// No description provided for @block_error_load.
+  ///
+  /// In ko, this message translates to:
+  /// **'데이터를 불러오지 못했습니다.'**
+  String get block_error_load;
+
+  /// No description provided for @guestbook_header_no_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'이름 없음'**
+  String get guestbook_header_no_name;
+
+  /// No description provided for @guestbook_header_barrel_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'PLAYERS_DART'**
+  String get guestbook_header_barrel_title;
+
+  /// No description provided for @guestbook_menu_edit.
+  ///
+  /// In ko, this message translates to:
+  /// **'수정'**
+  String get guestbook_menu_edit;
+
+  /// No description provided for @guestbook_menu_delete.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제'**
+  String get guestbook_menu_delete;
+
+  /// No description provided for @guestbook_edit_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'방명록 수정'**
+  String get guestbook_edit_title;
+
+  /// No description provided for @guestbook_edit_complete.
+  ///
+  /// In ko, this message translates to:
+  /// **'수정 완료'**
+  String get guestbook_edit_complete;
+
+  /// No description provided for @guestbook_delete_confirm_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제 확인'**
+  String get guestbook_delete_confirm_title;
+
+  /// No description provided for @guestbook_delete_confirm_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 방명록을 삭제하시겠습니까?'**
+  String get guestbook_delete_confirm_body;
+
+  /// No description provided for @guestbook_unknown_user.
+  ///
+  /// In ko, this message translates to:
+  /// **'알 수 없는 사용자'**
+  String get guestbook_unknown_user;
+
+  /// No description provided for @barrel_section_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'배럴 세팅 (선택)'**
+  String get barrel_section_title;
+
+  /// No description provided for @barrel_label_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'배럴 이름'**
+  String get barrel_label_name;
+
+  /// No description provided for @barrel_label_shaft.
+  ///
+  /// In ko, this message translates to:
+  /// **'샤프트'**
+  String get barrel_label_shaft;
+
+  /// No description provided for @barrel_label_flight.
+  ///
+  /// In ko, this message translates to:
+  /// **'플라이트'**
+  String get barrel_label_flight;
+
+  /// No description provided for @barrel_label_tip.
+  ///
+  /// In ko, this message translates to:
+  /// **'팁'**
+  String get barrel_label_tip;
+
+  /// No description provided for @image_picker_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진을 선택하지 못했습니다.'**
+  String get image_picker_error;
+
+  /// No description provided for @image_upload_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지 업로드 중 오류가 발생했습니다.'**
+  String get image_upload_error;
+
+  /// No description provided for @image_delete_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미지 삭제 중 오류가 발생했습니다.'**
+  String get image_delete_error;
+
+  /// No description provided for @mylog_login_required_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인이 필요해요'**
+  String get mylog_login_required_title;
+
+  /// No description provided for @mylog_login_required_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'나만의 다트 일기를 기록하고 관리하려면\n로그인이 필요합니다.'**
+  String get mylog_login_required_subtitle;
+
+  /// No description provided for @mylog_login_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인 하러 가기'**
+  String get mylog_login_btn;
+
+  /// No description provided for @mylog_summary_streak.
+  ///
+  /// In ko, this message translates to:
+  /// **'🔥 {days}일 연속 기록 중'**
+  String mylog_summary_streak(Object days);
+
+  /// No description provided for @mylog_recent_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'최근 작성한 다트 이야기'**
+  String get mylog_recent_title;
+
+  /// No description provided for @mylog_no_content.
+  ///
+  /// In ko, this message translates to:
+  /// **'내용 없음'**
+  String get mylog_no_content;
+
+  /// No description provided for @mylog_error_load.
+  ///
+  /// In ko, this message translates to:
+  /// **'기록을 불러오는 중 오류가 발생했습니다.'**
+  String get mylog_error_load;
+
+  /// No description provided for @mylog_confirm_sheet_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'{year}년 {month}월 {day}일'**
+  String mylog_confirm_sheet_title(Object day, Object month, Object year);
+
+  /// No description provided for @mylog_confirm_sheet_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 날짜에 새로운 다트 일기를 작성할까요?'**
+  String get mylog_confirm_sheet_body;
+
+  /// No description provided for @mylog_confirm_sheet_btn_later.
+  ///
+  /// In ko, this message translates to:
+  /// **'나중에'**
+  String get mylog_confirm_sheet_btn_later;
+
+  /// No description provided for @mylog_confirm_sheet_btn_write.
+  ///
+  /// In ko, this message translates to:
+  /// **'작성하기'**
+  String get mylog_confirm_sheet_btn_write;
+
+  /// No description provided for @mylog_calendar_month_label.
+  ///
+  /// In ko, this message translates to:
+  /// **'월'**
+  String get mylog_calendar_month_label;
+
+  /// No description provided for @mylog_write_title_new.
+  ///
+  /// In ko, this message translates to:
+  /// **'일기 작성'**
+  String get mylog_write_title_new;
+
+  /// No description provided for @mylog_write_title_edit.
+  ///
+  /// In ko, this message translates to:
+  /// **'일기 수정'**
+  String get mylog_write_title_edit;
+
+  /// No description provided for @mylog_write_subtitle_new.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘의 성장을 기록하세요'**
+  String get mylog_write_subtitle_new;
+
+  /// No description provided for @mylog_write_subtitle_edit.
+  ///
+  /// In ko, this message translates to:
+  /// **'기억을 다듬고 있어요'**
+  String get mylog_write_subtitle_edit;
+
+  /// No description provided for @mylog_write_image_add.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진 추가 (선택)'**
+  String get mylog_write_image_add;
+
+  /// No description provided for @mylog_write_guide_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'작성 가이드 (탭해서 추가/삭제)'**
+  String get mylog_write_guide_title;
+
+  /// No description provided for @mylog_write_guide_good.
+  ///
+  /// In ko, this message translates to:
+  /// **'💪 잘 된 점'**
+  String get mylog_write_guide_good;
+
+  /// No description provided for @mylog_write_guide_bad.
+  ///
+  /// In ko, this message translates to:
+  /// **'🧐 아쉬운 점'**
+  String get mylog_write_guide_bad;
+
+  /// No description provided for @mylog_write_guide_next.
+  ///
+  /// In ko, this message translates to:
+  /// **'✏️ 다음 계획'**
+  String get mylog_write_guide_next;
+
+  /// No description provided for @mylog_write_guide_review.
+  ///
+  /// In ko, this message translates to:
+  /// **'📝 한 줄 평'**
+  String get mylog_write_guide_review;
+
+  /// No description provided for @mylog_write_template_good.
+  ///
+  /// In ko, this message translates to:
+  /// **'💪 오늘 잘 된 점\n- '**
+  String get mylog_write_template_good;
+
+  /// No description provided for @mylog_write_template_bad.
+  ///
+  /// In ko, this message translates to:
+  /// **'🧐 아쉬웠던 점\n- '**
+  String get mylog_write_template_bad;
+
+  /// No description provided for @mylog_write_template_next.
+  ///
+  /// In ko, this message translates to:
+  /// **'✏️ 다음 연습 계획\n- '**
+  String get mylog_write_template_next;
+
+  /// No description provided for @mylog_write_template_review.
+  ///
+  /// In ko, this message translates to:
+  /// **'📝 오늘의 한 줄\n- '**
+  String get mylog_write_template_review;
+
+  /// No description provided for @mylog_write_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘 다트 어땠나요?\n기억에 남는 샷이나 보완할 점을 적어보세요.'**
+  String get mylog_write_hint;
+
+  /// No description provided for @mylog_write_share_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'서클(커뮤니티)에 공유'**
+  String get mylog_write_share_title;
+
+  /// No description provided for @mylog_write_share_subtitle_new.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장과 동시에 피드에 게시합니다.'**
+  String get mylog_write_share_subtitle_new;
+
+  /// No description provided for @mylog_write_share_subtitle_edit.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 공유된 기록입니다.'**
+  String get mylog_write_share_subtitle_edit;
+
+  /// No description provided for @mylog_write_save_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'기록 저장하기'**
+  String get mylog_write_save_btn;
+
+  /// No description provided for @mylog_write_empty_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'기록할 내용을 입력해주세요.'**
+  String get mylog_write_empty_error;
+
+  /// No description provided for @mylog_write_save_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'저장 실패: {error}'**
+  String mylog_write_save_fail(Object error);
+
+  /// No description provided for @mylog_detail_error_not_found.
+  ///
+  /// In ko, this message translates to:
+  /// **'기록을 찾을 수 없습니다.'**
+  String get mylog_detail_error_not_found;
+
+  /// No description provided for @mylog_detail_written_at.
+  ///
+  /// In ko, this message translates to:
+  /// **'{time} 작성됨'**
+  String mylog_detail_written_at(Object time);
+
+  /// No description provided for @mylog_detail_shared_circle.
+  ///
+  /// In ko, this message translates to:
+  /// **'서클 공유됨'**
+  String get mylog_detail_shared_circle;
+
+  /// No description provided for @mylog_detail_content_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘의 다트 이야기'**
+  String get mylog_detail_content_title;
+
+  /// No description provided for @mylog_detail_no_content.
+  ///
+  /// In ko, this message translates to:
+  /// **'작성된 내용이 없습니다.'**
+  String get mylog_detail_no_content;
+
+  /// No description provided for @mylog_detail_footer.
+  ///
+  /// In ko, this message translates to:
+  /// **'DAO와 함께한 당신의 성장을 응원합니다.'**
+  String get mylog_detail_footer;
+
+  /// No description provided for @mylog_detail_delete_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'기록 삭제'**
+  String get mylog_detail_delete_title;
+
+  /// No description provided for @mylog_detail_delete_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 날의 소중한 기록을 정말 삭제하시겠습니까?'**
+  String get mylog_detail_delete_body;
+
+  /// No description provided for @mylog_detail_delete_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'삭제하기'**
+  String get mylog_detail_delete_btn;
+
+  /// No description provided for @mylog_detail_delete_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'기록이 삭제되었습니다.'**
+  String get mylog_detail_delete_success;
+
+  /// No description provided for @mylog_card_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘의 다트 이야기'**
+  String get mylog_card_subtitle;
+
+  /// No description provided for @mylog_card_image_error.
+  ///
+  /// In ko, this message translates to:
+  /// **'사진을 불러올 수 없어요'**
+  String get mylog_card_image_error;
+
+  /// No description provided for @mylog_card_image_tag.
+  ///
+  /// In ko, this message translates to:
+  /// **'오늘의 샷'**
+  String get mylog_card_image_tag;
+
+  /// No description provided for @mylog_card_no_content.
+  ///
+  /// In ko, this message translates to:
+  /// **'아직 내용이 없어요. 다음엔 오늘의 다트 이야기를 더 자세히 남겨볼까요?'**
+  String get mylog_card_no_content;
+
+  /// No description provided for @mylog_card_shared_badge.
+  ///
+  /// In ko, this message translates to:
+  /// **'서클에 공유됨'**
+  String get mylog_card_shared_badge;
+
+  /// No description provided for @chat_login_required.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인이 필요합니다.'**
+  String get chat_login_required;
+
+  /// No description provided for @chat_empty_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'DAO 라이브 톡에 오신 것을 환영합니다!'**
+  String get chat_empty_title;
+
+  /// No description provided for @chat_empty_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'첫 번째 메시지를 남겨보세요.'**
+  String get chat_empty_subtitle;
+
+  /// No description provided for @chat_error_load.
+  ///
+  /// In ko, this message translates to:
+  /// **'데이터를 불러오는 중 에러가 발생했습니다.'**
+  String get chat_error_load;
+
+  /// No description provided for @chat_ticker_default_notice.
+  ///
+  /// In ko, this message translates to:
+  /// **'DAO 라이브 톡에 오신 것을 환영합니다!'**
+  String get chat_ticker_default_notice;
+
+  /// No description provided for @chat_ticker_prefix_ranking.
+  ///
+  /// In ko, this message translates to:
+  /// **'[랭킹]'**
+  String get chat_ticker_prefix_ranking;
+
+  /// No description provided for @chat_ticker_prefix_tournament.
+  ///
+  /// In ko, this message translates to:
+  /// **'[대회]'**
+  String get chat_ticker_prefix_tournament;
+
+  /// No description provided for @chat_ticker_prefix_welcome.
+  ///
+  /// In ko, this message translates to:
+  /// **'[환영]'**
+  String get chat_ticker_prefix_welcome;
+
+  /// No description provided for @chat_ticker_prefix_notice.
+  ///
+  /// In ko, this message translates to:
+  /// **'[공지]'**
+  String get chat_ticker_prefix_notice;
+
+  /// No description provided for @chat_overlay_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'DAO 라이브 톡'**
+  String get chat_overlay_title;
+
+  /// No description provided for @chat_overlay_block_guide.
+  ///
+  /// In ko, this message translates to:
+  /// **'상대방의 메시지를 꾹 누르면 차단을 할 수 있습니다.'**
+  String get chat_overlay_block_guide;
+
+  /// No description provided for @chat_bubble_menu_report_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'신고하기'**
+  String get chat_bubble_menu_report_title;
+
+  /// No description provided for @chat_bubble_menu_report_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'부적절한 메시지로 신고합니다.'**
+  String get chat_bubble_menu_report_subtitle;
+
+  /// No description provided for @chat_bubble_menu_block_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 님 차단하기'**
+  String chat_bubble_menu_block_title(Object name);
+
+  /// No description provided for @chat_bubble_menu_block_subtitle.
+  ///
+  /// In ko, this message translates to:
+  /// **'이 사용자의 메시지를 더 이상 보지 않습니다.'**
+  String get chat_bubble_menu_block_subtitle;
+
+  /// No description provided for @chat_bubble_block_dialog_title.
+  ///
+  /// In ko, this message translates to:
+  /// **'사용자 차단'**
+  String get chat_bubble_block_dialog_title;
+
+  /// No description provided for @chat_bubble_block_dialog_body.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 님을 차단하시겠습니까?\n차단 후에는 이 사용자의 대화가 보이지 않습니다.'**
+  String chat_bubble_block_dialog_body(Object name);
+
+  /// No description provided for @chat_bubble_block_success.
+  ///
+  /// In ko, this message translates to:
+  /// **'{name} 님이 차단되었습니다.'**
+  String chat_bubble_block_success(Object name);
+
+  /// No description provided for @chat_bubble_block_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 중 오류가 발생했습니다.'**
+  String get chat_bubble_block_fail;
+
+  /// No description provided for @chat_bubble_unknown_user.
+  ///
+  /// In ko, this message translates to:
+  /// **'알 수 없는 사용자'**
+  String get chat_bubble_unknown_user;
+
+  /// No description provided for @chat_input_hint.
+  ///
+  /// In ko, this message translates to:
+  /// **'메시지를 입력하세요...'**
+  String get chat_input_hint;
+
+  /// No description provided for @chat_input_cooldown.
+  ///
+  /// In ko, this message translates to:
+  /// **'잠시 대기 중...'**
+  String get chat_input_cooldown;
+
+  /// No description provided for @chat_input_send_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'전송 실패: {error}'**
+  String chat_input_send_fail(Object error);
+
+  /// No description provided for @profile_reg_fail_duplicate_name.
+  ///
+  /// In ko, this message translates to:
+  /// **'이미 사용 중인 닉네임입니다. 다른 이름을 입력해주세요.'**
+  String get profile_reg_fail_duplicate_name;
+
+  /// No description provided for @common_login_required.
+  ///
+  /// In ko, this message translates to:
+  /// **'로그인이 필요합니다'**
+  String get common_login_required;
+
+  /// No description provided for @common_error_msg.
+  ///
+  /// In ko, this message translates to:
+  /// **'오류가 발생했습니다. 잠시 후 다시 시도해주세요.'**
+  String get common_error_msg;
+
+  /// No description provided for @live_btn_move.
+  ///
+  /// In ko, this message translates to:
+  /// **'이동하기'**
+  String get live_btn_move;
+
+  /// No description provided for @common_msg_processing.
+  ///
+  /// In ko, this message translates to:
+  /// **'처리 중입니다...'**
+  String get common_msg_processing;
+
+  /// No description provided for @circle_translate_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'번역하기'**
+  String get circle_translate_btn;
+
+  /// No description provided for @circle_translate_show_original.
+  ///
+  /// In ko, this message translates to:
+  /// **'원문 보기'**
+  String get circle_translate_show_original;
+
+  /// No description provided for @circle_translate_fail.
+  ///
+  /// In ko, this message translates to:
+  /// **'번역에 실패했습니다. 다시 시도해주세요.'**
+  String get circle_translate_fail;
+
+  /// No description provided for @tab_home.
+  ///
+  /// In ko, this message translates to:
+  /// **'홈'**
+  String get tab_home;
+
+  /// No description provided for @tab_training.
+  ///
+  /// In ko, this message translates to:
+  /// **'트레이닝'**
+  String get tab_training;
+
+  /// No description provided for @tab_arena.
+  ///
+  /// In ko, this message translates to:
+  /// **'아레나'**
+  String get tab_arena;
+
+  /// No description provided for @tab_community.
+  ///
+  /// In ko, this message translates to:
+  /// **'커뮤니티'**
+  String get tab_community;
+
+  /// No description provided for @tab_mypage.
+  ///
+  /// In ko, this message translates to:
+  /// **'내정보'**
+  String get tab_mypage;
+
+  /// No description provided for @ban_msg_restricted.
+  ///
+  /// In ko, this message translates to:
+  /// **'운영 정책에 의해 이용이 제한된 계정입니다.'**
+  String get ban_msg_restricted;
+
+  /// No description provided for @menu_tooltip_settings.
+  ///
+  /// In ko, this message translates to:
+  /// **'설정'**
+  String get menu_tooltip_settings;
+
+  /// No description provided for @menu_block_manage.
+  ///
+  /// In ko, this message translates to:
+  /// **'차단 유저 관리'**
+  String get menu_block_manage;
+
+  /// No description provided for @menu_admin_block_manage.
+  ///
+  /// In ko, this message translates to:
+  /// **'전체 차단 관리'**
+  String get menu_admin_block_manage;
+
+  /// No description provided for @menu_admin_mode.
+  ///
+  /// In ko, this message translates to:
+  /// **'관리자 모드'**
+  String get menu_admin_mode;
+
+  /// No description provided for @profile_players_dart.
+  ///
+  /// In ko, this message translates to:
+  /// **'플레이어 다트 장비'**
+  String get profile_players_dart;
+
+  /// No description provided for @profile_barrel.
+  ///
+  /// In ko, this message translates to:
+  /// **'배럴'**
+  String get profile_barrel;
+
+  /// No description provided for @profile_shaft.
+  ///
+  /// In ko, this message translates to:
+  /// **'샤프트'**
+  String get profile_shaft;
+
+  /// No description provided for @profile_flight.
+  ///
+  /// In ko, this message translates to:
+  /// **'플라이트'**
+  String get profile_flight;
+
+  /// No description provided for @profile_tip.
+  ///
+  /// In ko, this message translates to:
+  /// **'팁'**
+  String get profile_tip;
+
+  /// No description provided for @profile_go_guestbook_me.
+  ///
+  /// In ko, this message translates to:
+  /// **'내 방명록 가기'**
+  String get profile_go_guestbook_me;
+
+  /// No description provided for @profile_go_guestbook_other.
+  ///
+  /// In ko, this message translates to:
+  /// **'방명록 쓰러 가기'**
+  String get profile_go_guestbook_other;
+
+  /// No description provided for @login_google.
+  ///
+  /// In ko, this message translates to:
+  /// **'Google로 로그인'**
+  String get login_google;
+
+  /// No description provided for @login_apple.
+  ///
+  /// In ko, this message translates to:
+  /// **'Apple로 로그인'**
+  String get login_apple;
+
+  /// No description provided for @login_admin_info.
+  ///
+  /// In ko, this message translates to:
+  /// **'운영자 · 심사용 계정에만 사용하는 로그인 방식입니다.'**
+  String get login_admin_info;
+
+  /// No description provided for @login_email.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일'**
+  String get login_email;
+
+  /// No description provided for @login_password.
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호'**
+  String get login_password;
+
+  /// No description provided for @login_email_btn.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일로 로그인'**
+  String get login_email_btn;
+
+  /// No description provided for @login_skip.
+  ///
+  /// In ko, this message translates to:
+  /// **'건너뛰기'**
+  String get login_skip;
+
+  /// No description provided for @login_fail_google.
+  ///
+  /// In ko, this message translates to:
+  /// **'Google 로그인 중 오류가 발생했습니다.'**
+  String get login_fail_google;
+
+  /// No description provided for @login_fail_apple.
+  ///
+  /// In ko, this message translates to:
+  /// **'Apple 로그인 중 오류가 발생했습니다.'**
+  String get login_fail_apple;
+
+  /// No description provided for @login_error_email_empty.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일을 입력해주세요.'**
+  String get login_error_email_empty;
+
+  /// No description provided for @login_error_email_format.
+  ///
+  /// In ko, this message translates to:
+  /// **'이메일 형식이 올바르지 않습니다.'**
+  String get login_error_email_format;
+
+  /// No description provided for @login_error_password_empty.
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호를 입력해주세요.'**
+  String get login_error_password_empty;
+
+  /// No description provided for @login_error_password_length.
+  ///
+  /// In ko, this message translates to:
+  /// **'비밀번호는 6자 이상이어야 합니다.'**
+  String get login_error_password_length;
+
+  /// No description provided for @post_write_delay_msg.
+  ///
+  /// In ko, this message translates to:
+  /// **'잠시 후 다시 시도해주세요. 게시글은 1분마다 작성할 수 있습니다.'**
+  String get post_write_delay_msg;
+
+  /// No description provided for @notice_detail_photo_count.
+  ///
+  /// In ko, this message translates to:
+  /// **'{current} / {total}'**
+  String notice_detail_photo_count(Object current, Object total);
+
+  /// No description provided for @notice_lang_ko.
+  ///
+  /// In ko, this message translates to:
+  /// **'한국어'**
+  String get notice_lang_ko;
+
+  /// No description provided for @notice_lang_en.
+  ///
+  /// In ko, this message translates to:
+  /// **'English'**
+  String get notice_lang_en;
+
+  /// No description provided for @notice_lang_ja.
+  ///
+  /// In ko, this message translates to:
+  /// **'日本語'**
+  String get notice_lang_ja;
+
+  /// No description provided for @notice_lang_zh_hant.
+  ///
+  /// In ko, this message translates to:
+  /// **'繁體'**
+  String get notice_lang_zh_hant;
+
+  /// No description provided for @notice_lang_zh_hans.
+  ///
+  /// In ko, this message translates to:
+  /// **'简体'**
+  String get notice_lang_zh_hans;
+
+  /// No description provided for @notice_photo_indicator.
+  ///
+  /// In ko, this message translates to:
+  /// **'{current} / {total}'**
+  String notice_photo_indicator(Object current, Object total);
 }
 
 class _AppLocalizationsDelegate

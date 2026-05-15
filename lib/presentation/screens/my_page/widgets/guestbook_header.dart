@@ -1,18 +1,20 @@
 // lib/presentation/widgets/guestbook_header.dart
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 🆕 추가
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
-// ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
-class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변경
+class GuestbookHeader extends ConsumerWidget {
   final String userId;
   const GuestbookHeader({super.key, required this.userId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) { // 👈 WidgetRef 추가
-    // 1. 실시간 통합 랭킹 데이터 구독 (방 주인의 순위 확인용)
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
+    // 1. 실시간 통합 랭킹 데이터 구독
     final totalRanking = ref.watch(totalRankingProvider);
     final rankIndex = totalRanking.indexWhere((item) => item['userId'] == userId);
     final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
@@ -26,7 +28,7 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
 
         final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
         final photoUrl = data['profileImageUrl'] as String?;
-        final koreanName = data['koreanName']?.toString().trim() ?? '이름 없음';
+        final koreanName = data['koreanName']?.toString().trim() ?? s.guestbook_header_no_name; // 🔹 다국어 적용
         final englishName = data['englishName']?.toString().trim();
         final shopName = data['shopName']?.toString().trim();
 
@@ -47,7 +49,6 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // 2. 프로필 사진 + 실시간 배지 (중앙 정렬 Stack)
               Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.center,
@@ -57,7 +58,7 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
                         ? () => _showFullImage(context, photoUrl!)
                         : null,
                     child: CircleAvatar(
-                      radius: 45, // 크기를 살짝 키움
+                      radius: 45,
                       backgroundColor: Colors.grey[200],
                       backgroundImage: photoUrl?.isNotEmpty == true ? NetworkImage(photoUrl!) : null,
                       child: photoUrl?.isNotEmpty != true
@@ -65,7 +66,6 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
                           : null,
                     ),
                   ),
-                  // 🔥 실시간 랭킹 배지 (사진 좌측 상단에 배치)
                   if (currentRank != null)
                     Positioned(
                       left: -4,
@@ -84,7 +84,6 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
               ),
               const SizedBox(height: 16),
 
-              // 이름 및 샵 정보
               Text(koreanName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               if (englishName?.isNotEmpty == true)
                 Text(englishName!, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
@@ -95,7 +94,6 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
                       style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
                 ),
 
-              // 3. 배럴 정보 섹션
               if (hasBarrelInfo) ...[
                 const SizedBox(height: 20),
                 _buildBarrelSection(
@@ -105,6 +103,7 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
                   shaft: shaft,
                   flight: flight,
                   tip: tip,
+                  s: s, // 🔹 s 전달
                 ),
               ],
             ],
@@ -121,6 +120,7 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
     required String shaft,
     required String flight,
     required String tip,
+    required AppLocalizations s, // 🔹 추가
   }) {
     final theme = Theme.of(context);
 
@@ -140,7 +140,7 @@ class GuestbookHeader extends ConsumerWidget { // 👈 ConsumerWidget으로 변�
               Icon(Icons.military_tech, size: 18, color: theme.colorScheme.primary),
               const SizedBox(width: 6),
               Text(
-                'PLAYERS_DART',
+                s.guestbook_header_barrel_title, // 🔹 다국어 적용
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,

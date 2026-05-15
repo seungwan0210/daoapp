@@ -1,11 +1,12 @@
 // lib/presentation/screens/admin/forms/notice_form_screen.dart
 
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:daoapp/presentation/widgets/app_card.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:daoapp/presentation/screens/main_screen.dart';
-import 'package:daoapp/presentation/widgets/common_appbar.dart'; // 추가!
+import 'package:daoapp/presentation/widgets/common_appbar.dart';
+import 'package:daoapp/presentation/screens/my_page/services/image_upload_service.dart'; // 이미지 서비스 임포트
+import 'package:firebase_auth/firebase_auth.dart';
 
 class NoticeFormScreen extends StatefulWidget {
   const NoticeFormScreen({super.key});
@@ -14,172 +15,96 @@ class NoticeFormScreen extends StatefulWidget {
   State<NoticeFormScreen> createState() => _NoticeFormScreenState();
 }
 
-class _NoticeFormScreenState extends State<NoticeFormScreen> {
-  final _titleController = TextEditingController();
-  final _contentController = TextEditingController();
-  final _actionUrlController = TextEditingController();
-  final _actionRouteController = TextEditingController();
+class _NoticeFormScreenState extends State<NoticeFormScreen> with SingleTickerProviderStateMixin {
+  // 5개 국어용 컨트롤러 맵
+  final Map<String, TextEditingController> _titleControllers = {
+    'ko': TextEditingController(),
+    'en': TextEditingController(),
+    'ja': TextEditingController(),
+    'zh_Hant': TextEditingController(),
+    'zh_Hans': TextEditingController(),
+  };
 
-  String _actionType = 'none';
+  final Map<String, TextEditingController> _contentControllers = {
+    'ko': TextEditingController(),
+    'en': TextEditingController(),
+    'ja': TextEditingController(),
+    'zh_Hant': TextEditingController(),
+    'zh_Hans': TextEditingController(),
+  };
+
+  // 이미지 관련 상태
+  final List<File> _selectedImages = [];
   bool _isLoading = false;
+  late TabController _tabController;
+
   final _firestore = FirebaseFirestore.instance;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Scaffold(
-      appBar: CommonAppBar(
-        title: '공지 등록',
-        showBackButton: true,
-      ),
-      body: Column(
-        children: [
-          _buildInputForm(theme),
-          const Divider(height: 1),
-          Expanded(child: _buildNoticeList(theme)),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
   }
 
-  /* ────────────────────────── 입력 폼 (크게 확장) ────────────────────────── */
-  Widget _buildInputForm(ThemeData theme) {
-    return Expanded(
-      flex: 2, // 리스트보다 더 넓게
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: AppCard(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 제목
-                TextField(
-                  controller: _titleController,
-                  decoration: const InputDecoration(
-                    labelText: "제목",
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                  ),
-                  style: theme.textTheme.titleMedium,
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-
-                // 내용 (크게!)
-                SizedBox(
-                  height: 200, // 120 → 200
-                  child: TextField(
-                    controller: _contentController,
-                    decoration: const InputDecoration(
-                      labelText: "내용",
-                      hintText: "자세한 내용을 입력하세요...",
-                      border: OutlineInputBorder(),
-                      alignLabelWithHint: true,
-                      contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                    ),
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textAlignVertical: TextAlignVertical.top,
-                    expands: true,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // 액션 섹션
-                _buildActionSection(theme),
-                const SizedBox(height: 20),
-
-                // 등록 버튼
-                _isLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: _addNotice,
-                    style: theme.elevatedButtonTheme.style?.copyWith(
-                      textStyle: MaterialStateProperty.all(
-                        theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    child: const Text("공지 등록"),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionSection(ThemeData theme) {
-    return Column(
-      children: [
-        DropdownButtonFormField<String>(
-          value: _actionType,
-          decoration: const InputDecoration(
-            labelText: '액션 타입',
-            border: OutlineInputBorder(),
-            contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'none', child: Text('텍스트만')),
-            DropdownMenuItem(value: 'link', child: Text('외부 링크')),
-            DropdownMenuItem(value: 'internal', child: Text('앱 내부 페이지')),
-          ],
-          onChanged: (v) => setState(() => _actionType = v!),
-        ),
-        const SizedBox(height: 12),
-        if (_actionType == 'link')
-          TextField(
-            controller: _actionUrlController,
-            decoration: const InputDecoration(
-              labelText: '링크 URL',
-              hintText: 'https://example.com',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            ),
-            keyboardType: TextInputType.url,
-          ),
-        if (_actionType == 'internal')
-          TextField(
-            controller: _actionRouteController,
-            decoration: const InputDecoration(
-              labelText: '라우트 경로',
-              hintText: '/ranking',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-            ),
-          ),
-      ],
-    );
-  }
-
-  /* ────────────────────────── 등록 ────────────────────────── */
-  Future<void> _addNotice() async {
-    final title = _titleController.text.trim();
-    if (title.isEmpty) return _showSnackBar("제목을 입력하세요", Colors.red);
-
-    if (_actionType == 'link' && _actionUrlController.text.trim().isEmpty) {
-      return _showSnackBar("링크 URL을 입력하세요", Colors.red);
+  @override
+  void dispose() {
+    _tabController.dispose();
+    for (var c in _titleControllers.values) {
+      c.dispose();
     }
-    if (_actionType == 'internal' && _actionRouteController.text.trim().isEmpty) {
-      return _showSnackBar("라우트 경로를 입력하세요", Colors.red);
+    for (var c in _contentControllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /* ────────────────────────── 이미지 선택 ────────────────────────── */
+  Future<void> _pickImages() async {
+    if (_selectedImages.length >= 7) {
+      _showSnackBar("이미지는 최대 7장까지 가능합니다.", Colors.orange);
+      return;
+    }
+    final picked = await ImageUploadService.pickMultiImage();
+    if (picked.isNotEmpty) {
+      setState(() {
+        final availableSlots = 7 - _selectedImages.length;
+        _selectedImages.addAll(picked.take(availableSlots).map((x) => File(x.path)));
+      });
+    }
+  }
+
+  /* ────────────────────────── 등록 로직 ────────────────────────── */
+  Future<void> _addNotice() async {
+    // 한국어 제목은 필수 체크
+    if (_titleControllers['ko']!.text.trim().isEmpty) {
+      return _showSnackBar("한국어 제목은 필수입니다.", Colors.red);
     }
 
     setState(() => _isLoading = true);
+
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      final List<String> uploadedUrls = [];
+
+      // 1. 이미지 업로드 (있을 경우)
+      for (var file in _selectedImages) {
+        final url = await ImageUploadService.upload(file, 'notices/${user?.uid}');
+        if (url != null) uploadedUrls.add(url);
+      }
+
+      // 2. 다국어 맵 구성
+      final Map<String, Map<String, String>> langsData = {};
+      _titleControllers.forEach((key, controller) {
+        langsData[key] = {
+          'title': controller.text.trim(),
+          'content': _contentControllers[key]!.text.trim(),
+        };
+      });
+
+      // 3. Firestore 저장
       await _firestore.collection('notices').add({
-        'title': title,
-        'content': _contentController.text.trim(),
-        'actionType': _actionType,
-        'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
-        'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
+        'langs': langsData,
+        'imageUrls': uploadedUrls,
         'isActive': true,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -194,268 +119,231 @@ class _NoticeFormScreenState extends State<NoticeFormScreen> {
   }
 
   void _clearForm() {
-    _titleController.clear();
-    _contentController.clear();
-    _actionUrlController.clear();
-    _actionRouteController.clear();
-    setState(() => _actionType = 'none');
-  }
-
-  /* ────────────────────────── 목록 (내용 잘 보이게) ────────────────────────── */
-  Widget _buildNoticeList(ThemeData theme) {
-    return Expanded(
-      flex: 1,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: _firestore
-            .collection('notices')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("등록된 공지가 없습니다."));
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final docId = doc.id;
-              final isActive = data['isActive'] as bool? ?? true;
-
-              return AppCard(
-                color: isActive ? null : Colors.grey[100],
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                child: ListTile(
-                  title: Text(
-                    data['title'] ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: isActive ? null : Colors.grey[600],
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (data['content'] != null && data['content'].toString().isNotEmpty)
-                        Text(
-                          data['content'].toString(),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(height: 1.4),
-                        ),
-                      const SizedBox(height: 4),
-                      if (data['actionUrl'] != null)
-                        Text(
-                          data['actionUrl'].toString(),
-                          style: theme.textTheme.bodySmall?.copyWith(color: Colors.blue),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Switch(
-                        value: isActive,
-                        onChanged: (value) async {
-                          await _firestore.collection('notices').doc(docId).update({
-                            'isActive': value,
-                          });
-                        },
-                        activeColor: theme.colorScheme.primary,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () => _editNotice(docId, data),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteNotice(docId),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    final type = data['actionType'];
-                    final url = data['actionUrl'] as String?;
-                    final route = data['actionRoute'] as String?;
-
-                    if (type == 'link' && url != null) {
-                      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-                    } else if (type == 'internal' && route != null) {
-                      _syncTabWithRoute(route);
-                    }
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  /* ────────────────────────── 탭 동기화 ────────────────────────── */
-  void _syncTabWithRoute(String route) {
-    int? tabIndex;
-    switch (route) {
-      case '/ranking':
-        tabIndex = 1;
-        break;
-      case '/calendar':
-        tabIndex = 2;
-        break;
-      case '/community':
-        tabIndex = 3;
-        break;
-      case '/my-page':
-        tabIndex = 4;
-        break;
-      default:
-        return;
+    for (var c in _titleControllers.values) {
+      c.clear();
     }
-
-    if (tabIndex != null) {
-      MainScreen.changeTab(context, tabIndex);
+    for (var c in _contentControllers.values) {
+      c.clear();
     }
-  }
-
-  /* ────────────────────────── 수정 다이얼로그 ────────────────────────── */
-  void _editNotice(String docId, Map<String, dynamic> data) {
-    _titleController.text = data['title'] ?? '';
-    _contentController.text = data['content'] ?? '';
-    _actionType = data['actionType'] ?? 'none';
-    _actionUrlController.text = data['actionUrl'] ?? '';
-    _actionRouteController.text = data['actionRoute'] ?? '';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("공지 수정"),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: "제목",
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                      ),
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 200,
-                      child: TextField(
-                        controller: _contentController,
-                        decoration: const InputDecoration(
-                          labelText: "내용",
-                          hintText: "자세한 내용을 입력하세요...",
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-                        ),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        expands: true,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildActionSection(Theme.of(context)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("취소")),
-          ElevatedButton(
-            onPressed: () async {
-              final title = _titleController.text.trim();
-              if (title.isEmpty) {
-                _showSnackBar("제목을 입력하세요", Colors.red);
-                return;
-              }
-
-              try {
-                await _firestore.collection('notices').doc(docId).update({
-                  'title': title,
-                  'content': _contentController.text.trim(),
-                  'actionType': _actionType,
-                  'actionUrl': _actionType == 'link' ? _actionUrlController.text.trim() : null,
-                  'actionRoute': _actionType == 'internal' ? _actionRouteController.text.trim() : null,
-                  'isActive': true,
-                });
-                if (mounted) _showSnackBar("수정되었습니다.", Colors.green);
-                Navigator.pop(ctx);
-              } catch (e) {
-                _showSnackBar("수정 실패: $e", Colors.red);
-              }
-            },
-            child: const Text("저장"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /* ────────────────────────── 삭제 ────────────────────────── */
-  Future<void> _deleteNotice(String docId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("삭제하시겠습니까?"),
-        content: const Text("이 작업은 되돌릴 수 없습니다."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("삭제", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        await _firestore.collection('notices').doc(docId).delete();
-        if (mounted) _showSnackBar("공지가 삭제되었습니다.", Colors.red);
-      } catch (e) {
-        _showSnackBar("삭제 실패: $e", Colors.red);
-      }
-    }
-  }
-
-  /* ────────────────────────── 유틸 ────────────────────────── */
-  void _showSnackBar(String msg, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: color),
-    );
+    setState(() => _selectedImages.clear());
   }
 
   @override
-  void dispose() {
-    _titleController.dispose();
-    _contentController.dispose();
-    _actionUrlController.dispose();
-    _actionRouteController.dispose();
-    super.dispose();
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: CommonAppBar(title: '공지사항 마스터 관리', showBackButton: true),
+      body: Column(
+        children: [
+          // 언어 선택 탭바
+          TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            labelColor: theme.colorScheme.primary,
+            unselectedLabelColor: Colors.grey,
+            tabs: const [
+              Tab(text: "한국어(KO)"),
+              Tab(text: "English(EN)"),
+              Tab(text: "日本語(JA)"),
+              Tab(text: "繁體(Hant)"),
+              Tab(text: "简体(Hans)"),
+            ],
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 입력 폼 영역 (탭에 따라 내용 변경)
+                  SizedBox(
+                    height: 320,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: _titleControllers.keys.map((langCode) {
+                        return _buildLanguageInput(langCode);
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 이미지 섹션
+                  _buildImagePickerSection(),
+                  const SizedBox(height: 24),
+
+                  // 등록 버튼
+                  _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : ElevatedButton(
+                    onPressed: _addNotice,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text("공지사항 발행 (5개국어 동시)", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  _buildRecentListHeader(),
+                  // 하단 리스트 (간략히)
+                  _buildNoticeListPreview(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageInput(String langCode) {
+    return Column(
+      children: [
+        TextField(
+          controller: _titleControllers[langCode],
+          decoration: InputDecoration(
+            labelText: "제목 ($langCode)",
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: TextField(
+            controller: _contentControllers[langCode],
+            decoration: InputDecoration(
+              labelText: "내용 ($langCode)",
+              alignLabelWithHint: true,
+              border: const OutlineInputBorder(),
+            ),
+            maxLines: null,
+            expands: true,
+            textAlignVertical: TextAlignVertical.top,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImagePickerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text("공지 이미지 (최대 7장)", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text("${_selectedImages.length} / 7", style: const TextStyle(color: Colors.grey)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 100,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              // 추가 버튼
+              GestureDetector(
+                onTap: _pickImages,
+                child: Container(
+                  width: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: const Icon(Icons.add_a_photo, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // 선택된 이미지들
+              ..._selectedImages.map((file) => Stack(
+                children: [
+                  Container(
+                    width: 100,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(image: FileImage(file), fit: BoxFit.cover),
+                    ),
+                  ),
+                  Positioned(
+                    top: 4,
+                    right: 12,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedImages.remove(file)),
+                      child: Container(
+                        decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                        child: const Icon(Icons.close, color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              )),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentListHeader() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: Text("최근 발행 리스트", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+    );
+  }
+
+  Widget _buildNoticeListPreview() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: _firestore.collection('notices').orderBy('createdAt', descending: true).limit(5).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: snapshot.data!.docs.length,
+          itemBuilder: (context, index) {
+            final doc = snapshot.data!.docs[index];
+            final data = doc.data() as Map<String, dynamic>;
+            final langs = data['langs'] as Map<String, dynamic>? ?? {};
+            final koTitle = langs['ko']?['title'] ?? 'No Title';
+
+            return AppCard(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                title: Text(koTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text("이미지 ${ (data['imageUrls'] as List?)?.length ?? 0 }장"),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _deleteNotice(doc.id),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteNotice(String docId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("공지 삭제"),
+        content: const Text("정말 삭제하시겠습니까?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("취소")),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("삭제", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (ok == true) await _firestore.collection('notices').doc(docId).delete();
+  }
+
+  void _showSnackBar(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
   }
 }

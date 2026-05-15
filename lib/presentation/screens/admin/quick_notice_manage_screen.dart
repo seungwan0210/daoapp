@@ -16,6 +16,7 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
   final _actionUrlController = TextEditingController();
 
   DateTime _startDate = DateTime.now();
+  // 💡 초기값을 7일 뒤로 설정하되, UI에서 수정 가능하게 변경
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
   DateTime? _targetDate;    // ✅ 대회 당일 (D-Day 자동 계산용)
   DateTime? _entryDeadline; // ✅ 엔트리 마감일
@@ -23,7 +24,6 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
   String _selectedLogo = 'none';
   String _selectedHex = '3B82F6';
 
-  // ✅ 이동 경로 설정 (매거진 관리 로직 이식)
   String _actionType = 'none';
   String _selectedRoute = RouteConstants.arenaHome;
 
@@ -53,7 +53,6 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
     super.dispose();
   }
 
-  // ✅ 등록 함수
   Future<void> _saveNotice() async {
     if (_contentController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('내용을 입력해주세요.')));
@@ -76,6 +75,7 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
         'logoKey': _selectedLogo,
         'colorHex': _selectedHex,
         'startDate': Timestamp.fromDate(DateTime(_startDate.year, _startDate.month, _startDate.day, 0, 0, 0)),
+        // 💡 관리자가 설정한 _endDate가 그대로 반영됨
         'endDate': Timestamp.fromDate(DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59)),
         'targetDate': _targetDate != null ? Timestamp.fromDate(_targetDate!) : null,
         'entryDeadline': _entryDeadline != null ? Timestamp.fromDate(_entryDeadline!) : null,
@@ -94,6 +94,7 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
     _contentController.clear();
     _actionUrlController.clear();
     setState(() {
+      _endDate = DateTime.now().add(const Duration(days: 7)); // 초기화 시 다시 7일 뒤로
       _targetDate = null;
       _entryDeadline = null;
       _actionType = 'none';
@@ -102,7 +103,6 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
     });
   }
 
-  // ✅ 이동 경로 선택 위젯
   Widget _buildActionSelector(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,11 +166,10 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
     );
   }
 
-  // ✅ 날짜 선택 헬퍼
-  Future<void> _selectDate({required Function(DateTime) onSelected}) async {
+  Future<void> _selectDate({required DateTime initialDate, required Function(DateTime) onSelected}) async {
     final picked = await showDatePicker(
         context: context,
-        initialDate: DateTime.now(),
+        initialDate: initialDate,
         firstDate: DateTime(2025),
         lastDate: DateTime(2030),
         locale: const Locale('ko', 'KR')
@@ -178,14 +177,14 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
     if (picked != null) onSelected(picked);
   }
 
-  Widget _buildDateChip(String label, DateTime? date, VoidCallback onTap) {
+  Widget _buildDateChip(String label, DateTime? date, VoidCallback onTap, {bool isRequired = false}) {
     return ActionChip(
       avatar: Icon(Icons.calendar_today, size: 14, color: date != null ? Colors.white : Colors.grey),
       label: Text(
           date != null ? "$label: ${DateFormat('MM/dd').format(date)}" : "$label 설정",
           style: TextStyle(color: date != null ? Colors.white : Colors.black87, fontSize: 12)
       ),
-      backgroundColor: date != null ? Colors.blue : Colors.grey[100],
+      backgroundColor: date != null ? (isRequired ? Colors.orangeAccent : Colors.blue) : Colors.grey[100],
       onPressed: onTap,
     );
   }
@@ -216,13 +215,29 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
                   _buildActionSelector(theme),
                   const SizedBox(height: 24),
 
-                  const Text("날짜 옵션 (선택 시 D-Day 자동 노출)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const Text("날짜 옵션 (종료일 필수 / 나머지는 선택)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 10),
-                  Row(
+                  // 💡 종료일 설정을 위한 Chip 추가
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
-                      _buildDateChip("대회 당일", _targetDate, () => _selectDate(onSelected: (d) => setState(() => _targetDate = d))),
-                      const SizedBox(width: 8),
-                      _buildDateChip("엔트리 마감", _entryDeadline, () => _selectDate(onSelected: (d) => setState(() => _entryDeadline = d))),
+                      _buildDateChip(
+                          "공지 종료일",
+                          _endDate,
+                              () => _selectDate(initialDate: _endDate, onSelected: (d) => setState(() => _endDate = d)),
+                          isRequired: true
+                      ),
+                      _buildDateChip(
+                          "대회 당일",
+                          _targetDate,
+                              () => _selectDate(initialDate: DateTime.now(), onSelected: (d) => setState(() => _targetDate = d))
+                      ),
+                      _buildDateChip(
+                          "엔트리 마감",
+                          _entryDeadline,
+                              () => _selectDate(initialDate: DateTime.now(), onSelected: (d) => setState(() => _entryDeadline = d))
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -275,7 +290,6 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
                   const SizedBox(height: 16),
                   const Text("최근 등록 리스트", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
 
-                  // 실시간 리스트 섹션
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance.collection('quick_notices').orderBy('createdAt', descending: true).snapshots(),
                     builder: (context, snapshot) {
@@ -289,12 +303,17 @@ class _QuickNoticeManageScreenState extends State<QuickNoticeManageScreen> {
                         itemBuilder: (context, index) {
                           final data = docs[index].data() as Map<String, dynamic>;
                           final color = Color(int.parse("0xFF${data['colorHex'] ?? '3B82F6'}"));
+
+                          // 💡 리스트에서 종료일도 확인할 수 있도록 수정
+                          final endTs = data['endDate'] as Timestamp?;
+                          final endStr = endTs != null ? DateFormat('MM/dd').format(endTs.toDate()) : '-';
+
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: CircleAvatar(backgroundColor: color.withOpacity(0.2), child: _buildLogoIcon(data['logoKey'])),
                             title: Text(data['content'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                             subtitle: Text(
-                              "타겟: ${data['targetDate'] != null ? 'D-Day 설정됨' : '없음'} | 경로: ${data['actionType']}",
+                              "종료: $endStr | 타겟: ${data['targetDate'] != null ? 'D-Day' : '없음'} | 경로: ${data['actionType']}",
                               style: const TextStyle(fontSize: 11),
                             ),
                             trailing: IconButton(

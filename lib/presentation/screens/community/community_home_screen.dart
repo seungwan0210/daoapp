@@ -15,6 +15,7 @@ import 'package:daoapp/presentation/screens/community/chat/widgets/live_chat_tic
 
 // ✅ AdMob 배너 광고 위젯 임포트
 import 'package:daoapp/presentation/widgets/ad_banner.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class CommunityHomeScreen extends ConsumerStatefulWidget {
   const CommunityHomeScreen({super.key});
@@ -38,6 +39,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
 
   /// ✅ UGC(커뮤니티) 동의 저장
   Future<void> _acceptUgcTerms(String uid) async {
+    final s = AppLocalizations.of(context)!;
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).set(
         {
@@ -50,7 +52,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('동의 처리 실패: $e'),
+          content: Text(s.community_home_ugc_msg_fail(e.toString())),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -59,6 +61,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
     final authState = ref.watch(authStateProvider);
     final theme = Theme.of(context);
 
@@ -66,7 +69,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
       body: SafeArea(
         child: authState.when(
           data: (user) {
-            if (user == null) return _buildLoginPrompt(context, theme);
+            if (user == null) return _buildLoginPrompt(context, theme, s);
 
             return StreamBuilder<DocumentSnapshot>(
               stream: FirebaseFirestore.instance
@@ -86,6 +89,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                   return _buildVerificationPrompt(
                     context: context,
                     theme: theme,
+                    s: s,
                     hasProfile: hasProfile,
                     isPhoneVerified: isPhoneVerified,
                   );
@@ -96,6 +100,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                   return _buildUgcTermsGate(
                     context: context,
                     theme: theme,
+                    s: s,
                     uid: user.uid,
                   );
                 }
@@ -107,11 +112,8 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                     children: [
                       const SizedBox(height: 12),
 
-                      // 🔥 [UI 개선] 라이브 세션 그룹화
-                      // 온라인 유저 목록
                       const CommunityAvatarSlider(),
 
-                      // 실시간 채팅 전광판 (슬라이더와 간격 8px로 밀착 배치)
                       const SizedBox(height: 8),
                       const LiveChatTicker(),
 
@@ -120,7 +122,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Text(
-                          '연습 · 대회 · 기록',
+                          s.community_home_tab_title,
                           style: theme.textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
@@ -141,19 +143,19 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                               children: [
                                 _MainGridItem(
                                   icon: Icons.track_changes_outlined,
-                                  label: '트레이닝',
+                                  label: s.community_home_menu_training,
                                   color: Colors.teal,
                                   onTap: _goToTraining,
                                 ),
                                 _MainGridItem(
                                   icon: Icons.emoji_events_outlined,
-                                  label: '아레나',
+                                  label: s.community_home_menu_arena,
                                   color: Colors.indigo,
                                   onTap: _goToArena,
                                 ),
                                 _MainGridItem(
                                   icon: Icons.edit_note_outlined,
-                                  label: '마이로그',
+                                  label: s.community_home_menu_mylog,
                                   color: Colors.deepOrange,
                                   onTap: _goToMyLog,
                                 ),
@@ -165,7 +167,6 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
 
                       const SizedBox(height: 16),
 
-                      // 커뮤니티 프리뷰
                       CommunityPreview(
                         onSeeAllPressed: () {
                           Navigator.pushNamed(context, RouteConstants.circle);
@@ -199,18 +200,16 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
             );
           },
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => _buildLoginPrompt(context, theme),
+          error: (_, __) => _buildLoginPrompt(context, theme, s),
         ),
       ),
     );
   }
 
-  // ==========================
-  // UGC 동의 게이트 UI (생략 없이 유지)
-  // ==========================
   Widget _buildUgcTermsGate({
     required BuildContext context,
     required ThemeData theme,
+    required AppLocalizations s,
     required String uid,
   }) {
     return Center(
@@ -225,7 +224,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                 Icon(Icons.policy_outlined, size: 64, color: Colors.grey[500]),
                 const SizedBox(height: 18),
                 Text(
-                  '커뮤니티 이용 동의가 필요해요',
+                  s.community_home_ugc_title,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
@@ -233,12 +232,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '커뮤니티에는 사용자가 작성한 글/사진(UGC)이 노출됩니다.\n'
-                      '안전한 이용을 위해 아래 내용에 동의해 주세요.\n\n'
-                      '• 타인을 비방/혐오/차별/괴롭힘하는 콘텐츠 금지\n'
-                      '• 불법/음란/폭력/사기 등 유해 콘텐츠 금지\n'
-                      '• 신고/차단 기능 및 운영 정책에 따라 제재될 수 있음\n'
-                      '• 신고된 콘텐츠는 운영자가 검토할 수 있음',
+                  s.community_home_ugc_desc,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: Colors.grey[800],
                     height: 1.45,
@@ -251,20 +245,20 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                       child: OutlinedButton(
                         onPressed: () {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('동의 후 커뮤니티 이용이 가능합니다.'),
+                            SnackBar(
+                              content: Text(s.community_home_ugc_msg_reject),
                               behavior: SnackBarBehavior.floating,
                             ),
                           );
                         },
-                        child: const Text('동의 안함'),
+                        child: Text(s.community_home_ugc_btn_no),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: FilledButton(
                         onPressed: () => _acceptUgcTerms(uid),
-                        child: const Text('동의하고 시작'),
+                        child: Text(s.community_home_ugc_btn_yes),
                       ),
                     ),
                   ],
@@ -277,8 +271,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
     );
   }
 
-  // 로그인 유도 UI
-  Widget _buildLoginPrompt(BuildContext context, ThemeData theme) {
+  Widget _buildLoginPrompt(BuildContext context, ThemeData theme, AppLocalizations s) {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -291,7 +284,7 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                 Icon(Icons.people_alt_outlined, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 20),
                 Text(
-                  '커뮤니티를 이용하려면\n로그인이 필요해요',
+                  s.community_home_login_prompt,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
@@ -303,10 +296,10 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
     );
   }
 
-  // 인증 유도 UI
   Widget _buildVerificationPrompt({
     required BuildContext context,
     required ThemeData theme,
+    required AppLocalizations s,
     required bool hasProfile,
     required bool isPhoneVerified,
   }) {
@@ -322,13 +315,13 @@ class _CommunityHomeScreenState extends ConsumerState<CommunityHomeScreen> {
                 Icon(Icons.verified_user_outlined, size: 64, color: Colors.grey[500]),
                 const SizedBox(height: 20),
                 Text(
-                  '커뮤니티 이용을 위해\n인증이 필요해요',
+                  s.community_home_verify_prompt,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  !hasProfile ? '프로필 등록을 완료해 주세요.' : '휴대폰 인증을 완료해 주세요.',
+                  !hasProfile ? s.community_home_verify_profile : s.community_home_verify_phone,
                   style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey[700]),
                 ),
               ],

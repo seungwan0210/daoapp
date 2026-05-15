@@ -5,9 +5,10 @@ import 'package:daoapp/presentation/widgets/user_profile_dialog.dart';
 import 'package:daoapp/presentation/widgets/badge_widget.dart';
 // ✅ 수정 코드 (랭킹 프로바이더 하나로 통합)
 import 'package:daoapp/presentation/providers/training/ranking/ranking_provider.dart';
-import 'package:daoapp/presentation/providers/app_providers.dart'; // ✅ 임포트 추가
+import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'comment_bottom_sheet.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class CommentPreview extends ConsumerWidget {
   final String postId;
@@ -24,10 +25,8 @@ class CommentPreview extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // 🆕 실시간 통합 랭킹 구독
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
     final totalRanking = ref.watch(totalRankingProvider);
-
-    // ✅ [핵심] 중앙 집중식 실시간 차단 목록 구독
     final blockedIds = ref.watch(blockedUserIdsProvider).value ?? {};
 
     return StreamBuilder<QuerySnapshot>(
@@ -36,12 +35,11 @@ class CommentPreview extends ConsumerWidget {
           .doc(postId)
           .collection('comments')
           .orderBy('timestamp', descending: true)
-          .limit(10) // 차단 유저를 걸러야 하므로 조금 더 넉넉하게 가져옵니다.
+          .limit(10)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const SizedBox.shrink();
 
-        // 🔥 [필터링] 중앙 차단 목록을 기준으로 즉시 필터링
         final filteredDocs = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final writerId = _writerIdFrom(data);
@@ -50,7 +48,6 @@ class CommentPreview extends ConsumerWidget {
 
         if (filteredDocs.isEmpty) return const SizedBox.shrink();
 
-        // 필터링된 결과 중 상위 3개만 미리보기에 표시
         final previewDocs = filteredDocs.take(3).toList();
 
         return Column(
@@ -61,7 +58,6 @@ class CommentPreview extends ConsumerWidget {
               final String? writerId = _writerIdFrom(data);
               final content = (data['content'] as String?) ?? '';
 
-              // 실시간 순위 확인
               final rankIndex = totalRanking.indexWhere((item) => item['userId'] == writerId);
               final int? currentRank = (rankIndex != -1 && rankIndex < 10) ? rankIndex + 1 : null;
 
@@ -89,7 +85,7 @@ class CommentPreview extends ConsumerWidget {
                           style: const TextStyle(fontSize: 12, color: Colors.black87),
                           children: [
                             WidgetSpan(
-                              child: _buildWriterName(context, writerId),
+                              child: _buildWriterName(context, writerId, s),
                             ),
                             const TextSpan(text: '  '),
                             TextSpan(text: content),
@@ -111,7 +107,7 @@ class CommentPreview extends ConsumerWidget {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
-                  '댓글 모두 보기',
+                  s.comment_preview_see_all, // 🔹 다국어 적용
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.primary,
@@ -124,19 +120,18 @@ class CommentPreview extends ConsumerWidget {
     );
   }
 
-  // 작성자 이름 실시간 렌더링
-  Widget _buildWriterName(BuildContext context, String? writerId) {
-    if (writerId == null) return const Text('익명', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey));
+  Widget _buildWriterName(BuildContext context, String? writerId, AppLocalizations s) {
+    if (writerId == null) return Text(s.common_anonymous, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey));
 
     return StreamBuilder<DocumentSnapshot>(
       stream: FirebaseFirestore.instance.collection('users').doc(writerId).snapshots(),
       builder: (context, userSnap) {
         final name = (userSnap.hasData && userSnap.data!.exists)
-            ? (userSnap.data!.data() as Map<String, dynamic>)['koreanName'] ?? '익명'
-            : '익명';
+            ? (userSnap.data!.data() as Map<String, dynamic>)['koreanName'] ?? s.common_anonymous
+            : s.common_anonymous;
 
         return GestureDetector(
-          onTap: () => _showProfile(context, writerId),
+          onTap: () => _showProfile(context, writerId, s),
           child: Text(
             name,
             style: TextStyle(
@@ -150,7 +145,6 @@ class CommentPreview extends ConsumerWidget {
     );
   }
 
-  // 아바타 위젯 (승완님 로직 유지)
   Widget _buildAvatar(String? userId) {
     if (userId == null) return CircleAvatar(radius: 12, backgroundColor: Colors.grey[300], child: const Icon(Icons.person, size: 16));
 
@@ -171,8 +165,7 @@ class CommentPreview extends ConsumerWidget {
     );
   }
 
-  // 프로필 다이얼로그 (승완님 로직 유지)
-  void _showProfile(BuildContext context, String userId) {
+  void _showProfile(BuildContext context, String userId, AppLocalizations s) {
     showDialog(
       context: context,
       builder: (_) => FutureBuilder<DocumentSnapshot>(
@@ -181,7 +174,7 @@ class CommentPreview extends ConsumerWidget {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
           return UserProfileDialog(
-            koreanName: data['koreanName'] ?? '이름 없음',
+            koreanName: data['koreanName'] ?? s.member_list_no_name,
             photoUrl: data['profileImageUrl'],
             userId: userId,
             isMe: FirebaseAuth.instance.currentUser?.uid == userId,

@@ -5,12 +5,15 @@ import 'package:daoapp/presentation/providers/app_providers.dart';
 import 'package:daoapp/presentation/providers/chat/chat_provider.dart';
 import 'package:daoapp/presentation/screens/community/chat/widgets/chat_overlay_sheet.dart';
 import 'package:daoapp/data/models/chat_message_model.dart';
+import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
 
 class LiveChatTicker extends ConsumerWidget {
   const LiveChatTicker({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+
     // 차단된 유저를 제외한 실시간 채팅 스트림 구독
     final chatAsync = ref.watch(filteredChatProvider);
 
@@ -18,7 +21,7 @@ class LiveChatTicker extends ConsumerWidget {
       data: (messages) {
         if (messages.isEmpty) return const SizedBox.shrink();
 
-        // 1️⃣ 가장 최신 메시지 가져오기 (유저 채팅 + 시스템 공지 통합)
+        // 1️⃣ 가장 최신 메시지 가져오기
         final lastMsg = messages.first;
         final bool isSystem = lastMsg.type == 'SYSTEM';
 
@@ -30,24 +33,24 @@ class LiveChatTicker extends ConsumerWidget {
         if (isSystem) {
           switch (lastMsg.category) {
             case 'RANKING':
-              leadingIcon = Icons.trending_up_rounded; // 랭킹 상승 아이콘
-              displayColor = Colors.orangeAccent;      // 주황색 (활기/경쟁)
-              prefixText = '[랭킹]';
+              leadingIcon = Icons.trending_up_rounded;
+              displayColor = Colors.orangeAccent;
+              prefixText = s.chat_ticker_prefix_ranking; // 🔹 다국어 적용
               break;
             case 'TOURNAMENT':
-              leadingIcon = Icons.emoji_events_outlined; // 트로피 아이콘
-              displayColor = Colors.lightBlueAccent;    // 파란색 (신뢰/대회)
-              prefixText = '[대회]';
+              leadingIcon = Icons.emoji_events_outlined;
+              displayColor = Colors.lightBlueAccent;
+              prefixText = s.chat_ticker_prefix_tournament; // 🔹 다국어 적용
               break;
             case 'WELCOME':
-              leadingIcon = Icons.celebration_outlined;  // 파티 아이콘
-              displayColor = Colors.pinkAccent;          // 분홍색 (환영)
-              prefixText = '[환영]';
+              leadingIcon = Icons.celebration_outlined;
+              displayColor = Colors.pinkAccent;
+              prefixText = s.chat_ticker_prefix_welcome; // 🔹 다국어 적용
               break;
             default:
-              leadingIcon = Icons.campaign;              // 확성기 아이콘
-              displayColor = Colors.amberAccent;         // 노란색 (일반공지)
-              prefixText = '[공지]';
+              leadingIcon = Icons.campaign;
+              displayColor = Colors.amberAccent;
+              prefixText = s.chat_ticker_prefix_notice; // 🔹 다국어 적용
           }
         }
 
@@ -55,7 +58,6 @@ class LiveChatTicker extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: GestureDetector(
             onTap: () {
-              // 티커 클릭 시 채팅 오버레이 창 띄우기
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
@@ -71,8 +73,8 @@ class LiveChatTicker extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  // 2️⃣ 상단: 고정 시스템 공지 (Firestore settings/chat_config 연동)
-                  _buildFixedNotice(),
+                  // 2️⃣ 상단: 고정 시스템 공지
+                  _buildFixedNotice(s), // 🔹 s 전달
 
                   // 구분선
                   Container(
@@ -81,7 +83,7 @@ class LiveChatTicker extends ConsumerWidget {
                     color: Colors.white.withOpacity(0.1),
                   ),
 
-                  // 3️⃣ 하단: 실시간 메시지 (카테고리별 맞춤 스타일 적용)
+                  // 3️⃣ 하단: 실시간 메시지
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -131,14 +133,14 @@ class LiveChatTicker extends ConsumerWidget {
   }
 
   /// 📢 상단 고정 공지 빌더
-  Widget _buildFixedNotice() {
+  Widget _buildFixedNotice(AppLocalizations s) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance.collection('settings').doc('chat_config').snapshots(),
           builder: (context, snapshot) {
-            String noticeText = 'DAO 라이브 톡에 오신 것을 환영합니다!';
+            String noticeText = s.chat_ticker_default_notice; // 🔹 다국어 기본값
 
             if (snapshot.hasData && snapshot.data!.exists) {
               final data = snapshot.data!.data() as Map<String, dynamic>;

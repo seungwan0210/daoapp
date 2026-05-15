@@ -37,9 +37,9 @@ import 'package:daoapp/presentation/screens/community/chat/chat_screen.dart';
 import 'package:daoapp/presentation/screens/home/widgets/live_practice_board.dart';
 import 'package:daoapp/presentation/providers/practice/practice_provider.dart';
 
-// ✅ 로컬라이징 임포트
 import 'package:daoapp/l10n/app_localizations.dart';
 import 'package:daoapp/presentation/providers/locale_provider.dart';
+import 'package:intl/intl.dart';
 
 class _QuickMenuData {
   final IconData icon;
@@ -101,7 +101,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  // ✅ [수정] String이 아닌 Locale 객체를 직접 전달하도록 변경
   void _showLanguageSelector(BuildContext context, AppLocalizations l10n) {
     showModalBottomSheet(
       context: context,
@@ -117,7 +116,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 20),
               Text(l10n.home_language_setting, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               const SizedBox(height: 10),
-              // 💡 'ko' 대신 const Locale('ko') 처럼 객체로 전달합니다.
               _languageTile(context, '한국어', const Locale('ko'), '🇰🇷', l10n),
               _languageTile(context, 'English', const Locale('en'), '🇺🇸', l10n),
               _languageTile(context, '日本語', const Locale('ja'), '🇯🇵', l10n),
@@ -131,22 +129,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // ✅ [수정] 세 번째 파라미터 타입을 Locale로 확정
   Widget _languageTile(BuildContext context, String label, Locale locale, String flagEmoji, AppLocalizations l10n) {
     return ListTile(
       leading: Text(flagEmoji, style: const TextStyle(fontSize: 24)),
       title: Text(label),
       onTap: () {
-        // 🔥 이제 localeProvider가 임포트되어 에러가 사라집니다.
         ref.read(localeProvider.notifier).setLocale(locale);
-
         Navigator.pop(context);
         _showTopSnackBar(context, "$label ${l10n.home_msg_lang_changing}");
       },
     );
   }
 
-  // ✅ [추가] 상단 스낵바 함수 (에러 해결)
   void _showTopSnackBar(BuildContext context, String message) {
     final overlay = Overlay.of(context);
     final entry = OverlayEntry(
@@ -217,7 +211,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return content;
   }
 
-  // 🔥 퀵메뉴 그룹 l10n 적용
   List<_QuickMenuData> _getGroup1(BuildContext context, AppLocalizations l10n) => [
     _QuickMenuData(icon: Icons.stadium_outlined, label: l10n.menu_quick_arena, color: Colors.indigo, onTap: () => MainScreen.changeTab(context, 2)),
     _QuickMenuData(icon: Icons.leaderboard_rounded, label: l10n.menu_quick_league, color: Colors.teal, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SteelLeagueRankingScreen()))),
@@ -238,7 +231,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🔥 번역기 초기화
     final l10n = AppLocalizations.of(context)!;
 
     return SingleChildScrollView(
@@ -261,9 +253,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           _buildQuickMenuSlider(_getGroup2(context, l10n), _quickMenuController2),
           const SizedBox(height: 16),
 
+          // 1. 라이브 현황
           const LivePracticeBoard(),
           const SizedBox(height: 24),
 
+          // 2. 퀵 노티스 (라이브 현황 아래로 위치 변경)
+          _buildOngoingLeagueBar(),
+          const SizedBox(height: 16),
+
+          // 3. 주간 일정 (퀵 노티스 아래로 위치 변경)
           _buildWeeklyTimeline(context, l10n),
           const SizedBox(height: 24),
 
@@ -291,17 +289,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildTopProfileSection(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
     final user = FirebaseAuth.instance.currentUser;
-
-    // 1️⃣ 현재 설정된 Locale 가져오기 (Riverpod 감시)
     final currentLocale = ref.watch(localeProvider);
 
-    // 2️⃣ 현재 언어에 맞는 국기 이모지를 반환하는 헬퍼 함수
     String getFlagEmoji(Locale locale) {
       switch (locale.languageCode) {
         case 'en': return '🇺🇸';
         case 'ja': return '🇯🇵';
         case 'zh':
-        // 대만(번체)과 중국(간체) 구분 로직
           return (locale.scriptCode == 'Hant') ? '🇹🇼' : '🇨🇳';
         case 'ko':
         default:
@@ -309,12 +303,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
     }
 
+    Widget languageSelector() => GestureDetector(
+        onTap: () => _showLanguageSelector(context, l10n),
+        child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+            child: Row(children: [
+              Text(getFlagEmoji(currentLocale), style: const TextStyle(fontSize: 18)),
+              const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey)
+            ])
+        )
+    );
+
     if (user == null) {
-      return _buildProfileCardWrapper(
-          child: InkWell(
-              onTap: () => Navigator.pushNamed(context, RouteConstants.login),
-              child: Row(children: [const CircleAvatar(radius: 25, child: Icon(Icons.person_outline)), const SizedBox(width: 12), Text(l10n.home_msg_profile_needed, style: const TextStyle(fontWeight: FontWeight.w600))])
-          )
+      return Row(
+        children: [
+          Expanded(
+            child: _buildProfileCardWrapper(
+                child: InkWell(
+                    onTap: () => Navigator.pushNamed(context, RouteConstants.login),
+                    child: Row(children: [
+                      const CircleAvatar(radius: 25, child: Icon(Icons.person_outline)),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(l10n.home_msg_profile_needed, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis))
+                    ])
+                )
+            ),
+          ),
+          const SizedBox(width: 8),
+          languageSelector(),
+        ],
       );
     }
 
@@ -322,11 +340,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       stream: FirebaseFirestore.instance.collection('users').doc(user.uid).snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData || !snapshot.data!.exists) {
-          return _buildProfileCardWrapper(
-              child: InkWell(
-                  onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
-                  child: Row(children: [const CircleAvatar(radius: 25, child: Icon(Icons.person_add)), const SizedBox(width: 12), Text(l10n.home_msg_profile_register, style: const TextStyle(fontWeight: FontWeight.w600))])
-              )
+          return Row(
+            children: [
+              Expanded(
+                child: _buildProfileCardWrapper(
+                    child: InkWell(
+                        onTap: () => Navigator.pushNamed(context, RouteConstants.profileRegister),
+                        child: Row(children: [
+                          const CircleAvatar(radius: 25, child: Icon(Icons.person_add)),
+                          const SizedBox(width: 12),
+                          Expanded(child: Text(l10n.home_msg_profile_register, style: const TextStyle(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis))
+                        ])
+                    )
+                ),
+              ),
+              const SizedBox(width: 8),
+              languageSelector(),
+            ],
           );
         }
 
@@ -344,21 +374,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             if (adminBadge != null) Positioned(left: currentRank != null ? -18 : -5, top: -5, child: BadgeWidget(badgeKey: adminBadge, size: 20)),
           ]),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("${data['koreanName'] ?? l10n.name_no_name}님,", style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)), Text(l10n.home_welcome_msg, style: const TextStyle(fontSize: 13, color: Colors.grey))])),
-
-          // 🔥 언어 선택기 수정 (국기 자동 변경)
-          GestureDetector(
-              onTap: () => _showLanguageSelector(context, l10n),
-              child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    // ✅ 🌐 대신 현재 언어의 국기 이모지 표시
-                    Text(getFlagEmoji(currentLocale), style: const TextStyle(fontSize: 18)),
-                    const Icon(Icons.arrow_drop_down, size: 18, color: Colors.grey)
-                  ])
-              )
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text("${data['koreanName'] ?? l10n.name_no_name}님,", style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              Text(l10n.home_welcome_msg, style: const TextStyle(fontSize: 13, color: Colors.grey), overflow: TextOverflow.ellipsis)
+            ]),
           ),
+          languageSelector(),
         ]);
       },
     );
@@ -394,6 +416,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildWeeklyTimeline(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('official_calendar').snapshots(),
       builder: (context, snapshot) {
@@ -418,22 +442,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         final combinedDailyEvents = [...filteredF, ...filteredG];
 
+        final String dateDisplay = DateFormat.yMMMEd(locale).format(_selectedDate);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(l10n.home_title_official_calendar, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 2),
-                    GestureDetector(
-                      onTap: () => setState(() => _selectedDate = DateTime.now()),
-                      child: Text("${_selectedDate.year}년 ${_selectedDate.month}월 ${_selectedDate.day}일 <${_getWeekday(_selectedDate.weekday, l10n)}>", style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500)),
-                    )
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.home_title_official_calendar, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 2),
+                      GestureDetector(
+                        onTap: () => setState(() => _selectedDate = DateTime.now()),
+                        child: Text(
+                          dateDisplay,
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      )
+                    ],
+                  ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pushNamed(context, RouteConstants.officialCalendar),
@@ -513,7 +546,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Row(children: [
                       Container(width: 3, height: 14, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
                       const SizedBox(width: 8),
-                      Text(l10n.home_msg_no_calendar, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+                      Expanded(child: Text(l10n.home_msg_no_calendar, style: const TextStyle(fontSize: 13, color: Colors.blueGrey, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis)),
                     ])
                   else
                     ...combinedDailyEvents.map((item) {
@@ -556,11 +589,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis),
+                                    Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700), overflow: TextOverflow.ellipsis, maxLines: 1),
                                     if (hasVenue)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 2),
-                                        child: Text(venue!, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w400), overflow: TextOverflow.ellipsis),
+                                        child: Text(venue!, style: TextStyle(fontSize: 12, color: Colors.grey[600], fontWeight: FontWeight.w400), overflow: TextOverflow.ellipsis, maxLines: 1),
                                       ),
                                   ],
                                 ),
@@ -571,7 +604,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
-            _buildOngoingLeagueBar(),
+            // 💡 원래 여기서 호출하던 _buildOngoingLeagueBar()를 삭제하고 build 메서드 상단으로 옮겼습니다.
           ],
         );
       },
@@ -587,12 +620,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ]);
   }
 
-  // 🔥 [방법 1] arb를 활용한 요일 변환
   String _getWeekday(int weekday, AppLocalizations l10n) {
     return [l10n.day_mon, l10n.day_tue, l10n.day_wed, l10n.day_thu, l10n.day_fri, l10n.day_sat, l10n.day_sun][weekday - 1];
   }
 
-  // --- 기존 도우미 함수들 ---
   void _handleAdminCleanup() {
     final user = FirebaseAuth.instance.currentUser;
     const String adminUid = "NanHPgCdsbMCFkHEs7MtxS51OSX2";
@@ -636,7 +667,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         physics: const BouncingScrollPhysics(),
         child: Padding(
           padding: const EdgeInsets.only(left: 0, right: 16, bottom: 12),
-          child: Row(children: items.asMap().entries.map((entry) => Row(children: [if (entry.key > 0) const SizedBox(width: 8), SizedBox(width: 68, child: _QuickMenuItem(data: entry.value))])).toList()),
+          child: Row(children: items.asMap().entries.map((entry) => Row(children: [if (entry.key > 0) const SizedBox(width: 8), SizedBox(width: 72, child: _QuickMenuItem(data: entry.value))])).toList()),
         ),
       ),
     );
@@ -684,7 +715,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: neonColor, width: 2.5), boxShadow: [BoxShadow(color: neonColor.withOpacity(0.15), blurRadius: 10)]),
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     if (data['logoKey'] != null && data['logoKey'] != 'none') Padding(padding: const EdgeInsets.only(right: 10), child: Image.asset('assets/images/logos/${data['logoKey']}.png', height: 24, fit: BoxFit.contain, errorBuilder: (_, __, ___) => const SizedBox.shrink())),
-                    Flexible(child: Text(displayContent, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)), overflow: TextOverflow.ellipsis)),
+                    Expanded(child: Text(displayContent, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)), overflow: TextOverflow.ellipsis, maxLines: 1)),
                     const SizedBox(width: 8),
                     Icon(Icons.arrow_forward_ios_rounded, size: 12, color: neonColor),
                   ]),
@@ -728,12 +759,18 @@ class _QuickMenuItem extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: 85,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         child: Column(
           children: [
             Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: data.color.withOpacity(0.12), shape: BoxShape.circle), child: Icon(data.icon, size: 24, color: data.color)),
             const SizedBox(height: 8),
-            Text(data.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.black87, letterSpacing: -0.5), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(
+              data.label,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87, letterSpacing: -0.5),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
