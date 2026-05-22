@@ -68,7 +68,7 @@ android {
             isMinifyEnabled = false
             isShrinkResources = false
 
-            // 🔥 [핵심 추가] 혹시 모를 릴리즈 난독화 예외 처리를 위해 프로가드 규칙 파일을 정확히 연결합니다.
+            // ✅ 혹시 모를 릴리즈 난독화 예외 처리를 위해 프로가드 규칙 파일을 정확히 연결합니다.
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
             if (hasKeystore) {
@@ -93,7 +93,11 @@ dependencies {
     debugImplementation("com.google.firebase:firebase-appcheck-debug:17.2.0")
     releaseImplementation("com.google.firebase:firebase-appcheck-playintegrity:17.2.0")
 
+    // 🔥 [16KB 구글 플레이 콘솔 거부 에러 완벽 해결]
+    // ML Kit Pose Detection 패키지가 내부적으로 옛날 버전의 미디어파이프 파편을 물고 오더라도,
+    // 안드로이드 네이티브 빌드 시점에 16KB 메모리 페이지를 완벽하게 공식 지원하는 순정 최신 라이브러리로 덮어씁니다.
     implementation("com.google.mediapipe:tasks-vision:0.10.14")
+
     implementation("androidx.camera:camera-core:1.3.0")
     implementation("androidx.camera:camera-camera2:1.3.0")
     implementation("androidx.camera:camera-lifecycle:1.3.0")
@@ -101,4 +105,3 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
 }
-

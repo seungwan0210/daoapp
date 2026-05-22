@@ -2,7 +2,7 @@ name: daoapp
 description: "스틸리그 포인트 집계 앱 - 관리자 전용 입력 + 실시간 랭킹 + 경기 일정"
 publish_to: 'none'
 
-version: 1.4.6+48
+version: 1.4.8+50
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
@@ -69,7 +69,7 @@ dependencies:
   chewie: ^1.13.0
 
   # ==== ML / Export ====
-  google_mlkit_pose_detection: ^0.14.0
+  google_mlkit_pose_detection: ^0.14.1
   gal: ^2.3.2
   ffmpeg_kit_flutter_new: ^4.1.0
 
