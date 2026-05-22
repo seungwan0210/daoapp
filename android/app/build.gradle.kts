@@ -63,8 +63,13 @@ android {
 
     buildTypes {
         getByName("release") {
+            // 🔹 타이밍 및 권한 외에 컴파일러 가위질로 인한 데이터 증발(Serialization 깨짐)을 막기 위해
+            // 안전하게 false 기조를 유지합니다.
             isMinifyEnabled = false
             isShrinkResources = false
+
+            // 🔥 [핵심 추가] 혹시 모를 릴리즈 난독화 예외 처리를 위해 프로가드 규칙 파일을 정확히 연결합니다.
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
 
             if (hasKeystore) {
                 signingConfig = signingConfigs.getByName("release")
@@ -96,3 +101,4 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
 }
+

@@ -10,7 +10,8 @@ import 'package:daoapp/presentation/screens/training/grip_lab/grip_camera_screen
 import 'package:daoapp/presentation/screens/training/grip_lab/widgets/ghost_overlay_painter.dart';
 import 'package:daoapp/core/utils/grip_coach.dart';
 import 'package:daoapp/data/services/native_grip_bridge.dart';
-import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
+import 'package:daoapp/services/grip_snapshot_service.dart';
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class GripCompareScreen extends ConsumerStatefulWidget {
   const GripCompareScreen({super.key});
@@ -22,9 +23,13 @@ class GripCompareScreen extends ConsumerStatefulWidget {
 class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
   final NativeGripBridge _cameraBridge = NativeGripBridge();
 
+  // 🔥 [구조 변경] 이제 화면 전체가 아닌, 하단 결과 분석 스크롤 뷰만 타깃으로 삼습니다.
+  final GlobalKey _resultCaptureKey = GlobalKey();
+
   bool _isCaptured = false;
   List<Offset>? _capturedLandmarks;
   List<String> _aiFeedback = [];
+  File? _capturedFile;
 
   bool _isProcessing = false;
   int _cooldownSeconds = 0;
@@ -85,6 +90,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
       _isCaptured = false;
       _capturedLandmarks = null;
       _aiFeedback = [];
+      _capturedFile = null;
     });
     ref.read(gripLabProvider.notifier).stopAnalysis();
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -92,35 +98,67 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
     });
   }
 
-  void _captureAndAnalyze() {
+  void _captureAndAnalyze() async {
     if (_isProcessing || _cooldownSeconds > 0) return;
 
-    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스 가져오기
+    final s = AppLocalizations.of(context)!;
     final gripState = ref.read(gripLabProvider);
     final baseline = ref.read(gripBaselineProvider).baseline;
 
     if (gripState.isHandDetected && gripState.landmarks.length >= 21 && baseline != null) {
       _startCooldown();
 
-      // 🔹 s: s 파라미터를 추가하여 분석 로직에 언어팩을 전달합니다.
+      // 1. 순수 연산 기반 AI 분석 결과 도출
       final feedback = GripCoach.analyze(
         s: s,
         baseline: baseline.landmarks,
         current: gripState.landmarks,
       );
 
+      // 먼저 상태를 변경하여 하단 결과 위젯 레이아웃(_resultCaptureKey)이 화면에 트리거되도록 유도합니다.
       setState(() {
         _isCaptured = true;
         _capturedLandmarks = List.from(gripState.landmarks);
         _aiFeedback = feedback;
       });
-      ref.read(gripLabProvider.notifier).stopAnalysis();
+
+      try {
+        final double ratio = GripSnapshotService.recommendPixelRatio(context);
+
+        // 2. 0순위 선(先) 캡처: 상태 변화 후 하단 뷰 픽셀 바이트를 안전하게 떠냅니다.
+        final file = await GripSnapshotService.captureToTempFile(
+          boundaryKey: _resultCaptureKey,
+          filenamePrefix: 'grip_compare',
+          saveToGallery: true,
+          pixelRatio: ratio,
+        );
+
+        // 3. 캡처가 온전히 확보되면 비로소 분석 네이티브 영상 스트림을 닫습니다.
+        ref.read(gripLabProvider.notifier).stopAnalysis();
+
+        if (file != null) {
+          setState(() {
+            _capturedFile = file;
+          });
+        }
+
+      } catch (e) {
+        _isProcessing = false;
+        if (mounted) {
+          setState(() {});
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("결과 저장 도중 예외 발생: ${e.toString()}")),
+          );
+          // 실패 시 분석 스트림 원복 복구
+          ref.read(gripLabProvider.notifier).startAnalysis();
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final s = AppLocalizations.of(context)!; // 🔹 언어팩 인스턴스
+    final s = AppLocalizations.of(context)!;
     final baselineState = ref.watch(gripBaselineProvider);
     final gripState = ref.watch(gripLabProvider);
 
@@ -178,6 +216,7 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
             ),
         ],
       ),
+      // ❌ 보디 전체를 묶어 네이티브 서피스 버퍼를 깨뜨리던 외곽 RepaintBoundary 가드를 해제했습니다.
       body: _isCaptured
           ? _buildCapturedSplitView(baselineModel, gripState, s)
           : _buildLiveView(baselineModel, isHandLive, gripState, s),
@@ -210,9 +249,13 @@ class _GripCompareScreenState extends ConsumerState<GripCompareScreen> {
         ),
         Expanded(
           flex: 1,
-          child: Container(
-            color: const Color(0xFF121212),
-            child: _buildResultScrollView(s),
+          // 🔥 [핵심 수정] 네이티브 서피스를 완벽히 제외하고, 순수 플러터 컨텐츠인 하단 결과 뷰 영역만 캡처 타깃으로 격리 지정합니다.
+          child: RepaintBoundary(
+            key: _resultCaptureKey,
+            child: Container(
+              color: const Color(0xFF121212),
+              child: _buildResultScrollView(s),
+            ),
           ),
         ),
       ],

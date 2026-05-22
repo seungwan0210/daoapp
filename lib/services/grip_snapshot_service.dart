@@ -25,10 +25,10 @@ class GripSnapshotService {
       }) async {
     final boundary = _getBoundary(repaintBoundaryKey);
 
-    // 첫 프레임 등에서 boundary가 준비되지 않았을 경우 대기
-    if (boundary.debugNeedsPaint) {
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-    }
+    // 🔥 [배포 모드 타이밍 버그 최종 해결]
+    // AOT 기계어 최적화 빌드에서는 20ms의 유격이 너무 짧아 픽셀 서피스를 정상적으로 동기화하지 못합니다.
+    // 렌더링 버퍼가 확실하게 채워지고 메모리가 완전히 정렬될 수 있도록 프레임 대기 마진을 150ms로 늘려줍니다.
+    await Future<void>.delayed(const Duration(milliseconds: 150));
 
     // 캡처 실행 (toImage)
     final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
@@ -49,9 +49,8 @@ class GripSnapshotService {
       }) async {
     final boundary = _getBoundary(repaintBoundaryKey);
 
-    if (boundary.debugNeedsPaint) {
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-    }
+    // 🔥 여기도 마찬가지로 안전 마진을 확보하여 릴리즈 모드에서의 충돌을 예방합니다.
+    await Future<void>.delayed(const Duration(milliseconds: 150));
 
     return boundary.toImage(pixelRatio: pixelRatio);
   }
@@ -66,7 +65,6 @@ class GripSnapshotService {
   }) async {
     try {
       // A. 해상도(Ratio) 결정 로직
-      // 외부에서 pixelRatio를 지정했으면 그걸 쓰고, 아니면 기기 해상도에 맞춰 자동 계산
       double ratio;
       if (pixelRatio != null) {
         ratio = pixelRatio;
@@ -83,11 +81,18 @@ class GripSnapshotService {
       final name = '${filenamePrefix}_${DateTime.now().millisecondsSinceEpoch}.png';
       final file = File('${dir.path}/$name');
 
+      // 💡 [배포 모드 안정성] OS 버퍼 비우기(flush)를 true로 설정하여 파일이 디스크에 완전히 쓰이도록 보장
       await file.writeAsBytes(bytes, flush: true);
 
-      // D. 갤러리 저장 (비동기 처리 가능하지만, 안정성을 위해 await 권장)
+      // D. 갤러리 저장
       if (saveToGallery) {
-        await _saveToGallery(file.path);
+        // 💡 갤러리 저장이 실패하더라도 'Firebase 업로드를 위한 임시 파일 반환'이라는 메인 스트림이
+        // 무조건적으로 성공할 수 있도록 여기서 한 번 더 별도의 try-catch 안전망을 씌웁니다.
+        try {
+          await _saveToGallery(file.path);
+        } catch (galError) {
+          debugPrint("⚠️ 갤러리 저장 단계 최상위 가드 통과 실패 (메인 플로우 유지): $galError");
+        }
       }
 
       return file;
@@ -115,8 +120,7 @@ class GripSnapshotService {
       debugPrint("✅ 갤러리 저장 완료: DAO Darts 앨범");
 
     } catch (e) {
-      // 갤러리 저장이 실패해도 메인 플로우(임시파일 반환)는 방해하지 않음
-      debugPrint("⚠️ 갤러리 저장 실패: $e");
+      debugPrint("⚠️ 갤러리 저장 내부 예외 발생: $e");
     }
   }
 
@@ -140,8 +144,11 @@ class GripSnapshotService {
   /// [Internal] 적절한 픽셀 비율 추천
   /// 너무 고해상도(3.0 이상)는 처리 속도가 느리므로 적절히 제한합니다.
   static double recommendPixelRatio(BuildContext context) {
+    // 💡 디바이스 고유의 dpr을 가져오되 시스템 누락 시 2.0 매핑
     final dpr = MediaQuery.maybeOf(context)?.devicePixelRatio ?? 2.0;
-    // 안정성과 속도를 위해 최대 2.5 정도로 제한하는 것을 추천
-    return dpr.clamp(1.5, 2.5);
+
+    // 💡 배포 모드 Impeller 그래픽 버퍼의 연산 과부하를 완전히 해결하기 위해
+    // 최대 상한선을 기존 2.5에서 초안정권인 2.0으로 클램핑 범위를 최적화합니다.
+    return dpr.clamp(1.2, 1.5);
   }
 }

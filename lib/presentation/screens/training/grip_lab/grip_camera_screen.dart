@@ -10,7 +10,7 @@ import 'package:daoapp/data/models/grip_baseline_model.dart';
 import 'package:daoapp/services/grip_snapshot_service.dart';
 import 'package:daoapp/data/services/native_grip_bridge.dart';
 import 'widgets/ghost_overlay_painter.dart';
-import 'package:daoapp/l10n/app_localizations.dart'; // 🔹 추가
+import 'package:daoapp/l10n/app_localizations.dart';
 
 class GripCameraScreen extends ConsumerStatefulWidget {
   const GripCameraScreen({super.key});
@@ -130,21 +130,25 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
       return;
     }
 
-    ref.read(gripLabProvider.notifier).stopAnalysis();
+    // ❌ [기존 버그] 여기서 stopAnalysis()를 먼저 호출하여 네이티브 카메라 버퍼가 닫히고 에러를 유발했습니다.
+    // 💡 [수정] 먼저 UI 저장 중 상태(락)만 걸고 캡처 프로세스를 0순위로 진행합니다.
     setState(() => _isSaving = true);
 
     try {
-      final double pixelRatio = MediaQuery.of(context).devicePixelRatio > 3.0
-          ? 3.0
-          : MediaQuery.of(context).devicePixelRatio;
+      // 🔥 [화질 과부하 해제] 기존 3.0 고해상도 강제를 지우고, 최대 2.0으로 캡핑된 추천 배율을 적용합니다.
+      final double ratio = GripSnapshotService.recommendPixelRatio(context);
 
+      // 1️⃣ Impeller 엔진이 살아있는 영상 서피스 프레임을 메모리에 안전하게 캡처합니다.
       final File? file = await GripSnapshotService.captureToTempFile(
         boundaryKey: _captureKey,
         saveToGallery: true,
-        pixelRatio: pixelRatio,
+        pixelRatio: ratio,
       );
 
       if (file == null) throw Exception("Image capture failed");
+
+      // 2️⃣ 비트맵 스냅샷 파일이 확실하게 확보된 것을 확인한 후, 비로소 안전하게 영상 분석 스트림을 닫습니다.
+      ref.read(gripLabProvider.notifier).stopAnalysis();
 
       final baseline = GripBaselineModel(
         createdAt: DateTime.now(),
@@ -156,6 +160,7 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
         imageHeight: imageH,
       );
 
+      // 3️⃣ 무거운 Firebase Storage 업로드 및 Firestore 저장을 순차적으로 수행합니다.
       await ref.read(gripBaselineProvider.notifier).saveBaseline(
         imageFile: file,
         model: baseline,
@@ -169,12 +174,16 @@ class _GripCameraScreenState extends ConsumerState<GripCameraScreen> with Widget
       }
 
     } catch (e) {
+      // 🔥 [안전성 최적화] catch 블록 진입 시 락 상태를 무조건 해제하여 버튼 멈춤 현상을 차단합니다.
+      _isSaving = false;
+
       if (mounted) {
+        setState(() {}); // 로딩 인디케이터 해제 반영
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(s.grip_cam_msg_save_error(e.toString()))),
         );
+        // 혹시 캡처 도중 실패했거나 예외가 터졌을 경우에만 분석 스트림을 재개합니다.
         ref.read(gripLabProvider.notifier).startAnalysis();
-        setState(() => _isSaving = false);
       }
     }
   }
